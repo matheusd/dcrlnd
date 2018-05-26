@@ -16499,6 +16499,10 @@ var testsCases = []*testCase{
 		name: "cpfp",
 		test: testCPFP,
 	},
+	{
+		name: "macaroon authentication",
+		test: testMacaroonAuthentication,
+	},
 }
 
 // TestLightningNetworkDaemon performs a series of integration tests amongst a
