@@ -1683,7 +1683,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	sendReq := &lnrpc.SendToRouteRequest{
 		PaymentHash: resp.RHash,
-		Routes:      routes.Routes,
+		Route:       routes.Routes[0],
 	}
 
 	err = alicePayStream.Send(sendReq)
@@ -1721,7 +1721,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	sendReq = &lnrpc.SendToRouteRequest{
 		PaymentHash: resp.RHash,
-		Routes:      routes.Routes,
+		Route:       routes.Routes[0],
 	}
 
 	err = alicePayStream.Send(sendReq)
@@ -4619,7 +4619,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	for _, rHash := range rHashes {
 		sendReq := &lnrpc.SendToRouteRequest{
 			PaymentHash: rHash,
-			Routes:      routes.Routes,
+			Route:       routes.Routes[0],
 		}
 		err := alicePayStream.Send(sendReq)
 
@@ -4790,7 +4790,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	for _, rHash := range rHashes {
 		sendReq := &lnrpc.SendToRouteRequest{
 			PaymentHash: rHash,
-			Routes:      routes.Routes,
+			Route:       routes.Routes[0],
 		}
 		err := alicePayStream.Send(sendReq)
 
@@ -4946,7 +4946,7 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 
 	sendReq := &lnrpc.SendToRouteRequest{
 		PaymentHash: rHash,
-		Routes:      fakeRoute.Routes,
+		Route:       fakeRoute.Routes[0],
 	}
 
 	if err := alicePayStream.Send(sendReq); err != nil {
