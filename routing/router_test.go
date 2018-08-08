@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/zpay32"
@@ -407,12 +408,12 @@ func TestChannelUpdateValidation(t *testing.T) {
 
 	// The payment parameter is mostly redundant in SendToRoute. Can be left
 	// empty for this test.
-	payment := &LightningPayment{}
+	var payment lntypes.Hash
 
 	// Send off the payment request to the router. The specified route
 	// should be attempted and the channel update should be received by
 	// router and ignored because it is missing a valid signature.
-	_, _, err = ctx.router.SendToRoute([]*route.Route{rt}, payment)
+	_, err = ctx.router.SendToRoute(payment, rt)
 	if err == nil {
 		t.Fatalf("expected route to fail with channel update")
 	}
@@ -445,7 +446,7 @@ func TestChannelUpdateValidation(t *testing.T) {
 	}
 
 	// Retry the payment using the same route as before.
-	_, _, err = ctx.router.SendToRoute([]*route.Route{rt}, payment)
+	_, err = ctx.router.SendToRoute(payment, rt)
 	if err == nil {
 		t.Fatalf("expected route to fail with channel update")
 	}
