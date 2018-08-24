@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lnwallet"
 )
 
 var (
@@ -236,6 +237,8 @@ func (m *MockNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 }
 
 type mockChainIO struct{}
+
+var _ lnwallet.BlockChainIO = (*mockChainIO)(nil)
 
 func (m *mockChainIO) GetBestBlock() (*chainhash.Hash, int32, error) {
 	return nil, mockChainIOHeight, nil
