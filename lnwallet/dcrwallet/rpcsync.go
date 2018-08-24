@@ -79,7 +79,7 @@ func (s *RPCSyncer) GetBestBlock() (*chainhash.Hash, int32, error) {
 //
 // This method is a part of the lnwallet.BlockChainIO interface.
 func (s *RPCSyncer) GetUtxo(op *wire.OutPoint, pkScript []byte,
-	heightHint uint32) (*wire.TxOut, error) {
+	heightHint uint32, cancel <-chan struct{}) (*wire.TxOut, error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

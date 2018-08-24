@@ -967,7 +967,7 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 			var pkScript []byte
 			output, err := l.Cfg.ChainIO.GetUtxo(
 				&txin.PreviousOutPoint,
-				pkScript, 0,
+				pkScript, 0, l.quit,
 			)
 			if output == nil {
 				msg.err <- fmt.Errorf("input to funding tx "+
