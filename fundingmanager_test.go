@@ -1001,7 +1001,8 @@ func assertAddedToRouterGraph(t *testing.T, alice, bob *testNode,
 // advertised value will be checked against the other node's default min_htlc
 // value.
 func assertChannelAnnouncements(t *testing.T, alice, bob *testNode,
-	capacity dcrutil.Amount, customMinHtlc ...lnwire.MilliAtom) {
+	capacity dcrutil.Amount, customMinHtlc []lnwire.MilliAtom,
+	customMaxHtlc []lnwire.MilliAtom) {
 	t.Helper()
 
 	// After the FundingLocked message is sent, Alice and Bob will each
@@ -1054,21 +1055,28 @@ func assertChannelAnnouncements(t *testing.T, alice, bob *testNode,
 						minHtlc, m.HtlcMinimumMAtoms)
 				}
 
-				// The MaxHTLC value should at this point
-				// _always_ be the same as the
-				// maxValueInFlight capacity.
+				maxHtlc := alice.fundingMgr.cfg.RequiredRemoteMaxValue(
+					capacity,
+				)
+				// We might expect a custom MaxHltc value.
+				if len(customMaxHtlc) > 0 {
+					if len(customMaxHtlc) != 2 {
+						t.Fatalf("only 0 or 2 custom " +
+							"min htlc values " +
+							"currently supported")
+					}
+
+					maxHtlc = customMaxHtlc[j]
+				}
 				if m.MessageFlags != 1 {
 					t.Fatalf("expected message flags to "+
 						"be 1, was %v", m.MessageFlags)
 				}
 
-				maxPendingMatoms := alice.fundingMgr.cfg.RequiredRemoteMaxValue(
-					capacity,
-				)
-				if maxPendingMatoms != m.HtlcMaximumMAtoms {
+				if maxHtlc != m.HtlcMaximumMAtoms {
 					t.Fatalf("expected ChannelUpdate to "+
 						"advertise max HTLC %v, had %v",
-						maxPendingMatoms,
+						maxHtlc,
 						m.HtlcMaximumMAtoms)
 				}
 
@@ -1254,7 +1262,7 @@ func TestFundingManagerNormalWorkflow(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Check that the state machine is updated accordingly
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
@@ -1406,7 +1414,7 @@ func TestFundingManagerRestartBehavior(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Check that the state machine is updated accordingly
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
@@ -1544,7 +1552,7 @@ func TestFundingManagerOfflinePeer(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Check that the state machine is updated accordingly
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
@@ -1952,7 +1960,7 @@ func TestFundingManagerReceiveFundingLockedTwice(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Check that the state machine is updated accordingly
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
@@ -2055,7 +2063,7 @@ func TestFundingManagerRestartAfterChanAnn(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Check that the state machine is updated accordingly
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
@@ -2156,7 +2164,7 @@ func TestFundingManagerRestartAfterReceivingFundingLocked(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Check that the state machine is updated accordingly
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
@@ -2227,7 +2235,7 @@ func TestFundingManagerPrivateChannel(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// The funding transaction is now confirmed, wait for the
 	// OpenStatusUpdate_ChanOpen update
@@ -2340,7 +2348,7 @@ func TestFundingManagerPrivateRestart(t *testing.T) {
 
 	// Make sure both fundingManagers send the expected channel
 	// announcements.
-	assertChannelAnnouncements(t, alice, bob, capacity)
+	assertChannelAnnouncements(t, alice, bob, capacity, nil, nil)
 
 	// Note: We don't check for the addedToRouterGraph state because in
 	// the private channel mode, the state is quickly changed from
@@ -2435,6 +2443,8 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	// This is the custom parameters we'll use.
 	const csvDelay = 67
 	const minHtlcIn = 1234
+	const maxValueInFlight = 50000
+	const fundingAmt = 5000000
 
 	// We will consume the channel updates as we go, so no buffering is
 	// needed.
@@ -2448,15 +2458,16 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	// workflow.
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
-		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       activeNetParams.GenesisHash,
-		localFundingAmt: localAmt,
-		pushAmt:         lnwire.NewMAtomsFromAtoms(pushAmt),
-		private:         false,
-		minHtlcIn:       minHtlcIn,
-		remoteCsvDelay:  csvDelay,
-		updates:         updateChan,
-		err:             errChan,
+		targetPubkey:     bob.privKey.PubKey(),
+		chainHash:        activeNetParams.GenesisHash,
+		localFundingAmt:  localAmt,
+		pushAmt:          lnwire.NewMAtomsFromAtoms(pushAmt),
+		private:          false,
+		maxValueInFlight: maxValueInFlight,
+		minHtlcIn:        minHtlcIn,
+		remoteCsvDelay:   csvDelay,
+		updates:          updateChan,
+		err:              errChan,
 	}
 
 	alice.fundingMgr.initFundingWorkflow(bob, initReq)
@@ -2495,6 +2506,12 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 			minHtlcIn, openChannelReq.HtlcMinimum)
 	}
 
+	// Check that the max value in flight is sent as part of OpenChannel.
+	if openChannelReq.MaxValueInFlight != maxValueInFlight {
+		t.Fatalf("expected OpenChannel to have MaxValueInFlight %v, got %v",
+			maxValueInFlight, openChannelReq.MaxValueInFlight)
+	}
+
 	chanID := openChannelReq.PendingChannelID
 
 	// Let Bob handle the init message.
@@ -2515,6 +2532,14 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	if acceptChannelResponse.HtlcMinimum != 5 {
 		t.Fatalf("expected AcceptChannel to have minHtlc %v, got %v",
 			5, acceptChannelResponse.HtlcMinimum)
+	}
+
+	reserve := lnwire.NewMAtomsFromAtoms(fundingAmt / 100)
+	maxValueAcceptChannel := lnwire.NewMAtomsFromAtoms(fundingAmt) - reserve
+
+	if acceptChannelResponse.MaxValueInFlight != maxValueAcceptChannel {
+		t.Fatalf("expected AcceptChannel to have MaxValueInFlight %v, got %v",
+			maxValueAcceptChannel, acceptChannelResponse.MaxValueInFlight)
 	}
 
 	// Forward the response to Alice.
@@ -2562,6 +2587,27 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		return nil
 	}
 
+	// Helper method for checking the MaxValueInFlight stored for a
+	// reservation.
+	assertMaxHtlc := func(resCtx *reservationWithCtx,
+		expOurMaxValue, expTheirMaxValue lnwire.MilliAtom) error {
+
+		ourMaxValue :=
+			resCtx.reservation.OurContribution().MaxPendingAmount
+		if ourMaxValue != expOurMaxValue {
+			return fmt.Errorf("expected our maxValue to be %v, "+
+				"was %v", expOurMaxValue, ourMaxValue)
+		}
+
+		theirMaxValue :=
+			resCtx.reservation.TheirContribution().MaxPendingAmount
+		if theirMaxValue != expTheirMaxValue {
+			return fmt.Errorf("expected their MaxPendingAmount to be %v, "+
+				"was %v", expTheirMaxValue, theirMaxValue)
+		}
+		return nil
+	}
+
 	// Check that the custom channel parameters were properly set in the
 	// channel reservation.
 	resCtx, err := alice.fundingMgr.getReservationCtx(bobPubKey, chanID)
@@ -2569,7 +2615,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		t.Fatalf("unable to find ctx: %v", err)
 	}
 
-	// Alice's CSV delay should be 4 since Bob sent the fedault value, and
+	// Alice's CSV delay should be 4 since Bob sent the default value, and
 	// Bob's should be 67 since Alice sent the custom value.
 	if err := assertDelay(resCtx, 4, csvDelay); err != nil {
 		t.Fatal(err)
@@ -2578,6 +2624,14 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	// The minimum HTLC value Alice can offer should be 5, and the minimum
 	// Bob can offer should be 1234.
 	if err := assertMinHtlc(resCtx, 5, minHtlcIn); err != nil {
+		t.Fatal(err)
+	}
+
+	// The max value in flight Alice can have should be maxValueAcceptChannel,
+	// which is the default value and the maxium Bob can offer should be
+	// maxValueInFlight.
+	if err := assertMaxHtlc(resCtx,
+		maxValueAcceptChannel, maxValueInFlight); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2595,6 +2649,10 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := assertMaxHtlc(resCtx,
+		maxValueInFlight, maxValueAcceptChannel); err != nil {
+		t.Fatal(err)
+	}
 	// Give the message to Bob.
 	bob.fundingMgr.processFundingCreated(fundingCreated, alice)
 
@@ -2649,10 +2707,18 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	).(*lnwire.FundingLocked)
 
 	// Make sure both fundingManagers send the expected channel
-	// announcements. Alice should advertise the default MinHTLC value of
+	// announcements.
+	// Alice should advertise the default MinHTLC value of
 	// 5, while bob should advertise the value minHtlc, since Alice
 	// required him to use it.
-	assertChannelAnnouncements(t, alice, bob, capacity, 5, minHtlcIn)
+	minHtlcArr := []lnwire.MilliAtom{5, minHtlcIn}
+
+	// For maxHltc Alice should advertise the default MaxHtlc value of
+	// maxValueAcceptChannel, while bob should advertise the value
+	// maxValueInFlight since Alice required him to use it.
+	maxHtlcArr := []lnwire.MilliAtom{maxValueAcceptChannel, maxValueInFlight}
+
+	assertChannelAnnouncements(t, alice, bob, capacity, minHtlcArr, maxHtlcArr)
 
 	// The funding transaction is now confirmed, wait for the
 	// OpenStatusUpdate_ChanOpen update
