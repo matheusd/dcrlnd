@@ -96,16 +96,17 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 	// Construct the open channel request and send it to the server to
 	// begin the funding workflow.
 	req := &openChanReq{
-		targetPubkey:    target,
-		chainHash:       activeNetParams.GenesisHash,
-		subtractFees:    true,
-		localFundingAmt: amt,
-		pushAmt:         0,
-		minHtlcIn:       c.chanMinHtlcIn,
-		fundingFeePerKB: feePerKB,
-		private:         c.private,
-		remoteCsvDelay:  0,
-		minConfs:        c.minConfs,
+		targetPubkey:     target,
+		chainHash:        activeNetParams.GenesisHash,
+		subtractFees:     true,
+		localFundingAmt:  amt,
+		pushAmt:          0,
+		minHtlcIn:        c.chanMinHtlcIn,
+		fundingFeePerKB:  feePerKB,
+		private:          c.private,
+		remoteCsvDelay:   0,
+		minConfs:         c.minConfs,
+		maxValueInFlight: 0,
 	}
 
 	updateStream, errChan := c.server.OpenChannel(req)
