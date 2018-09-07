@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -120,6 +121,9 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 		scriptToWatch   []byte
 		err             error
 	)
+
+	// TODO(joostjager): output already set properly in
+	// lnwallet.newOutgoingHtlcResolution? And script too?
 	if h.htlcResolution.SignedTimeoutTx == nil {
 		outPointToWatch = h.htlcResolution.ClaimOutpoint
 		scriptToWatch = h.htlcResolution.SweepSignDesc.Output.PkScript
@@ -248,6 +252,27 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 		case <-h.Quit:
 			return nil, fmt.Errorf("resolver cancelled")
 		}
+	}
+}
+
+// report returns a report on the resolution state of the contract.
+func (h *htlcOutgoingContestResolver) report() *ContractReport {
+	// No locking needed as these values are read-only.
+
+	finalAmt := h.htlcAmt.ToAtoms()
+	if h.htlcResolution.SignedTimeoutTx != nil {
+		finalAmt = dcrutil.Amount(
+			h.htlcResolution.SignedTimeoutTx.TxOut[0].Value,
+		)
+	}
+
+	return &ContractReport{
+		Outpoint:       h.htlcResolution.ClaimOutpoint,
+		Incoming:       false,
+		Amount:         finalAmt,
+		MaturityHeight: h.htlcResolution.Expiry,
+		LimboBalance:   finalAmt,
+		Stage:          1,
 	}
 }
 
