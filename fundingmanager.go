@@ -561,6 +561,14 @@ func (f *fundingManager) start() error {
 			fndgLog.Debugf("ChannelID(%v) is now fully confirmed! "+
 				"(shortChanID=%v)", chanID, shortChanID)
 
+			err = f.handleFundingConfirmation(ch, *shortChanID)
+			if err != nil {
+				fndgLog.Errorf("unable to handle funding "+
+					"confirmation for ChannelPoint(%v): %v",
+					ch.FundingOutpoint, err)
+				return
+			}
+
 			f.wg.Add(1)
 			go f.advanceFundingState(ch, nil)
 		}(channel)
@@ -1647,6 +1655,14 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 		fndgLog.Debugf("ChannelID(%v) is now fully confirmed! "+
 			"(shortChanID=%v)", channelID, shortChanID)
 
+		err = f.handleFundingConfirmation(completeChan, *shortChanID)
+		if err != nil {
+			fndgLog.Errorf("unable to handle funding "+
+				"confirmation for ChannelPoint(%v): %v",
+				completeChan.FundingOutpoint, err)
+			return
+		}
+
 		f.wg.Add(1)
 		go f.advanceFundingState(completeChan, nil)
 
@@ -1890,16 +1906,6 @@ func (f *fundingManager) waitForFundingWithTimeout(completeChan *channeldb.OpenC
 				// Failed waiting for confirmation, close
 				// confChan to indicate failure.
 				close(confChan)
-				return
-			}
-
-			err = f.handleFundingConfirmation(
-				completeChan, *shortChanID,
-			)
-			if err != nil {
-				fndgLog.Errorf("unable to handle funding "+
-					"confirmation for ChannelPoint(%v): %v",
-					completeChan.FundingOutpoint, err)
 				return
 			}
 
