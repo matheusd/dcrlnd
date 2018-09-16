@@ -897,8 +897,22 @@ func (f *fundingManager) stateStep(channel *channeldb.OpenChannel,
 				err)
 		}
 
+		// As the fundingLocked message is now sent to the peer, the
+		// channel is moved to the next state of the state machine. It
+		// will be moved to the last state (actually deleted from the
+		// database) after the channel is finally announced.
+		err = f.saveChannelOpeningState(
+			&channel.FundingOutpoint, fundingLockedSent,
+			shortChanID,
+		)
+		if err != nil {
+			return fmt.Errorf("error setting channel state to"+
+				" fundingLockedSent: %v", err)
+		}
+
 		fndgLog.Debugf("Channel(%v) with ShortChanID %v: successfully "+
 			"sent FundingLocked", chanID, shortChanID)
+
 		return nil
 
 	// fundingLocked was sent to peer, but the channel was not added to the
@@ -908,6 +922,19 @@ func (f *fundingManager) stateStep(channel *channeldb.OpenChannel,
 		if err != nil {
 			return fmt.Errorf("failed adding to "+
 				"router graph: %v", err)
+		}
+
+		// As the channel is now added to the ChannelRouter's topology,
+		// the channel is moved to the next state of the state machine.
+		// It will be moved to the last state (actually deleted from
+		// the database) after the channel is finally announced.
+		err = f.saveChannelOpeningState(
+			&channel.FundingOutpoint, addedToRouterGraph,
+			shortChanID,
+		)
+		if err != nil {
+			return fmt.Errorf("error setting channel state to"+
+				" addedToRouterGraph: %v", err)
 		}
 
 		fndgLog.Debugf("Channel(%v) with ShortChanID %v: successfully "+
@@ -951,8 +978,20 @@ func (f *fundingManager) stateStep(channel *channeldb.OpenChannel,
 				"announcement: %v", err)
 		}
 
+		// We delete the channel opening state from our internal
+		// database as the opening process has succeeded. We can do
+		// this because we assume the AuthenticatedGossiper queues the
+		// announcement messages, and persists them in case of a daemon
+		// shutdown.
+		err = f.deleteChannelOpeningState(&channel.FundingOutpoint)
+		if err != nil {
+			return fmt.Errorf("error deleting channel state: %v",
+				err)
+		}
+
 		fndgLog.Debugf("Channel(%v) with ShortChanID %v: successfully "+
 			"announced", chanID, shortChanID)
+
 		return nil
 	}
 
@@ -2080,17 +2119,6 @@ func (f *fundingManager) sendFundingLocked(peer lnpeer.Peer,
 		}
 	}
 
-	// As the fundingLocked message is now sent to the peer, the channel is
-	// moved to the next state of the state machine. It will be moved to the
-	// last state (actually deleted from the database) after the channel is
-	// finally announced.
-	err = f.saveChannelOpeningState(&completeChan.FundingOutpoint,
-		fundingLockedSent, shortChanID)
-	if err != nil {
-		return fmt.Errorf("error setting channel state to"+
-			" fundingLockedSent: %v", err)
-	}
-
 	return nil
 }
 
@@ -2167,17 +2195,6 @@ func (f *fundingManager) addToRouterGraph(completeChan *channeldb.OpenChannel,
 		}
 	case <-f.quit:
 		return ErrFundingManagerShuttingDown
-	}
-
-	// As the channel is now added to the ChannelRouter's topology, the
-	// channel is moved to the next state of the state machine. It will be
-	// moved to the last state (actually deleted from the database) after
-	// the channel is finally announced.
-	err = f.saveChannelOpeningState(&completeChan.FundingOutpoint,
-		addedToRouterGraph, shortChanID)
-	if err != nil {
-		return fmt.Errorf("error setting channel state to"+
-			" addedToRouterGraph: %v", err)
 	}
 
 	return nil
@@ -2319,15 +2336,6 @@ func (f *fundingManager) annAfterSixConfs(completeChan *channeldb.OpenChannel,
 
 		fndgLog.Debugf("Channel with ChannelPoint(%v), short_chan_id=%v "+
 			"announced", &fundingPoint, shortChanID)
-	}
-
-	// We delete the channel opening state from our internal database
-	// as the opening process has succeeded. We can do this because we
-	// assume the AuthenticatedGossiper queues the announcement messages,
-	// and persists them in case of a daemon shutdown.
-	err := f.deleteChannelOpeningState(&completeChan.FundingOutpoint)
-	if err != nil {
-		return fmt.Errorf("error deleting channel state: %v", err)
 	}
 
 	return nil
