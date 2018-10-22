@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch"
@@ -82,6 +83,7 @@ var (
 	wtwrLog = build.NewSubLogger("WTWR", backendLog.Logger)
 	ntfrLog = build.NewSubLogger("NTFR", backendLog.Logger)
 	irpcLog = build.NewSubLogger("IRPC", backendLog.Logger)
+	chnfLog = build.NewSubLogger("CHNF", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -108,6 +110,7 @@ func init() {
 	watchtower.UseLogger(wtwrLog)
 	chainrpc.UseLogger(ntfrLog)
 	invoicesrpc.UseLogger(irpcLog)
+	channelnotifier.UseLogger(chnfLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
@@ -140,6 +143,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"WTWR": wtwrLog,
 	"NTFR": ntfnLog,
 	"IRPC": irpcLog,
+	"CHNF": chnfLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and

@@ -25,6 +25,7 @@ import (
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/brontide"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch"
@@ -144,6 +145,8 @@ type server struct {
 	htlcSwitch *htlcswitch.Switch
 
 	invoices *invoices.InvoiceRegistry
+
+	channelNotifier *channelnotifier.ChannelNotifier
 
 	witnessBeacon contractcourt.WitnessBeacon
 
@@ -274,6 +277,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		writeBufferPool: writeBufferPool,
 
 		invoices: invoices.NewRegistry(chanDB, activeNetParams.Params),
+
+		channelNotifier: channelnotifier.New(chanDB),
 
 		identityPriv: privKey,
 		nodeSigner:   netann.NewNodeSigner(privKey),
@@ -977,6 +982,9 @@ func (s *server) Start() error {
 	if err := s.cc.chainNotifier.Start(); err != nil {
 		return err
 	}
+	if err := s.channelNotifier.Start(); err != nil {
+		return err
+	}
 	if err := s.sphinx.Start(); err != nil {
 		return err
 	}
@@ -1076,6 +1084,7 @@ func (s *server) Stop() error {
 	s.authGossiper.Stop()
 	s.chainArb.Stop()
 	s.sweeper.Stop()
+	s.channelNotifier.Stop()
 	s.cc.wallet.Shutdown()
 	s.cc.chainView.Stop()
 	s.connMgr.Stop()
