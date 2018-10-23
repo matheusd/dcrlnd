@@ -1,4 +1,4 @@
-package routerpc
+package routerrpc
 
 import (
 	"github.com/decred/dcrlnd/build"
