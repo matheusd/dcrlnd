@@ -3806,9 +3806,7 @@ func (r *rpcServer) sendPayment(stream *paymentStream) error {
 			select {
 			case <-reqQuit:
 				return
-			case <-r.quit:
-				errChan <- nil
-				return
+
 			default:
 				// Receive the next pending payment within the
 				// stream sent by the client. If we read the
@@ -3865,6 +3863,9 @@ func (r *rpcServer) sendPayment(stream *paymentStream) error {
 		select {
 		case err := <-errChan:
 			return err
+
+		case <-r.quit:
+			return errors.New("rpc server shutting down")
 
 		case payIntent := <-payChan:
 			// We launch a new goroutine to execute the current
