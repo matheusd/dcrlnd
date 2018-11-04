@@ -803,6 +803,12 @@ message SendRequest {
     enough capacity to send it.
     */
     bool ignore_max_outbound_amt = 9;
+
+    /** 
+    An optional maximum total time lock for the route. If zero, there is no
+    maximum enforced.
+    */
+    uint32 cltv_limit = 11;
 }
 
 message SendResponse {
