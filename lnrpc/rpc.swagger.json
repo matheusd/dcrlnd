@@ -3009,6 +3009,11 @@
           "type": "boolean",
           "format": "boolean",
           "description": "*\nWhether to forgo checking for the maximum outbound amount before attempting\nto send the payment.\n\nWhen sending a payment, the node will check if there is enough outbound\nbandwidth in at least one of its directly connected channels (after\naccounting for the required reserves) before attempting to determine a\nroute for it. Specifying this parameter will disable these checks and allow\nthe node to attempt the payment even if there are no outbound channels with\nenough capacity to send it."
+        },
+        "cltv_limit": {
+          "type": "integer",
+          "format": "int64",
+          "description": "* \nAn optional maximum total time lock for the route. If zero, there is no\nmaximum enforced."
         }
       }
     },
