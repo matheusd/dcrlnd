@@ -86,10 +86,10 @@ type UtxoSweeperConfig struct {
 	// funds can be swept.
 	GenSweepScript func() ([]byte, error)
 
-	// Estimator is used when crafting sweep transactions to estimate the
-	// necessary fee relative to the expected size of the sweep
+	// FeeEstimator is used when crafting sweep transactions to estimate
+	// the necessary fee relative to the expected size of the sweep
 	// transaction.
-	Estimator lnwallet.FeeEstimator
+	FeeEstimator lnwallet.FeeEstimator
 
 	// PublishTransaction facilitates the process of broadcasting a signed
 	// transaction to the appropriate network.
@@ -203,7 +203,7 @@ func (s *UtxoSweeper) Start() error {
 
 	// Retrieve relay fee for dust limit calculation. Assume that this will
 	// not change from here on.
-	s.relayFeePerKB = s.cfg.Estimator.RelayFeePerKB()
+	s.relayFeePerKB = s.cfg.FeeEstimator.RelayFeePerKB()
 
 	// Register for block epochs to retry sweeping every block.
 	bestHash, bestHeight, err := s.cfg.ChainIO.GetBestBlock()
@@ -412,7 +412,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 
 			// Retrieve fee estimate for input filtering and final
 			// tx fee calculation.
-			feePerKB, err := s.cfg.Estimator.EstimateFeePerKB(
+			feePerKB, err := s.cfg.FeeEstimator.EstimateFeePerKB(
 				s.cfg.SweepTxConfTarget,
 			)
 			if err != nil {
@@ -470,7 +470,7 @@ func (s *UtxoSweeper) scheduleSweep(currentHeight int32) error {
 
 	// Retrieve fee estimate for input filtering and final tx fee
 	// calculation.
-	feePerKB, err := s.cfg.Estimator.EstimateFeePerKB(
+	feePerKB, err := s.cfg.FeeEstimator.EstimateFeePerKB(
 		s.cfg.SweepTxConfTarget,
 	)
 	if err != nil {
@@ -758,7 +758,7 @@ func (s *UtxoSweeper) waitForSpend(outpoint wire.OutPoint,
 func (s *UtxoSweeper) CreateSweepTx(inputs []Input, confTarget uint32,
 	currentBlockHeight uint32) (*wire.MsgTx, error) {
 
-	feePerKB, err := s.cfg.Estimator.EstimateFeePerKB(confTarget)
+	feePerKB, err := s.cfg.FeeEstimator.EstimateFeePerKB(confTarget)
 	if err != nil {
 		return nil, err
 	}
