@@ -741,14 +741,15 @@ func (l *LightningWallet) handleContributionMsg(req *addContributionMsg) {
 		signDesc.Output = info
 		signDesc.InputIndex = i
 
-		inputScript, err := l.Cfg.Signer.ComputeInputScript(fundingTx,
-			&signDesc)
+		inputScript, err := l.Cfg.Signer.ComputeInputScript(
+			fundingTx, &signDesc,
+		)
 		if err != nil {
 			req.err <- err
 			return
 		}
 
-		txIn.SignatureScript = inputScript.ScriptSig
+		txIn.SignatureScript = inputScript.SigScript
 		pendingReservation.ourFundingInputScripts = append(
 			pendingReservation.ourFundingInputScripts,
 			inputScript,
@@ -946,7 +947,7 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 	for i, txin := range fundingTx.TxIn {
 		if len(inputScripts) != 0 && len(txin.SignatureScript) == 0 {
 			// Attach the input scripts so we can verify it below.
-			txin.SignatureScript = inputScripts[sigIndex].ScriptSig
+			txin.SignatureScript = inputScripts[sigIndex].SigScript
 
 			// Fetch the alleged previous output along with the
 			// pkscript referenced by this input.
@@ -1240,7 +1241,6 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 // selection is successful/possible, then the selected coins are available
 // within the passed contribution's inputs. If necessary, a change address will
 // also be generated.
-// TODO(roasbeef): remove hardcoded fees.
 func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 	amt dcrutil.Amount, minConfs int32,
 	contribution *ChannelContribution) error {

@@ -76,7 +76,7 @@ func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx,
 	}
 
 	return &lnwallet.InputScript{
-		ScriptSig: sigScript,
+		SigScript: sigScript,
 	}, nil
 }
 
