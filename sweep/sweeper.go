@@ -755,10 +755,10 @@ func (s *UtxoSweeper) waitForSpend(outpoint wire.OutPoint,
 // - Make handling re-orgs easier.
 // - Thwart future possible fee sniping attempts.
 // - Make us blend in with the bitcoind wallet.
-func (s *UtxoSweeper) CreateSweepTx(inputs []Input, confTarget uint32,
+func (s *UtxoSweeper) CreateSweepTx(inputs []Input, feePref FeePreference,
 	currentBlockHeight uint32) (*wire.MsgTx, error) {
 
-	feePerKB, err := s.cfg.FeeEstimator.EstimateFeePerKB(confTarget)
+	feePerKB, err := DetermineFeePerKB(s.cfg.FeeEstimator, feePref)
 	if err != nil {
 		return nil, err
 	}

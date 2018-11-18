@@ -34,6 +34,7 @@ import (
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/signal"
+	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/zpay32"
 	"github.com/decred/dcrwallet/wallet/v2/udb"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -631,54 +632,7 @@ func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	}
 
 	txHash := tx.TxHash()
-	return &txHash, err
-}
-
-// determineFeePerKB will determine the fee in atom/kB that should be paid given
-// an estimator, a confirmation target, and a manual value for atom/byte. A value
-// is chosen based on the two free parameters as one, or both of them can be
-// zero.
-// TODO(decred) remove duplicated stuff
-func determineFeePerKB(feeEstimator lnwallet.FeeEstimator, targetConf int32,
-	feePerByte int64) (lnwallet.AtomPerKByte, error) {
-
-	switch {
-	// If the target number of confirmations is set, then we'll use that to
-	// consult our fee estimator for an adequate fee.
-	case targetConf != 0:
-		feePerKB, err := feeEstimator.EstimateFeePerKB(
-			uint32(targetConf),
-		)
-		if err != nil {
-			return 0, fmt.Errorf("unable to query fee "+
-				"estimator: %v", err)
-		}
-
-		return feePerKB, nil
-
-	// If a manual atom/byte fee rate is set, then we'll use that directly.
-	// We'll need to convert it to atom/kB as this is what we use internally.
-	case feePerByte != 0:
-		feePerKB := lnwallet.AtomPerKByte(feePerByte * 1000)
-		if feePerKB < lnwallet.FeePerKBFloor {
-			rpcsLog.Infof("Manual fee rate input of %d atom/kB is "+
-				"too low, using %d atom/kB instead", feePerKB,
-				lnwallet.FeePerKBFloor)
-			feePerKB = lnwallet.FeePerKBFloor
-		}
-		return feePerKB, nil
-
-	// Otherwise, we'll attempt a relaxed confirmation target for the
-	// transaction
-	default:
-		feePerKB, err := feeEstimator.EstimateFeePerKB(6)
-		if err != nil {
-			return 0, fmt.Errorf("unable to query fee estimator: "+
-				"%v", err)
-		}
-
-		return feePerKB, nil
-	}
+	return &txHash, nil
 }
 
 // ListUnspent returns useful information about each unspent output owned by
@@ -796,8 +750,12 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
-	feePerKB, err := determineFeePerKB(
-		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
+	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	feePerKB, err := sweep.DetermineFeePerKB(
+		r.server.cc.feeEstimator, sweep.FeePreference{
+			ConfTarget: uint32(in.TargetConf),
+			FeeRate:    atomsPerKB,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -824,8 +782,12 @@ func (r *rpcServer) SendMany(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
-	feePerKB, err := determineFeePerKB(
-		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
+	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	feePerKB, err := sweep.DetermineFeePerKB(
+		r.server.cc.feeEstimator, sweep.FeePreference{
+			ConfTarget: uint32(in.TargetConf),
+			FeeRate:    atomsPerKB,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -1163,8 +1125,12 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
-	feeRate, err := determineFeePerKB(
-		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
+	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	feeRate, err := sweep.DetermineFeePerKB(
+		r.server.cc.feeEstimator, sweep.FeePreference{
+			ConfTarget: uint32(in.TargetConf),
+			FeeRate:    atomsPerKB,
+		},
 	)
 	if err != nil {
 		return err
@@ -1310,8 +1276,12 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
-	feeRate, err := determineFeePerKB(
-		r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
+	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	feeRate, err := sweep.DetermineFeePerKB(
+		r.server.cc.feeEstimator, sweep.FeePreference{
+			ConfTarget: uint32(in.TargetConf),
+			FeeRate:    atomsPerKB,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -1499,8 +1469,12 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 		// Based on the passed fee related parameters, we'll determine
 		// an appropriate fee rate for the cooperative closure
 		// transaction.
-		feeRate, err := determineFeePerKB(
-			r.server.cc.feeEstimator, in.TargetConf, in.AtomsPerByte,
+		atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+		feeRate, err := sweep.DetermineFeePerKB(
+			r.server.cc.feeEstimator, sweep.FeePreference{
+				ConfTarget: uint32(in.TargetConf),
+				FeeRate:    atomsPerKB,
+			},
 		)
 		if err != nil {
 			return err
