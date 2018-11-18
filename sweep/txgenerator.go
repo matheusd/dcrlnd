@@ -217,10 +217,10 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 		return nil, fmt.Errorf("error checking sweepTx sanity: %v", err)
 	}
 
-	// With all the inputs in place, use each output's unique witness
+	// With all the inputs in place, use each output's unique input script
 	// function to generate the final witness required for spending.
-	addWitness := func(idx int, tso Input) error {
-		witness, err := tso.BuildWitness(
+	addInputScript := func(idx int, tso Input) error {
+		inputScript, err := tso.CraftInputScript(
 			signer, sweepTx, idx,
 		)
 		if err != nil {
@@ -228,7 +228,7 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 				"type %s: %v", idx, tso.WitnessType().String(), err)
 		}
 
-		sigScript, err := lnwallet.WitnessStackToSigScript(witness)
+		sigScript, err := lnwallet.WitnessStackToSigScript(inputScript.Witness)
 		if err != nil {
 			return err
 		}
@@ -237,10 +237,10 @@ func createSweepTx(inputs []Input, outputPkScript []byte,
 		return nil
 	}
 
-	// Finally we'll attach a valid witness to each csv and cltv input
+	// Finally we'll attach a valid input script to each csv and cltv input
 	// within the sweeping transaction.
 	for i, input := range inputs {
-		if err := addWitness(i, input); err != nil {
+		if err := addInputScript(i, input); err != nil {
 			return nil, err
 		}
 	}
