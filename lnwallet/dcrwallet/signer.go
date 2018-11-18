@@ -137,9 +137,10 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 
 	// TODO(roasbeef): generate sighash midstate if not present?
 	// TODO(decred): use cached prefix hash in signDesc.sigHashes
-
-	sig, err := txscript.RawTxInSignature(tx, signDesc.InputIndex,
-		witnessScript, signDesc.HashType, privKey)
+	sig, err := txscript.RawTxInSignature(
+		tx, signDesc.InputIndex,
+		witnessScript, signDesc.HashType, privKey,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -188,13 +189,13 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
-	scriptSig, err := txscript.SignatureScript(tx, signDesc.InputIndex,
+	sigScript, err := txscript.SignatureScript(tx, signDesc.InputIndex,
 		outputScript, signDesc.HashType, privKey, true)
 	if err != nil {
 		return nil, err
 	}
 
-	return &lnwallet.InputScript{ScriptSig: scriptSig}, nil
+	return &lnwallet.InputScript{SigScript: sigScript}, nil
 }
 
 // A compile time check to ensure that DcrWallet implements the Signer

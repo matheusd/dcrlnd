@@ -452,13 +452,15 @@ func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor
 				"address %v", addresses[0])
 		}
 
-		scriptSig, err := txscript.SignatureScript(tx, signDesc.InputIndex,
-			signDesc.Output.PkScript, txscript.SigHashAll, privKey, true)
+		sigScript, err := txscript.SignatureScript(
+			tx, signDesc.InputIndex, signDesc.Output.PkScript,
+			txscript.SigHashAll, privKey, true,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		return &InputScript{ScriptSig: scriptSig}, nil
+		return &InputScript{SigScript: sigScript}, nil
 
 	default:
 		return nil, fmt.Errorf("unexpected script type: %v", scriptType)

@@ -50,11 +50,21 @@ func (c *ChannelContribution) toChanConfig() channeldb.ChannelConfig {
 }
 
 // InputScript represents any script inputs required to redeem a previous
-// output. This struct is used rather than just a witness, or scripSig in
-// order to accommodate nested p2sh which utilizes both types of input scripts.
+// output. This struct is used rather than just a witness, or scripSig in order
+// to accommodate nested p2sh which utilizes both types of input scripts.
 type InputScript struct {
-	Witness   [][]byte
-	ScriptSig []byte
+	// Witness is the full witness stack required to unlock this output.
+	//
+	// On decred this is used to store the individual elements used to
+	// build the final signature script.
+	Witness [][]byte
+
+	//  SigScript contains the full signature script witness data.
+	//
+	// TODO(decred) Possibly remove this, since we use the invidual
+	// elements of Witness above and convert to the final sig script by
+	// using the WitnessStackToSigScript() function
+	SigScript []byte
 }
 
 // ChannelReservation represents an intent to open a lightning payment channel
