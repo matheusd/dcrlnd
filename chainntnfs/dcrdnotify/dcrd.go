@@ -702,28 +702,33 @@ func (n *DcrdNotifier) notifyBlockEpochClient(epochClient *blockEpochRegistratio
 }
 
 // RegisterSpendNtfn registers an intent to be notified once the target
-// outpoint has been spent by a transaction on-chain. Once a spend of the target
-// outpoint has been detected, the details of the spending event will be sent
-// across the 'Spend' channel. The heightHint should represent the earliest
-// height in the chain where the transaction could have been spent in.
+// outpoint/output script has been spent by a transaction on-chain. When
+// intending to be notified of the spend of an output script, a nil outpoint
+// must be used. The heightHint should represent the earliest height in the
+// chain of the transaction that spent the outpoint/output script.
+//
+// Once a spend of has been detected, the details of the spending event will be
+// sent across the 'Spend' channel.
 func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	pkScript []byte, heightHint uint32) (*chainntnfs.SpendEvent, error) {
 
 	// First, we'll construct a spend notification request and hand it off
 	// to the txNotifier.
 	spendID := atomic.AddUint64(&n.spendClientCounter, 1)
-	cancel := func() {
-		n.txNotifier.CancelSpend(*outpoint, spendID)
+	spendRequest, err := chainntnfs.NewSpendRequest(outpoint, pkScript)
+	if err != nil {
+		return nil, err
 	}
 	ntfn := &chainntnfs.SpendNtfn{
-		SpendID:    spendID,
-		OutPoint:   *outpoint,
-		PkScript:   pkScript,
-		Event:      chainntnfs.NewSpendEvent(cancel),
+		SpendID:      spendID,
+		SpendRequest: spendRequest,
+		Event: chainntnfs.NewSpendEvent(func() {
+			n.txNotifier.CancelSpend(spendRequest, spendID)
+		}),
 		HeightHint: heightHint,
 	}
 
-	historicalDispatch, err := n.txNotifier.RegisterSpend(ntfn)
+	historicalDispatch, _, err := n.txNotifier.RegisterSpend(ntfn)
 	if err != nil {
 		return nil, err
 	}
@@ -735,78 +740,101 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		return ntfn.Event, nil
 	}
 
-	// TODO(decred) This currently always only adds to the tx filter, which will
-	// make it grow unboundedly. Ideally this should be reloaded with the
-	// specific set we're interested in, but that would require rebuilding the
-	// tx filter every time this is called.
+	// TODO(decred) This currently always only adds to the tx filter, which
+	// will make it grow unboundedly. Ideally this should be reloaded with
+	// the specific set we're interested in, but that would require
+	// rebuilding the tx filter every time this is called.
 	//
 	// We'll then request the backend to notify us when it has detected the
-	// outpoint as spent.
-	ops := []wire.OutPoint{*outpoint}
-	if err := n.chainConn.LoadTxFilter(false, nil, ops); err != nil {
-		return nil, err
-	}
-
-	// In addition to the check above, we'll also check the backend's UTXO
-	// set to determine whether the outpoint has been spent. If it hasn't,
-	// we can return to the caller as well.
-	txOut, err := n.chainConn.GetTxOut(&outpoint.Hash, outpoint.Index, true)
-	if err != nil {
-		return nil, err
-	}
-	if txOut != nil {
-		// We'll let the txNotifier know the outpoint is still unspent
-		// in order to begin updating its spend hint.
-		err := n.txNotifier.UpdateSpendDetails(*outpoint, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		return ntfn.Event, nil
-	}
+	// outpoint or a script was spent.
+	var ops []wire.OutPoint
+	var addrs []dcrutil.Address
 
 	// Otherwise, we'll determine when the output was spent by scanning the
-	// chain. We'll begin by determining where to start our historical
+	// chain.  We'll begin by determining where to start our historical
 	// rescan.
 	startHeight := historicalDispatch.StartHeight
 
-	// As a minimal optimization, we'll query the backend's transaction
-	// index (if enabled) to determine if we have a better rescan starting
-	// height. We can do this as the GetRawTransaction call will return the
-	// hash of the block it was included in within the chain.
-	tx, err := n.chainConn.GetRawTransactionVerbose(&outpoint.Hash)
-	if err != nil {
-		// Avoid returning an error if the transaction was not found to
-		// proceed with fallback methods.
-		jsonErr, ok := err.(*dcrjson.RPCError)
-		if !ok || jsonErr.Code != dcrjson.ErrRPCNoTxInfo {
-			return nil, fmt.Errorf("unable to query for "+
-				"txid %v: %v", outpoint.Hash, err)
-		}
-	}
-
-	// If the transaction index was enabled, we'll use the block's hash to
-	// retrieve its height and check whether it provides a better starting
-	// point for our rescan.
-	if tx != nil {
-		// If the transaction containing the outpoint hasn't confirmed
-		// on-chain, then there's no need to perform a rescan.
-		if tx.BlockHash == "" {
-			return ntfn.Event, nil
-		}
-
-		blockHash, err := chainhash.NewHashFromStr(tx.BlockHash)
+	if spendRequest.OutPoint == chainntnfs.ZeroOutPoint {
+		addr, err := spendRequest.PkScript.Address(n.chainParams)
 		if err != nil {
 			return nil, err
 		}
-		blockHeader, err := n.chainConn.GetBlockHeader(blockHash)
+		addrs = []dcrutil.Address{addr}
+	} else {
+		ops = []wire.OutPoint{spendRequest.OutPoint}
+	}
+
+	// Ensure we'll receive any new notifications for either the outpoint
+	// or the address from now on.
+	if err := n.chainConn.LoadTxFilter(false, addrs, ops); err != nil {
+		return nil, err
+	}
+
+	if spendRequest.OutPoint != chainntnfs.ZeroOutPoint {
+		// When dispatching spends of outpoints, there are a number of checks
+		// we can make to start our rescan from a better height or completely
+		// avoid it.
+		//
+		// We'll start by checking the backend's UTXO set to determine whether
+		// the outpoint has been spent. If it hasn't, we can return to the
+		// caller as well.
+		txOut, err := n.chainConn.GetTxOut(
+			&spendRequest.OutPoint.Hash, spendRequest.OutPoint.Index, true,
+		)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get header for "+
-				"block %v: %v", blockHash, err)
+			return nil, err
+		}
+		if txOut != nil {
+			// We'll let the txNotifier know the outpoint is still
+			// unspent in order to begin updating its spend hint.
+			err := n.txNotifier.UpdateSpendDetails(spendRequest, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			return ntfn.Event, nil
 		}
 
-		if blockHeader.Height > historicalDispatch.StartHeight {
-			startHeight = blockHeader.Height
+		// As a minimal optimization, we'll query the backend's
+		// transaction index (if enabled) to determine if we have a
+		// better rescan starting height. We can do this as the
+		// GetRawTransaction call will return the hash of the block it
+		// was included in within the chain.
+		tx, err := n.chainConn.GetRawTransactionVerbose(&spendRequest.OutPoint.Hash)
+		if err != nil {
+			// Avoid returning an error if the transaction was not found to
+			// proceed with fallback methods.
+			jsonErr, ok := err.(*dcrjson.RPCError)
+			if !ok || jsonErr.Code != dcrjson.ErrRPCNoTxInfo {
+				return nil, fmt.Errorf("unable to query for "+
+					"txid %v: %v", outpoint.Hash, err)
+			}
+		}
+
+		// If the transaction index was enabled, we'll use the block's hash to
+		// retrieve its height and check whether it provides a better starting
+		// point for our rescan.
+		if tx != nil {
+			// If the transaction containing the outpoint hasn't confirmed
+			// on-chain, then there's no need to perform a rescan.
+			if tx.BlockHash == "" {
+				return ntfn.Event, nil
+			}
+
+			blockHash, err := chainhash.NewHashFromStr(tx.BlockHash)
+			if err != nil {
+				return nil, err
+			}
+			blockHeader, err := n.chainConn.GetBlockHeader(blockHash)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get header for "+
+					"block %v: %v", blockHash, err)
+			}
+
+			if blockHeader.Height > historicalDispatch.StartHeight {
+				startHeight = blockHeader.Height
+			}
 		}
 	}
 
@@ -822,6 +850,31 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	go n.inefficientSpendRescan(startHeight, ntfn)
 
 	return ntfn.Event, nil
+}
+
+// txSpendsSpendRequest returns the index where the given spendRequest was
+// spent by the transaction or -1 if no inputs spend the given spendRequest.
+func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest) int {
+	if spendRequest.OutPoint != chainntnfs.ZeroOutPoint {
+		// Matching by outpoint.
+		for i, in := range tx.TxIn {
+			if in.PreviousOutPoint == spendRequest.OutPoint {
+				return i
+			}
+		}
+		return -1
+	}
+
+	// Matching by script.
+	for i, in := range tx.TxIn {
+		// Ignore the errors here, due to them definitely not being a
+		// match.
+		pkScript, _ := chainntnfs.ComputePkScript(0, in.SignatureScript)
+		if pkScript == spendRequest.PkScript {
+			return i
+		}
+	}
+	return -1
 }
 
 // inefficientSpendRescan is a utility function to RegisterSpendNtfn. It performs
@@ -879,24 +932,24 @@ func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
 							"during spend rescan: %v", err)
 					}
 
-					for i, in := range tx.TxIn {
-						if in.PreviousOutPoint == ntfn.OutPoint {
-							// Found the spender tx! Update the spend status
-							// (which will emit the notification) and finish the
-							// scan.
-
-							txHash := tx.TxHash()
-							details := &chainntnfs.SpendDetail{
-								SpentOutPoint:     &ntfn.OutPoint,
-								SpenderTxHash:     &txHash,
-								SpendingTx:        &tx,
-								SpenderInputIndex: uint32(i),
-								SpendingHeight:    int32(startHeight),
-							}
-							n.txNotifier.UpdateSpendDetails(ntfn.OutPoint, details)
-							return
+					spenderIndex := txSpendsSpendRequest(&tx, &ntfn.SpendRequest)
+					if spenderIndex > -1 {
+						// Found the spender tx! Update
+						// the spend status (which will
+						// emit the notification) and
+						// finish the scan.
+						txHash := tx.TxHash()
+						details := &chainntnfs.SpendDetail{
+							SpentOutPoint:     &ntfn.OutPoint,
+							SpenderTxHash:     &txHash,
+							SpendingTx:        &tx,
+							SpenderInputIndex: uint32(spenderIndex),
+							SpendingHeight:    int32(height),
 						}
+						n.txNotifier.UpdateSpendDetails(ntfn.SpendRequest, details)
+						return
 					}
+
 				}
 			}
 		}
