@@ -2408,7 +2408,9 @@ func TestLightningWallet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create height hint cache: %v", err)
 	}
-	chainNotifier, err := dcrdnotify.New(&rpcConfig, hintCache, hintCache)
+	chainNotifier, err := dcrdnotify.New(
+		&rpcConfig, netParams, hintCache, hintCache,
+	)
 	if err != nil {
 		t.Fatalf("unable to create notifier: %v", err)
 	}

@@ -246,7 +246,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			DisableAutoReconnect: false,
 		}
 		cc.chainNotifier, err = dcrdnotify.New(
-			rpcConfig, hintCache, hintCache,
+			rpcConfig, activeNetParams.Params, hintCache, hintCache,
 		)
 		if err != nil {
 			return nil, nil, err
