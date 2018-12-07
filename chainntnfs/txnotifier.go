@@ -1,6 +1,7 @@
 package chainntnfs
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -8,6 +9,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 )
 
 const (
@@ -133,7 +135,7 @@ type ConfRequest struct {
 
 	// PkScript is the public key script of an outpoint created in this
 	// transaction.
-	PkScript txscript.PkScript
+	PkScript PkScript
 }
 
 // NewConfRequest creates a request for a confirmation notification of either a
@@ -141,7 +143,8 @@ type ConfRequest struct {
 // dispatch the confirmation notification on the script.
 func NewConfRequest(txid *chainhash.Hash, pkScript []byte) (ConfRequest, error) {
 	var r ConfRequest
-	outputScript, err := txscript.ParsePkScript(pkScript)
+	scriptVersion := uint16(0)
+	outputScript, err := ParsePkScript(scriptVersion, pkScript)
 	if err != nil {
 		return r, err
 	}
@@ -163,6 +166,21 @@ func (r ConfRequest) String() string {
 		return fmt.Sprintf("txid=%v", r.TxID)
 	}
 	return fmt.Sprintf("script=%v", r.PkScript)
+}
+
+// ConfHintKey returns the key that will be used to index the confirmation
+// request's hint within the height hint cache.
+func (r ConfRequest) ConfHintKey() ([]byte, error) {
+	if r.TxID == ZeroHash {
+		return r.PkScript.Script(), nil
+	}
+
+	var txid bytes.Buffer
+	if err := channeldb.WriteElement(&txid, r.TxID); err != nil {
+		return nil, err
+	}
+
+	return txid.Bytes(), nil
 }
 
 // ConfNtfn represents a notifier client's request to receive a notification
@@ -233,7 +251,7 @@ type SpendRequest struct {
 	OutPoint wire.OutPoint
 
 	// PkScript is the script of the outpoint.
-	PkScript txscript.PkScript
+	PkScript PkScript
 }
 
 // NewSpendRequest creates a request for a spend notification of either an
@@ -241,7 +259,8 @@ type SpendRequest struct {
 // used to dispatch the confirmation notification on the script.
 func NewSpendRequest(op *wire.OutPoint, pkScript []byte) (SpendRequest, error) {
 	var r SpendRequest
-	outputScript, err := txscript.ParsePkScript(pkScript)
+	scriptVersion := uint16(0)
+	outputScript, err := ParsePkScript(scriptVersion, pkScript)
 	if err != nil {
 		return r, err
 	}
@@ -263,6 +282,22 @@ func (r SpendRequest) String() string {
 		return fmt.Sprintf("outpoint=%v", r.OutPoint)
 	}
 	return fmt.Sprintf("script=%v", r.PkScript)
+}
+
+// SpendHintKey returns the key that will be used to index the spend request's
+// hint within the height hint cache.
+func (r SpendRequest) SpendHintKey() ([]byte, error) {
+	if r.OutPoint == ZeroOutPoint {
+		return r.PkScript.Script(), nil
+	}
+
+	var outpoint bytes.Buffer
+	err := channeldb.WriteElement(&outpoint, r.OutPoint)
+	if err != nil {
+		return nil, err
+	}
+
+	return outpoint.Bytes(), nil
 }
 
 // SpendNtfn represents a client's request to receive a notification once an
