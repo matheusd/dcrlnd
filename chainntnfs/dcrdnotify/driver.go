@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/rpcclient/v2"
 	"github.com/decred/dcrlnd/chainntnfs"
 )
@@ -11,11 +12,9 @@ import (
 // createNewNotifier creates a new instance of the ChainNotifier interface
 // implemented by DcrdNotifier.
 func createNewNotifier(args ...interface{}) (chainntnfs.ChainNotifier, error) {
-	const numRequiredArgs = 3
-	if len(args) != numRequiredArgs {
+	if len(args) != 4 {
 		return nil, fmt.Errorf("incorrect number of arguments to "+
-			".New(...), expected %d, instead passed %d", numRequiredArgs,
-			len(args))
+			".New(...), expected 4, instead passed %v", len(args))
 	}
 
 	config, ok := args[0].(*rpcclient.ConnConfig)
@@ -24,19 +23,25 @@ func createNewNotifier(args ...interface{}) (chainntnfs.ChainNotifier, error) {
 			"is incorrect, expected a *rpcclient.ConnConfig")
 	}
 
-	spendHintCache, ok := args[1].(chainntnfs.SpendHintCache)
+	chainParams, ok := args[1].(*chaincfg.Params)
 	if !ok {
 		return nil, errors.New("second argument to dcrdnotifier.New " +
+			"is incorrect, expected a *chaincfg.Params")
+	}
+
+	spendHintCache, ok := args[2].(chainntnfs.SpendHintCache)
+	if !ok {
+		return nil, errors.New("third argument to dcrdnotifier.New " +
 			"is incorrect, expected a chainntnfs.SpendHintCache")
 	}
 
-	confirmHintCache, ok := args[2].(chainntnfs.ConfirmHintCache)
+	confirmHintCache, ok := args[3].(chainntnfs.ConfirmHintCache)
 	if !ok {
 		return nil, errors.New("third argument to dcrdnotifier.New " +
 			"is incorrect, expected a chainntnfs.ConfirmHintCache")
 	}
 
-	return New(config, spendHintCache, confirmHintCache)
+	return New(config, chainParams, spendHintCache, confirmHintCache)
 }
 
 // init registers a driver for the DcrdNotifier concrete implementation of the

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil"
@@ -45,7 +46,8 @@ type DcrdNotifier struct {
 	started int32 // To be used atomically.
 	stopped int32 // To be used atomically.
 
-	chainConn *rpcclient.Client
+	chainConn   *rpcclient.Client
+	chainParams *chaincfg.Params
 
 	notificationCancels  chan interface{}
 	notificationRegistry chan interface{}
@@ -78,10 +80,13 @@ var _ chainntnfs.ChainNotifier = (*DcrdNotifier)(nil)
 // New returns a new DcrdNotifier instance. This function assumes the dcrd node
 // detailed in the passed configuration is already running, and willing to
 // accept new websockets clients.
-func New(config *rpcclient.ConnConfig, spendHintCache chainntnfs.SpendHintCache,
+func New(config *rpcclient.ConnConfig, chainParams *chaincfg.Params,
+	spendHintCache chainntnfs.SpendHintCache,
 	confirmHintCache chainntnfs.ConfirmHintCache) (*DcrdNotifier, error) {
 
 	notifier := &DcrdNotifier{
+		chainParams: chainParams,
+
 		notificationCancels:  make(chan interface{}),
 		notificationRegistry: make(chan interface{}),
 
