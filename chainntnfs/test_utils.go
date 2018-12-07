@@ -27,35 +27,41 @@ var (
 
 var (
 	NetParams = &chaincfg.RegNetParams
-
-	testPrivKey = []byte{
-		0x81, 0xb6, 0x37, 0xd8, 0xfc, 0xd2, 0xc6, 0xda,
-		0x63, 0x59, 0xe6, 0x96, 0x31, 0x13, 0xa1, 0x17,
-		0xd, 0xe7, 0x95, 0xe4, 0xb7, 0x25, 0xb8, 0x4d,
-		0x1e, 0xb, 0x4c, 0xfd, 0x9e, 0xc5, 0x8c, 0xe9,
-	}
-	privKey, pubKey = secp256k1.PrivKeyFromBytes(testPrivKey)
-	addrPk, _       = dcrutil.NewAddressSecpPubKey(
-		pubKey.SerializeCompressed(), NetParams,
-	)
-	testAddr = addrPk.AddressPubKeyHash()
 )
+
+// randPubKeyHashScript generates a P2PKH script that pays to the public key of
+// a randomly-generated private key.
+func randPubKeyHashScript() ([]byte, *secp256k1.PrivateKey, error) {
+	privKey, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		return nil, nil, err
+	}
+	addrPk, _ := dcrutil.NewAddressSecpPubKey(
+		privKey.PubKey().SerializeCompressed(), NetParams,
+	)
+	testAddr := addrPk.AddressPubKeyHash()
+
+	pkScript, err := txscript.PayToAddrScript(testAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pkScript, privKey, nil
+}
 
 // GetTestTxidAndScript generate a new test transaction and returns its txid and
 // the script of the output being generated.
 func GetTestTxidAndScript(h *rpctest.Harness) (*chainhash.Hash, []byte, error) {
-	script, err := txscript.PayToAddrScript(testAddr)
+	pkScript, _, err := randPubKeyHashScript()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("unable to generate pkScript: %v", err)
 	}
-
-	output := &wire.TxOut{Value: 2e8, PkScript: script}
+	output := &wire.TxOut{Value: 2e8, PkScript: pkScript}
 	txid, err := h.SendOutputs([]*wire.TxOut{output}, 10)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return txid, script, nil
+	return txid, pkScript, nil
 }
 
 // WaitForMempoolTx waits for the txid to be seen in the miner's mempool.
@@ -99,16 +105,18 @@ func WaitForMempoolTx(miner *rpctest.Harness, txid *chainhash.Hash) error {
 
 // CreateSpendableOutput creates and returns an output that can be spent later
 // on.
-func CreateSpendableOutput(t *testing.T, miner *rpctest.Harness) (*wire.OutPoint, []byte) {
+func CreateSpendableOutput(t *testing.T,
+	miner *rpctest.Harness) (*wire.OutPoint, *wire.TxOut, *secp256k1.PrivateKey) {
+
 	t.Helper()
 
 	// Create a transaction that only has one output, the one destined for
 	// the recipient.
-	script, err := txscript.PayToAddrScript(testAddr)
+	pkScript, privKey, err := randPubKeyHashScript()
 	if err != nil {
-		t.Fatalf("unable to create p2pkh script: %v", err)
+		t.Fatalf("unable to generate pkScript: %v", err)
 	}
-	output := &wire.TxOut{Value: 2e8, PkScript: script}
+	output := &wire.TxOut{Value: 2e8, PkScript: pkScript}
 	// TODO(decred): SendOutputsWithoutChange
 	txid, err := miner.SendOutputs([]*wire.TxOut{output}, 10)
 	if err != nil {
@@ -123,20 +131,23 @@ func CreateSpendableOutput(t *testing.T, miner *rpctest.Harness) (*wire.OutPoint
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
-	return wire.NewOutPoint(txid, 0, wire.TxTreeRegular), script
+	return wire.NewOutPoint(txid, 0, wire.TxTreeRegular), output, privKey
 }
 
 // CreateSpendTx creates a transaction spending the specified output.
-func CreateSpendTx(t *testing.T, outpoint *wire.OutPoint, pkScript []byte) *wire.MsgTx {
+func CreateSpendTx(t *testing.T, prevOutPoint *wire.OutPoint,
+	prevOutput *wire.TxOut, privKey *secp256k1.PrivateKey) *wire.MsgTx {
+
 	t.Helper()
 
 	spendingTx := wire.NewMsgTx()
 	spendingTx.Version = 1
-	spendingTx.AddTxIn(&wire.TxIn{PreviousOutPoint: *outpoint})
-	spendingTx.AddTxOut(&wire.TxOut{Value: 1e8, PkScript: pkScript})
+	spendingTx.AddTxIn(&wire.TxIn{PreviousOutPoint: *prevOutPoint})
+	spendingTx.AddTxOut(&wire.TxOut{Value: 1e8, PkScript: prevOutput.PkScript})
 
 	sigScript, err := txscript.SignatureScript(
-		spendingTx, 0, pkScript, txscript.SigHashAll, privKey, true,
+		spendingTx, 0, prevOutput.PkScript, txscript.SigHashAll,
+		privKey, true,
 	)
 	if err != nil {
 		t.Fatalf("unable to sign tx: %v", err)
