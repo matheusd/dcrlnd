@@ -1,6 +1,7 @@
 package chainntnfs_test
 
 import (
+	"bytes"
 	"sync"
 	"testing"
 
@@ -11,8 +12,27 @@ import (
 )
 
 var (
-	zeroHash     chainhash.Hash
-	zeroOutPoint wire.OutPoint
+	testRawScript = []byte{
+		// OP_HASH160
+		0xa9,
+		// OP_DATA_20
+		0x14,
+		// <20-byte script hash>
+		0x04, 0xb2, 0xdc, 0xc1, 0x14, 0xbf, 0xd3, 0xe1,
+		0xab, 0x15, 0xfe, 0x5e, 0x54, 0xcd, 0x40, 0x6f,
+		0xa4, 0x6d, 0xb9, 0x1a,
+		// OP_EQUAL
+		0x87,
+	}
+	testSigScript = []byte{
+		// OP_DATA_16
+		0x16,
+		// <22-byte redeem script>
+		0x00, 0x14, 0x1d, 0x7c, 0xd6, 0xc7, 0x5c, 0x2e,
+		0x86, 0xf4, 0xcb, 0xf9, 0x8e, 0xae, 0xd2, 0x21,
+		0xb3, 0x0b, 0xd9, 0xa0, 0xb9, 0x28,
+	}
+	testScript, _ = chainntnfs.ParsePkScript(0, testRawScript)
 )
 
 type mockHintCache struct {
@@ -124,19 +144,21 @@ func TestTxNotifierMaxConfs(t *testing.T) {
 	// Registering one confirmation above the maximum should fail with
 	// ErrTxMaxConfs.
 	ntfn := &chainntnfs.ConfNtfn{
-		ConfID:           1,
-		TxID:             &zeroHash,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     chainntnfs.ZeroHash,
+			PkScript: testScript,
+		},
 		NumConfirmations: chainntnfs.MaxNumConfs + 1,
 		Event: chainntnfs.NewConfirmationEvent(
 			chainntnfs.MaxNumConfs,
 		),
 	}
-	if _, err := n.RegisterConf(ntfn); err != chainntnfs.ErrTxMaxConfs {
+	if _, _, err := n.RegisterConf(ntfn); err != chainntnfs.ErrTxMaxConfs {
 		t.Fatalf("expected chainntnfs.ErrTxMaxConfs, got %v", err)
 	}
 
 	ntfn.NumConfirmations--
-	if _, err := n.RegisterConf(ntfn); err != nil {
+	if _, _, err := n.RegisterConf(ntfn); err != nil {
 		t.Fatalf("unable to register conf ntfn: %v", err)
 	}
 }
@@ -151,12 +173,6 @@ func TestTxNotifierFutureConfDispatch(t *testing.T) {
 		tx2NumConfs uint32 = 2
 	)
 
-	var (
-		tx1 = *newWireTxWithVersion(1)
-		tx2 = *newWireTxWithVersion(2)
-		tx3 = *newWireTxWithVersion(3)
-	)
-
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
@@ -165,23 +181,31 @@ func TestTxNotifierFutureConfDispatch(t *testing.T) {
 	// Create the test transactions and register them with the TxNotifier
 	// before including them in a block to receive future
 	// notifications.
-	tx1Hash := tx1.TxHash()
+	tx1 := *newWireTxWithVersion(1)
+	tx1.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn1 := chainntnfs.ConfNtfn{
-		TxID:             &tx1Hash,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx1.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: tx1NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx1NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn1); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn1); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
-	tx2Hash := tx2.TxHash()
+	tx2 := *newWireTxWithVersion(2)
+	tx2.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn2 := chainntnfs.ConfNtfn{
-		TxID:             &tx2Hash,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx2.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: tx2NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx2NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn2); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn2); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
@@ -206,7 +230,7 @@ func TestTxNotifierFutureConfDispatch(t *testing.T) {
 	// Include the transactions in a block and add it to the TxNotifier.
 	// This should confirm tx1, but not tx2.
 	block1 := dcrutil.NewBlock(&wire.MsgBlock{
-		Transactions: []*wire.MsgTx{&tx1, &tx2, &tx3},
+		Transactions: []*wire.MsgTx{&tx1, &tx2},
 	})
 
 	err := n.ConnectTip(block1.Hash(), 11, block1.Transactions())
@@ -269,10 +293,7 @@ func TestTxNotifierFutureConfDispatch(t *testing.T) {
 
 	// Create a new block and add it to the TxNotifier at the next height.
 	// This should confirm tx2.
-	block2 := dcrutil.NewBlock(&wire.MsgBlock{
-		Transactions: []*wire.MsgTx{&tx3},
-	})
-
+	block2 := dcrutil.NewBlock(&wire.MsgBlock{})
 	err = n.ConnectTip(block2.Hash(), 12, block2.Transactions())
 	if err != nil {
 		t.Fatalf("Failed to connect block: %v", err)
@@ -347,33 +368,33 @@ func TestTxNotifierHistoricalConfDispatch(t *testing.T) {
 	tx1Hash := tx1.TxHash()
 	ntfn1 := chainntnfs.ConfNtfn{
 		ConfID:           0,
-		TxID:             &tx1Hash,
+		ConfRequest:      chainntnfs.ConfRequest{TxID: tx1Hash},
 		NumConfirmations: tx1NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx1NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn1); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn1); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
 	tx2Hash := tx2.TxHash()
 	ntfn2 := chainntnfs.ConfNtfn{
 		ConfID:           1,
-		TxID:             &tx2Hash,
+		ConfRequest:      chainntnfs.ConfRequest{TxID: tx2Hash},
 		NumConfirmations: tx2NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx2NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn2); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn2); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
 	// Update tx1 with its confirmation details. We should only receive one
 	// update since it only requires one confirmation and it already met it.
 	txConf1 := chainntnfs.TxConfirmation{
-		BlockHash:   &zeroHash,
+		BlockHash:   &chainntnfs.ZeroHash,
 		BlockHeight: 9,
 		TxIndex:     1,
 	}
-	err := n.UpdateConfDetails(tx1Hash, &txConf1)
+	err := n.UpdateConfDetails(ntfn1.ConfRequest, &txConf1)
 	if err != nil {
 		t.Fatalf("unable to update conf details: %v", err)
 	}
@@ -402,11 +423,11 @@ func TestTxNotifierHistoricalConfDispatch(t *testing.T) {
 	// of confirmations, but we should receive a confirmation update
 	// indicating how many confirmation are left.
 	txConf2 := chainntnfs.TxConfirmation{
-		BlockHash:   &zeroHash,
+		BlockHash:   &chainntnfs.ZeroHash,
 		BlockHeight: 9,
 		TxIndex:     2,
 	}
-	err = n.UpdateConfDetails(tx2Hash, &txConf2)
+	err = n.UpdateConfDetails(ntfn2.ConfRequest, &txConf2)
 	if err != nil {
 		t.Fatalf("unable to update conf details: %v", err)
 	}
@@ -489,10 +510,13 @@ func TestTxNotifierFutureSpendDispatch(t *testing.T) {
 	// We'll start off by registering for a spend notification of an
 	// outpoint.
 	ntfn := &chainntnfs.SpendNtfn{
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendRequest: chainntnfs.SpendRequest{
+			OutPoint: wire.OutPoint{Index: 1},
+			PkScript: testScript,
+		},
+		Event: chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(ntfn); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
@@ -508,7 +532,10 @@ func TestTxNotifierFutureSpendDispatch(t *testing.T) {
 	// above. We'll include it in the next block, which should trigger a
 	// spend notification.
 	spendTx := newWireTxWithVersion(2)
-	spendTx.AddTxIn(&wire.TxIn{PreviousOutPoint: zeroOutPoint})
+	spendTx.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: ntfn.OutPoint,
+		SignatureScript:  testSigScript,
+	})
 	spendTxHash := spendTx.TxHash()
 	block := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendTx},
@@ -541,7 +568,10 @@ func TestTxNotifierFutureSpendDispatch(t *testing.T) {
 	// spent, then we don't receive another spend notification.
 	prevOut := wire.OutPoint{Hash: spendTxHash, Index: 0}
 	spendOfSpend := newWireTxWithVersion(2)
-	spendOfSpend.AddTxIn(&wire.TxIn{PreviousOutPoint: prevOut})
+	spendOfSpend.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: prevOut,
+		SignatureScript:  testSigScript,
+	})
 	block = dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendOfSpend},
 	})
@@ -575,9 +605,12 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 
 	// We'll start by constructing the spending details of the outpoint
 	// below.
-	spentOutpoint := zeroOutPoint
+	spentOutpoint := wire.OutPoint{Index: 1}
 	spendTx := newWireTxWithVersion(2)
-	spendTx.AddTxIn(&wire.TxIn{PreviousOutPoint: zeroOutPoint})
+	spendTx.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: spentOutpoint,
+		SignatureScript:  testSigScript,
+	})
 	spendTxHash := spendTx.TxHash()
 
 	expectedSpendDetails := &chainntnfs.SpendDetail{
@@ -591,10 +624,10 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 	// We'll register for a spend notification of the outpoint and ensure
 	// that a notification isn't dispatched.
 	ntfn := &chainntnfs.SpendNtfn{
-		OutPoint: spentOutpoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendRequest: chainntnfs.SpendRequest{OutPoint: spentOutpoint},
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(ntfn); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
@@ -608,7 +641,7 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 	// we'll hand off the spending details of the outpoint to the notifier
 	// as it is not possible for it to view historical events in the chain.
 	// By doing this, we replicate the functionality of the ChainNotifier.
-	err := n.UpdateSpendDetails(ntfn.OutPoint, expectedSpendDetails)
+	err := n.UpdateSpendDetails(ntfn.SpendRequest, expectedSpendDetails)
 	if err != nil {
 		t.Fatalf("unable to update spend details: %v", err)
 	}
@@ -626,7 +659,10 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 	// spent, then we don't receive another spend notification.
 	prevOut := wire.OutPoint{Hash: spendTxHash, Index: 0}
 	spendOfSpend := newWireTxWithVersion(2)
-	spendOfSpend.AddTxIn(&wire.TxIn{PreviousOutPoint: prevOut})
+	spendOfSpend.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: prevOut,
+		SignatureScript:  testSigScript,
+	})
 	block := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendOfSpend},
 	})
@@ -662,10 +698,11 @@ func TestTxNotifierMultipleHistoricalConfRescans(t *testing.T) {
 	// historical view of the chain.
 	confNtfn1 := &chainntnfs.ConfNtfn{
 		ConfID: 0,
-		TxID:   &zeroHash,
-		Event:  chainntnfs.NewConfirmationEvent(1),
+		// TODO(wilmer): set pkScript.
+		ConfRequest: chainntnfs.ConfRequest{TxID: chainntnfs.ZeroHash},
+		Event:       chainntnfs.NewConfirmationEvent(1),
 	}
-	historicalConfDispatch1, err := n.RegisterConf(confNtfn1)
+	historicalConfDispatch1, _, err := n.RegisterConf(confNtfn1)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -678,10 +715,11 @@ func TestTxNotifierMultipleHistoricalConfRescans(t *testing.T) {
 	// since the first one is still pending.
 	confNtfn2 := &chainntnfs.ConfNtfn{
 		ConfID: 1,
-		TxID:   &zeroHash,
-		Event:  chainntnfs.NewConfirmationEvent(1),
+		// TODO(wilmer): set pkScript.
+		ConfRequest: chainntnfs.ConfRequest{TxID: chainntnfs.ZeroHash},
+		Event:       chainntnfs.NewConfirmationEvent(1),
 	}
-	historicalConfDispatch2, err := n.RegisterConf(confNtfn2)
+	historicalConfDispatch2, _, err := n.RegisterConf(confNtfn2)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -696,16 +734,17 @@ func TestTxNotifierMultipleHistoricalConfRescans(t *testing.T) {
 	confDetails := &chainntnfs.TxConfirmation{
 		BlockHeight: startingHeight - 1,
 	}
-	if err := n.UpdateConfDetails(*confNtfn2.TxID, confDetails); err != nil {
+	err = n.UpdateConfDetails(confNtfn2.ConfRequest, confDetails)
+	if err != nil {
 		t.Fatalf("unable to update conf details: %v", err)
 	}
 
 	confNtfn3 := &chainntnfs.ConfNtfn{
-		ConfID: 2,
-		TxID:   &zeroHash,
-		Event:  chainntnfs.NewConfirmationEvent(1),
+		ConfID:      2,
+		ConfRequest: chainntnfs.ConfRequest{TxID: chainntnfs.ZeroHash},
+		Event:       chainntnfs.NewConfirmationEvent(1),
 	}
-	historicalConfDispatch3, err := n.RegisterConf(confNtfn3)
+	historicalConfDispatch3, _, err := n.RegisterConf(confNtfn3)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -729,12 +768,15 @@ func TestTxNotifierMultipleHistoricalSpendRescans(t *testing.T) {
 	// The first registration for an outpoint in the notifier should request
 	// a historical spend rescan as it does not have a historical view of
 	// the chain.
-	ntfn1 := &chainntnfs.SpendNtfn{
-		SpendID:  0,
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+	spendRequest := chainntnfs.SpendRequest{
+		OutPoint: wire.OutPoint{Index: 1},
 	}
-	historicalDispatch1, err := n.RegisterSpend(ntfn1)
+	ntfn1 := &chainntnfs.SpendNtfn{
+		SpendID:      0,
+		SpendRequest: spendRequest,
+		Event:        chainntnfs.NewSpendEvent(nil),
+	}
+	historicalDispatch1, _, err := n.RegisterSpend(ntfn1)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -746,11 +788,11 @@ func TestTxNotifierMultipleHistoricalSpendRescans(t *testing.T) {
 	// should not request a historical spend rescan since the first one is
 	// still pending.
 	ntfn2 := &chainntnfs.SpendNtfn{
-		SpendID:  1,
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID:      1,
+		SpendRequest: spendRequest,
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	historicalDispatch2, err := n.RegisterSpend(ntfn2)
+	historicalDispatch2, _, err := n.RegisterSpend(ntfn2)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -764,22 +806,22 @@ func TestTxNotifierMultipleHistoricalSpendRescans(t *testing.T) {
 	// cached.
 	spendDetails := &chainntnfs.SpendDetail{
 		SpentOutPoint:     &ntfn2.OutPoint,
-		SpenderTxHash:     &zeroHash,
+		SpenderTxHash:     &chainntnfs.ZeroHash,
 		SpendingTx:        newWireTxWithVersion(2),
 		SpenderInputIndex: 0,
 		SpendingHeight:    startingHeight - 1,
 	}
-	err = n.UpdateSpendDetails(ntfn2.OutPoint, spendDetails)
+	err = n.UpdateSpendDetails(ntfn2.SpendRequest, spendDetails)
 	if err != nil {
 		t.Fatalf("unable to update spend details: %v", err)
 	}
 
 	ntfn3 := &chainntnfs.SpendNtfn{
-		SpendID:  2,
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID:      2,
+		SpendRequest: spendRequest,
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	historicalDispatch3, err := n.RegisterSpend(ntfn3)
+	historicalDispatch3, _, err := n.RegisterSpend(ntfn3)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -807,16 +849,23 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 		hintCache,
 	)
 
+	var txid chainhash.Hash
+	copy(txid[:], bytes.Repeat([]byte{0x01}, 32))
+	confRequest := chainntnfs.ConfRequest{
+		// TODO(wilmer): set pkScript.
+		TxID: txid,
+	}
+
 	// We'll start off by registered 5 clients for a confirmation
 	// notification on the same transaction.
 	confNtfns := make([]*chainntnfs.ConfNtfn, numNtfns)
 	for i := uint64(0); i < numNtfns; i++ {
 		confNtfns[i] = &chainntnfs.ConfNtfn{
-			ConfID: i,
-			TxID:   &zeroHash,
-			Event:  chainntnfs.NewConfirmationEvent(1),
+			ConfID:      i,
+			ConfRequest: confRequest,
+			Event:       chainntnfs.NewConfirmationEvent(1),
 		}
-		if _, err := n.RegisterConf(confNtfns[i]); err != nil {
+		if _, _, err := n.RegisterConf(confNtfns[i]); err != nil {
 			t.Fatalf("unable to register conf ntfn #%d: %v", i, err)
 		}
 	}
@@ -837,7 +886,7 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	expectedConfDetails := &chainntnfs.TxConfirmation{
 		BlockHeight: startingHeight - 1,
 	}
-	err := n.UpdateConfDetails(*confNtfns[0].TxID, expectedConfDetails)
+	err := n.UpdateConfDetails(confNtfns[0].ConfRequest, expectedConfDetails)
 	if err != nil {
 		t.Fatalf("unable to update conf details: %v", err)
 	}
@@ -859,11 +908,11 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	// see a historical rescan request and the confirmation notification
 	// should come through immediately.
 	extraConfNtfn := &chainntnfs.ConfNtfn{
-		ConfID: numNtfns + 1,
-		TxID:   &zeroHash,
-		Event:  chainntnfs.NewConfirmationEvent(1),
+		ConfID:      numNtfns + 1,
+		ConfRequest: confRequest,
+		Event:       chainntnfs.NewConfirmationEvent(1),
 	}
-	historicalConfRescan, err := n.RegisterConf(extraConfNtfn)
+	historicalConfRescan, _, err := n.RegisterConf(extraConfNtfn)
 	if err != nil {
 		t.Fatalf("unable to register conf ntfn: %v", err)
 	}
@@ -879,14 +928,17 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	}
 
 	// Similarly, we'll do the same thing but for spend notifications.
+	spendRequest := chainntnfs.SpendRequest{
+		OutPoint: wire.OutPoint{Index: 1},
+	}
 	spendNtfns := make([]*chainntnfs.SpendNtfn, numNtfns)
 	for i := uint64(0); i < numNtfns; i++ {
 		spendNtfns[i] = &chainntnfs.SpendNtfn{
-			SpendID:  i,
-			OutPoint: zeroOutPoint,
-			Event:    chainntnfs.NewSpendEvent(nil),
+			SpendID:      i,
+			SpendRequest: spendRequest,
+			Event:        chainntnfs.NewSpendEvent(nil),
 		}
-		if _, err := n.RegisterSpend(spendNtfns[i]); err != nil {
+		if _, _, err := n.RegisterSpend(spendNtfns[i]); err != nil {
 			t.Fatalf("unable to register spend ntfn #%d: %v", i, err)
 		}
 	}
@@ -906,12 +958,12 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	// stop watching at tip.
 	expectedSpendDetails := &chainntnfs.SpendDetail{
 		SpentOutPoint:     &spendNtfns[0].OutPoint,
-		SpenderTxHash:     &zeroHash,
+		SpenderTxHash:     &chainntnfs.ZeroHash,
 		SpendingTx:        newWireTxWithVersion(2),
 		SpenderInputIndex: 0,
 		SpendingHeight:    startingHeight - 1,
 	}
-	err = n.UpdateSpendDetails(spendNtfns[0].OutPoint, expectedSpendDetails)
+	err = n.UpdateSpendDetails(spendNtfns[0].SpendRequest, expectedSpendDetails)
 	if err != nil {
 		t.Fatalf("unable to update spend details: %v", err)
 	}
@@ -933,11 +985,11 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	// should not see a historical rescan request and the spend notification
 	// should come through immediately.
 	extraSpendNtfn := &chainntnfs.SpendNtfn{
-		SpendID:  numNtfns + 1,
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID:      numNtfns + 1,
+		SpendRequest: spendRequest,
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	historicalSpendRescan, err := n.RegisterSpend(extraSpendNtfn)
+	historicalSpendRescan, _, err := n.RegisterSpend(extraSpendNtfn)
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
@@ -968,27 +1020,35 @@ func TestTxNotifierCancelSpend(t *testing.T) {
 	// We'll register two notification requests. Only the second one will be
 	// canceled.
 	ntfn1 := &chainntnfs.SpendNtfn{
-		SpendID:  0,
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID: 0,
+		SpendRequest: chainntnfs.SpendRequest{
+			OutPoint: wire.OutPoint{Index: 1},
+			PkScript: testScript,
+		},
+		Event: chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(ntfn1); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn1); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
 	ntfn2 := &chainntnfs.SpendNtfn{
-		SpendID:  1,
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID: 1,
+		SpendRequest: chainntnfs.SpendRequest{
+			OutPoint: wire.OutPoint{Index: 2},
+		},
+		Event: chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(ntfn2); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn2); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
 	// Construct the spending details of the outpoint and create a dummy
 	// block containing it.
 	spendTx := newWireTxWithVersion(2)
-	spendTx.AddTxIn(&wire.TxIn{PreviousOutPoint: ntfn1.OutPoint})
+	spendTx.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: ntfn1.OutPoint,
+		SignatureScript:  testSigScript,
+	})
 	spendTxHash := spendTx.TxHash()
 	expectedSpendDetails := &chainntnfs.SpendDetail{
 		SpentOutPoint:     &ntfn1.OutPoint,
@@ -1004,7 +1064,7 @@ func TestTxNotifierCancelSpend(t *testing.T) {
 
 	// Before extending the notifier's tip with the dummy block above, we'll
 	// cancel the second request.
-	n.CancelSpend(ntfn2.OutPoint, ntfn2.SpendID)
+	n.CancelSpend(ntfn2.SpendRequest, ntfn2.SpendID)
 
 	err := n.ConnectTip(block.Hash(), startingHeight+1, block.Transactions())
 	if err != nil {
@@ -1048,59 +1108,68 @@ func TestTxNotifierConfReorg(t *testing.T) {
 		tx3NumConfs uint32 = 2
 	)
 
-	var (
-		tx1 = *newWireTxWithVersion(1)
-		tx2 = *newWireTxWithVersion(2)
-		tx3 = *newWireTxWithVersion(3)
-	)
-
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		7, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
 	)
 
 	// Tx 1 will be confirmed in block 9 and requires 2 confs.
-	tx1Hash := tx1.TxHash()
+	tx1 := *newWireTxWithVersion(1)
+	tx1.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn1 := chainntnfs.ConfNtfn{
-		TxID:             &tx1Hash,
+		ConfID: 1,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx1.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: tx1NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx1NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn1); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn1); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
-	if err := n.UpdateConfDetails(*ntfn1.TxID, nil); err != nil {
+	if err := n.UpdateConfDetails(ntfn1.ConfRequest, nil); err != nil {
 		t.Fatalf("unable to deliver conf details: %v", err)
 	}
 
 	// Tx 2 will be confirmed in block 10 and requires 1 conf.
-	tx2Hash := tx2.TxHash()
+	tx2 := *newWireTxWithVersion(2)
+	tx2.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn2 := chainntnfs.ConfNtfn{
-		TxID:             &tx2Hash,
+		ConfID: 2,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx2.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: tx2NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx2NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn2); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn2); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
-	if err := n.UpdateConfDetails(*ntfn2.TxID, nil); err != nil {
+	if err := n.UpdateConfDetails(ntfn2.ConfRequest, nil); err != nil {
 		t.Fatalf("unable to deliver conf details: %v", err)
 	}
 
 	// Tx 3 will be confirmed in block 10 and requires 2 confs.
-	tx3Hash := tx3.TxHash()
+	tx3 := *newWireTxWithVersion(3)
+	tx3.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn3 := chainntnfs.ConfNtfn{
-		TxID:             &tx3Hash,
+		ConfID: 3,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx3.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: tx3NumConfs,
 		Event:            chainntnfs.NewConfirmationEvent(tx3NumConfs),
 	}
-	if _, err := n.RegisterConf(&ntfn3); err != nil {
+	if _, _, err := n.RegisterConf(&ntfn3); err != nil {
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
-	if err := n.UpdateConfDetails(*ntfn3.TxID, nil); err != nil {
+	if err := n.UpdateConfDetails(ntfn3.ConfRequest, nil); err != nil {
 		t.Fatalf("unable to deliver conf details: %v", err)
 	}
 
@@ -1335,31 +1404,44 @@ func TestTxNotifierSpendReorg(t *testing.T) {
 	// We'll have two outpoints that will be spent throughout the test. The
 	// first will be spent and will not experience a reorg, while the second
 	// one will.
-	op1 := zeroOutPoint
-	op1.Index = 1
+	spendRequest1 := chainntnfs.SpendRequest{
+		OutPoint: wire.OutPoint{Index: 1},
+		PkScript: testScript,
+	}
 	spendTx1 := newWireTxWithVersion(2)
-	spendTx1.AddTxIn(&wire.TxIn{PreviousOutPoint: op1})
+	spendTx1.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: spendRequest1.OutPoint,
+		SignatureScript:  testSigScript,
+	})
 	spendTxHash1 := spendTx1.TxHash()
 	expectedSpendDetails1 := &chainntnfs.SpendDetail{
-		SpentOutPoint:     &op1,
+		SpentOutPoint:     &spendRequest1.OutPoint,
 		SpenderTxHash:     &spendTxHash1,
 		SpendingTx:        spendTx1,
 		SpenderInputIndex: 0,
 		SpendingHeight:    startingHeight + 1,
 	}
 
-	op2 := zeroOutPoint
-	op2.Index = 2
+	spendRequest2 := chainntnfs.SpendRequest{
+		OutPoint: wire.OutPoint{Index: 2},
+		PkScript: testScript,
+	}
 	spendTx2 := newWireTxWithVersion(2)
-	spendTx2.AddTxIn(&wire.TxIn{PreviousOutPoint: zeroOutPoint})
-	spendTx2.AddTxIn(&wire.TxIn{PreviousOutPoint: op2})
+	spendTx2.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: chainntnfs.ZeroOutPoint,
+		SignatureScript:  testSigScript,
+	})
+	spendTx2.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: spendRequest2.OutPoint,
+		SignatureScript:  testSigScript,
+	})
 	spendTxHash2 := spendTx2.TxHash()
 
 	// The second outpoint will experience a reorg and get re-spent at a
 	// different height, so we'll need to construct the spend details for
 	// before and after the reorg.
 	expectedSpendDetails2BeforeReorg := chainntnfs.SpendDetail{
-		SpentOutPoint:     &op2,
+		SpentOutPoint:     &spendRequest2.OutPoint,
 		SpenderTxHash:     &spendTxHash2,
 		SpendingTx:        spendTx2,
 		SpenderInputIndex: 1,
@@ -1373,20 +1455,20 @@ func TestTxNotifierSpendReorg(t *testing.T) {
 
 	// We'll register for a spend notification for each outpoint above.
 	ntfn1 := &chainntnfs.SpendNtfn{
-		SpendID:  78,
-		OutPoint: op1,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID:      78,
+		SpendRequest: spendRequest1,
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(ntfn1); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn1); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
 	ntfn2 := &chainntnfs.SpendNtfn{
-		SpendID:  21,
-		OutPoint: op2,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID:      21,
+		SpendRequest: spendRequest2,
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(ntfn2); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn2); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
@@ -1557,38 +1639,46 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 
 	// Create two test transactions and register them for notifications.
 	tx1 := *newWireTxWithVersion(1)
-	tx1Hash := tx1.TxHash()
+	tx1.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn1 := &chainntnfs.ConfNtfn{
-		TxID:             &tx1Hash,
+		ConfID: 1,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx1.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: 1,
 		Event:            chainntnfs.NewConfirmationEvent(1),
 	}
 
 	tx2 := *newWireTxWithVersion(2)
-	tx2Hash := tx2.TxHash()
+	tx2.AddTxOut(&wire.TxOut{PkScript: testRawScript})
 	ntfn2 := &chainntnfs.ConfNtfn{
-		TxID:             &tx2Hash,
+		ConfID: 2,
+		ConfRequest: chainntnfs.ConfRequest{
+			TxID:     tx2.TxHash(),
+			PkScript: testScript,
+		},
 		NumConfirmations: 2,
 		Event:            chainntnfs.NewConfirmationEvent(2),
 	}
 
-	if _, err := n.RegisterConf(ntfn1); err != nil {
+	if _, _, err := n.RegisterConf(ntfn1); err != nil {
 		t.Fatalf("unable to register tx1: %v", err)
 	}
-	if _, err := n.RegisterConf(ntfn2); err != nil {
+	if _, _, err := n.RegisterConf(ntfn2); err != nil {
 		t.Fatalf("unable to register tx2: %v", err)
 	}
 
 	// Both transactions should not have a height hint set, as RegisterConf
 	// should not alter the cache state.
-	_, err := hintCache.QueryConfirmHint(tx1Hash)
+	_, err := hintCache.QueryConfirmHint(ntfn1.ConfRequest)
 	if err != chainntnfs.ErrConfirmHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"want: %v, got %v",
 			chainntnfs.ErrConfirmHintNotFound, err)
 	}
 
-	_, err = hintCache.QueryConfirmHint(tx2Hash)
+	_, err = hintCache.QueryConfirmHint(ntfn2.ConfRequest)
 	if err != chainntnfs.ErrConfirmHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"want: %v, got %v",
@@ -1614,14 +1704,14 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 	// the height hints should remain unchanged. This simulates blocks
 	// confirming while the historical dispatch is processing the
 	// registration.
-	_, err = hintCache.QueryConfirmHint(tx1Hash)
+	_, err = hintCache.QueryConfirmHint(ntfn1.ConfRequest)
 	if err != chainntnfs.ErrConfirmHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"want: %v, got %v",
 			chainntnfs.ErrConfirmHintNotFound, err)
 	}
 
-	_, err = hintCache.QueryConfirmHint(tx2Hash)
+	_, err = hintCache.QueryConfirmHint(ntfn2.ConfRequest)
 	if err != chainntnfs.ErrConfirmHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"want: %v, got %v",
@@ -1630,10 +1720,10 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 
 	// Now, update the conf details reporting that the neither txn was found
 	// in the historical dispatch.
-	if err := n.UpdateConfDetails(tx1Hash, nil); err != nil {
+	if err := n.UpdateConfDetails(ntfn1.ConfRequest, nil); err != nil {
 		t.Fatalf("unable to update conf details: %v", err)
 	}
-	if err := n.UpdateConfDetails(tx2Hash, nil); err != nil {
+	if err := n.UpdateConfDetails(ntfn2.ConfRequest, nil); err != nil {
 		t.Fatalf("unable to update conf details: %v", err)
 	}
 
@@ -1654,7 +1744,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 	// Now that both notifications are waiting at tip for confirmations,
 	// they should have their height hints updated to the latest block
 	// height.
-	hint, err := hintCache.QueryConfirmHint(tx1Hash)
+	hint, err := hintCache.QueryConfirmHint(ntfn1.ConfRequest)
 	if err != nil {
 		t.Fatalf("unable to query for hint: %v", err)
 	}
@@ -1663,7 +1753,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 			tx1Height, hint)
 	}
 
-	hint, err = hintCache.QueryConfirmHint(tx2Hash)
+	hint, err = hintCache.QueryConfirmHint(ntfn2.ConfRequest)
 	if err != nil {
 		t.Fatalf("unable to query for hint: %v", err)
 	}
@@ -1687,7 +1777,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 	}
 
 	// The height hint for the first transaction should remain the same.
-	hint, err = hintCache.QueryConfirmHint(tx1Hash)
+	hint, err = hintCache.QueryConfirmHint(ntfn1.ConfRequest)
 	if err != nil {
 		t.Fatalf("unable to query for hint: %v", err)
 	}
@@ -1698,7 +1788,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 
 	// The height hint for the second transaction should now be updated to
 	// reflect its confirmation.
-	hint, err = hintCache.QueryConfirmHint(tx2Hash)
+	hint, err = hintCache.QueryConfirmHint(ntfn2.ConfRequest)
 	if err != nil {
 		t.Fatalf("unable to query for hint: %v", err)
 	}
@@ -1715,7 +1805,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 
 	// This should update the second transaction's height hint within the
 	// cache to the previous height.
-	hint, err = hintCache.QueryConfirmHint(tx2Hash)
+	hint, err = hintCache.QueryConfirmHint(ntfn2.ConfRequest)
 	if err != nil {
 		t.Fatalf("unable to query for hint: %v", err)
 	}
@@ -1726,7 +1816,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 
 	// The first transaction's height hint should remain at the original
 	// confirmation height.
-	hint, err = hintCache.QueryConfirmHint(tx2Hash)
+	hint, err = hintCache.QueryConfirmHint(ntfn2.ConfRequest)
 	if err != nil {
 		t.Fatalf("unable to query for hint: %v", err)
 	}
@@ -1759,34 +1849,40 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	)
 
 	// Create two test outpoints and register them for spend notifications.
-	op1 := wire.OutPoint{Hash: zeroHash, Index: 1}
 	ntfn1 := &chainntnfs.SpendNtfn{
-		OutPoint: op1,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID: 1,
+		SpendRequest: chainntnfs.SpendRequest{
+			OutPoint: wire.OutPoint{Index: 1},
+			PkScript: testScript,
+		},
+		Event: chainntnfs.NewSpendEvent(nil),
 	}
-	op2 := wire.OutPoint{Hash: zeroHash, Index: 2}
 	ntfn2 := &chainntnfs.SpendNtfn{
-		OutPoint: op2,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID: 2,
+		SpendRequest: chainntnfs.SpendRequest{
+			OutPoint: wire.OutPoint{Index: 2},
+			PkScript: testScript,
+		},
+		Event: chainntnfs.NewSpendEvent(nil),
 	}
 
-	if _, err := n.RegisterSpend(ntfn1); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn1); err != nil {
 		t.Fatalf("unable to register spend for op1: %v", err)
 	}
-	if _, err := n.RegisterSpend(ntfn2); err != nil {
+	if _, _, err := n.RegisterSpend(ntfn2); err != nil {
 		t.Fatalf("unable to register spend for op2: %v", err)
 	}
 
 	// Both outpoints should not have a spend hint set upon registration, as
 	// we must first determine whether they have already been spent in the
 	// chain.
-	_, err := hintCache.QuerySpendHint(op1)
+	_, err := hintCache.QuerySpendHint(ntfn1.SpendRequest)
 	if err != chainntnfs.ErrSpendHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"expected: %v, got %v", chainntnfs.ErrSpendHintNotFound,
 			err)
 	}
-	_, err = hintCache.QuerySpendHint(op2)
+	_, err = hintCache.QuerySpendHint(ntfn2.SpendRequest)
 	if err != chainntnfs.ErrSpendHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"expected: %v, got %v", chainntnfs.ErrSpendHintNotFound,
@@ -1808,13 +1904,13 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	// Since we haven't called UpdateSpendDetails on any of the test
 	// outpoints, this implies that there is a still a pending historical
 	// rescan for them, so their spend hints should not be created/updated.
-	_, err = hintCache.QuerySpendHint(op1)
+	_, err = hintCache.QuerySpendHint(ntfn1.SpendRequest)
 	if err != chainntnfs.ErrSpendHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"expected: %v, got %v", chainntnfs.ErrSpendHintNotFound,
 			err)
 	}
-	_, err = hintCache.QuerySpendHint(op2)
+	_, err = hintCache.QuerySpendHint(ntfn2.SpendRequest)
 	if err != chainntnfs.ErrSpendHintNotFound {
 		t.Fatalf("unexpected error when querying for height hint "+
 			"expected: %v, got %v", chainntnfs.ErrSpendHintNotFound,
@@ -1824,17 +1920,20 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	// Now, we'll simulate that their historical rescans have finished by
 	// calling UpdateSpendDetails. This should allow their spend hints to be
 	// updated upon every block connected/disconnected.
-	if err := n.UpdateSpendDetails(ntfn1.OutPoint, nil); err != nil {
+	if err := n.UpdateSpendDetails(ntfn1.SpendRequest, nil); err != nil {
 		t.Fatalf("unable to update spend details: %v", err)
 	}
-	if err := n.UpdateSpendDetails(ntfn2.OutPoint, nil); err != nil {
+	if err := n.UpdateSpendDetails(ntfn2.SpendRequest, nil); err != nil {
 		t.Fatalf("unable to update spend details: %v", err)
 	}
 
 	// We'll create a new block that only contains the spending transaction
 	// of the first outpoint.
 	spendTx1 := newWireTxWithVersion(2)
-	spendTx1.AddTxIn(&wire.TxIn{PreviousOutPoint: ntfn1.OutPoint})
+	spendTx1.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: ntfn1.OutPoint,
+		SignatureScript:  testSigScript,
+	})
 	block1 := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendTx1},
 	})
@@ -1849,14 +1948,14 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	// Both outpoints should have their spend hints reflect the height of
 	// the new block being connected due to the first outpoint being spent
 	// at this height, and the second outpoint still being unspent.
-	op1Hint, err := hintCache.QuerySpendHint(ntfn1.OutPoint)
+	op1Hint, err := hintCache.QuerySpendHint(ntfn1.SpendRequest)
 	if err != nil {
 		t.Fatalf("unable to query for spend hint of op1: %v", err)
 	}
 	if op1Hint != op1Height {
 		t.Fatalf("expected hint %d, got %d", op1Height, op1Hint)
 	}
-	op2Hint, err := hintCache.QuerySpendHint(ntfn2.OutPoint)
+	op2Hint, err := hintCache.QuerySpendHint(ntfn2.SpendRequest)
 	if err != nil {
 		t.Fatalf("unable to query for spend hint of op2: %v", err)
 	}
@@ -1866,7 +1965,10 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 
 	// Then, we'll create another block that spends the second outpoint.
 	spendTx2 := newWireTxWithVersion(2)
-	spendTx2.AddTxIn(&wire.TxIn{PreviousOutPoint: ntfn2.OutPoint})
+	spendTx2.AddTxIn(&wire.TxIn{
+		PreviousOutPoint: ntfn2.OutPoint,
+		SignatureScript:  testSigScript,
+	})
 	block2 := dcrutil.NewBlock(&wire.MsgBlock{
 		Transactions: []*wire.MsgTx{spendTx2},
 	})
@@ -1881,14 +1983,14 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	// Only the second outpoint should have its spend hint updated due to
 	// being spent within the new block. The first outpoint's spend hint
 	// should remain the same as it's already been spent before.
-	op1Hint, err = hintCache.QuerySpendHint(ntfn1.OutPoint)
+	op1Hint, err = hintCache.QuerySpendHint(ntfn1.SpendRequest)
 	if err != nil {
 		t.Fatalf("unable to query for spend hint of op1: %v", err)
 	}
 	if op1Hint != op1Height {
 		t.Fatalf("expected hint %d, got %d", op1Height, op1Hint)
 	}
-	op2Hint, err = hintCache.QuerySpendHint(ntfn2.OutPoint)
+	op2Hint, err = hintCache.QuerySpendHint(ntfn2.SpendRequest)
 	if err != nil {
 		t.Fatalf("unable to query for spend hint of op2: %v", err)
 	}
@@ -1906,14 +2008,14 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	// to the previous height, as that's where its spending transaction was
 	// included in within the chain. The first outpoint's spend hint should
 	// remain the same.
-	op1Hint, err = hintCache.QuerySpendHint(ntfn1.OutPoint)
+	op1Hint, err = hintCache.QuerySpendHint(ntfn1.SpendRequest)
 	if err != nil {
 		t.Fatalf("unable to query for spend hint of op1: %v", err)
 	}
 	if op1Hint != op1Height {
 		t.Fatalf("expected hint %d, got %d", op1Height, op1Hint)
 	}
-	op2Hint, err = hintCache.QuerySpendHint(ntfn2.OutPoint)
+	op2Hint, err = hintCache.QuerySpendHint(ntfn2.SpendRequest)
 	if err != nil {
 		t.Fatalf("unable to query for spend hint of op2: %v", err)
 	}
@@ -1935,19 +2037,21 @@ func TestTxNotifierTearDown(t *testing.T) {
 	// To begin the test, we'll register for a confirmation and spend
 	// notification.
 	confNtfn := &chainntnfs.ConfNtfn{
-		TxID:             &zeroHash,
+		ConfID:           1,
+		ConfRequest:      chainntnfs.ConfRequest{TxID: chainntnfs.ZeroHash},
 		NumConfirmations: 1,
 		Event:            chainntnfs.NewConfirmationEvent(1),
 	}
-	if _, err := n.RegisterConf(confNtfn); err != nil {
+	if _, _, err := n.RegisterConf(confNtfn); err != nil {
 		t.Fatalf("unable to register conf ntfn: %v", err)
 	}
 
 	spendNtfn := &chainntnfs.SpendNtfn{
-		OutPoint: zeroOutPoint,
-		Event:    chainntnfs.NewSpendEvent(nil),
+		SpendID:      1,
+		SpendRequest: chainntnfs.SpendRequest{OutPoint: chainntnfs.ZeroOutPoint},
+		Event:        chainntnfs.NewSpendEvent(nil),
 	}
-	if _, err := n.RegisterSpend(spendNtfn); err != nil {
+	if _, _, err := n.RegisterSpend(spendNtfn); err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
 
@@ -1984,10 +2088,10 @@ func TestTxNotifierTearDown(t *testing.T) {
 
 	// Now that the notifier is torn down, we should no longer be able to
 	// register notification requests.
-	if _, err := n.RegisterConf(confNtfn); err == nil {
+	if _, _, err := n.RegisterConf(confNtfn); err == nil {
 		t.Fatal("expected confirmation registration to fail")
 	}
-	if _, err := n.RegisterSpend(spendNtfn); err == nil {
+	if _, _, err := n.RegisterSpend(spendNtfn); err == nil {
 		t.Fatal("expected spend registration to fail")
 	}
 }
