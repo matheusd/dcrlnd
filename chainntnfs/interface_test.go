@@ -1751,7 +1751,10 @@ func TestInterfaces(t *testing.T) {
 		var notifier chainntnfs.TestChainNotifier
 		switch notifierType {
 		case "dcrd":
-			notifier, err = dcrdnotify.New(&rpcConfig, hintCache, hintCache)
+			notifier, err = dcrdnotify.New(
+				&rpcConfig, chainntnfs.NetParams, hintCache,
+				hintCache,
+			)
 			if err != nil {
 				t.Fatalf("error initializing dcrd notifier: %v", err)
 			}
