@@ -72,9 +72,12 @@ type ForwardingPolicy struct {
 	// lifetime of the channel.
 	MinHTLC lnwire.MilliAtom
 
-	// BaseFee is the base fee, expressed in milli-atoms that must be
-	// paid for each incoming HTLC. This field, combined with FeeRate is
-	// used to compute the required fee for a given HTLC.
+	// MaxHTLC is the largest HTLC that is to be forwarded.
+	MaxHTLC lnwire.MilliAtom
+
+	// BaseFee is the base fee, expressed in milli-atoms that must be paid
+	// for each incoming HTLC. This field, combined with FeeRate is used to
+	// compute the required fee for a given HTLC.
 	BaseFee lnwire.MilliAtom
 
 	// FeeRate is the fee rate, expressed in milli-atom that must be
