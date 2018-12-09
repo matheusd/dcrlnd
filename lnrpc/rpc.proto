@@ -1641,6 +1641,7 @@ message RoutingPolicy {
     int64 fee_base_m_atoms = 3 [json_name = "fee_base_m_atoms"];
     int64 fee_rate_milli_m_atoms = 4 [json_name = "fee_rate_milli_m_atoms"];
     bool disabled = 5 [json_name = "disabled"];
+    uint64 max_htlc = 6 [json_name = "max_htlc"];
 }
 
 /**
