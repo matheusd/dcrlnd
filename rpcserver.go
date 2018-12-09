@@ -4633,6 +4633,7 @@ func marshallTopologyChange(topChange *routing.TopologyChange) *lnrpc.GraphTopol
 			RoutingPolicy: &lnrpc.RoutingPolicy{
 				TimeLockDelta:      uint32(channelUpdate.TimeLockDelta),
 				MinHtlc:            int64(channelUpdate.MinHTLC),
+				MaxHtlc:            uint64(channelUpdate.MaxHTLC),
 				FeeBaseMAtoms:      int64(channelUpdate.BaseFee),
 				FeeRateMilliMAtoms: int64(channelUpdate.FeeRate),
 				Disabled:           channelUpdate.Disabled,

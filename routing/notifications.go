@@ -266,6 +266,9 @@ type ChannelEdgeUpdate struct {
 	// MinHTLC is the minimum HTLC amount that this channel will forward.
 	MinHTLC lnwire.MilliAtom
 
+	// MaxHTLC is the maximum HTLC amount that this channel will forward.
+	MaxHTLC lnwire.MilliAtom
+
 	// BaseFee is the base fee that will charged for all HTLC's forwarded
 	// across the this channel direction.
 	BaseFee lnwire.MilliAtom
@@ -359,6 +362,7 @@ func addToTopologyChange(graph *channeldb.ChannelGraph, update *TopologyChange,
 			TimeLockDelta:   m.TimeLockDelta,
 			Capacity:        edgeInfo.Capacity,
 			MinHTLC:         m.MinHTLC,
+			MaxHTLC:         m.MaxHTLC,
 			BaseFee:         m.FeeBaseMAtoms,
 			FeeRate:         m.FeeProportionalMillionths,
 			AdvertisingNode: aNode,
