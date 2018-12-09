@@ -89,9 +89,11 @@ type testChan struct {
 	Node2         string `json:"node_2"`
 	ChannelID     uint64 `json:"channel_id"`
 	ChannelPoint  string `json:"channel_point"`
-	Flags         uint16 `json:"flags"`
+	ChannelFlags  uint8  `json:"channel_flags"`
+	MessageFlags  uint8  `json:"message_flags"`
 	Expiry        uint16 `json:"expiry"`
 	MinHTLC       int64  `json:"min_htlc"`
+	MaxHTLC       int64  `json:"max_htlc"`
 	FeeBaseMAtoms int64  `json:"fee_base_m_atoms"`
 	FeeRate       int64  `json:"fee_rate"`
 	Capacity      int64  `json:"capacity"`
@@ -271,12 +273,13 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 
 		edgePolicy := &channeldb.ChannelEdgePolicy{
 			SigBytes:                  testSig.Serialize(),
-			MessageFlags:              lnwire.ChanUpdateMsgFlags(edge.Flags >> 8),
-			ChannelFlags:              lnwire.ChanUpdateChanFlags(edge.Flags),
+			MessageFlags:              lnwire.ChanUpdateMsgFlags(edge.MessageFlags),
+			ChannelFlags:              lnwire.ChanUpdateChanFlags(edge.ChannelFlags),
 			ChannelID:                 edge.ChannelID,
 			LastUpdate:                testTime,
 			TimeLockDelta:             edge.Expiry,
 			MinHTLC:                   lnwire.MilliAtom(edge.MinHTLC),
+			MaxHTLC:                   lnwire.MilliAtom(edge.MaxHTLC),
 			FeeBaseMAtoms:             lnwire.MilliAtom(edge.FeeBaseMAtoms),
 			FeeProportionalMillionths: lnwire.MilliAtom(edge.FeeRate),
 		}
@@ -295,6 +298,7 @@ func parseTestGraph(path string) (*testGraphInstance, error) {
 type testChannelPolicy struct {
 	Expiry        uint16
 	MinHTLC       lnwire.MilliAtom
+	MaxHTLC       lnwire.MilliAtom
 	FeeBaseMAtoms lnwire.MilliAtom
 	FeeRate       lnwire.MilliAtom
 }
@@ -304,12 +308,13 @@ type testChannelEnd struct {
 	testChannelPolicy
 }
 
-func defaultTestChannelEnd(alias string) *testChannelEnd {
+func defaultTestChannelEnd(alias string, capacity dcrutil.Amount) *testChannelEnd {
 	return &testChannelEnd{
 		Alias: alias,
 		testChannelPolicy: testChannelPolicy{
 			Expiry:        144,
 			MinHTLC:       lnwire.MilliAtom(1000),
+			MaxHTLC:       lnwire.NewMAtomsFromAtoms(capacity),
 			FeeBaseMAtoms: lnwire.MilliAtom(1000),
 			FeeRate:       lnwire.MilliAtom(1),
 		},
@@ -484,14 +489,19 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			return nil, err
 		}
 
+		var msgFlags lnwire.ChanUpdateMsgFlags
+		if testChannel.Node1.MaxHTLC != 0 {
+			msgFlags = 1
+		}
 		edgePolicy := &channeldb.ChannelEdgePolicy{
 			SigBytes:                  testSig.Serialize(),
-			MessageFlags:              0,
+			MessageFlags:              msgFlags,
 			ChannelFlags:              0,
 			ChannelID:                 channelID,
 			LastUpdate:                testTime,
 			TimeLockDelta:             testChannel.Node1.Expiry,
 			MinHTLC:                   testChannel.Node1.MinHTLC,
+			MaxHTLC:                   testChannel.Node1.MaxHTLC,
 			FeeBaseMAtoms:             testChannel.Node1.FeeBaseMAtoms,
 			FeeProportionalMillionths: testChannel.Node1.FeeRate,
 		}
@@ -499,14 +509,19 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			return nil, err
 		}
 
+		msgFlags = 0
+		if testChannel.Node2.MaxHTLC != 0 {
+			msgFlags = 1
+		}
 		edgePolicy = &channeldb.ChannelEdgePolicy{
 			SigBytes:                  testSig.Serialize(),
-			MessageFlags:              0,
+			MessageFlags:              msgFlags,
 			ChannelFlags:              lnwire.ChanUpdateDirection,
 			ChannelID:                 channelID,
 			LastUpdate:                testTime,
 			TimeLockDelta:             testChannel.Node2.Expiry,
 			MinHTLC:                   testChannel.Node2.MinHTLC,
+			MaxHTLC:                   testChannel.Node2.MaxHTLC,
 			FeeBaseMAtoms:             testChannel.Node2.FeeBaseMAtoms,
 			FeeProportionalMillionths: testChannel.Node2.FeeRate,
 		}
@@ -539,26 +554,31 @@ func TestFindLowestFeePath(t *testing.T) {
 			Expiry:  144,
 			FeeRate: 400,
 			MinHTLC: 1,
+			MaxHTLC: 100000000,
 		}),
 		symmetricTestChannel("first", "a", 100000, &testChannelPolicy{
 			Expiry:  144,
 			FeeRate: 400,
 			MinHTLC: 1,
+			MaxHTLC: 100000000,
 		}),
 		symmetricTestChannel("a", "target", 100000, &testChannelPolicy{
 			Expiry:  144,
 			FeeRate: 400,
 			MinHTLC: 1,
+			MaxHTLC: 100000000,
 		}),
 		symmetricTestChannel("first", "b", 100000, &testChannelPolicy{
 			Expiry:  144,
 			FeeRate: 100,
 			MinHTLC: 1,
+			MaxHTLC: 100000000,
 		}),
 		symmetricTestChannel("b", "target", 100000, &testChannelPolicy{
 			Expiry:  144,
 			FeeRate: 600,
 			MinHTLC: 1,
+			MaxHTLC: 100000000,
 		}),
 	}
 
