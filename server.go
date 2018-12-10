@@ -42,6 +42,7 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/dcrlnd/tor"
+	"github.com/decred/dcrlnd/walletunlocker"
 	"github.com/decred/dcrlnd/zpay32"
 	sphinx "github.com/decred/lightning-onion"
 	"github.com/go-errors/errors"
@@ -184,6 +185,10 @@ type server struct {
 	// changed since last start.
 	currentNodeAnn *lnwire.NodeAnnouncement
 
+	// chansToRestore is the set of channels that upon starting, the server
+	// should attempt to restore/recover.
+	chansToRestore walletunlocker.ChannelsToRecover
+
 	quit chan struct{}
 
 	wg sync.WaitGroup
@@ -237,7 +242,8 @@ func noiseDial(idPriv *secp256k1.PrivateKey) func(net.Addr) (net.Conn, error) {
 // newServer creates a new instance of the server which is to listen using the
 // passed listener address.
 func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
-	privKey *secp256k1.PrivateKey) (*server, error) {
+	privKey *secp256k1.PrivateKey,
+	chansToRestore walletunlocker.ChannelsToRecover) (*server, error) {
 
 	var err error
 
@@ -294,11 +300,12 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	}
 
 	s := &server{
-		chanDB:    chanDB,
-		cc:        cc,
-		sigPool:   lnwallet.NewSigPool(cfg.Workers.Sig, cc.signer),
-		writePool: writePool,
-		readPool:  readPool,
+		chanDB:         chanDB,
+		cc:             cc,
+		sigPool:        lnwallet.NewSigPool(cfg.Workers.Sig, cc.signer),
+		writePool:      writePool,
+		readPool:       readPool,
+		chansToRestore: chansToRestore,
 
 		invoices: invoices.NewRegistry(chanDB, decodeFinalCltvExpiry),
 
@@ -1065,14 +1072,43 @@ func (s *server) Start() error {
 	if err := s.fundingMgr.Start(); err != nil {
 		return err
 	}
-	s.connMgr.Start()
-
 	if err := s.invoices.Start(); err != nil {
 		return err
 	}
 	if err := s.chanStatusMgr.Start(); err != nil {
 		return err
 	}
+
+	// Before we start the connMgr, we'll check to see if we have any
+	// backups to recover. We do this now as we want to ensure that have
+	// all the information we need to handle channel recovery _before_ we
+	// even accept connections from any peers.
+	chanRestorer := &chanDBRestorer{
+		db:         s.chanDB,
+		secretKeys: s.cc.keyRing,
+	}
+	if len(s.chansToRestore.PackedSingleChanBackups) != 0 {
+		err := chanbackup.UnpackAndRecoverSingles(
+			s.chansToRestore.PackedSingleChanBackups,
+			s.cc.keyRing, chanRestorer, s,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to unpack single "+
+				"backups: %v", err)
+		}
+	}
+	if len(s.chansToRestore.PackedMultiChanBackup) != 0 {
+		err := chanbackup.UnpackAndRecoverMulti(
+			s.chansToRestore.PackedMultiChanBackup,
+			s.cc.keyRing, chanRestorer, s,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to unpack chan "+
+				"backup: %v", err)
+		}
+	}
+
+	s.connMgr.Start()
 
 	// With all the relevant sub-systems started, we'll now attempt to
 	// establish persistent connections to our direct channel collaborators
@@ -2792,7 +2828,8 @@ func (s *server) ConnectToPeer(addr *lnwire.NetAddress, perm bool) error {
 			s.persistentPeersBackoff[targetPub] = cfg.MinBackoff
 		}
 		s.persistentConnReqs[targetPub] = append(
-			s.persistentConnReqs[targetPub], connReq)
+			s.persistentConnReqs[targetPub], connReq,
+		)
 		s.mu.Unlock()
 
 		go s.connMgr.Connect(connReq)
