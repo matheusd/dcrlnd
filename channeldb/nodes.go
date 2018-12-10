@@ -62,12 +62,7 @@ type LinkNode struct {
 // NewLinkNode creates a new LinkNode from the provided parameters, which is
 // backed by an instance of channeldb.
 func (db *DB) NewLinkNode(bitNet wire.CurrencyNet, pub *secp256k1.PublicKey,
-	addr net.Addr) *LinkNode {
-
-	var addrs []net.Addr
-	if addr != nil {
-		addrs = []net.Addr{addr}
-	}
+	addrs ...net.Addr) *LinkNode {
 
 	return &LinkNode{
 		Network:     bitNet,
@@ -154,39 +149,43 @@ func (db *DB) deleteLinkNode(tx *bolt.Tx, identity *secp256k1.PublicKey) error {
 // identity public key. If a particular LinkNode for the passed identity public
 // key cannot be found, then ErrNodeNotFound if returned.
 func (db *DB) FetchLinkNode(identity *secp256k1.PublicKey) (*LinkNode, error) {
-	var (
-		node *LinkNode
-		err  error
-	)
-
-	err = db.View(func(tx *bolt.Tx) error {
-		// First fetch the bucket for storing node metadata, bailing
-		// out early if it hasn't been created yet.
-		nodeMetaBucket := tx.Bucket(nodeInfoBucket)
-		if nodeMetaBucket == nil {
-			return ErrLinkNodesNotFound
+	var linkNode *LinkNode
+	err := db.View(func(tx *bolt.Tx) error {
+		node, err := fetchLinkNode(tx, identity)
+		if err != nil {
+			return err
 		}
 
-		// If a link node for that particular public key cannot be
-		// located, then exit early with an ErrNodeNotFound.
-		pubKey := identity.SerializeCompressed()
-		nodeBytes := nodeMetaBucket.Get(pubKey)
-		if nodeBytes == nil {
-			return ErrNodeNotFound
-		}
-
-		// Finally, decode an allocate a fresh LinkNode object to be
-		// returned to the caller.
-		nodeReader := bytes.NewReader(nodeBytes)
-		node, err = deserializeLinkNode(nodeReader)
-		return err
+		linkNode = node
+		return nil
 	})
-	if err != nil {
-		return nil, err
+
+	return linkNode, err
+}
+
+func fetchLinkNode(tx *bolt.Tx, targetPub *secp256k1.PublicKey) (*LinkNode, error) {
+	// First fetch the bucket for storing node metadata, bailing out early
+	// if it hasn't been created yet.
+	nodeMetaBucket := tx.Bucket(nodeInfoBucket)
+	if nodeMetaBucket == nil {
+		return nil, ErrLinkNodesNotFound
 	}
 
-	return node, nil
+	// If a link node for that particular public key cannot be located,
+	// then exit early with an ErrNodeNotFound.
+	pubKey := targetPub.SerializeCompressed()
+	nodeBytes := nodeMetaBucket.Get(pubKey)
+	if nodeBytes == nil {
+		return nil, ErrNodeNotFound
+	}
+
+	// Finally, decode and allocate a fresh LinkNode object to be returned
+	// to the caller.
+	nodeReader := bytes.NewReader(nodeBytes)
+	return deserializeLinkNode(nodeReader)
 }
+
+// TODO(roasbeef): update link node addrs in server upon connection
 
 // FetchAllLinkNodes starts a new database transaction to fetch all nodes with
 // whom we have active channels with.
