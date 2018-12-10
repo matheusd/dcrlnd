@@ -121,8 +121,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			ChanReserve:      dcrutil.Amount(rand.Int63()),
 			MinHTLC:          lnwire.MilliAtom(rand.Int63()),
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
+			CsvDelay:         uint16(rand.Int31()),
 		},
-		CsvDelay: uint16(rand.Int31()),
 		MultiSigKey: keychain.KeyDescriptor{
 			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 		},
@@ -146,8 +146,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			ChanReserve:      dcrutil.Amount(rand.Int63()),
 			MinHTLC:          lnwire.MilliAtom(rand.Int63()),
 			MaxAcceptedHtlcs: uint16(rand.Int31()),
+			CsvDelay:         uint16(rand.Int31()),
 		},
-		CsvDelay: uint16(rand.Int31()),
 		MultiSigKey: keychain.KeyDescriptor{
 			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
 			KeyLocator: keychain.KeyLocator{
