@@ -590,7 +590,7 @@ func (n *DcrdNotifier) confDetailsManually(confRequest chainntnfs.ConfRequest,
 		select {
 		case <-n.quit:
 			return nil, chainntnfs.TxNotFoundManually,
-				ErrChainNotifierShuttingDown
+				chainntnfs.ErrChainNotifierShuttingDown
 		default:
 		}
 
@@ -1024,7 +1024,7 @@ func (n *DcrdNotifier) RegisterConfirmationsNtfn(txid *chainhash.Hash,
 	case n.notificationRegistry <- dispatch:
 		return ntfn.Event, nil
 	case <-n.quit:
-		return nil, ErrChainNotifierShuttingDown
+		return nil, chainntnfs.ErrChainNotifierShuttingDown
 	}
 }
 
