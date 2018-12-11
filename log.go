@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
+	"github.com/decred/dcrlnd/lnrpc/chainrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -78,6 +79,7 @@ var (
 	invcLog = build.NewSubLogger("INVC", backendLog.Logger)
 	nannLog = build.NewSubLogger("NANN", backendLog.Logger)
 	wtwrLog = build.NewSubLogger("WTWR", backendLog.Logger)
+	ntfrLog = build.NewSubLogger("NTFR", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -102,6 +104,7 @@ func init() {
 	invoices.UseLogger(invcLog)
 	netann.UseLogger(nannLog)
 	watchtower.UseLogger(wtwrLog)
+	chainrpc.UseLogger(ntfrLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
@@ -132,6 +135,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"INVC": invcLog,
 	"NANN": nannLog,
 	"WTWR": wtwrLog,
+	"NTFR": ntfnLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and
