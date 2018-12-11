@@ -1,6 +1,7 @@
 package dcrdnotify
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -495,7 +496,7 @@ func (n *DcrdNotifier) confDetailsFromTxIndex(txid *chainhash.Hash) (
 
 	// If the transaction has some or all of its confirmations required,
 	// then we may be able to dispatch it immediately.
-	tx, err := n.chainConn.GetRawTransactionVerbose(txid)
+	rawTxRes, err := n.chainConn.GetRawTransactionVerbose(txid)
 	if err != nil {
 		// If the transaction lookup was successful, but it wasn't found
 		// within the index itself, then we can exit early. We'll also
@@ -516,20 +517,19 @@ func (n *DcrdNotifier) confDetailsFromTxIndex(txid *chainhash.Hash) (
 	// Make sure we actually retrieved a transaction that is included in a
 	// block. If not, the transaction must be unconfirmed (in the mempool),
 	// and we'll return TxFoundMempool together with a nil TxConfirmation.
-	if tx.BlockHash == "" {
+	if rawTxRes.BlockHash == "" {
 		return nil, chainntnfs.TxFoundMempool, nil
 	}
 
 	// As we need to fully populate the returned TxConfirmation struct,
 	// grab the block in which the transaction was confirmed so we can
 	// locate its exact index within the block.
-	blockHash, err := chainhash.NewHashFromStr(tx.BlockHash)
+	blockHash, err := chainhash.NewHashFromStr(rawTxRes.BlockHash)
 	if err != nil {
 		return nil, chainntnfs.TxNotFoundIndex,
 			fmt.Errorf("unable to get block hash %v for "+
-				"historical dispatch: %v", tx.BlockHash, err)
+				"historical dispatch: %v", rawTxRes.BlockHash, err)
 	}
-
 	block, err := n.chainConn.GetBlockVerbose(blockHash, false)
 	if err != nil {
 		return nil, chainntnfs.TxNotFoundIndex,
@@ -539,23 +539,39 @@ func (n *DcrdNotifier) confDetailsFromTxIndex(txid *chainhash.Hash) (
 
 	// If the block was obtained, locate the transaction's index within the
 	// block so we can give the subscriber full confirmation details.
-	targetTxidStr := txid.String()
+	txidStr := txid.String()
 	for txIndex, txHash := range block.Tx {
-		if txHash == targetTxidStr {
-			details := &chainntnfs.TxConfirmation{
-				BlockHash:   blockHash,
-				BlockHeight: uint32(block.Height),
-				TxIndex:     uint32(txIndex),
-			}
-			return details, chainntnfs.TxFoundIndex, nil
+		if txHash != txidStr {
+			continue
 		}
+
+		// Deserialize the hex-encoded transaction to include it in the
+		// confirmation details.
+		rawTx, err := hex.DecodeString(rawTxRes.Hex)
+		if err != nil {
+			return nil, chainntnfs.TxFoundIndex,
+				fmt.Errorf("unable to deserialize tx %v: %v",
+					txHash, err)
+		}
+		var tx wire.MsgTx
+		if err := tx.Deserialize(bytes.NewReader(rawTx)); err != nil {
+			return nil, chainntnfs.TxFoundIndex,
+				fmt.Errorf("unable to deserialize tx %v: %v",
+					txHash, err)
+		}
+
+		return &chainntnfs.TxConfirmation{
+			Tx:          &tx,
+			BlockHash:   blockHash,
+			BlockHeight: uint32(block.Height),
+			TxIndex:     uint32(txIndex),
+		}, chainntnfs.TxFoundIndex, nil
 	}
 
 	// We return an error because we should have found the transaction
 	// within the block, but didn't.
-	return nil, chainntnfs.TxNotFoundIndex,
-		fmt.Errorf("unable to locate tx %v in block %v", txid,
-			blockHash)
+	return nil, chainntnfs.TxNotFoundIndex, fmt.Errorf("unable to locate "+
+		"tx %v in block %v", txid, blockHash)
 }
 
 // confDetailsManually looks up whether a transaction/output script has already
@@ -602,6 +618,7 @@ func (n *DcrdNotifier) confDetailsManually(confRequest chainntnfs.ConfRequest,
 			}
 
 			return &chainntnfs.TxConfirmation{
+				Tx:          tx,
 				BlockHash:   blockHash,
 				BlockHeight: height,
 				TxIndex:     uint32(txIndex),

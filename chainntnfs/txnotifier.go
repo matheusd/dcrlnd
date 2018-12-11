@@ -1190,6 +1190,7 @@ func (n *TxNotifier) filterTx(tx *dcrutil.Tx, blockHash *chainhash.Hash,
 				blockHeight, blockHash)
 
 			details := &TxConfirmation{
+				Tx:          tx.MsgTx(),
 				BlockHash:   blockHash,
 				BlockHeight: blockHeight,
 				TxIndex:     uint32(tx.Index()),
