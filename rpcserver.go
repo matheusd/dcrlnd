@@ -171,6 +171,10 @@ var (
 			Entity: "address",
 			Action: "write",
 		},
+		{
+			Entity: "onchain",
+			Action: "read",
+		},
 	}
 )
 
