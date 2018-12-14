@@ -20,8 +20,11 @@ type DcrdBackendConfig struct {
 	// instance.
 	rpcConfig rpcclient.ConnConfig
 
-	// p2pAddress is the p2p address of the btcd instance.
-	p2pAddress string
+	// harness is this backend's node.
+	harness *rpctest.Harness
+
+	// miner is the backing miner used during tests.
+	miner *rpctest.Harness
 }
 
 // GenArgs returns the arguments needed to be passed to LND at startup for
@@ -37,10 +40,14 @@ func (b DcrdBackendConfig) GenArgs() []string {
 	return args
 }
 
-// P2PAddr returns the address of this node to be used when connection over the
-// Bitcoin P2P network.
-func (b DcrdBackendConfig) P2PAddr() string {
-	return b.p2pAddress
+// ConnectMiner connects the backend to the underlying miner.
+func (b DcrdBackendConfig) ConnectMiner() error {
+	return rpctest.ConnectNode(b.harness, b.miner)
+}
+
+// DisconnectMiner disconnects the backend to the underlying miner.
+func (b DcrdBackendConfig) DisconnectMiner() error {
+	return rpctest.RemoveNode(b.harness, b.miner)
 }
 
 // NewDcrdBackend starts a new rpctest.Harness and returns a DcrdBackendConfig
@@ -67,7 +74,8 @@ func NewDcrdBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) 
 
 	bd := &DcrdBackendConfig{
 		rpcConfig: chainBackend.RPCConfig(),
-		// p2pAddress: chainBackend.P2PAddress(),
+		harness:   chainBackend,
+		miner:     miner,
 	}
 
 	// Connect this newly created node to the miner.
