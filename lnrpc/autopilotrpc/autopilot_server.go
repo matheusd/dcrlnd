@@ -4,11 +4,14 @@ package autopilotrpc
 
 import (
 	"context"
+	"encoding/hex"
 	"os"
 	"sync/atomic"
 
+	"github.com/decred/dcrd/secp256k1"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/lnrpc"
+
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 )
@@ -34,6 +37,10 @@ var (
 		}, {
 			Entity: "offchain",
 			Action: "write",
+		}},
+		"/autopilotrpc.Autopilot/QueryScores": {{
+			Entity: "info",
+			Action: "read",
 		}},
 	}
 )
@@ -153,4 +160,61 @@ func (s *Server) ModifyStatus(ctx context.Context,
 		err = s.manager.StopAgent()
 	}
 	return &ModifyStatusResponse{}, err
+}
+
+// QueryScores queries all available autopilot heuristics, in addition to any
+// active combination of these heruristics, for the scores they would give to
+// the given nodes.
+//
+// NOTE: Part of the AutopilotServer interface.
+func (s *Server) QueryScores(ctx context.Context, in *QueryScoresRequest) (
+	*QueryScoresResponse, error) {
+
+	var nodes []autopilot.NodeID
+	for _, pubStr := range in.Pubkeys {
+		pubHex, err := hex.DecodeString(pubStr)
+		if err != nil {
+			return nil, err
+		}
+		pubKey, err := secp256k1.ParsePubKey(pubHex)
+		if err != nil {
+			return nil, err
+		}
+		nID := autopilot.NewNodeID(pubKey)
+		nodes = append(nodes, nID)
+	}
+
+	// Query the heuristics.
+	heuristicScores, err := s.manager.QueryHeuristics(nodes)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &QueryScoresResponse{}
+	for heuristic, scores := range heuristicScores {
+		result := &QueryScoresResponse_HeuristicResult{
+			Heuristic: heuristic,
+			Scores:    make(map[string]float64),
+		}
+
+		for pub, score := range scores {
+			pubkeyHex := hex.EncodeToString(pub[:])
+			result.Scores[pubkeyHex] = score
+		}
+
+		// Since a node not being part of the internally returned
+		// scores imply a zero score, we add these before we return the
+		// RPC results.
+		for _, node := range nodes {
+			if _, ok := scores[node]; ok {
+				continue
+			}
+			pubkeyHex := hex.EncodeToString(node[:])
+			result.Scores[pubkeyHex] = 0.0
+		}
+
+		resp.Results = append(resp.Results, result)
+	}
+
+	return resp, nil
 }
