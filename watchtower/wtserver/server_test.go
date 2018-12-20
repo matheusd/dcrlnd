@@ -10,6 +10,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
@@ -17,8 +18,12 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtwire"
 )
 
-// addr is the server's reward address given to watchtower clients.
-var addr, _ = dcrutil.DecodeAddress("TsVDyY1k1N2jZ7xYuoA1PEbwSP2mQnXR9qb")
+var (
+	// addr is the server's reward address given to watchtower clients.
+	addr, _ = dcrutil.DecodeAddress("TsVDyY1k1N2jZ7xYuoA1PEbwSP2mQnXR9qb")
+
+	addrScript, _ = txscript.PayToAddrScript(addr)
+)
 
 // randPubKey generates a new secp keypair, and returns the public key.
 func randPubKey(t *testing.T) *secp256k1.PublicKey {
@@ -160,11 +165,11 @@ var createSessionTests = []createSessionTestCase{
 		},
 		expReply: &wtwire.CreateSessionReply{
 			Code: wtwire.CodeOK,
-			Data: []byte(addr.ScriptAddress()),
+			Data: addrScript,
 		},
 		expDupReply: &wtwire.CreateSessionReply{
 			Code: wtwire.CreateSessionCodeAlreadyExists,
-			Data: []byte(addr.ScriptAddress()),
+			Data: addrScript,
 		},
 	},
 	{
