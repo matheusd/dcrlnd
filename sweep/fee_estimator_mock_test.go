@@ -14,6 +14,8 @@ type mockFeeEstimator struct {
 
 	relayFee lnwallet.AtomPerKByte
 
+	blocksToFee map[uint32]lnwallet.AtomPerKByte
+
 	lock sync.Mutex
 }
 
@@ -21,8 +23,9 @@ func newMockFeeEstimator(feePerKB,
 	relayFee lnwallet.AtomPerKByte) *mockFeeEstimator {
 
 	return &mockFeeEstimator{
-		feePerKB: feePerKB,
-		relayFee: relayFee,
+		feePerKB:    feePerKB,
+		relayFee:    relayFee,
+		blocksToFee: make(map[uint32]lnwallet.AtomPerKByte),
 	}
 }
 
@@ -41,6 +44,10 @@ func (e *mockFeeEstimator) EstimateFeePerKB(numBlocks uint32) (
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
+
+	if fee, ok := e.blocksToFee[numBlocks]; ok {
+		return fee, nil
+	}
 
 	return e.feePerKB, nil
 }
