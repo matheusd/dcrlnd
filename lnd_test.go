@@ -14089,6 +14089,85 @@ func testMaxIOChannelBalances(net *lntest.NetworkHarness, t *harnessTest) {
 
 }
 
+// testSweepAllCoins tests that we're able to properly sweep all coins from the
+// wallet into a single target address at the specified fee rate.
+func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
+	ctxb := context.Background()
+
+	// First, we'll make a new node, Carol who'll we'll use to test wallet
+	// sweeping.
+	carol, err := net.NewNode("Carol", nil)
+	if err != nil {
+		t.Fatalf("unable to create new node: %v", err)
+	}
+	defer shutdownAndAssert(net, t, carol)
+
+	// Next, we'll give Carol exactly 2 utxos of 1 DCR each, both using
+	// p2pkh addresses.
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to carol: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, carol)
+	if err != nil {
+		t.Fatalf("unable to send coins to carol: %v", err)
+	}
+
+	// With the two coins above mined, we'll now instruct Carol to sweep
+	// all the coins to an external address not under its control.
+	minerAddr, err := net.Miner.NewAddress()
+	if err != nil {
+		t.Fatalf("unable to create new miner addr: %v", err)
+	}
+
+	sweepReq := &lnrpc.SendCoinsRequest{
+		Addr:    minerAddr.String(),
+		SendAll: true,
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	_, err = carol.SendCoins(ctxt, sweepReq)
+	if err != nil {
+		t.Fatalf("unable to sweep coins: %v", err)
+	}
+
+	// We'll mine a block wish should include the sweep transaction we
+	// generated above.
+	block := mineBlocks(t, net, 1, 1)[0]
+
+	// The sweep transaction should have exactly two inputs as we only had
+	// two UTXOs in the wallet.
+	sweepTx := block.Transactions[1]
+	if len(sweepTx.TxIn) != 2 {
+		t.Fatalf("expected 2 inputs instead have %v", len(sweepTx.TxIn))
+	}
+
+	// Finally, Carol should now have no coins at all within his wallet.
+	balReq := &lnrpc.WalletBalanceRequest{}
+	resp, err := carol.WalletBalance(ctxt, balReq)
+	if err != nil {
+		t.Fatalf("unable to get ainz's balance: %v", err)
+	}
+	switch {
+	case resp.ConfirmedBalance != 0:
+		t.Fatalf("expected no confirmed balance, instead have %v",
+			resp.ConfirmedBalance)
+
+	case resp.UnconfirmedBalance != 0:
+		t.Fatalf("expected no unconfirmed balance, instead have %v",
+			resp.UnconfirmedBalance)
+	}
+
+	// If we try again, but this time specifying an amount, then the call
+	// should fail.
+	sweepReq.Amount = 10000
+	_, err = carol.SendCoins(ctxt, sweepReq)
+	if err == nil {
+		t.Fatalf("sweep attempt should fail")
+	}
+}
+
 type testCase struct {
 	name string
 	test func(net *lntest.NetworkHarness, t *harnessTest)
@@ -14109,6 +14188,10 @@ var testsCases = []*testCase{
 	{
 		name: "test concurrent node connection",
 		test: testConcurrentNodeConnection,
+	},
+	{
+		name: "sweep coins",
+		test: testSweepAllCoins,
 	},
 	{
 		name: "basic funding flow",
