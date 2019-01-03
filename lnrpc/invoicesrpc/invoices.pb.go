@@ -6,6 +6,8 @@ package invoicesrpc // import "github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import lnrpc "github.com/decred/dcrlnd/lnrpc"
+import _ "google.golang.org/genproto/googleapis/api/annotations"
 
 import (
 	context "golang.org/x/net/context"
@@ -35,6 +37,11 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type InvoicesClient interface {
+	// *
+	// SubscribeSingleInvoice returns a uni-directional stream (server -> client)
+	// to notify the client of state transitions of the specified invoice.
+	// Initially the current invoice state is always sent out.
+	SubscribeSingleInvoice(ctx context.Context, in *lnrpc.PaymentHash, opts ...grpc.CallOption) (Invoices_SubscribeSingleInvoiceClient, error)
 }
 
 type invoicesClient struct {
@@ -45,33 +52,101 @@ func NewInvoicesClient(cc *grpc.ClientConn) InvoicesClient {
 	return &invoicesClient{cc}
 }
 
+func (c *invoicesClient) SubscribeSingleInvoice(ctx context.Context, in *lnrpc.PaymentHash, opts ...grpc.CallOption) (Invoices_SubscribeSingleInvoiceClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Invoices_serviceDesc.Streams[0], "/invoicesrpc.Invoices/SubscribeSingleInvoice", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &invoicesSubscribeSingleInvoiceClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Invoices_SubscribeSingleInvoiceClient interface {
+	Recv() (*lnrpc.Invoice, error)
+	grpc.ClientStream
+}
+
+type invoicesSubscribeSingleInvoiceClient struct {
+	grpc.ClientStream
+}
+
+func (x *invoicesSubscribeSingleInvoiceClient) Recv() (*lnrpc.Invoice, error) {
+	m := new(lnrpc.Invoice)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // InvoicesServer is the server API for Invoices service.
 type InvoicesServer interface {
+	// *
+	// SubscribeSingleInvoice returns a uni-directional stream (server -> client)
+	// to notify the client of state transitions of the specified invoice.
+	// Initially the current invoice state is always sent out.
+	SubscribeSingleInvoice(*lnrpc.PaymentHash, Invoices_SubscribeSingleInvoiceServer) error
 }
 
 func RegisterInvoicesServer(s *grpc.Server, srv InvoicesServer) {
 	s.RegisterService(&_Invoices_serviceDesc, srv)
 }
 
+func _Invoices_SubscribeSingleInvoice_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(lnrpc.PaymentHash)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(InvoicesServer).SubscribeSingleInvoice(m, &invoicesSubscribeSingleInvoiceServer{stream})
+}
+
+type Invoices_SubscribeSingleInvoiceServer interface {
+	Send(*lnrpc.Invoice) error
+	grpc.ServerStream
+}
+
+type invoicesSubscribeSingleInvoiceServer struct {
+	grpc.ServerStream
+}
+
+func (x *invoicesSubscribeSingleInvoiceServer) Send(m *lnrpc.Invoice) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Invoices_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "invoicesrpc.Invoices",
 	HandlerType: (*InvoicesServer)(nil),
 	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "invoicesrpc/invoices.proto",
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeSingleInvoice",
+			Handler:       _Invoices_SubscribeSingleInvoice_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "invoicesrpc/invoices.proto",
 }
 
 func init() {
-	proto.RegisterFile("invoicesrpc/invoices.proto", fileDescriptor_invoices_0ccb75223f0cc77e)
+	proto.RegisterFile("invoicesrpc/invoices.proto", fileDescriptor_invoices_74945a81f04958c0)
 }
 
-var fileDescriptor_invoices_0ccb75223f0cc77e = []byte{
-	// 98 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0xca, 0xcc, 0x2b, 0xcb,
-	0xcf, 0x4c, 0x4e, 0x2d, 0x2e, 0x2a, 0x48, 0xd6, 0x87, 0xb1, 0xf5, 0x0a, 0x8a, 0xf2, 0x4b, 0xf2,
-	0x85, 0xb8, 0x91, 0xe4, 0x8c, 0xb8, 0xb8, 0x38, 0x3c, 0xa1, 0x5c, 0x27, 0x9d, 0x28, 0xad, 0xf4,
-	0xcc, 0x92, 0x8c, 0xd2, 0x24, 0xbd, 0xe4, 0xfc, 0x5c, 0xfd, 0x94, 0xd4, 0xe4, 0xa2, 0xd4, 0x14,
-	0xfd, 0x94, 0xe4, 0xa2, 0x9c, 0xbc, 0x14, 0xfd, 0x9c, 0x3c, 0x64, 0x93, 0x8a, 0x0a, 0x92, 0x93,
-	0xd8, 0xc0, 0xa6, 0x19, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x6f, 0xad, 0x40, 0xc7, 0x6b, 0x00,
-	0x00, 0x00,
+var fileDescriptor_invoices_74945a81f04958c0 = []byte{
+	// 171 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x4c, 0x8e, 0xbd, 0x0a, 0xc2, 0x30,
+	0x14, 0x85, 0x71, 0x11, 0xad, 0xe0, 0x90, 0xc1, 0x21, 0xf8, 0x04, 0x22, 0x8d, 0xe8, 0xee, 0xe0,
+	0xa4, 0x4e, 0x42, 0x37, 0xb7, 0xfc, 0x5c, 0xd2, 0x0b, 0xe9, 0xbd, 0x21, 0x4d, 0x05, 0xdf, 0x5e,
+	0xac, 0x11, 0xba, 0x1d, 0xce, 0xf9, 0x0e, 0x7c, 0x95, 0x44, 0x7a, 0x31, 0x5a, 0xe8, 0x53, 0xb4,
+	0xea, 0x9f, 0xeb, 0x98, 0x38, 0xb3, 0x58, 0x4d, 0x36, 0xb9, 0xf5, 0xcc, 0x3e, 0x80, 0xd2, 0x11,
+	0x95, 0x26, 0xe2, 0xac, 0x33, 0x32, 0x15, 0x54, 0x2e, 0x53, 0xb4, 0xbf, 0x78, 0xbc, 0x57, 0x8b,
+	0x5b, 0xf9, 0x89, 0x73, 0xb5, 0x69, 0x06, 0xd3, 0xdb, 0x84, 0x06, 0x1a, 0x24, 0x1f, 0xa0, 0x4c,
+	0x42, 0xd4, 0x81, 0xbe, 0x9f, 0x87, 0x7e, 0x77, 0x40, 0xf9, 0xaa, 0xfb, 0x56, 0xae, 0x4b, 0x57,
+	0x98, 0xc3, 0xec, 0xb2, 0x7f, 0xee, 0x3c, 0xe6, 0x76, 0x30, 0xb5, 0xe5, 0x4e, 0x39, 0xb0, 0x09,
+	0x9c, 0x72, 0x36, 0x05, 0x72, 0x6a, 0x64, 0xd5, 0x44, 0xd1, 0xcc, 0x47, 0x81, 0xd3, 0x27, 0x00,
+	0x00, 0xff, 0xff, 0xb1, 0x4d, 0xec, 0xe8, 0xd4, 0x00, 0x00, 0x00,
 }
