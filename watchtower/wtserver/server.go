@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 	"github.com/decred/dcrlnd/watchtower/wtwire"
@@ -373,6 +374,15 @@ func (s *Server) handleCreateSession(peer Peer, id *wtdb.SessionID,
 	}
 
 	rewardAddrBytes := rewardAddress.ScriptAddress()
+
+	// Ensure that the requested blob type is supported by our tower.
+	if !blob.IsSupportedType(req.BlobType) {
+		log.Debugf("Rejecting CreateSession from %s, unsupported blob "+
+			"type %s", id, req.BlobType)
+		return s.replyCreateSession(
+			peer, id, wtwire.CreateSessionCodeRejectBlobType, nil,
+		)
+	}
 
 	// TODO(conner): create invoice for upfront payment
 
