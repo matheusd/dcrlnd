@@ -1367,17 +1367,25 @@ func (p *peer) writeMessage(msg lnwire.Message) error {
 
 	// With the temp buffer created and sliced properly (length zero, full
 	// capacity), we'll now encode the message directly into this buffer.
-	n, err := lnwire.WriteMessage(b, msg, 0)
+	_, err := lnwire.WriteMessage(b, msg, 0)
 	if err != nil {
 		return err
 	}
 
-	atomic.AddUint64(&p.bytesSent, uint64(n))
-
-	p.conn.SetWriteDeadline(time.Now().Add(writeMessageTimeout))
+	// Compute and set the write deadline we will impose on the remote peer.
+	writeDeadline := time.Now().Add(writeMessageTimeout)
+	err = p.conn.SetWriteDeadline(writeDeadline)
+	if err != nil {
+		return err
+	}
 
 	// Finally, write the message itself in a single swoop.
-	_, err = p.conn.Write(b.Bytes())
+	n, err := p.conn.Write(b.Bytes())
+
+	// Regardless of the error returned, record how many bytes were written
+	// to the wire.
+	atomic.AddUint64(&p.bytesSent, uint64(n))
+
 	return err
 }
 
