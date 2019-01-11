@@ -739,6 +739,25 @@ func (i *mockInvoiceRegistry) SettleInvoice(rhash lntypes.Hash,
 	return nil
 }
 
+func (i *mockInvoiceRegistry) CancelInvoice(payHash lntypes.Hash) error {
+	i.Lock()
+	defer i.Unlock()
+
+	invoice, ok := i.invoices[payHash]
+	if !ok {
+		return channeldb.ErrInvoiceNotFound
+	}
+
+	if invoice.Terms.State == channeldb.ContractCanceled {
+		return nil
+	}
+
+	invoice.Terms.State = channeldb.ContractCanceled
+	i.invoices[payHash] = invoice
+
+	return nil
+}
+
 func (i *mockInvoiceRegistry) AddInvoice(invoice channeldb.Invoice) error {
 	i.Lock()
 	defer i.Unlock()
