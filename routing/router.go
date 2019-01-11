@@ -1467,29 +1467,25 @@ func generateSphinxPacket(rt *route.Route, paymentHash []byte) ([]byte,
 		return nil, nil, route.ErrNoRouteHopsProvided
 	}
 
-	// First obtain all the public keys along the route which are contained
-	// in each hop.
-	nodes := make([]*secp256k1.PublicKey, len(rt.Hops))
-	for i, hop := range rt.Hops {
-		pub, err := secp256k1.ParsePubKey(hop.PubKeyBytes[:])
-		if err != nil {
-			return nil, nil, err
-		}
-
-		nodes[i] = pub
+	// Now that we know we have an actual route, we'll map the route into a
+	// sphinx payument path which includes per-hop paylods for each hop
+	// that give each node within the route the necessary information
+	// (fees, CLTV value, etc) to properly forward the payment.
+	sphinxPath, err := rt.ToSphinxPath()
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// Next we generate the per-hop payload which gives each node within
-	// the route the necessary information (fees, CLTV value, etc) to
-	// properly forward the payment.
-	hopPayloads := rt.ToHopPayloads()
-
 	log.Tracef("Constructed per-hop payloads for payment_hash=%x: %v",
-		paymentHash, newLogClosure(func() string {
-			return spew.Sdump(hopPayloads)
+		paymentHash[:], newLogClosure(func() string {
+			return spew.Sdump(sphinxPath[:sphinxPath.TrueRouteLength()])
 		}),
 	)
 
+	// Generate a new random session key to ensure that we don't trigger
+	// any replay.
+	//
+	// TODO(roasbeef): add more sources of randomness?
 	sessionKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 		return nil, nil, err
@@ -1498,7 +1494,7 @@ func generateSphinxPacket(rt *route.Route, paymentHash []byte) ([]byte,
 	// Next generate the onion routing packet which allows us to perform
 	// privacy preserving source routing across the network.
 	sphinxPacket, err := sphinx.NewOnionPacket(
-		nodes, sessionKey, hopPayloads, paymentHash,
+		sphinxPath, sessionKey, paymentHash,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1522,7 +1518,7 @@ func generateSphinxPacket(rt *route.Route, paymentHash []byte) ([]byte,
 
 	return onionBlob.Bytes(), &sphinx.Circuit{
 		SessionKey:  sessionKey,
-		PaymentPath: nodes,
+		PaymentPath: sphinxPath.NodeKeys(),
 	}, nil
 }
 
