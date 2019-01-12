@@ -2078,6 +2078,7 @@ func (r *ChannelRouter) applyChannelUpdate(msg *lnwire.ChannelUpdate,
 		ChannelFlags:              msg.ChannelFlags,
 		TimeLockDelta:             msg.TimeLockDelta,
 		MinHTLC:                   msg.HtlcMinimumMAtoms,
+		MaxHTLC:                   msg.HtlcMaximumMAtoms,
 		FeeBaseMAtoms:             lnwire.MilliAtom(msg.BaseFee),
 		FeeProportionalMillionths: lnwire.MilliAtom(msg.FeeRate),
 	})
