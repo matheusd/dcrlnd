@@ -1676,7 +1676,7 @@ func updateEdgePolicy(edges, edgeIndex, nodes *bolt.Bucket,
 	// Depending on the flags value passed above, either the first
 	// or second edge policy is being updated.
 	var fromNode, toNode []byte
-	if edge.Flags&lnwire.ChanUpdateDirection == 0 {
+	if edge.ChannelFlags&lnwire.ChanUpdateDirection == 0 {
 		fromNode = nodeInfo[:33]
 		toNode = nodeInfo[33:66]
 	} else {
@@ -2421,9 +2421,13 @@ type ChannelEdgePolicy struct {
 	// was received.
 	LastUpdate time.Time
 
-	// Flags is a bitfield which signals the capabilities of the channel as
-	// well as the directed edge this update applies to.
-	Flags lnwire.ChanUpdateFlag
+	// MessageFlags is a bitfield which indicates the presence of optional
+	// fields (like max_htlc) in the policy.
+	MessageFlags lnwire.ChanUpdateMsgFlags
+
+	// ChannelFlags is a bitfield which signals the capabilities of the
+	// channel as well as the directed edge this update applies to.
+	ChannelFlags lnwire.ChanUpdateChanFlags
 
 	// TimeLockDelta is the number of blocks this node will subtract from
 	// the expiry of an incoming HTLC. This value expresses the time buffer
@@ -3182,7 +3186,10 @@ func putChanEdgePolicy(edges, nodes *bolt.Bucket, edge *ChannelEdgePolicy,
 		return err
 	}
 
-	if err := binary.Write(&b, byteOrder, edge.Flags); err != nil {
+	if err := binary.Write(&b, byteOrder, edge.MessageFlags); err != nil {
+		return err
+	}
+	if err := binary.Write(&b, byteOrder, edge.ChannelFlags); err != nil {
 		return err
 	}
 	if err := binary.Write(&b, byteOrder, edge.TimeLockDelta); err != nil {
@@ -3359,7 +3366,10 @@ func deserializeChanEdgePolicy(r io.Reader,
 	unix := int64(byteOrder.Uint64(scratch[:]))
 	edge.LastUpdate = time.Unix(unix, 0)
 
-	if err := binary.Read(r, byteOrder, &edge.Flags); err != nil {
+	if err := binary.Read(r, byteOrder, &edge.MessageFlags); err != nil {
+		return nil, err
+	}
+	if err := binary.Read(r, byteOrder, &edge.ChannelFlags); err != nil {
 		return nil, err
 	}
 	if err := binary.Read(r, byteOrder, &edge.TimeLockDelta); err != nil {

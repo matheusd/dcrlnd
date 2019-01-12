@@ -560,7 +560,7 @@ func (d *AuthenticatedGossiper) ProcessLocalAnnouncement(msg lnwire.Message,
 }
 
 // channelUpdateID is a unique identifier for ChannelUpdate messages, as
-// channel updates can be identified by the (ShortChannelID, Flags)
+// channel updates can be identified by the (ShortChannelID, ChannelFlags)
 // tuple.
 type channelUpdateID struct {
 	// channelID represents the set of data which is needed to
@@ -570,7 +570,7 @@ type channelUpdateID struct {
 	// Flags least-significant bit must be set to 0 if the creating node
 	// corresponds to the first node in the previously sent channel
 	// announcement and 1 otherwise.
-	flags lnwire.ChanUpdateFlag
+	flags lnwire.ChanUpdateChanFlags
 }
 
 // msgWithSenders is a wrapper struct around a message, and the set of peers
@@ -669,13 +669,13 @@ func (d *deDupedAnnouncements) addMsg(message networkMsg) {
 		mws.senders[sender] = struct{}{}
 		d.channelAnnouncements[deDupKey] = mws
 
-	// Channel updates are identified by the (short channel id, flags)
-	// tuple.
+	// Channel updates are identified by the (short channel id,
+	// channelflags) tuple.
 	case *lnwire.ChannelUpdate:
 		sender := routing.NewVertex(message.source)
 		deDupKey := channelUpdateID{
 			msg.ShortChannelID,
-			msg.Flags,
+			msg.ChannelFlags,
 		}
 
 		oldTimestamp := uint32(0)
@@ -1907,7 +1907,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// announcement for this edge.
 		timestamp := time.Unix(int64(msg.Timestamp), 0)
 		if d.cfg.Router.IsStaleEdgePolicy(
-			msg.ShortChannelID, timestamp, msg.Flags,
+			msg.ShortChannelID, timestamp, msg.ChannelFlags,
 		) {
 
 			nMsg.err <- nil
@@ -1982,9 +1982,9 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// edge is being updated.
 		var pubKey *secp256k1.PublicKey
 		switch {
-		case msg.Flags&lnwire.ChanUpdateDirection == 0:
+		case msg.ChannelFlags&lnwire.ChanUpdateDirection == 0:
 			pubKey, _ = chanInfo.NodeKey1()
-		case msg.Flags&lnwire.ChanUpdateDirection == 1:
+		case msg.ChannelFlags&lnwire.ChanUpdateDirection == 1:
 			pubKey, _ = chanInfo.NodeKey2()
 		}
 
@@ -2005,7 +2005,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			SigBytes:                  msg.Signature.ToSignatureBytes(),
 			ChannelID:                 shortChanID,
 			LastUpdate:                timestamp,
-			Flags:                     msg.Flags,
+			MessageFlags:              msg.MessageFlags,
+			ChannelFlags:              msg.ChannelFlags,
 			TimeLockDelta:             msg.TimeLockDelta,
 			MinHTLC:                   msg.HtlcMinimumMAtoms,
 			FeeBaseMAtoms:             lnwire.MilliAtom(msg.BaseFee),
@@ -2037,9 +2038,9 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			// Get our peer's public key.
 			var remotePub *secp256k1.PublicKey
 			switch {
-			case msg.Flags&lnwire.ChanUpdateDirection == 0:
+			case msg.ChannelFlags&lnwire.ChanUpdateDirection == 0:
 				remotePub, _ = chanInfo.NodeKey2()
-			case msg.Flags&lnwire.ChanUpdateDirection == 1:
+			case msg.ChannelFlags&lnwire.ChanUpdateDirection == 1:
 				remotePub, _ = chanInfo.NodeKey1()
 			}
 
@@ -2513,7 +2514,8 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 		ChainHash:         info.ChainHash,
 		ShortChannelID:    lnwire.NewShortChanIDFromInt(edge.ChannelID),
 		Timestamp:         uint32(timestamp),
-		Flags:             edge.Flags,
+		MessageFlags:      edge.MessageFlags,
+		ChannelFlags:      edge.ChannelFlags,
 		TimeLockDelta:     edge.TimeLockDelta,
 		HtlcMinimumMAtoms: edge.MinHTLC,
 		BaseFee:           uint32(edge.FeeBaseMAtoms),
