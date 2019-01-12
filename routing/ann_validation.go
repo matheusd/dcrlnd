@@ -6,6 +6,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
 )
@@ -121,9 +122,16 @@ func ValidateNodeAnn(a *lnwire.NodeAnnouncement) error {
 }
 
 // ValidateChannelUpdateAnn validates the channel update announcement by
-// checking that the included signature covers he announcement and has been
-// signed by the node's private key.
-func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, a *lnwire.ChannelUpdate) error {
+// checking (1) that the included signature covers the announcement and has
+// been signed by the node's private key, and (2) that the announcement's
+// message flags and optional fields are sane.
+func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, capacity dcrutil.Amount,
+	a *lnwire.ChannelUpdate) error {
+
+	if err := validateOptionalFields(capacity, a); err != nil {
+		return err
+	}
+
 	data, err := a.DataToSign()
 	if err != nil {
 		return errors.Errorf("unable to reconstruct message: %v", err)
@@ -138,6 +146,28 @@ func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, a *lnwire.ChannelUpda
 	if !nodeSig.Verify(dataHash, pubKey) {
 		return errors.Errorf("invalid signature for channel "+
 			"update %v", spew.Sdump(a))
+	}
+
+	return nil
+}
+
+// validateOptionalFields validates a channel update's message flags and
+// corresponding update fields.
+func validateOptionalFields(capacity dcrutil.Amount,
+	msg *lnwire.ChannelUpdate) error {
+
+	if msg.MessageFlags&lnwire.ChanUpdateOptionMaxHtlc != 0 {
+		maxHtlc := msg.HtlcMaximumMAtoms
+		if maxHtlc == 0 || maxHtlc < msg.HtlcMinimumMAtoms {
+			return errors.Errorf("invalid max htlc for channel "+
+				"update %v", spew.Sdump(msg))
+		}
+		cap := lnwire.NewMAtomsFromAtoms(capacity)
+		if maxHtlc > cap {
+			return errors.Errorf("max_htlc(%v) for channel "+
+				"update greater than capacity(%v)", maxHtlc,
+				cap)
+		}
 	}
 
 	return nil
