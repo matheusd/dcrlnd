@@ -25,6 +25,7 @@ import (
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
+	"github.com/decred/dcrlnd/watchtower"
 	sphinx "github.com/decred/lightning-onion"
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
@@ -76,6 +77,7 @@ var (
 	arpcLog = build.NewSubLogger("ARPC", backendLog.Logger)
 	invcLog = build.NewSubLogger("INVC", backendLog.Logger)
 	nannLog = build.NewSubLogger("NANN", backendLog.Logger)
+	wtwrLog = build.NewSubLogger("WTWR", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -99,6 +101,7 @@ func init() {
 	autopilotrpc.UseLogger(arpcLog)
 	invoices.UseLogger(invcLog)
 	netann.UseLogger(nannLog)
+	watchtower.UseLogger(wtwrLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
@@ -128,6 +131,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"ARPC": arpcLog,
 	"INVC": invcLog,
 	"NANN": nannLog,
+	"WTWR": wtwrLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and
