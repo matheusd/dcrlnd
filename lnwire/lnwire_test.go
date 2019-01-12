@@ -643,13 +643,26 @@ func TestLightningWireProtocol(t *testing.T) {
 		},
 		MsgChannelUpdate: func(v []reflect.Value, r *rand.Rand) {
 			var err error
+
+			msgFlags := ChanUpdateMsgFlags(r.Int31())
+			maxHtlc := MilliAtom(r.Int63())
+
+			// We make the max_htlc field zero if it is not flagged
+			// as being part of the ChannelUpdate, to pass
+			// serialization tests, as it will be ignored if the bit
+			// is not set.
+			if msgFlags&ChanUpdateOptionMaxHtlc == 0 {
+				maxHtlc = 0
+			}
+
 			req := ChannelUpdate{
 				ShortChannelID:    NewShortChanIDFromInt(uint64(r.Int63())),
 				Timestamp:         uint32(r.Int31()),
-				MessageFlags:      ChanUpdateMsgFlags(r.Int31()),
+				MessageFlags:      msgFlags,
 				ChannelFlags:      ChanUpdateChanFlags(r.Int31()),
 				TimeLockDelta:     uint16(r.Int31()),
 				HtlcMinimumMAtoms: MilliAtom(r.Int63()),
+				HtlcMaximumMAtoms: maxHtlc,
 				BaseFee:           uint32(r.Int31()),
 				FeeRate:           uint32(r.Int31()),
 			}
