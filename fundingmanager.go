@@ -2102,11 +2102,18 @@ func (f *fundingManager) addToRouterGraph(completeChan *channeldb.OpenChannel,
 	// need to determine the smallest HTLC it deems economically relevant.
 	fwdMinHTLC := completeChan.LocalChanCfg.MinHTLC
 
+	// We'll obtain the max HTLC value we can forward in our direction, as
+	// we'll use this value within our ChannelUpdate. This value must be <=
+	// channel capacity and <= the maximum in-flight msats set by the peer, so
+	// we default to max in-flight msats as this value will always be <=
+	// channel capacity.
+	fwdMaxHTLC := completeChan.LocalChanCfg.MaxPendingAmount
+
 	ann, err := f.newChanAnnouncement(
 		f.cfg.IDKey, completeChan.IdentityPub,
 		completeChan.LocalChanCfg.MultiSigKey.PubKey,
 		completeChan.RemoteChanCfg.MultiSigKey.PubKey, *shortChanID,
-		chanID, fwdMinHTLC,
+		chanID, fwdMinHTLC, fwdMaxHTLC,
 	)
 	if err != nil {
 		return fmt.Errorf("error generating channel "+
@@ -2271,13 +2278,20 @@ func (f *fundingManager) annAfterSixConfs(completeChan *channeldb.OpenChannel,
 		// HTLC it deems economically relevant.
 		fwdMinHTLC := completeChan.LocalChanCfg.MinHTLC
 
+		// We'll obtain the max HTLC value we can forward in our direction, as
+		// we'll use this value within our ChannelUpdate. This value must be <=
+		// channel capacity and <= the maximum in-flight msats set by the peer,
+		// so we default to max in-flight msats as this value will always be <=
+		// channel capacity.
+		fwdMaxHTLC := completeChan.LocalChanCfg.MaxPendingAmount
+
 		// Create and broadcast the proofs required to make this channel
 		// public and usable for other nodes for routing.
 		err = f.announceChannel(
 			f.cfg.IDKey, completeChan.IdentityPub,
 			completeChan.LocalChanCfg.MultiSigKey.PubKey,
 			completeChan.RemoteChanCfg.MultiSigKey.PubKey,
-			*shortChanID, chanID, fwdMinHTLC,
+			*shortChanID, chanID, fwdMinHTLC, fwdMaxHTLC,
 		)
 		if err != nil {
 			return fmt.Errorf("channel announcement failed: %v", err)
@@ -2436,7 +2450,7 @@ type chanAnnouncement struct {
 func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	localFundingKey, remoteFundingKey *secp256k1.PublicKey,
 	shortChanID lnwire.ShortChannelID, chanID lnwire.ChannelID,
-	fwdMinHTLC lnwire.MilliAtom) (*chanAnnouncement, error) {
+	fwdMinHTLC, fwdMaxHTLC lnwire.MilliAtom) (*chanAnnouncement, error) {
 
 	chainHash := *f.cfg.Wallet.Cfg.NetParams.GenesisHash
 
@@ -2481,13 +2495,17 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 		chanFlags = 1
 	}
 
+	// Our channel update message flags will signal that we support the
+	// max_htlc field.
+	msgFlags := lnwire.ChanUpdateOptionMaxHtlc
+
 	// We announce the channel with the default values. Some of
 	// these values can later be changed by crafting a new ChannelUpdate.
 	chanUpdateAnn := &lnwire.ChannelUpdate{
 		ShortChannelID: shortChanID,
 		ChainHash:      chainHash,
 		Timestamp:      uint32(time.Now().Unix()),
-		MessageFlags:   0,
+		MessageFlags:   msgFlags,
 		ChannelFlags:   chanFlags,
 		TimeLockDelta:  uint16(f.cfg.DefaultRoutingPolicy.TimeLockDelta),
 
@@ -2495,6 +2513,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 		// to use, as our ChannelUpdate will be used to carry HTLCs
 		// towards them.
 		HtlcMinimumMAtoms: fwdMinHTLC,
+		HtlcMaximumMAtoms: fwdMaxHTLC,
 
 		BaseFee: uint32(f.cfg.DefaultRoutingPolicy.BaseFee),
 		FeeRate: uint32(f.cfg.DefaultRoutingPolicy.FeeRate),
@@ -2573,7 +2592,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 // finish, either successfully or with an error.
 func (f *fundingManager) announceChannel(localIDKey, remoteIDKey, localFundingKey,
 	remoteFundingKey *secp256k1.PublicKey, shortChanID lnwire.ShortChannelID,
-	chanID lnwire.ChannelID, fwdMinHTLC lnwire.MilliAtom) error {
+	chanID lnwire.ChannelID, fwdMinHTLC, fwdMaxHTLC lnwire.MilliAtom) error {
 
 	// First, we'll create the batch of announcements to be sent upon
 	// initial channel creation. This includes the channel announcement
@@ -2581,7 +2600,7 @@ func (f *fundingManager) announceChannel(localIDKey, remoteIDKey, localFundingKe
 	// proof needed to fully authenticate the channel.
 	ann, err := f.newChanAnnouncement(localIDKey, remoteIDKey,
 		localFundingKey, remoteFundingKey, shortChanID, chanID,
-		fwdMinHTLC,
+		fwdMinHTLC, fwdMaxHTLC,
 	)
 	if err != nil {
 		fndgLog.Errorf("can't generate channel announcement: %v", err)
