@@ -695,10 +695,11 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		SigBytes:                  testSig.Serialize(),
 		ChannelID:                 chanID,
 		LastUpdate:                time.Unix(433453, 0),
-		MessageFlags:              0,
+		MessageFlags:              1,
 		ChannelFlags:              0,
 		TimeLockDelta:             99,
 		MinHTLC:                   2342135,
+		MaxHTLC:                   13928598,
 		FeeBaseMAtoms:             4352345,
 		FeeProportionalMillionths: 3452352,
 		Node:                      secondNode,
@@ -709,10 +710,11 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		SigBytes:                  testSig.Serialize(),
 		ChannelID:                 chanID,
 		LastUpdate:                time.Unix(124234, 0),
-		MessageFlags:              0,
+		MessageFlags:              1,
 		ChannelFlags:              1,
 		TimeLockDelta:             99,
 		MinHTLC:                   2342135,
+		MaxHTLC:                   13928598,
 		FeeBaseMAtoms:             4352345,
 		FeeProportionalMillionths: 90392423,
 		Node:                      firstNode,
@@ -790,10 +792,11 @@ func newEdgePolicy(chanID uint64, op wire.OutPoint, db *DB,
 	return &ChannelEdgePolicy{
 		ChannelID:                 chanID,
 		LastUpdate:                time.Unix(updateTime, 0),
-		MessageFlags:              0,
+		MessageFlags:              1,
 		ChannelFlags:              0,
 		TimeLockDelta:             uint16(prand.Int63()),
 		MinHTLC:                   lnwire.MilliAtom(prand.Int63()),
+		MaxHTLC:                   lnwire.MilliAtom(prand.Int63()),
 		FeeBaseMAtoms:             lnwire.MilliAtom(prand.Int63()),
 		FeeProportionalMillionths: lnwire.MilliAtom(prand.Int63()),
 		db:                        db,
@@ -2660,6 +2663,10 @@ func compareEdgePolicies(a, b *ChannelEdgePolicy) error {
 	if a.MinHTLC != b.MinHTLC {
 		return fmt.Errorf("MinHTLC doesn't match: expected %v, "+
 			"got %v", a.MinHTLC, b.MinHTLC)
+	}
+	if a.MaxHTLC != b.MaxHTLC {
+		return fmt.Errorf("MaxHTLC doesn't match: expected %v, "+
+			"got %v", a.MaxHTLC, b.MaxHTLC)
 	}
 	if a.FeeBaseMAtoms != b.FeeBaseMAtoms {
 		return fmt.Errorf("FeeBaseMAtoms doesn't match: expected %v, "+
