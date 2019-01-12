@@ -550,7 +550,8 @@ func TestSendPaymentErrorRepeatedFeeInsufficient(t *testing.T) {
 	errChanUpdate := lnwire.ChannelUpdate{
 		ShortChannelID:    lnwire.NewShortChanIDFromInt(chanID),
 		Timestamp:         uint32(edgeUpateToFail.LastUpdate.Unix()),
-		Flags:             edgeUpateToFail.Flags,
+		MessageFlags:      edgeUpateToFail.MessageFlags,
+		ChannelFlags:      edgeUpateToFail.ChannelFlags,
 		TimeLockDelta:     edgeUpateToFail.TimeLockDelta,
 		HtlcMinimumMAtoms: edgeUpateToFail.MinHTLC,
 		BaseFee:           uint32(edgeUpateToFail.FeeBaseMAtoms),
@@ -656,7 +657,8 @@ func TestSendPaymentErrorNonFinalTimeLockErrors(t *testing.T) {
 	errChanUpdate := lnwire.ChannelUpdate{
 		ShortChannelID:    lnwire.NewShortChanIDFromInt(chanID),
 		Timestamp:         uint32(edgeUpateToFail.LastUpdate.Unix()),
-		Flags:             edgeUpateToFail.Flags,
+		MessageFlags:      edgeUpateToFail.MessageFlags,
+		ChannelFlags:      edgeUpateToFail.ChannelFlags,
 		TimeLockDelta:     edgeUpateToFail.TimeLockDelta,
 		HtlcMinimumMAtoms: edgeUpateToFail.MinHTLC,
 		BaseFee:           uint32(edgeUpateToFail.FeeBaseMAtoms),
@@ -1101,7 +1103,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
-	edgePolicy.Flags = 0
+	edgePolicy.ChannelFlags = 0
 
 	if err := ctx.router.UpdateEdge(edgePolicy); err != nil {
 		t.Fatalf("unable to update edge policy: %v", err)
@@ -1117,7 +1119,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
-	edgePolicy.Flags = 1
+	edgePolicy.ChannelFlags = 1
 
 	if err := ctx.router.UpdateEdge(edgePolicy); err != nil {
 		t.Fatalf("unable to update edge policy: %v", err)
@@ -1197,7 +1199,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
-	edgePolicy.Flags = 0
+	edgePolicy.ChannelFlags = 0
 
 	if err := ctx.router.UpdateEdge(edgePolicy); err != nil {
 		t.Fatalf("unable to update edge policy: %v", err)
@@ -1212,7 +1214,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
-	edgePolicy.Flags = 1
+	edgePolicy.ChannelFlags = 1
 
 	if err := ctx.router.UpdateEdge(edgePolicy); err != nil {
 		t.Fatalf("unable to update edge policy: %v", err)
@@ -2103,7 +2105,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
-	edgePolicy.Flags = 0
+	edgePolicy.ChannelFlags = 0
 	if err := ctx.router.UpdateEdge(edgePolicy); err != nil {
 		t.Fatalf("unable to update edge policy: %v", err)
 	}
@@ -2117,7 +2119,7 @@ func TestIsStaleEdgePolicy(t *testing.T) {
 		FeeBaseMAtoms:             10,
 		FeeProportionalMillionths: 10000,
 	}
-	edgePolicy.Flags = 1
+	edgePolicy.ChannelFlags = 1
 	if err := ctx.router.UpdateEdge(edgePolicy); err != nil {
 		t.Fatalf("unable to update edge policy: %v", err)
 	}
