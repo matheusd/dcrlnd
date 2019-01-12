@@ -1318,6 +1318,17 @@ func (d *AuthenticatedGossiper) retransmitStaleChannels() error {
 			return nil
 		}
 
+		// If this edge has a ChannelUpdate that was created before the
+		// introduction of the MaxHTLC field, then we'll update this
+		// edge to propagate this information in the network.
+		if edge.MessageFlags&lnwire.ChanUpdateOptionMaxHtlc == 0 {
+			edgesToUpdate = append(edgesToUpdate, updateTuple{
+				info: info,
+				edge: edge,
+			})
+			return nil
+		}
+
 		const broadcastInterval = time.Hour * 24
 
 		timeElapsed := time.Since(edge.LastUpdate)
@@ -2503,7 +2514,12 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 	edge *channeldb.ChannelEdgePolicy) (*lnwire.ChannelAnnouncement,
 	*lnwire.ChannelUpdate, error) {
 
-	var err error
+	// We'll make sure we support the new max_htlc field if not already
+	// present.
+	if edge.MessageFlags&lnwire.ChanUpdateOptionMaxHtlc == 0 {
+		edge.MessageFlags |= lnwire.ChanUpdateOptionMaxHtlc
+		edge.MaxHTLC = lnwire.NewMAtomsFromAtoms(info.Capacity)
+	}
 
 	// Make sure timestamp is always increased, such that our update gets
 	// propagated.
@@ -2512,6 +2528,7 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 		timestamp = edge.LastUpdate.Unix() + 1
 	}
 	edge.LastUpdate = time.Unix(timestamp, 0)
+
 	chanUpdate := &lnwire.ChannelUpdate{
 		ChainHash:         info.ChainHash,
 		ShortChannelID:    lnwire.NewShortChanIDFromInt(edge.ChannelID),
@@ -2520,10 +2537,13 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 		ChannelFlags:      edge.ChannelFlags,
 		TimeLockDelta:     edge.TimeLockDelta,
 		HtlcMinimumMAtoms: edge.MinHTLC,
+		HtlcMaximumMAtoms: edge.MaxHTLC,
 		BaseFee:           uint32(edge.FeeBaseMAtoms),
 		FeeRate:           uint32(edge.FeeProportionalMillionths),
 		ExtraOpaqueData:   edge.ExtraOpaqueData,
 	}
+
+	var err error
 	chanUpdate.Signature, err = lnwire.NewSigFromRawSignature(edge.SigBytes)
 	if err != nil {
 		return nil, nil, err
