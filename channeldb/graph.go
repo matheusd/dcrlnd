@@ -2438,8 +2438,12 @@ type ChannelEdgePolicy struct {
 	// in MilliAtom.
 	MinHTLC lnwire.MilliAtom
 
-	// FeeBaseMAtoms is the base HTLC fee that will be charged for forwarding
-	// ANY HTLC, expressed in milli-atoms's.
+	// MaxHTLC is the largest value HTLC this node will accept, expressed
+	// in millisatoshi.
+	MaxHTLC lnwire.MilliAtom
+
+	// FeeBaseMAtoms is the base HTLC fee that will be charged for
+	// forwarding ANY HTLC, expressed in milli-atoms's.
 	FeeBaseMAtoms lnwire.MilliAtom
 
 	// FeeProportionalMillionths is the rate that the node will charge for
@@ -3344,11 +3348,26 @@ func serializeChanEdgePolicy(w io.Writer, edge *ChannelEdgePolicy,
 		return err
 	}
 
+	// If the max_htlc field is present, we write it. To be compatible with
+	// older versions that wasn't aware of this field, we write it as part
+	// of the opaque data.
+	// TODO(halseth): clean up when moving to TLV.
+	var opaqueBuf bytes.Buffer
+	if edge.MessageFlags&lnwire.ChanUpdateOptionMaxHtlc != 0 {
+		err := binary.Write(&opaqueBuf, byteOrder, uint64(edge.MaxHTLC))
+		if err != nil {
+			return err
+		}
+	}
+
 	if len(edge.ExtraOpaqueData) > MaxAllowedExtraOpaqueBytes {
 		return ErrTooManyExtraOpaqueBytes(len(edge.ExtraOpaqueData))
 	}
+	if _, err := opaqueBuf.Write(edge.ExtraOpaqueData); err != nil {
+		return err
+	}
 
-	if err := wire.WriteVarBytes(w, 0, edge.ExtraOpaqueData); err != nil {
+	if err := wire.WriteVarBytes(w, 0, opaqueBuf.Bytes()); err != nil {
 		return err
 	}
 	return nil
@@ -3412,6 +3431,7 @@ func deserializeChanEdgePolicy(r io.Reader,
 		return nil, fmt.Errorf("unable to fetch node: %x, %v",
 			pub[:], err)
 	}
+	edge.Node = &node
 
 	// We'll try and see if there are any opaque bytes left, if not, then
 	// we'll ignore the EOF error and return the edge as is.
@@ -3425,6 +3445,25 @@ func deserializeChanEdgePolicy(r io.Reader,
 		return nil, err
 	}
 
-	edge.Node = &node
+	// See if optional fields are present.
+	if edge.MessageFlags&lnwire.ChanUpdateOptionMaxHtlc != 0 {
+		// The max_htlc field should be at the beginning of the opaque
+		// bytes.
+		opq := edge.ExtraOpaqueData
+
+		// If the max_htlc field is not present, it might be old data
+		// stored before this field was validated. We'll return the
+		// edge along with an error.
+		if len(opq) < 8 {
+			return edge, ErrEdgePolicyOptionalFieldNotFound
+		}
+
+		maxHtlc := byteOrder.Uint64(opq[:8])
+		edge.MaxHTLC = lnwire.MilliAtom(maxHtlc)
+
+		// Exclude the parsed field from the rest of the opaque data.
+		edge.ExtraOpaqueData = opq[8:]
+	}
+
 	return edge, nil
 }
