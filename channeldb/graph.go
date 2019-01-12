@@ -1639,7 +1639,7 @@ func delChannelByEdge(edges *bolt.Bucket, edgeIndex *bolt.Bucket,
 func (c *ChannelGraph) UpdateEdgePolicy(edge *ChannelEdgePolicy) error {
 	return c.db.Update(func(tx *bolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
-		if edge == nil {
+		if edges == nil {
 			return ErrEdgeNotFound
 		}
 
