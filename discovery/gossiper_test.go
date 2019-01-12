@@ -17,6 +17,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -50,9 +51,10 @@ var (
 	nodeKeyPriv2, _ = secp256k1.GeneratePrivateKey()
 	nodeKeyPub2     = nodeKeyPriv2.PubKey()
 
-	trickleDelay     = time.Millisecond * 100
-	retransmitDelay  = time.Hour * 1
-	proofMatureDelta uint32
+	trickleDelay        = time.Millisecond * 100
+	retransmitDelay     = time.Hour * 1
+	proofMatureDelta    uint32
+	maxDcrFundingAmount = dcrutil.Amount(1<<62) - 1
 )
 
 // makeTestDB creates a new instance of the ChannelDB for testing purposes. A
@@ -126,6 +128,10 @@ func (r *mockGraphSource) AddEdge(info *channeldb.ChannelEdgeInfo) error {
 	if _, ok := r.infos[info.ChannelID]; ok {
 		return errors.New("info already exist")
 	}
+
+	// Usually, the capacity is fetched in the router from the funding txout.
+	// Since the mockGraphSource can't access the txout, assign a default value.
+	info.Capacity = maxDcrFundingAmount
 	r.infos[info.ChannelID] = info
 	return nil
 }
