@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
@@ -689,18 +690,18 @@ var _ ChannelLink = (*mockChannelLink)(nil)
 type mockInvoiceRegistry struct {
 	sync.Mutex
 
-	invoices   map[chainhash.Hash]channeldb.Invoice
+	invoices   map[lntypes.Hash]channeldb.Invoice
 	finalDelta uint32
 }
 
 func newMockRegistry(minDelta uint32) *mockInvoiceRegistry {
 	return &mockInvoiceRegistry{
 		finalDelta: minDelta,
-		invoices:   make(map[chainhash.Hash]channeldb.Invoice),
+		invoices:   make(map[lntypes.Hash]channeldb.Invoice),
 	}
 }
 
-func (i *mockInvoiceRegistry) LookupInvoice(rHash chainhash.Hash) (channeldb.Invoice, uint32, error) {
+func (i *mockInvoiceRegistry) LookupInvoice(rHash lntypes.Hash) (channeldb.Invoice, uint32, error) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -713,7 +714,7 @@ func (i *mockInvoiceRegistry) LookupInvoice(rHash chainhash.Hash) (channeldb.Inv
 	return invoice, i.finalDelta, nil
 }
 
-func (i *mockInvoiceRegistry) SettleInvoice(rhash chainhash.Hash,
+func (i *mockInvoiceRegistry) SettleInvoice(rhash lntypes.Hash,
 	amt lnwire.MilliAtom) error {
 
 	i.Lock()
@@ -739,7 +740,7 @@ func (i *mockInvoiceRegistry) AddInvoice(invoice channeldb.Invoice) error {
 	i.Lock()
 	defer i.Unlock()
 
-	rhash := chainhash.HashH(invoice.Terms.PaymentPreimage[:])
+	rhash := invoice.Terms.PaymentPreimage.Hash()
 	i.invoices[rhash] = invoice
 
 	return nil

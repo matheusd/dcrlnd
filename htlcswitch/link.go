@@ -11,12 +11,12 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
@@ -2313,7 +2313,7 @@ func (l *channelLink) processRemoteAdds(fwdPkg *channeldb.FwdPkg,
 			// We're the designated payment destination.  Therefore
 			// we attempt to see if we have an invoice locally
 			// which'll allow us to settle this htlc.
-			invoiceHash := chainhash.Hash(pd.RHash)
+			invoiceHash := lntypes.Hash(pd.RHash)
 			invoice, minCltvDelta, err := l.cfg.Registry.LookupInvoice(
 				invoiceHash,
 			)

@@ -3,10 +3,10 @@ package main
 import (
 	"sync"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/invoices"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
@@ -72,7 +72,7 @@ func (p *preimageBeacon) LookupPreimage(payHash []byte) ([]byte, bool) {
 
 	// First, we'll check the invoice registry to see if we already know of
 	// the preimage as it's on that we created ourselves.
-	var invoiceKey chainhash.Hash
+	var invoiceKey lntypes.Hash
 	copy(invoiceKey[:], payHash)
 	invoice, _, err := p.invoices.LookupInvoice(invoiceKey)
 	switch {

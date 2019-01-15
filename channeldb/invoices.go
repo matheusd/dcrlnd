@@ -9,6 +9,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	bolt "go.etcd.io/bbolt"
 )
@@ -105,7 +106,7 @@ type ContractTerm struct {
 	// PaymentPreimage is the preimage which is to be revealed in the
 	// occasion that an HTLC paying to the hash of this preimage is
 	// extended.
-	PaymentPreimage [32]byte
+	PaymentPreimage lntypes.Preimage
 
 	// Value is the expected amount of milli-atoms to be paid to an HTLC
 	// which can be satisfied by the above preimage.

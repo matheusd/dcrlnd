@@ -1,9 +1,9 @@
 package htlcswitch
 
 import (
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -14,11 +14,11 @@ type InvoiceDatabase interface {
 	// byte payment hash. This method should also reutrn the min final CLTV
 	// delta for this invoice. We'll use this to ensure that the HTLC
 	// extended to us gives us enough time to settle as we prescribe.
-	LookupInvoice(chainhash.Hash) (channeldb.Invoice, uint32, error)
+	LookupInvoice(lntypes.Hash) (channeldb.Invoice, uint32, error)
 
 	// SettleInvoice attempts to mark an invoice corresponding to the
 	// passed payment hash as fully settled.
-	SettleInvoice(payHash chainhash.Hash, paidAmount lnwire.MilliAtom) error
+	SettleInvoice(payHash lntypes.Hash, paidAmount lnwire.MilliAtom) error
 }
 
 // ChannelLink is an interface which represents the subsystem for managing the
