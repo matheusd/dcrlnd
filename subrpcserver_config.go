@@ -7,6 +7,8 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 
 	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
 	"github.com/decred/dcrlnd/lnrpc/chainrpc"
@@ -15,6 +17,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/macaroons"
+	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
 )
 
@@ -65,8 +68,11 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 	networkDir string, macService *macaroons.Service,
 	atpl *autopilot.Manager,
 	invoiceRegistry *invoices.InvoiceRegistry,
+	htlcSwitch *htlcswitch.Switch,
 	activeNetParams *chaincfg.Params,
-	chanRouter *routing.ChannelRouter) error {
+	chanRouter *routing.ChannelRouter,
+	nodeSigner *netann.NodeSigner,
+	chanDB *channeldb.DB) error {
 
 	// First, we'll use reflect to obtain a version of the config struct
 	// that allows us to programmatically inspect its fields.
@@ -91,9 +97,9 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			continue
 		}
 
-		switch cfg := field.Interface().(type) {
+		switch subCfg := field.Interface().(type) {
 		case *signrpc.Config:
-			subCfgValue := extractReflectValue(cfg)
+			subCfgValue := extractReflectValue(subCfg)
 
 			subCfgValue.FieldByName("MacService").Set(
 				reflect.ValueOf(macService),
@@ -106,7 +112,7 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			)
 
 		case *walletrpc.Config:
-			subCfgValue := extractReflectValue(cfg)
+			subCfgValue := extractReflectValue(subCfg)
 
 			subCfgValue.FieldByName("NetworkDir").Set(
 				reflect.ValueOf(networkDir),
@@ -125,14 +131,14 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			)
 
 		case *autopilotrpc.Config:
-			subCfgValue := extractReflectValue(cfg)
+			subCfgValue := extractReflectValue(subCfg)
 
 			subCfgValue.FieldByName("Manager").Set(
 				reflect.ValueOf(atpl),
 			)
 
 		case *chainrpc.Config:
-			subCfgValue := extractReflectValue(cfg)
+			subCfgValue := extractReflectValue(subCfg)
 
 			subCfgValue.FieldByName("NetworkDir").Set(
 				reflect.ValueOf(networkDir),
@@ -145,7 +151,7 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			)
 
 		case *invoicesrpc.Config:
-			subCfgValue := extractReflectValue(cfg)
+			subCfgValue := extractReflectValue(subCfg)
 
 			subCfgValue.FieldByName("NetworkDir").Set(
 				reflect.ValueOf(networkDir),
@@ -156,8 +162,24 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			subCfgValue.FieldByName("InvoiceRegistry").Set(
 				reflect.ValueOf(invoiceRegistry),
 			)
+			subCfgValue.FieldByName("IsChannelActive").Set(
+				reflect.ValueOf(htlcSwitch.HasActiveLink),
+			)
 			subCfgValue.FieldByName("ChainParams").Set(
 				reflect.ValueOf(activeNetParams),
+			)
+			subCfgValue.FieldByName("NodeSigner").Set(
+				reflect.ValueOf(nodeSigner),
+			)
+			subCfgValue.FieldByName("MaxPaymentMAtoms").Set(
+				reflect.ValueOf(maxPaymentMAtoms),
+			)
+			defaultDelta := cfg.Decred.TimeLockDelta
+			subCfgValue.FieldByName("DefaultCLTVExpiry").Set(
+				reflect.ValueOf(defaultDelta),
+			)
+			subCfgValue.FieldByName("ChanDB").Set(
+				reflect.ValueOf(chanDB),
 			)
 
 		case *routerrpc.Config:
