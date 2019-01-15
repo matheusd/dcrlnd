@@ -24,6 +24,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
@@ -650,11 +651,11 @@ func generateHops(payAmt lnwire.MilliAtom, startingHeight uint32,
 }
 
 type paymentResponse struct {
-	rhash chainhash.Hash
+	rhash lntypes.Hash
 	err   chan error
 }
 
-func (r *paymentResponse) Wait(d time.Duration) (chainhash.Hash, error) {
+func (r *paymentResponse) Wait(d time.Duration) (lntypes.Hash, error) {
 	select {
 	case err := <-r.err:
 		close(r.err)
@@ -679,7 +680,7 @@ func (n *threeHopNetwork) makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 
 	paymentErr := make(chan error, 1)
 
-	var rhash chainhash.Hash
+	var rhash lntypes.Hash
 
 	sender := sendingPeer.(*mockServer)
 	receiver := receivingPeer.(*mockServer)
@@ -704,7 +705,7 @@ func (n *threeHopNetwork) makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 			err:   paymentErr,
 		}
 	}
-	rhash = chainhash.HashH(invoice.Terms.PaymentPreimage[:])
+	rhash = invoice.Terms.PaymentPreimage.Hash()
 
 	// Check who is last in the route and add invoice to server registry.
 	if err := receiver.registry.AddInvoice(*invoice); err != nil {

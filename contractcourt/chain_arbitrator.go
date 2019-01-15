@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -139,7 +140,7 @@ type ChainArbitratorConfig struct {
 	// SettleInvoice attempts to settle an existing invoice on-chain with
 	// the given payment hash. ErrInvoiceNotFound is returned if an invoice
 	// is not found.
-	SettleInvoice func(chainhash.Hash, lnwire.MilliAtom) error
+	SettleInvoice func(lntypes.Hash, lnwire.MilliAtom) error
 }
 
 // ChainArbitrator is a sub-system that oversees the on-chain resolution of all
