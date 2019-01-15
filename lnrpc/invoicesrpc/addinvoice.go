@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/netann"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
 )
 
@@ -50,70 +48,95 @@ type AddInvoiceConfig struct {
 	ChanDB *channeldb.DB
 }
 
+// AddInvoiceData contains the required data to create a new invoice.
+type AddInvoiceData struct {
+	// An optional memo to attach along with the invoice. Used for record
+	// keeping purposes for the invoice's creator, and will also be set in
+	// the description field of the encoded payment request if the
+	// description_hash field is not being used.
+	Memo string
+
+	// Deprecated. An optional cryptographic receipt of payment which is not
+	// implemented.
+	Receipt []byte
+
+	// The preimage which will allow settling an incoming HTLC payable to
+	// this preimage.
+	Preimage *lntypes.Preimage
+
+	// The value of this invoice in atoms.
+	Value dcrutil.Amount
+
+	// Hash (SHA-256) of a description of the payment. Used if the
+	// description of payment (memo) is too long to naturally fit within the
+	// description field of an encoded payment request.
+	DescriptionHash []byte
+
+	// Payment request expiry time in seconds. Default is 3600 (1 hour).
+	Expiry int64
+
+	// Fallback on-chain address.
+	FallbackAddr string
+
+	// Delta to use for the time-lock of the CLTV extended to the final hop.
+	CltvExpiry uint64
+
+	// Whether this invoice should include routing hints for private
+	// channels.
+	Private bool
+}
+
 // AddInvoice attempts to add a new invoice to the invoice database. Any
-// duplicated invoices are rejected, therefore all invoices *must* have a
-// unique payment preimage.
+// duplicated invoices are rejected, therefore all invoices *must* have a unique
+// payment preimage. AddInvoice returns the payment hash and the invoice
+// structure as stored in the database.
 func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
-	invoice *lnrpc.Invoice) (*lnrpc.AddInvoiceResponse, error) {
+	invoice *AddInvoiceData) (*lntypes.Hash, *channeldb.Invoice, error) {
 
-	var paymentPreimage [32]byte
-
-	switch {
-	// If a preimage wasn't specified, then we'll generate a new preimage
-	// from fresh cryptographic randomness.
-	case len(invoice.RPreimage) == 0:
+	var paymentPreimage lntypes.Preimage
+	if invoice.Preimage == nil {
 		if _, err := rand.Read(paymentPreimage[:]); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-
-	// Otherwise, if a preimage was specified, then it MUST be exactly
-	// 32-bytes.
-	case len(invoice.RPreimage) != 32:
-		return nil, fmt.Errorf("payment preimage must be exactly "+
-			"32 bytes, is instead %v", len(invoice.RPreimage))
-
-	// If the preimage meets the size specifications, then it can be used
-	// as is.
-	default:
-		copy(paymentPreimage[:], invoice.RPreimage[:])
+	} else {
+		paymentPreimage = *invoice.Preimage
 	}
 
 	// The size of the memo, receipt and description hash attached must not
 	// exceed the maximum values for either of the fields.
 	if len(invoice.Memo) > channeldb.MaxMemoSize {
-		return nil, fmt.Errorf("memo too large: %v bytes "+
+		return nil, nil, fmt.Errorf("memo too large: %v bytes "+
 			"(maxsize=%v)", len(invoice.Memo), channeldb.MaxMemoSize)
 	}
 	if len(invoice.Receipt) > channeldb.MaxReceiptSize {
-		return nil, fmt.Errorf("receipt too large: %v bytes "+
+		return nil, nil, fmt.Errorf("receipt too large: %v bytes "+
 			"(maxsize=%v)", len(invoice.Receipt), channeldb.MaxReceiptSize)
 	}
 	if len(invoice.DescriptionHash) > 0 && len(invoice.DescriptionHash) != 32 {
-		return nil, fmt.Errorf("description hash is %v bytes, must be %v",
+		return nil, nil, fmt.Errorf("description hash is %v bytes, must be %v",
 			len(invoice.DescriptionHash), channeldb.MaxPaymentRequestSize)
 	}
 
 	// The value of the invoice must not be negative.
 	if invoice.Value < 0 {
-		return nil, fmt.Errorf("payments of negative value "+
+		return nil, nil, fmt.Errorf("payments of negative value "+
 			"are not allowed, value is %v", invoice.Value)
 	}
 
-	amt := dcrutil.Amount(invoice.Value)
-	amtMAtoms := lnwire.NewMAtomsFromAtoms(amt)
+	amtMAtoms := lnwire.NewMAtomsFromAtoms(invoice.Value)
 
 	// The value of the invoice must also not exceed the current soft-limit
 	// on the largest payment within the network.
 	if amtMAtoms > cfg.MaxPaymentMAtoms {
-		return nil, fmt.Errorf("payment of %v is too large, max "+
-			"payment allowed is %v", amt,
+		return nil, nil, fmt.Errorf("payment of %v is too large, max "+
+			"payment allowed is %v", amtMAtoms.ToAtoms(),
 			cfg.MaxPaymentMAtoms.ToAtoms(),
 		)
 	}
 
 	// Next, generate the payment hash itself from the preimage. This will
 	// be used by clients to query for the state of a particular invoice.
-	rHash := chainhash.HashH(paymentPreimage[:])
+	rHash := paymentPreimage.Hash()
 
 	// We also create an encoded payment request which allows the
 	// caller to compactly send the invoice to the payer. We'll create a
@@ -133,7 +156,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 	if len(invoice.FallbackAddr) > 0 {
 		addr, err := dcrutil.DecodeAddress(invoice.FallbackAddr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid fallback address: %v",
+			return nil, nil, fmt.Errorf("invalid fallback address: %v",
 				err)
 		}
 		options = append(options, zpay32.FallbackAddr(addr))
@@ -151,7 +174,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 		expSeconds := invoice.Expiry
 
 		if float64(expSeconds) > maxExpiry.Seconds() {
-			return nil, fmt.Errorf("expiry of %v seconds "+
+			return nil, nil, fmt.Errorf("expiry of %v seconds "+
 				"greater than max expiry of %v seconds",
 				float64(expSeconds), maxExpiry.Seconds())
 		}
@@ -176,7 +199,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 	// an option on the command line when creating an invoice.
 	switch {
 	case invoice.CltvExpiry > math.MaxUint16:
-		return nil, fmt.Errorf("CLTV delta of %v is too large, max "+
+		return nil, nil, fmt.Errorf("CLTV delta of %v is too large, max "+
 			"accepted is: %v", invoice.CltvExpiry, math.MaxUint16)
 	case invoice.CltvExpiry != 0:
 		options = append(options,
@@ -193,7 +216,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 	if invoice.Private {
 		openChannels, err := cfg.ChanDB.FetchAllChannels()
 		if err != nil {
-			return nil, fmt.Errorf("could not fetch all channels")
+			return nil, nil, fmt.Errorf("could not fetch all channels")
 		}
 
 		graph := cfg.ChanDB.ChannelGraph()
@@ -311,7 +334,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 		cfg.ChainParams, rHash, creationDate, options...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	payReqString, err := payReq.Encode(
@@ -320,7 +343,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newInvoice := &channeldb.Invoice{
@@ -341,14 +364,10 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 	)
 
 	// With all sanity checks passed, write the invoice to the database.
-	addIndex, err := cfg.AddInvoice(newInvoice, lntypes.Hash(rHash))
+	_, err = cfg.AddInvoice(newInvoice, rHash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &lnrpc.AddInvoiceResponse{
-		RHash:          rHash[:],
-		PaymentRequest: payReqString,
-		AddIndex:       addIndex,
-	}, nil
+	return &rHash, newInvoice, nil
 }

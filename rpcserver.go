@@ -32,6 +32,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/macaroons"
@@ -3495,7 +3496,37 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 		ChanDB:            r.server.chanDB,
 	}
 
-	return invoicesrpc.AddInvoice(ctx, addInvoiceCfg, invoice)
+	addInvoiceData := &invoicesrpc.AddInvoiceData{
+		Memo:            invoice.Memo,
+		Receipt:         invoice.Receipt,
+		Value:           dcrutil.Amount(invoice.Value),
+		DescriptionHash: invoice.DescriptionHash,
+		Expiry:          invoice.Expiry,
+		FallbackAddr:    invoice.FallbackAddr,
+		CltvExpiry:      invoice.CltvExpiry,
+		Private:         invoice.Private,
+	}
+
+	if invoice.RPreimage != nil {
+		preimage, err := lntypes.MakePreimage(invoice.RPreimage)
+		if err != nil {
+			return nil, err
+		}
+		addInvoiceData.Preimage = &preimage
+	}
+
+	hash, dbInvoice, err := invoicesrpc.AddInvoice(
+		ctx, addInvoiceCfg, addInvoiceData,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &lnrpc.AddInvoiceResponse{
+		AddIndex:       dbInvoice.AddIndex,
+		PaymentRequest: string(dbInvoice.PaymentRequest),
+		RHash:          hash[:],
+	}, nil
 }
 
 // LookupInvoice attempts to look up an invoice according to its payment hash.
