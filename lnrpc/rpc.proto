@@ -1028,7 +1028,7 @@ message Channel {
     */
     uint32 csv_delay = 16 [json_name = "csv_delay"];
 
-    /// Whether this channel is advertised to the network or not
+    /// Whether this channel is advertised to the network or not.
     bool private = 17 [json_name = "private"];
     
     /**
@@ -1044,6 +1044,9 @@ message Channel {
     have skin in the game during the channel's lifetime.
     */
     int64 remote_channel_reserve = 19 [json_name = "remote_channel_reserve"];
+
+    /// True if we were the ones that creted the channel.
+    bool initiator = 20 [json_name = "initiator"];
 }
 
 
