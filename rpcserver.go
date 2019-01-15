@@ -2391,6 +2391,7 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 			CsvDelay:             uint32(dbChannel.LocalChanCfg.CsvDelay),
 			RemoteChannelReserve: int64(remoteChanReserve),
 			LocalChannelReserve:  int64(localChanReserve),
+			Initiator:            dbChannel.IsInitiator,
 		}
 
 		for i, htlc := range localCommit.Htlcs {
