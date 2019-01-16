@@ -318,6 +318,10 @@ type fundingConfig struct {
 	// flood us with very small channels that would never really be usable
 	// due to fees.
 	MinChanSize dcrutil.Amount
+
+	// NotifyOpenChannelEvent informs the ChannelNotifier when channels
+	// transition from pending open to open.
+	NotifyOpenChannelEvent func(wire.OutPoint)
 }
 
 // fundingManager acts as an orchestrator/bridge between the wallet's
@@ -1929,6 +1933,10 @@ func (f *fundingManager) waitForFundingConfirmation(completeChan *channeldb.Open
 			"%v", err)
 		return
 	}
+
+	// Inform the ChannelNotifier that the channel has transitioned from
+	// pending open to open.
+	f.cfg.NotifyOpenChannelEvent(completeChan.FundingOutpoint)
 
 	// TODO(roasbeef): ideally persistent state update for chan above
 	// should be abstracted
