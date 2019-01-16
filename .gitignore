@@ -37,6 +37,7 @@ _testmain.go
 # Integration test log files
 output*.log
 /.backendlogs
+/.minerlogs
 
 cmd/cmd
 *.key
