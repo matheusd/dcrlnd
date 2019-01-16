@@ -360,8 +360,9 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 			publTxChan <- txn
 			return nil
 		},
-		ZombieSweeperInterval: 1 * time.Hour,
-		ReservationTimeout:    1 * time.Nanosecond,
+		ZombieSweeperInterval:  1 * time.Hour,
+		ReservationTimeout:     1 * time.Nanosecond,
+		NotifyOpenChannelEvent: func(wire.OutPoint) {},
 	})
 	if err != nil {
 		t.Fatalf("failed creating fundingManager: %v", err)
