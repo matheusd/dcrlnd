@@ -192,9 +192,11 @@ func (s *Server) handleClient(peer Peer) {
 
 	msg, err := s.readMessage(peer)
 	if err != nil {
-		log.Errorf("unable to read message: %v", err)
+		log.Errorf("Unable to read message from client %s@%s: %v",
+			id, peer.RemoteAddr(), err)
 		return
 	}
+
 	remoteInit, ok := msg.(*wtwire.Init)
 	if !ok {
 		log.Errorf("client %s@%s did not send Init msg as first "+
