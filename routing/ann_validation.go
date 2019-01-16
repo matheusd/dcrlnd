@@ -156,7 +156,7 @@ func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, capacity dcrutil.Amou
 func validateOptionalFields(capacity dcrutil.Amount,
 	msg *lnwire.ChannelUpdate) error {
 
-	if msg.MessageFlags&lnwire.ChanUpdateOptionMaxHtlc != 0 {
+	if msg.MessageFlags.HasMaxHtlc() {
 		maxHtlc := msg.HtlcMaximumMAtoms
 		if maxHtlc == 0 || maxHtlc < msg.HtlcMinimumMAtoms {
 			return errors.Errorf("invalid max htlc for channel "+
