@@ -16,10 +16,21 @@ else
     TAG=$1
 fi
 
+go mod vendor
+tar -cvzf vendor.tar.gz vendor
+
 PACKAGE=dcrlnd
 MAINDIR=$PACKAGE-$TAG
 
 mkdir -p releases/$MAINDIR
+
+mv vendor.tar.gz releases/$MAINDIR/
+rm -r vendor
+
+PACKAGESRC="releases/$MAINDIR/$PACKAGE-source-$TAG.tar"
+git archive -o $PACKAGESRC HEAD
+gzip -f $PACKAGESRC > "$PACKAGESRC.gz"
+
 cd releases/$MAINDIR
 
 # Enable exit on error.
@@ -39,6 +50,7 @@ for i in $SYS; do
     OS=$(echo $i | cut -f1 -d-)
     ARCH=$(echo $i | cut -f2 -d-)
     ARM=
+
     if [[ $ARCH = "armv6" ]]; then
       ARCH=arm
       ARM=6
@@ -46,17 +58,21 @@ for i in $SYS; do
       ARCH=arm
       ARM=7
     fi
+
     mkdir $PACKAGE-$i-$TAG
     cd $PACKAGE-$i-$TAG
+
     echo "Building:" $OS $ARCH $ARM
     env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd
     env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" github.com/decred/dcrlnd/cmd/dcrlncli
     cd ..
+
     if [[ $OS = "windows" ]]; then
 	zip -r $PACKAGE-$i-$TAG.zip $PACKAGE-$i-$TAG
     else
 	tar -cvzf $PACKAGE-$i-$TAG.tar.gz $PACKAGE-$i-$TAG
     fi
+
     rm -r $PACKAGE-$i-$TAG
 done
 
