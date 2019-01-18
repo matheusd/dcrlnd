@@ -10,11 +10,13 @@ ESCPKG := github.com\/decred\/dcrlnd
 DCRD_PKG := github.com/decred/dcrd
 GOVERALLS_PKG := github.com/mattn/goveralls
 LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+GOACC_PKG := github.com/ory/go-acc
 
 GO_BIN := ${GOPATH}/bin
 DCRD_BIN := $(GO_BIN)/dcrd
 GOVERALLS_BIN := $(GO_BIN)/goveralls
 LINT_BIN := $(GO_BIN)/golangci-lint
+GOACC_BIN := $(GO_BIN)/go-acc
 
 DCRD_DIR :=${GOPATH}/src/$(DCRD_PKG)
 
@@ -26,6 +28,8 @@ DCRD_COMMIT := $(shell cat go.mod | \
 		head -n1 | \
 		awk -F " " '{ print $$2 }' | \
 		awk -F "/" '{ print $$1 }')
+
+GOACC_COMMIT := ddc355013f90fea78d83d3a6c71f1d37ac07ecd5
 
 GOBUILD := GO111MODULE=on go build -v
 GOINSTALL := GO111MODULE=on go install -v
@@ -43,23 +47,6 @@ XARGS := xargs -L 1
 include make/testing_flags.mk
 
 DEV_TAGS := $(if ${tags},$(DEV_TAGS) ${tags},$(DEV_TAGS))
-
-COVER = for dir in $(GOLISTCOVER); do \
-		$(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" \
-			-covermode=count \
-			-coverprofile=$$dir/profile.tmp $$dir; \
-		\
-		if [ $$? != 0 ] ; \
-		then \
-			exit 1; \
-		fi ; \
-		\
-		if [ -f $$dir/profile.tmp ]; then \
-			cat $$dir/profile.tmp | \
-				tail -n +2 >> profile.cov; \
-			$(RM) $$dir/profile.tmp; \
-		fi \
-	done
 
 LINT = $(LINT_BIN) \
 	run \
@@ -93,6 +80,11 @@ $(GOVERALLS_BIN):
 $(LINT_BIN):
 	@$(call print, "Fetching golangci-lint")
 	GO111MODULE=on go get -u $(LINT_PKG)
+
+$(GOACC_BIN):
+	@$(call print, "Fetching go-acc")
+	go get -u -v $(GOACC_PKG)@$(GOACC_COMMIT)
+	$(GOINSTALL) $(GOACC_PKG)
 
 dcrd:
 	@$(call print, "Installing dcrd $(DCRD_COMMIT).")
@@ -138,10 +130,9 @@ unit-only:
 
 unit: dcrd unit-only
 
-unit-cover:
+unit-cover: $(GOACC_BIN)
 	@$(call print, "Running unit coverage tests.")
-	echo "mode: count" > profile.cov
-	$(COVER)
+	$(GOACC_BIN) $$(go list ./... | grep -v lnrpc) -- -test.tags="$(DEV_TAGS) $(LOG_TAGS)"
 
 unit-race:
 	@$(call print, "Running unit race tests.")
@@ -149,7 +140,7 @@ unit-race:
 
 goveralls: $(GOVERALLS_BIN)
 	@$(call print, "Sending coverage report.")
-	$(GOVERALLS_BIN) -coverprofile=profile.cov -service=travis-ci
+	$(GOVERALLS_BIN) -coverprofile=coverage.txt -service=travis-ci
 
 travis-race: dcrd unit-race
 
