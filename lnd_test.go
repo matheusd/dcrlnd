@@ -2798,28 +2798,26 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Alice should see the channel in her set of pending force closed
 	// channels with her funds still in limbo.
-	err = lntest.WaitPredicate(func() bool {
+	err = lntest.WaitNoError(func() error {
 		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := net.Alice.PendingChannels(
 			ctxt, pendingChansRequest,
 		)
 		if err != nil {
-			predErr = fmt.Errorf("unable to query for pending "+
+			return fmt.Errorf("unable to query for pending "+
 				"channels: %v", err)
-			return false
 		}
 
-		predErr = checkNumForceClosedChannels(pendingChanResp, 1)
-		if predErr != nil {
-			return false
+		err = checkNumForceClosedChannels(pendingChanResp, 1)
+		if err != nil {
+			return err
 		}
 
 		forceClose, err := findForceClosedChannel(
 			pendingChanResp, &op,
 		)
 		if err != nil {
-			predErr = err
-			return false
+			return err
 		}
 
 		// At this point, the nursery should show that the commitment
@@ -2827,29 +2825,27 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 		// total, we have mined exactly defaultCSV blocks, so the htlc
 		// outputs should also reflect that this many blocks have
 		// passed.
-		predErr = checkCommitmentMaturity(
+		err = checkCommitmentMaturity(
 			forceClose, commCsvMaturityHeight, 1,
 		)
-		if predErr != nil {
-			return false
+		if err != nil {
+			return err
 		}
 
 		// All funds should still be shown in limbo.
 		if forceClose.LimboBalance == 0 {
-			predErr = errors.New("all funds should still be in " +
+			return errors.New("all funds should still be in " +
 				"limbo")
-			return false
 		}
 		if forceClose.RecoveredBalance != 0 {
-			predErr = errors.New("no funds should yet be shown " +
+			return errors.New("no funds should yet be shown " +
 				"as recovered")
-			return false
 		}
 
-		return true
+		return nil
 	}, 15*time.Second)
 	if err != nil {
-		t.Fatalf(predErr.Error())
+		t.Fatalf(err.Error())
 	}
 
 	// Generate an additional block, which should cause the CSV delayed
@@ -2969,48 +2965,39 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Alice should now see the channel in her set of pending force closed
 	// channels with one pending HTLC.
-	err = lntest.WaitPredicate(func() bool {
+	err = lntest.WaitNoError(func() error {
 		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := net.Alice.PendingChannels(
 			ctxt, pendingChansRequest,
 		)
 		if err != nil {
-			predErr = fmt.Errorf("unable to query for pending "+
+			return fmt.Errorf("unable to query for pending "+
 				"channels: %v", err)
-			return false
 		}
 
-		predErr = checkNumForceClosedChannels(pendingChanResp, 1)
-		if predErr != nil {
-			predErr = fmt.Errorf("unable to check num of force-closed "+
-				"channels: %v", predErr)
-			return false
+		err = checkNumForceClosedChannels(pendingChanResp, 1)
+		if err != nil {
+			return err
 		}
 
 		forceClose, err := findForceClosedChannel(
 			pendingChanResp, &op,
 		)
 		if err != nil {
-			predErr = fmt.Errorf("unable to find force-closed "+
-				"channel: %v", err)
-			return false
+			return err
 		}
 
 		// We should now be at the block just before the utxo nursery
 		// will attempt to broadcast the htlc timeout transactions.
-		predErr = checkPendingChannelNumHtlcs(forceClose, numInvoices)
-		if predErr != nil {
-			predErr = fmt.Errorf("unable to check pending num of "+
-				"htlcs: %v", predErr)
-			return false
+		err = checkPendingChannelNumHtlcs(forceClose, numInvoices)
+		if err != nil {
+			return err
 		}
-		predErr = checkPendingHtlcStageAndMaturity(
+		err = checkPendingHtlcStageAndMaturity(
 			forceClose, 1, htlcExpiryHeight, 1,
 		)
-		if predErr != nil {
-			predErr = fmt.Errorf("unable to check pending htlc "+
-				"stage and maturity: %v", predErr)
-			return false
+		if err != nil {
+			return err
 		}
 
 		// Now that our commitment confirmation depth has been
@@ -3018,15 +3005,14 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 		// All htlc outputs are still left in limbo, so it should be
 		// non-zero as well.
 		if forceClose.LimboBalance == 0 {
-			predErr = errors.New("htlc funds should still be in " +
+			return errors.New("htlc funds should still be in " +
 				"limbo")
-			return false
 		}
 
-		return true
+		return nil
 	}, 15*time.Second)
 	if err != nil {
-		t.Fatalf(predErr.Error())
+		t.Fatalf(err.Error())
 	}
 
 	// Now, generate the block which will cause Alice to broadcast the
