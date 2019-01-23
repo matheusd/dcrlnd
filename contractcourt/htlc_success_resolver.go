@@ -8,6 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
 )
 
@@ -45,6 +46,10 @@ type htlcSuccessResolver struct {
 	//
 	// TODO(roasbeef): send off to utxobundler
 	sweepTx *wire.MsgTx
+
+	// htlcAmt is the original amount of the htlc, not taking into
+	// account any fees that may have to be paid if it goes on chain.
+	htlcAmt lnwire.MilliAtom
 
 	ResolverKit
 }
