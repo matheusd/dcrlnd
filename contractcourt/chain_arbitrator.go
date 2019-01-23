@@ -134,6 +134,11 @@ type ChainArbitratorConfig struct {
 
 	// Sweeper allows resolvers to sweep their final outputs.
 	Sweeper *sweep.UtxoSweeper
+
+	// SettleInvoice attempts to settle an existing invoice on-chain with
+	// the given payment hash. ErrInvoiceNotFound is returned if an invoice
+	// is not found.
+	SettleInvoice func(chainhash.Hash, lnwire.MilliAtom) error
 }
 
 // ChainArbitrator is a sub-system that oversees the on-chain resolution of all

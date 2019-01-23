@@ -7,6 +7,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -174,6 +175,14 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 			return nil, fmt.Errorf("quitting")
 		}
 
+		// With the HTLC claimed, we can attempt to settle its
+		// corresponding invoice if we were the original destination.
+		err = h.SettleInvoice(h.payHash, h.htlcAmt)
+		if err != nil && err != channeldb.ErrInvoiceNotFound {
+			log.Errorf("Unable to settle invoice with payment "+
+				"hash %x: %v", h.payHash, err)
+		}
+
 		// Once the transaction has received a sufficient number of
 		// confirmations, we'll mark ourselves as fully resolved and exit.
 		h.resolved = true
@@ -237,6 +246,14 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 
 	case <-h.Quit:
 		return nil, fmt.Errorf("quitting")
+	}
+
+	// With the HTLC claimed, we can attempt to settle its corresponding
+	// invoice if we were the original destination.
+	err = h.SettleInvoice(h.payHash, h.htlcAmt)
+	if err != nil && err != channeldb.ErrInvoiceNotFound {
+		log.Errorf("Unable to settle invoice with payment "+
+			"hash %x: %v", h.payHash, err)
 	}
 
 	h.resolved = true
