@@ -1073,7 +1073,7 @@ message Channel {
     */
     int64 remote_channel_reserve = 19 [json_name = "remote_channel_reserve"];
 
-    /// True if we were the ones that creted the channel.
+    /// True if we were the ones that created the channel.
     bool initiator = 20 [json_name = "initiator"];
 }
 
