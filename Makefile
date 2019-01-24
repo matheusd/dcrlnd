@@ -216,6 +216,10 @@ rpc:
 	@$(call print, "Compiling protos.")
 	cd ./lnrpc; ./gen_protos.sh
 
+mobile-rpc:
+	@$(call print, "Creating mobile RPC from protos.")
+	cd ./mobile; ./gen_bindings.sh
+
 clean:
 	@$(call print, "Cleaning source.$(NC)")
 	$(RM) ./dcrlnd-debug ./dcrlncli-debug
@@ -244,4 +248,5 @@ clean:
 	lint \
 	list \
 	rpc \
+	mobile-rpc \
 	clean
