@@ -65,15 +65,6 @@ type edgePolicyWithSource struct {
 	edge       *channeldb.ChannelEdgePolicy
 }
 
-// computeFee computes the fee to forward an HTLC of `amt` milli-atoms over
-// the passed active payment channel. This value is currently computed as
-// specified in BOLT07, but will likely change in the near future.
-func computeFee(amt lnwire.MilliAtom,
-	edge *channeldb.ChannelEdgePolicy) lnwire.MilliAtom {
-
-	return edge.FeeBaseMAtoms + (amt*edge.FeeProportionalMillionths)/1000000
-}
-
 // newRoute returns a fully valid route between the source and target that's
 // capable of supporting a payment of `amtToSend` after fees are fully
 // computed. If the route is too long, or the selected path cannot support the
@@ -128,7 +119,7 @@ func newRoute(amtToSend lnwire.MilliAtom, sourceVertex route.Vertex,
 			// and its policy for the outgoing channel. This policy
 			// is stored as part of the incoming channel of
 			// the next hop.
-			fee = computeFee(amtToForward, pathEdges[i+1])
+			fee = pathEdges[i+1].ComputeFee(amtToForward)
 		}
 
 		// If this is the last hop, then for verification purposes, the
@@ -480,7 +471,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 		var fee lnwire.MilliAtom
 		var timeLockDelta uint16
 		if fromVertex != source {
-			fee = computeFee(amountToSend, edge)
+			fee = edge.ComputeFee(amountToSend)
 			timeLockDelta = edge.TimeLockDelta
 		}
 
