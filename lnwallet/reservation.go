@@ -293,9 +293,7 @@ func (r *ChannelReservation) SetNumConfsRequired(numConfs uint16) {
 // of atoms that can be transferred in a single commitment. This function
 // will also attempt to verify the constraints for sanity, returning an error
 // if the parameters are seemed unsound.
-func (r *ChannelReservation) CommitConstraints(c *channeldb.ChannelConstraints,
-	capacity dcrutil.Amount) error {
-
+func (r *ChannelReservation) CommitConstraints(c *channeldb.ChannelConstraints) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -350,15 +348,7 @@ func (r *ChannelReservation) CommitConstraints(c *channeldb.ChannelConstraints,
 		)
 	}
 
-	// Fail if the maxValueInFlight is greater than the channel capacity.
-	capacityMatoms := lnwire.NewMAtomsFromAtoms(capacity)
-	if c.MaxPendingAmount > capacityMatoms {
-		return ErrMaxValueInFlightTooLarge(
-			c.MaxPendingAmount, capacityMatoms,
-		)
-	}
-
-	// Our dust limit should always be less than or equal our proposed
+	// Our dust limit should always be less than or equal to our proposed
 	// channel reserve.
 	if r.ourContribution.DustLimit > c.ChanReserve {
 		r.ourContribution.DustLimit = c.ChanReserve
