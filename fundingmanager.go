@@ -2103,10 +2103,12 @@ func (f *fundingManager) addToRouterGraph(completeChan *channeldb.OpenChannel,
 
 	// We'll obtain the max HTLC value we can forward in our direction, as
 	// we'll use this value within our ChannelUpdate. This value must be <=
-	// channel capacity and <= the maximum in-flight msats set by the peer, so
-	// we default to max in-flight msats as this value will always be <=
-	// channel capacity.
+	// channel capacity and <= the maximum in-flight msats set by the peer.
 	fwdMaxHTLC := completeChan.LocalChanCfg.MaxPendingAmount
+	capacityMAtoms := lnwire.NewMAtomsFromAtoms(completeChan.Capacity)
+	if fwdMaxHTLC > capacityMAtoms {
+		fwdMaxHTLC = capacityMAtoms
+	}
 
 	ann, err := f.newChanAnnouncement(
 		f.cfg.IDKey, completeChan.IdentityPub,
@@ -2277,12 +2279,15 @@ func (f *fundingManager) annAfterSixConfs(completeChan *channeldb.OpenChannel,
 		// HTLC it deems economically relevant.
 		fwdMinHTLC := completeChan.LocalChanCfg.MinHTLC
 
-		// We'll obtain the max HTLC value we can forward in our direction, as
-		// we'll use this value within our ChannelUpdate. This value must be <=
-		// channel capacity and <= the maximum in-flight msats set by the peer,
-		// so we default to max in-flight msats as this value will always be <=
-		// channel capacity.
+		// We'll obtain the max HTLC value we can forward in our
+		// direction, as we'll use this value within our ChannelUpdate.
+		// This value must be <= channel capacity and <= the maximum
+		// in-flight msats set by the peer.
 		fwdMaxHTLC := completeChan.LocalChanCfg.MaxPendingAmount
+		capacityMAtoms := lnwire.NewMAtomsFromAtoms(completeChan.Capacity)
+		if fwdMaxHTLC > capacityMAtoms {
+			fwdMaxHTLC = capacityMAtoms
+		}
 
 		// Create and broadcast the proofs required to make this channel
 		// public and usable for other nodes for routing.
