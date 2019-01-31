@@ -146,6 +146,8 @@ travis-race: dcrd unit-race
 
 travis-cover: dcrd unit-cover goveralls
 
+travis-itest: itest
+
 # =============
 # FLAKE HUNTING
 # =============
@@ -203,6 +205,7 @@ clean:
 	goveralls \
 	travis-race \
 	travis-cover \
+	travis-itest \
 	flakehunter \
 	flake-unit \
 	fmt \
