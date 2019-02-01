@@ -160,6 +160,7 @@ var createSessionTests = []createSessionTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   1000,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -181,6 +182,7 @@ var createSessionTests = []createSessionTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     0,
 			MaxUpdates:   1000,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -280,6 +282,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -309,6 +312,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -332,6 +336,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -359,6 +364,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -386,6 +392,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -415,6 +422,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -443,6 +451,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
@@ -472,6 +481,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
+			RewardBase:   0,
 			RewardRate:   0,
 			SweepFeeRate: 1,
 		},
