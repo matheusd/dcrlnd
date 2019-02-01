@@ -776,6 +776,12 @@ message SendRequest {
     FeeLimit fee_limit = 8;
 
     /**
+    The channel id of the channel that must be taken to the first hop. If zero,
+    any channel may be used.
+    */
+    uint64 outgoing_chan_id = 10;
+
+    /**
     Whether to forgo checking for the maximum outbound amount before attempting
     to send the payment.
 
