@@ -452,6 +452,10 @@ type restrictParams struct {
 	// feeLimit is a maximum fee amount allowed to be used on the path from
 	// the source to the target.
 	feeLimit lnwire.MilliAtom
+
+	// outgoingChannelID is the channel that needs to be taken to the first
+	// hop. If nil, any channel may be used.
+	outgoingChannelID *uint64
 }
 
 // findPath attempts to find a path from the source node within the
@@ -562,10 +566,19 @@ func findPath(g *graphParams, r *restrictParams,
 		// TODO(halseth): also ignore disable flags for non-local
 		// channels if bandwidth hint is set?
 		isSourceChan := fromVertex == sourceVertex
+
 		edgeFlags := edge.ChannelFlags
 		isDisabled := edgeFlags&lnwire.ChanUpdateDisabled != 0
 
 		if !isSourceChan && isDisabled {
+			return
+		}
+
+		// If we have an outgoing channel restriction and this is not
+		// the specified channel, skip it.
+		if isSourceChan && r.outgoingChannelID != nil &&
+			*r.outgoingChannelID != edge.ChannelID {
+
 			return
 		}
 
