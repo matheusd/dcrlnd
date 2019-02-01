@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/lookout"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/watchtower/wtmock"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
 
@@ -48,53 +49,6 @@ var (
 	}
 )
 
-type mockSigner struct {
-	index uint32
-	keys  map[keychain.KeyLocator]*secp256k1.PrivateKey
-}
-
-func newMockSigner() *mockSigner {
-	return &mockSigner{
-		keys: make(map[keychain.KeyLocator]*secp256k1.PrivateKey),
-	}
-}
-
-func (s *mockSigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) ([]byte, error) {
-
-	witnessScript := signDesc.WitnessScript
-	privKey, ok := s.keys[signDesc.KeyDesc.KeyLocator]
-	if !ok {
-		panic("cannot sign w/ unknown key")
-	}
-
-	sig, err := txscript.RawTxInSignature(
-		tx, signDesc.InputIndex,
-		witnessScript, signDesc.HashType, privKey,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return sig[:len(sig)-1], nil
-}
-
-func (s *mockSigner) ComputeInputScript(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) (*input.Script, error) {
-	return nil, nil
-}
-
-func (s *mockSigner) addPrivKey(privKey *secp256k1.PrivateKey) keychain.KeyLocator {
-	keyLoc := keychain.KeyLocator{
-		Index: s.index,
-	}
-	s.index++
-
-	s.keys[keyLoc] = privKey
-
-	return keyLoc
-}
-
 func TestJusticeDescriptor(t *testing.T) {
 	const (
 		localAmount  = dcrutil.Amount(100000)
@@ -109,10 +63,10 @@ func TestJusticeDescriptor(t *testing.T) {
 	toRemoteSK, toRemotePK := secp256k1.PrivKeyFromBytes(toRemotePrivBytes)
 
 	// Create the signer, and add the revocation and to-remote privkeys.
-	signer := newMockSigner()
+	signer := wtmock.NewMockSigner()
 	var (
-		revKeyLoc      = signer.addPrivKey(revSK)
-		toRemoteKeyLoc = signer.addPrivKey(toRemoteSK)
+		revKeyLoc      = signer.AddPrivKey(revSK)
+		toRemoteKeyLoc = signer.AddPrivKey(toRemoteSK)
 	)
 
 	// Construct the to-local witness script.
