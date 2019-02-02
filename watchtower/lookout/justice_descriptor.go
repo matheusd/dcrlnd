@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/txsort"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
@@ -173,34 +174,24 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 		})
 	}
 
-	// Using the total input amount and the transaction's size, compute
-	// the sweep and reward amounts. This corresponds to the amount returned
-	// to the victim and the amount paid to the tower, respectively. To do
-	// so, the required transaction fee is subtracted from the total, and
-	// the remaining amount is divided according to the prenegotiated reward
-	// rate from the client's session info.
-	sweepAmt, rewardAmt, err := p.SessionInfo.ComputeSweepOutputs(
-		totalAmt, txSize,
+	// Using the session's policy, compute the outputs that should be added
+	// to the justice transaction. In the case of an altruist sweep, there
+	// will be a single output paying back to the victim. Otherwise for a
+	// reward sweep, there will be two outputs, one of which pays back to
+	// the victim while the other gives a cut to the tower.
+	outputs, err := p.SessionInfo.Policy.ComputeJusticeTxOuts(
+		totalAmt, txSize, p.JusticeKit.SweepAddress[:],
+		p.SessionInfo.RewardAddress,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(conner): abort/don't add if outputs are dusty
+	// Attach the computed txouts to the justice transaction.
+	justiceTxn.TxOut = outputs
 
-	// Add the sweep and reward outputs to the justice transaction.
-	justiceTxn.AddTxOut(&wire.TxOut{
-		PkScript: p.JusticeKit.SweepAddress,
-		Value:    int64(sweepAmt),
-		Version:  txscript.DefaultScriptVersion,
-	})
-	justiceTxn.AddTxOut(&wire.TxOut{
-		PkScript: p.SessionInfo.RewardAddress,
-		Value:    int64(rewardAmt),
-		Version:  txscript.DefaultScriptVersion,
-	})
-
-	// TODO(conner): apply and handle BIP69 sort
+	// Apply a BIP69 sort to the resulting transaction.
+	txsort.InPlaceSort(justiceTxn)
 
 	if err := blockchain.CheckTransactionSanity(justiceTxn, p.NetParams); err != nil {
 		return nil, err
@@ -212,8 +203,19 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 		txscript.ScriptVerifyCheckSequenceVerify |
 		txscript.ScriptVerifySHA256
 
+	// Since the transaction inputs could have been reordered as a result
+	// of the BIP69 sort, create an index mapping each prevout to it's new
+	// index.
+	inputIndex := make(map[wire.OutPoint]int)
+	for i, txIn := range justiceTxn.TxIn {
+		inputIndex[txIn.PreviousOutPoint] = i
+	}
+
 	// Attach each of the provided witnesses to the transaction.
-	for i, inp := range inputs {
+	for _, inp := range inputs {
+		// Lookup the input's new post-sort position.
+		i := inputIndex[inp.outPoint]
+
 		justiceTxn.TxIn[i].SignatureScript, err = input.WitnessStackToSigScript(
 			inp.witness,
 		)
@@ -248,9 +250,6 @@ func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 		sizeEstimate input.TxSizeEstimator
 	)
 
-	// Add our reward address to the size estimate.
-	sizeEstimate.AddP2PKHOutput()
-
 	// Add the sweep address's contribution, depending on whether it is a
 	// p2pkh or p2sh output.
 	switch int64(len(p.JusticeKit.SweepAddress)) {
@@ -262,6 +261,12 @@ func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 
 	default:
 		return nil, ErrUnknownSweepAddrType
+	}
+
+	// Add our reward address to the weight estimate if the policy's blob
+	// type specifies a reward output.
+	if p.SessionInfo.Policy.BlobType.Has(blob.FlagReward) {
+		sizeEstimate.AddP2PKHOutput()
 	}
 
 	// Assemble the breached to-local output from the justice descriptor and

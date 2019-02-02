@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/txsort"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
@@ -47,9 +48,39 @@ var (
 		0x70, 0x4c, 0xff, 0x1e, 0x9c, 0x00, 0x93, 0xbe,
 		0xe2, 0x2e, 0x68, 0x08, 0x4c, 0xb4, 0x0f, 0x4f,
 	}
+
+	rewardCommitType = blob.TypeFromFlags(
+		blob.FlagReward, blob.FlagCommitOutputs,
+	)
+
+	altruistCommitType = blob.FlagCommitOutputs.Type()
 )
 
+// TestJusticeDescriptor asserts that a JusticeDescriptor is able to produce the
+// correct justice transaction for different blob types.
 func TestJusticeDescriptor(t *testing.T) {
+	tests := []struct {
+		name     string
+		blobType blob.Type
+	}{
+		{
+			name:     "reward and commit type",
+			blobType: rewardCommitType,
+		},
+		{
+			name:     "altruist and commit type",
+			blobType: altruistCommitType,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			testJusticeDescriptor(t, test.blobType)
+		})
+	}
+}
+
+func testJusticeDescriptor(t *testing.T, blobType blob.Type) {
 	const (
 		localAmount  = dcrutil.Amount(100000)
 		remoteAmount = dcrutil.Amount(200000)
@@ -109,31 +140,25 @@ func TestJusticeDescriptor(t *testing.T) {
 
 	// Compute the size estimate for our justice transaction.
 	var sizeEstimate input.TxSizeEstimator
-	sizeEstimate.AddP2PKHOutput()
-	sizeEstimate.AddP2PKHOutput()
 	sizeEstimate.AddCustomInput(input.ToLocalPenaltySigScriptSize)
 	sizeEstimate.AddP2PKHInput()
+	sizeEstimate.AddP2PKHOutput()
+	if blobType.Has(blob.FlagReward) {
+		sizeEstimate.AddP2PKHOutput()
+	}
 	txSize := sizeEstimate.Size()
 
 	// Create a session info so that simulate agreement of the sweep
 	// parameters that should be used in constructing the justice
 	// transaction.
-	sessionInfo := &wtdb.SessionInfo{
-		Policy: wtpolicy.Policy{
-			SweepFeeRate: 2000,
-			RewardRate:   900000,
-		},
-		RewardAddress: makeRandomP2PKHPkScript(),
+	policy := wtpolicy.Policy{
+		BlobType:     blobType,
+		SweepFeeRate: 2000,
+		RewardRate:   900000,
 	}
-
-	// Given the total input amount and the size estimate, compute the
-	// amount that should be swept for the victim and the amount taken as a
-	// reward by the watchtower.
-	sweepAmt, rewardAmt, err := sessionInfo.ComputeSweepOutputs(
-		totalAmount, txSize,
-	)
-	if err != nil {
-		t.Fatalf("unable to compute sweep outputs: %v", err)
+	sessionInfo := &wtdb.SessionInfo{
+		Policy:        policy,
+		RewardAddress: makeRandomP2PKHPkScript(),
 	}
 
 	// Begin to assemble the justice kit, starting with the sweep address,
@@ -168,19 +193,19 @@ func TestJusticeDescriptor(t *testing.T) {
 				ValueIn: breachTxn.TxOut[1].Value,
 			},
 		},
-		TxOut: []*wire.TxOut{
-			{
-
-				Value:    int64(sweepAmt),
-				PkScript: justiceKit.SweepAddress,
-			},
-			{
-
-				Value:    int64(rewardAmt),
-				PkScript: sessionInfo.RewardAddress,
-			},
-		},
 	}
+
+	outputs, err := policy.ComputeJusticeTxOuts(
+		totalAmount, int64(txSize), justiceKit.SweepAddress,
+		sessionInfo.RewardAddress,
+	)
+	if err != nil {
+		t.Fatalf("unable to compute justice txouts: %v", err)
+	}
+
+	// Attach the txouts and BIP69 sort the resulting transaction.
+	justiceTxn.TxOut = outputs
+	txsort.InPlaceSort(justiceTxn)
 
 	// Create the sign descriptor used to sign for the to-local input.
 	toLocalSignDesc := &input.SignDescriptor{
