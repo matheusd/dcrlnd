@@ -3,7 +3,6 @@ package wtdb
 import (
 	"errors"
 
-	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
 
@@ -35,11 +34,6 @@ var (
 	// number larger than the session's max number of updates.
 	ErrSessionConsumed = errors.New("all session updates have been " +
 		"consumed")
-
-	// ErrFeeExceedsInputs signals that the total input value of breaching
-	// commitment txn is insufficient to cover the fees required to sweep
-	// it.
-	ErrFeeExceedsInputs = errors.New("sweep fee exceeds input values")
 )
 
 // SessionInfo holds the negotiated session parameters for single session id,
@@ -96,31 +90,6 @@ func (s *SessionInfo) AcceptUpdateSequence(seqNum, lastApplied uint16) error {
 	s.ClientLastApplied = lastApplied
 
 	return nil
-}
-
-// ComputeSweepOutputs splits the total funds in a breaching commitment
-// transaction between the victim and the tower, according to the sweep fee rate
-// and reward rate. The fees are first subtracted from the overall total, before
-// splitting the remaining balance amongst the victim and tower.
-func (s *SessionInfo) ComputeSweepOutputs(totalAmt dcrutil.Amount,
-	txSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
-
-	txFee := s.Policy.SweepFeeRate.FeeForSize(txSize)
-	if txFee > totalAmt {
-		return 0, 0, ErrFeeExceedsInputs
-	}
-
-	totalAmt -= txFee
-
-	// Apply the reward rate to the remaining total, specified in millionths
-	// of the available balance.
-	rewardRate := dcrutil.Amount(s.Policy.RewardRate)
-	rewardAmt := (totalAmt*rewardRate + 999999) / 1000000
-	sweepAmt := totalAmt - rewardAmt
-
-	// TODO(conner): check dustiness
-
-	return sweepAmt, rewardAmt, nil
 }
 
 // Match is returned in response to a database query for a breach hints
