@@ -615,6 +615,7 @@ func createTestCtx(startHeight uint32) (*testCtx, func(), error) {
 		RetransmitDelay:  retransmitDelay,
 		ProofMatureDelta: proofMatureDelta,
 		DB:               db,
+		MessageStore:     newMockMessageStore(),
 	}, nodeKeyPub1)
 	if err != nil {
 		cleanUpDb()
@@ -1651,6 +1652,7 @@ func TestSignatureAnnouncementRetryAtStartup(t *testing.T) {
 		RetransmitDelay:  retransmitDelay,
 		ProofMatureDelta: proofMatureDelta,
 		DB:               ctx.gossiper.cfg.DB,
+		MessageStore:     ctx.gossiper.cfg.MessageStore,
 	}, ctx.gossiper.selfKey)
 	if err != nil {
 		t.Fatalf("unable to recreate gossiper: %v", err)
@@ -2855,44 +2857,4 @@ func TestOptionalFieldsChannelUpdateValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to process announcement: %v", err)
 	}
-}
-
-// mockPeer implements the lnpeer.Peer interface and is used to test the
-// gossiper's interaction with peers.
-type mockPeer struct {
-	pk       *secp256k1.PublicKey
-	sentMsgs chan lnwire.Message
-	quit     chan struct{}
-}
-
-var _ lnpeer.Peer = (*mockPeer)(nil)
-
-func (p *mockPeer) SendMessage(_ bool, msgs ...lnwire.Message) error {
-	if p.sentMsgs == nil && p.quit == nil {
-		return nil
-	}
-
-	for _, msg := range msgs {
-		select {
-		case p.sentMsgs <- msg:
-		case <-p.quit:
-		}
-	}
-
-	return nil
-}
-func (p *mockPeer) AddNewChannel(_ *channeldb.OpenChannel, _ <-chan struct{}) error {
-	return nil
-}
-func (p *mockPeer) WipeChannel(_ *wire.OutPoint) error { return nil }
-func (p *mockPeer) IdentityKey() *secp256k1.PublicKey  { return p.pk }
-func (p *mockPeer) PubKey() [33]byte {
-	var pubkey [33]byte
-	copy(pubkey[:], p.pk.SerializeCompressed())
-	return pubkey
-}
-func (p *mockPeer) Address() net.Addr { return nil }
-func (p *mockPeer) Inbound() bool     { return false }
-func (p *mockPeer) QuitSignal() <-chan struct{} {
-	return p.quit
 }
