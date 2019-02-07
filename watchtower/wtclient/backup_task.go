@@ -134,9 +134,6 @@ func (t *backupTask) bindSession(session *wtdb.SessionInfo,
 	// the watchtower is taking a reward.
 	var sizeEstimate input.TxSizeEstimator
 
-	// All justice transactions have a p2pkh output paying to the victim.
-	sizeEstimate.AddP2PKHOutput()
-
 	// Next, add the contribution from the inputs that are present on this
 	// breach transaction.
 	if t.toLocalInput != nil {
@@ -144,6 +141,15 @@ func (t *backupTask) bindSession(session *wtdb.SessionInfo,
 	}
 	if t.toRemoteInput != nil {
 		sizeEstimate.AddP2PKHInput()
+	}
+
+	// All justice transactions have a p2pkh output paying to the victim.
+	sizeEstimate.AddP2PKHOutput()
+
+	// If the justice transaction has a reward output, add the output's
+	// contribution to the size estimate.
+	if session.Policy.BlobType.Has(blob.FlagReward) {
+		sizeEstimate.AddP2PKHOutput()
 	}
 
 	// Now, compute the output values depending on whether FlagReward is set
@@ -156,8 +162,8 @@ func (t *backupTask) bindSession(session *wtdb.SessionInfo,
 		return err
 	}
 
-	t.outputs = outputs
 	t.blobType = session.Policy.BlobType
+	t.outputs = outputs
 
 	return nil
 }
