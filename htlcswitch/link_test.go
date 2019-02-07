@@ -1550,7 +1550,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 
 	// Instantiate with a long interval, so that we can precisely control
 	// the firing via force feeding.
-	bticker := ticker.MockNew(time.Hour)
+	bticker := ticker.NewForce(time.Hour)
 	aliceCfg := ChannelLinkConfig{
 		FwrdingPolicy:      globalPolicy,
 		Peer:               alicePeer,
@@ -1573,7 +1573,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 		Registry:       invoiceRegistry,
 		ChainEvents:    &contractcourt.ChainEventSubscription{},
 		BatchTicker:    bticker,
-		FwdPkgGCTicker: ticker.MockNew(15 * time.Second),
+		FwdPkgGCTicker: ticker.NewForce(15 * time.Second),
 		// Make the BatchSize and Min/MaxFeeUpdateTimeout large enough
 		// to not trigger commit updates automatically during tests.
 		BatchSize:           10000,
@@ -3510,7 +3510,7 @@ func TestChannelLinkShutdownDuringForward(t *testing.T) {
 	// unblocks after nothing has been pulled for two seconds.
 	waitForBobsSwitchToBlock := func() {
 		bobSwitch := n.firstBobChannelLink.cfg.Switch
-		ticker := bobSwitch.cfg.LogEventTicker.(*ticker.Mock)
+		ticker := bobSwitch.cfg.LogEventTicker.(*ticker.Force)
 		timeout := time.After(15 * time.Second)
 		for {
 			time.Sleep(50 * time.Millisecond)
@@ -3529,7 +3529,7 @@ func TestChannelLinkShutdownDuringForward(t *testing.T) {
 	// Define a helper method that strobes the link's batch ticker, and
 	// unblocks after nothing has been pulled for two seconds.
 	waitForBobsIncomingLinkToBlock := func() {
-		ticker := n.firstBobChannelLink.cfg.BatchTicker.(*ticker.Mock)
+		ticker := n.firstBobChannelLink.cfg.BatchTicker.(*ticker.Force)
 		timeout := time.After(15 * time.Second)
 		for {
 			time.Sleep(50 * time.Millisecond)
@@ -4064,7 +4064,7 @@ func restartLink(aliceChannel *lnwallet.LightningChannel, aliceSwitch *Switch,
 
 	// Instantiate with a long interval, so that we can precisely control
 	// the firing via force feeding.
-	bticker := ticker.MockNew(time.Hour)
+	bticker := ticker.NewForce(time.Hour)
 	aliceCfg := ChannelLinkConfig{
 		FwrdingPolicy:      globalPolicy,
 		Peer:               alicePeer,
