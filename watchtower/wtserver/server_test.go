@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
@@ -24,6 +25,8 @@ var (
 	addr, _ = dcrutil.DecodeAddress("TsVDyY1k1N2jZ7xYuoA1PEbwSP2mQnXR9qb")
 
 	addrScript, _ = txscript.PayToAddrScript(addr)
+
+	testnetChainHash = *chaincfg.TestNet3Params.GenesisHash
 )
 
 // randPubKey generates a new secp keypair, and returns the public key.
@@ -56,6 +59,7 @@ func initServer(t *testing.T, db wtserver.DB,
 		NewAddress: func() (dcrutil.Address, error) {
 			return addr, nil
 		},
+		ChainHash: testnetChainHash,
 	})
 	if err != nil {
 		t.Fatalf("unable to create server: %v", err)
@@ -88,7 +92,7 @@ func TestServerOnlyAcceptOnePeer(t *testing.T) {
 
 	// Serialize a Init message to be sent by both peers.
 	init := wtwire.NewInitMessage(
-		lnwire.NewRawFeatureVector(), lnwire.NewRawFeatureVector(),
+		lnwire.NewRawFeatureVector(), testnetChainHash,
 	)
 
 	var b bytes.Buffer
@@ -156,7 +160,7 @@ var createSessionTests = []createSessionTestCase{
 		name: "reject duplicate session create",
 		initMsg: wtwire.NewInitMessage(
 			lnwire.NewRawFeatureVector(),
-			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
@@ -178,7 +182,7 @@ var createSessionTests = []createSessionTestCase{
 		name: "reject unsupported blob type",
 		initMsg: wtwire.NewInitMessage(
 			lnwire.NewRawFeatureVector(),
-			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     0,
@@ -276,10 +280,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Valid update sequence, send seqnum == lastapplied as last update.
 	{
 		name: "perm fail after sending seqnum equal lastapplied",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
@@ -306,10 +310,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Send update that skips next expected sequence number.
 	{
 		name: "skip sequence number",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
@@ -330,10 +334,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Send update that reverts to older sequence number.
 	{
 		name: "revert to older seqnum",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
@@ -358,10 +362,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Send update echoing a last applied that is lower than previous value.
 	{
 		name: "revert to older lastapplied",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
@@ -386,10 +390,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Client echos last applied as they are received.
 	{
 		name: "resume after disconnect",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
@@ -416,10 +420,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Client doesn't echo last applied until last message.
 	{
 		name: "resume after disconnect lagging lastapplied",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
@@ -445,10 +449,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Send update with sequence number that exceeds MaxUpdates.
 	{
 		name: "seqnum exceed maxupdates",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
@@ -475,10 +479,10 @@ var stateUpdateTests = []stateUpdateTestCase{
 	// Ensure sequence number 0 causes permanent failure.
 	{
 		name: "perm fail after seqnum 0",
-		initMsg: &wtwire.Init{&lnwire.Init{
-			LocalFeatures:  lnwire.NewRawFeatureVector(),
-			GlobalFeatures: lnwire.NewRawFeatureVector(),
-		}},
+		initMsg: wtwire.NewInitMessage(
+			lnwire.NewRawFeatureVector(),
+			testnetChainHash,
+		),
 		createMsg: &wtwire.CreateSession{
 			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
