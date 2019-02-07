@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 )
 
@@ -83,6 +85,20 @@ func WriteElement(w io.Writer, element interface{}) error {
 		var b [2]byte
 		binary.BigEndian.PutUint16(b[:], uint16(e))
 		if _, err := w.Write(b[:]); err != nil {
+			return err
+		}
+
+	case chainhash.Hash:
+		if _, err := w.Write(e[:]); err != nil {
+			return err
+		}
+
+	case *lnwire.RawFeatureVector:
+		if e == nil {
+			return fmt.Errorf("cannot write nil feature vector")
+		}
+
+		if err := e.Encode(w); err != nil {
 			return err
 		}
 
@@ -192,8 +208,23 @@ func ReadElement(r io.Reader, element interface{}) error {
 		}
 		*e = ErrorCode(binary.BigEndian.Uint16(b[:]))
 
+	case *chainhash.Hash:
+		if _, err := io.ReadFull(r, e[:]); err != nil {
+			return err
+		}
+
+	case **lnwire.RawFeatureVector:
+		f := lnwire.NewRawFeatureVector()
+		err := f.Decode(r)
+		if err != nil {
+			return err
+		}
+
+		*e = f
+
 	case **secp256k1.PublicKey:
 		var b [secp256k1.PubKeyBytesLenCompressed]byte
+
 		if _, err := io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
