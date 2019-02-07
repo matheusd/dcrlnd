@@ -43,6 +43,7 @@ type backupTask struct {
 	toLocalInput  input.Input
 	toRemoteInput input.Input
 	totalAmt      dcrutil.Amount
+	sweepPkScript []byte
 
 	// session-dependent variables
 
@@ -56,6 +57,7 @@ type backupTask struct {
 // variables.
 func newBackupTask(chanID *lnwire.ChannelID,
 	breachInfo *lnwallet.BreachRetribution,
+	sweepPkScript []byte,
 	chainParams *chaincfg.Params) *backupTask {
 
 	// Parse the non-dust outputs from the breach transaction,
@@ -104,6 +106,7 @@ func newBackupTask(chanID *lnwire.ChannelID,
 		toLocalInput:  toLocalInput,
 		toRemoteInput: toRemoteInput,
 		totalAmt:      dcrutil.Amount(totalAmt),
+		sweepPkScript: sweepPkScript,
 	}
 }
 
@@ -126,8 +129,7 @@ func (t *backupTask) inputs() map[wire.OutPoint]input.Input {
 // SessionInfo's policy. If no error is returned, the task has been bound to the
 // session and can be queued to upload to the tower. Otherwise, the bind failed
 // and should be rescheduled with a different session.
-func (t *backupTask) bindSession(session *wtdb.SessionInfo,
-	sweepPkScript []byte) error {
+func (t *backupTask) bindSession(session *wtdb.SessionInfo) error {
 
 	// First we'll begin by deriving a size estimate for the justice
 	// transaction. The final size can be different depending on whether
@@ -156,7 +158,7 @@ func (t *backupTask) bindSession(session *wtdb.SessionInfo,
 	// in the current session's policy.
 	outputs, err := session.Policy.ComputeJusticeTxOuts(
 		t.totalAmt, sizeEstimate.Size(),
-		sweepPkScript, session.RewardAddress,
+		t.sweepPkScript, session.RewardAddress,
 	)
 	if err != nil {
 		return err
@@ -174,7 +176,7 @@ func (t *backupTask) bindSession(session *wtdb.SessionInfo,
 // session-dependent variables, and signs the resulting transaction. The
 // required pieces from signatures, witness scripts, etc are then packaged into
 // a JusticeKit and encrypted using the breach transaction's key.
-func (t *backupTask) craftSessionPayload(sweepPkScript []byte,
+func (t *backupTask) craftSessionPayload(
 	signer input.Signer) (wtdb.BreachHint, []byte, error) {
 
 	var hint wtdb.BreachHint
@@ -183,7 +185,7 @@ func (t *backupTask) craftSessionPayload(sweepPkScript []byte,
 	// to-local script, and the remote CSV delay.
 	keyRing := t.breachInfo.KeyRing
 	justiceKit := &blob.JusticeKit{
-		SweepAddress:     sweepPkScript,
+		SweepAddress:     t.sweepPkScript,
 		RevocationPubKey: toBlobPubKey(keyRing.RevocationKey),
 		LocalDelayPubKey: toBlobPubKey(keyRing.DelayKey),
 		CSVDelay:         t.breachInfo.RemoteDelay,

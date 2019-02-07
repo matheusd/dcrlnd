@@ -407,7 +407,8 @@ func TestBackupTask(t *testing.T) {
 
 func testBackupTask(t *testing.T, test backupTaskTest) {
 	// Create a new backupTask from the channel id and breach info.
-	task := newBackupTask(&test.chanID, test.breachInfo, &chaincfg.TestNet3Params)
+	task := newBackupTask(&test.chanID, test.breachInfo, test.expSweepScript,
+		&chaincfg.TestNet3Params)
 
 	// Assert that all parameters set during initialization are properly
 	// populated.
@@ -462,7 +463,7 @@ func testBackupTask(t *testing.T, test backupTaskTest) {
 	// Now, bind the session to the task. If successful, this locks in the
 	// session's negotiated parameters and allows the backup task to derive
 	// the final free variables in the justice transaction.
-	err := task.bindSession(test.session, test.expSweepScript)
+	err := task.bindSession(test.session)
 	if err != test.bindErr {
 		t.Fatalf("expected: %v when binding session, got: %v",
 			test.bindErr, err)
@@ -519,9 +520,7 @@ func testBackupTask(t *testing.T, test backupTaskTest) {
 
 	// Now, we'll construct, sign, and encrypt the blob containing the parts
 	// needed to reconstruct the justice transaction.
-	hint, encBlob, err := task.craftSessionPayload(
-		test.expSweepScript, test.signer,
-	)
+	hint, encBlob, err := task.craftSessionPayload(test.signer)
 	if err != nil {
 		t.Fatalf("unable to craft session payload: %v", err)
 	}
