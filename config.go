@@ -20,6 +20,7 @@ import (
 
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
@@ -185,10 +186,11 @@ type config struct {
 
 	Profile string `long:"profile" description:"Enable HTTP profiling on given port -- NOTE port must be between 1024 and 65535"`
 
-	DebugHTLC          bool `long:"debughtlc" description:"Activate the debug htlc mode. With the debug HTLC mode, all payments sent use a pre-determined R-Hash. Additionally, all HTLCs sent to a node with the debug HTLC R-Hash are immediately settled in the next available state transition."`
-	UnsafeDisconnect   bool `long:"unsafe-disconnect" description:"Allows the rpcserver to intentionally disconnect from peers with open channels. USED FOR TESTING ONLY."`
-	UnsafeReplay       bool `long:"unsafe-replay" description:"Causes a link to replay the adds on its commitment txn after starting up, this enables testing of the sphinx replay logic."`
-	MaxPendingChannels int  `long:"maxpendingchannels" description:"The maximum number of incoming pending channels permitted per peer."`
+	DebugHTLC          bool   `long:"debughtlc" description:"Activate the debug htlc mode. With the debug HTLC mode, all payments sent use a pre-determined R-Hash. Additionally, all HTLCs sent to a node with the debug HTLC R-Hash are immediately settled in the next available state transition."`
+	UnsafeDisconnect   bool   `long:"unsafe-disconnect" description:"Allows the rpcserver to intentionally disconnect from peers with open channels. USED FOR TESTING ONLY."`
+	UnsafeReplay       bool   `long:"unsafe-replay" description:"Causes a link to replay the adds on its commitment txn after starting up, this enables testing of the sphinx replay logic."`
+	MaxPendingChannels int    `long:"maxpendingchannels" description:"The maximum number of incoming pending channels permitted per peer."`
+	BackupFilePath     string `long:"backupfilepath" description:"The target location of the channel backup file"`
 
 	Decred   *chainConfig `group:"Decred" namespace:"decred"`
 	DcrdMode *dcrdConfig  `group:"dcrd" namespace:"dcrd"`
@@ -626,7 +628,7 @@ func loadConfig() (*config, error) {
 	}
 
 	// We'll now construct the network directory which will be where we
-	// store all the data specifc to this chain/network.
+	// store all the data specific to this chain/network.
 	networkDir = filepath.Join(
 		cfg.DataDir, defaultChainSubDirname,
 		registeredChains.PrimaryChain().String(),
@@ -649,6 +651,14 @@ func loadConfig() (*config, error) {
 	if cfg.InvoiceMacPath == "" {
 		cfg.InvoiceMacPath = filepath.Join(
 			networkDir, defaultInvoiceMacFilename,
+		)
+	}
+
+	// Similarly, if a custom back up file path wasn't specified, then
+	// we'll update the file location to match our set network directory.
+	if cfg.BackupFilePath == "" {
+		cfg.BackupFilePath = filepath.Join(
+			networkDir, chanbackup.DefaultBackupFileName,
 		)
 	}
 
