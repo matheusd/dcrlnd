@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
@@ -85,6 +86,7 @@ var (
 	ntfrLog = build.NewSubLogger("NTFR", backendLog.Logger)
 	irpcLog = build.NewSubLogger("IRPC", backendLog.Logger)
 	chnfLog = build.NewSubLogger("CHNF", backendLog.Logger)
+	chbuLog = build.NewSubLogger("CHBU", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -112,6 +114,7 @@ func init() {
 	chainrpc.UseLogger(ntfrLog)
 	invoicesrpc.UseLogger(irpcLog)
 	channelnotifier.UseLogger(chnfLog)
+	chanbackup.UseLogger(chbuLog)
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 }
@@ -155,6 +158,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"NTFR": ntfnLog,
 	"IRPC": irpcLog,
 	"CHNF": chnfLog,
+	"CHBU": chbuLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and
