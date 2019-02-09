@@ -11,7 +11,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -175,9 +174,6 @@ func createTestChannelArbitrator(log ArbitratorLog) (*ChannelArbitrator,
 		IncubateOutputs: func(wire.OutPoint, *lnwallet.CommitOutputResolution,
 			*lnwallet.OutgoingHtlcResolution,
 			*lnwallet.IncomingHtlcResolution, uint32) error {
-			return nil
-		},
-		SettleInvoice: func(lntypes.Hash, lnwire.MilliAtom) error {
 			return nil
 		},
 	}
