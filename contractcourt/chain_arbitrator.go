@@ -12,7 +12,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -137,10 +137,9 @@ type ChainArbitratorConfig struct {
 	// Sweeper allows resolvers to sweep their final outputs.
 	Sweeper *sweep.UtxoSweeper
 
-	// SettleInvoice attempts to settle an existing invoice on-chain with
-	// the given payment hash. ErrInvoiceNotFound is returned if an invoice
-	// is not found.
-	SettleInvoice func(lntypes.Hash, lnwire.MilliAtom) error
+	// Registry is the invoice database that is used by resolvers to lookup
+	// preimages and settle invoices.
+	Registry *invoices.InvoiceRegistry
 
 	// NotifyClosedChannel is a function closure that the ChainArbitrator
 	// will use to notify the ChannelNotifier about a newly closed channel.
