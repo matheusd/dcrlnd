@@ -54,3 +54,8 @@ func MakePreimageFromStr(newPreimage string) (Preimage, error) {
 func (p *Preimage) Hash() Hash {
 	return Hash(chainhash.HashH(p[:]))
 }
+
+// Matches returns whether this preimage is the preimage of the given hash.
+func (p *Preimage) Matches(h Hash) bool {
+	return h == p.Hash()
+}
