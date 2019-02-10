@@ -519,19 +519,12 @@ func getChanID(msg lnwire.Message) (lnwire.ChannelID, error) {
 	return chanID, nil
 }
 
-// generatePayment generates the htlc add request by given path blob and
+// generateHoldPayment generates the htlc add request by given path blob and
 // invoice which should be added by destination peer.
-func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
-	blob [lnwire.OnionPacketSize]byte) (*channeldb.Invoice, *lnwire.UpdateAddHTLC, error) {
-
-	var preimage [chainhash.HashSize]byte
-	r, err := generateRandomBytes(chainhash.HashSize)
-	if err != nil {
-		return nil, nil, err
-	}
-	copy(preimage[:], r)
-
-	rhash := chainhash.HashH(preimage[:])
+func generatePaymentWithPreimage(invoiceAmt, htlcAmt lnwire.MilliAtom,
+	timelock uint32, blob [lnwire.OnionPacketSize]byte,
+	preimage, rhash [32]byte) (*channeldb.Invoice, *lnwire.UpdateAddHTLC,
+	error) {
 
 	invoice := &channeldb.Invoice{
 		CreationDate: time.Now(),
@@ -549,6 +542,24 @@ func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
 	}
 
 	return invoice, htlc, nil
+}
+
+// generatePayment generates the htlc add request by given path blob and
+// invoice which should be added by destination peer.
+func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
+	blob [lnwire.OnionPacketSize]byte) (*channeldb.Invoice, *lnwire.UpdateAddHTLC, error) {
+
+	var preimage [lntypes.PreimageSize]byte
+	r, err := generateRandomBytes(lntypes.HashSize)
+	if err != nil {
+		return nil, nil, err
+	}
+	copy(preimage[:], r)
+
+	rhash := chainhash.HashH(preimage[:])
+	return generatePaymentWithPreimage(
+		invoiceAmt, htlcAmt, timelock, blob, preimage, rhash,
+	)
 }
 
 // generateRoute generates the path blob by given array of peers.
@@ -741,7 +752,8 @@ func preparePayment(sendingPeer, receivingPeer lnpeer.Peer,
 	}
 
 	// Check who is last in the route and add invoice to server registry.
-	if err := receiver.registry.AddInvoice(*invoice, htlc.PaymentHash); err != nil {
+	hash := invoice.Terms.PaymentPreimage.Hash()
+	if err := receiver.registry.AddInvoice(*invoice, hash); err != nil {
 		return nil, nil, err
 	}
 
@@ -1131,7 +1143,7 @@ func newTwoHopNetwork(t testing.TB,
 	}
 }
 
-// start starts the three hop network alice,bob,carol servers.
+// start starts the two hop network alice,bob servers.
 func (n *twoHopNetwork) start() error {
 	if err := n.aliceServer.Start(); err != nil {
 		return err
@@ -1160,4 +1172,49 @@ func (n *twoHopNetwork) stop() {
 	for i := 0; i < 2; i++ {
 		<-done
 	}
+}
+
+func (n *twoHopNetwork) makeHoldPayment(sendingPeer, receivingPeer lnpeer.Peer,
+	firstHop lnwire.ShortChannelID, hops []ForwardingInfo,
+	invoiceAmt, htlcAmt lnwire.MilliAtom,
+	timelock uint32, preimage lntypes.Preimage) chan error {
+
+	paymentErr := make(chan error, 1)
+
+	sender := sendingPeer.(*mockServer)
+	receiver := receivingPeer.(*mockServer)
+
+	// Generate route convert it to blob, and return next destination for
+	// htlc add request.
+	blob, err := generateRoute(hops...)
+	if err != nil {
+		paymentErr <- err
+		return paymentErr
+	}
+
+	rhash := preimage.Hash()
+
+	// Generate payment: invoice and htlc.
+	invoice, htlc, err := generatePaymentWithPreimage(invoiceAmt, htlcAmt, timelock, blob,
+		channeldb.UnknownPreimage, rhash)
+	if err != nil {
+		paymentErr <- err
+		return paymentErr
+	}
+
+	// Check who is last in the route and add invoice to server registry.
+	if err := receiver.registry.AddInvoice(*invoice, rhash); err != nil {
+		paymentErr <- err
+		return paymentErr
+	}
+
+	// Send payment and expose err channel.
+	go func() {
+		_, err := sender.htlcSwitch.SendHTLC(
+			firstHop, htlc, newMockDeobfuscator(),
+		)
+		paymentErr <- err
+	}()
+
+	return paymentErr
 }
