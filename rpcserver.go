@@ -724,7 +724,7 @@ func (r *rpcServer) ListUnspent(ctx context.Context,
 		utxoResp := lnrpc.Utxo{
 			Type:          addrType,
 			AmountAtoms:   int64(utxo.Value),
-			ScriptPubkey:  hex.EncodeToString(utxo.PkScript),
+			PkScript:      hex.EncodeToString(utxo.PkScript),
 			Outpoint:      outpoint,
 			Confirmations: utxo.Confirmations,
 		}
