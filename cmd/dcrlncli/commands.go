@@ -1948,6 +1948,12 @@ func closedChannels(ctx *cli.Context) error {
 	return nil
 }
 
+var cltvLimitFlag = cli.UintFlag{
+	Name: "cltv_limit",
+	Usage: "the maximum time lock that may be used for " +
+		"this payment",
+}
+
 var sendPaymentCommand = cli.Command{
 	Name:     "sendpayment",
 	Category: "Payments",
@@ -1994,6 +2000,7 @@ var sendPaymentCommand = cli.Command{
 			Usage: "percentage of the payment's amount used as the" +
 				"maximum fee allowed when sending the payment",
 		},
+		cltvLimitFlag,
 		cli.StringFlag{
 			Name:  "payment_hash, r",
 			Usage: "the hash to use within the payment's HTLC",
@@ -2120,6 +2127,7 @@ func sendPayment(ctx *cli.Context) error {
 			FeeLimit:             feeLimit,
 			OutgoingChanId:       ctx.Uint64("outgoing_chan_id"),
 			IgnoreMaxOutboundAmt: ctx.Bool("ignore_max_outbound_amt"),
+			CltvLimit:            uint32(ctx.Int(cltvLimitFlag.Name)),
 		}
 
 		return sendPaymentRequest(client, req)
@@ -2268,6 +2276,7 @@ var payInvoiceCommand = cli.Command{
 			Usage: "percentage of the payment's amount used as the" +
 				"maximum fee allowed when sending the payment",
 		},
+		cltvLimitFlag,
 		cli.Uint64Flag{
 			Name: "outgoing_chan_id",
 			Usage: "short channel id of the outgoing channel to " +
@@ -2314,7 +2323,9 @@ func payInvoice(ctx *cli.Context) error {
 		Amt:            ctx.Int64("amt"),
 		FeeLimit:       feeLimit,
 		OutgoingChanId: ctx.Uint64("outgoing_chan_id"),
+		CltvLimit:      uint32(ctx.Int(cltvLimitFlag.Name)),
 	}
+
 	return sendPaymentRequest(client, req)
 }
 
