@@ -47,6 +47,10 @@ var (
 	// the cipher session exceeds the maximum allowed message payload.
 	ErrMaxMessageLengthExceeded = errors.New("the generated payload exceeds " +
 		"the max allowed message length of (2^16)-1")
+
+	// lightningPrologue is the noise prologue that is used to initialize
+	// the brontide noise handshake.
+	lightningPrologue = []byte("lightning")
 )
 
 // TODO(roasbeef): free buffer pool?
@@ -378,8 +382,9 @@ type Machine struct {
 func NewBrontideMachine(initiator bool, localPub *secp256k1.PrivateKey,
 	remotePub *secp256k1.PublicKey, options ...func(*Machine)) *Machine {
 
-	handshake := newHandshakeState(initiator, []byte("lightning"), localPub,
-		remotePub)
+	handshake := newHandshakeState(
+		initiator, lightningPrologue, localPub, remotePub,
+	)
 
 	m := &Machine{handshakeState: handshake}
 
