@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/brontide"
+	"github.com/decred/dcrlnd/buffer"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
@@ -212,7 +213,7 @@ type peer struct {
 	// messages to write out directly on the socket. By re-using this
 	// buffer, we avoid needing to allocate more memory each time a new
 	// message is to be sent to a peer.
-	writeBuf *lnpeer.WriteBuffer
+	writeBuf *buffer.Write
 
 	queueQuit chan struct{}
 	quit      chan struct{}

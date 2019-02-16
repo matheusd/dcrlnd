@@ -38,6 +38,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/nat"
 	"github.com/decred/dcrlnd/netann"
+	"github.com/decred/dcrlnd/pool"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/ticker"
@@ -170,7 +171,7 @@ type server struct {
 
 	sigPool *lnwallet.SigPool
 
-	writeBufferPool *lnpeer.WriteBufferPool
+	writeBufferPool *pool.WriteBuffer
 
 	// globalFeatures feature vector which affects HTLCs and thus are also
 	// advertised to other nodes.
@@ -263,8 +264,9 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	replayLog := htlcswitch.NewDecayedLog(sharedSecretPath, cc.chainNotifier)
 
 	sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
-	writeBufferPool := lnpeer.NewWriteBufferPool(
-		lnpeer.DefaultGCInterval, lnpeer.DefaultExpiryInterval,
+	writeBufferPool := pool.NewWriteBuffer(
+		pool.DefaultWriteBufferGCInterval,
+		pool.DefaultWriteBufferExpiryInterval,
 	)
 
 	s := &server{
