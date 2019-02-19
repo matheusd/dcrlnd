@@ -9,6 +9,7 @@ import (
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/zpay32"
 )
 
 const (
@@ -153,7 +154,7 @@ func (m *missionControl) GraphPruneView() graphPruneView {
 // view from Mission Control. An optional set of routing hints can be provided
 // in order to populate additional edges to explore when finding a path to the
 // payment's destination.
-func (m *missionControl) NewPaymentSession(routeHints [][]HopHint,
+func (m *missionControl) NewPaymentSession(routeHints [][]zpay32.HopHint,
 	target Vertex) (*paymentSession, error) {
 
 	viewSnapshot := m.GraphPruneView()

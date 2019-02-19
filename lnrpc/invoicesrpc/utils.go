@@ -7,7 +7,6 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnrpc"
-	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/zpay32"
 )
 
@@ -93,7 +92,7 @@ func CreateRPCInvoice(invoice *channeldb.Invoice,
 
 // CreateRPCRouteHints takes in the decoded form of an invoice's route hints
 // and converts them into the lnrpc type.
-func CreateRPCRouteHints(routeHints [][]routing.HopHint) []*lnrpc.RouteHint {
+func CreateRPCRouteHints(routeHints [][]zpay32.HopHint) []*lnrpc.RouteHint {
 	var res []*lnrpc.RouteHint
 
 	for _, route := range routeHints {

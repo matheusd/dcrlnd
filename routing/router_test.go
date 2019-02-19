@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/zpay32"
 
 	sphinx "github.com/decred/lightning-onion"
 )
@@ -186,7 +187,7 @@ func TestFindRoutesFeeSorting(t *testing.T) {
 	routes, err := ctx.router.FindRoutes(
 		ctx.router.selfNode.PubKeyBytes,
 		target, paymentAmt, noRestrictions, defaultNumRoutes,
-		DefaultFinalCLTVDelta,
+		zpay32.DefaultFinalCLTVDelta,
 	)
 	if err != nil {
 		t.Fatalf("unable to find any routes: %v", err)
@@ -248,7 +249,7 @@ func TestFindRoutesWithFeeLimit(t *testing.T) {
 	routes, err := ctx.router.FindRoutes(
 		ctx.router.selfNode.PubKeyBytes,
 		target, paymentAmt, restrictions, defaultNumRoutes,
-		DefaultFinalCLTVDelta,
+		zpay32.DefaultFinalCLTVDelta,
 	)
 	if err != nil {
 		t.Fatalf("unable to find any routes: %v", err)
@@ -1348,7 +1349,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	routes, err := ctx.router.FindRoutes(
 		ctx.router.selfNode.PubKeyBytes,
 		targetPubKeyBytes, paymentAmt, noRestrictions, defaultNumRoutes,
-		DefaultFinalCLTVDelta,
+		zpay32.DefaultFinalCLTVDelta,
 	)
 	if err != nil {
 		t.Fatalf("unable to find any routes: %v", err)
@@ -1394,7 +1395,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	routes, err = ctx.router.FindRoutes(
 		ctx.router.selfNode.PubKeyBytes,
 		targetPubKeyBytes, paymentAmt, noRestrictions, defaultNumRoutes,
-		DefaultFinalCLTVDelta,
+		zpay32.DefaultFinalCLTVDelta,
 	)
 	if err != nil {
 		t.Fatalf("unable to find any routes: %v", err)
