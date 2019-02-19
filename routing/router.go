@@ -12,27 +12,23 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/multimutex"
+	sphinx "github.com/decred/lightning-onion"
+	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/multimutex"
 	"github.com/decred/dcrlnd/routing/chainview"
-
-	sphinx "github.com/decred/lightning-onion"
-	"github.com/go-errors/errors"
+	"github.com/decred/dcrlnd/zpay32"
 )
 
 const (
-	// DefaultFinalCLTVDelta is the default value to be used as the final
-	// CLTV delta for a route if one is unspecified.
-	DefaultFinalCLTVDelta = 9
-
 	// defaultPayAttemptTimeout is a duration that we'll use to determine
 	// if we should give up on a payment attempt. This will be used if a
 	// value isn't specified in the LightningNode struct.
@@ -1330,7 +1326,7 @@ func (r *ChannelRouter) FindRoutes(source, target Vertex,
 
 	var finalCLTVDelta uint16
 	if len(finalExpiry) == 0 {
-		finalCLTVDelta = DefaultFinalCLTVDelta
+		finalCLTVDelta = zpay32.DefaultFinalCLTVDelta
 	} else {
 		finalCLTVDelta = finalExpiry[0]
 	}
@@ -1549,7 +1545,7 @@ type LightningPayment struct {
 	// multiple routes, ensure the hop hints within each route are chained
 	// together and sorted in forward order in order to reach the
 	// destination successfully.
-	RouteHints [][]HopHint
+	RouteHints [][]zpay32.HopHint
 
 	// OutgoingChannelID is the channel that needs to be taken to the first
 	// hop. If nil, any channel may be used.
@@ -1626,7 +1622,7 @@ func (r *ChannelRouter) sendPayment(payment *LightningPayment,
 
 	var finalCLTVDelta uint16
 	if payment.FinalCLTVDelta == nil {
-		finalCLTVDelta = DefaultFinalCLTVDelta
+		finalCLTVDelta = zpay32.DefaultFinalCLTVDelta
 	} else {
 		finalCLTVDelta = *payment.FinalCLTVDelta
 	}

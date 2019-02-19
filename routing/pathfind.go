@@ -38,34 +38,11 @@ const (
 	RiskFactorBillionths = 15
 )
 
-// HopHint is a routing hint that contains the minimum information of a channel
-// required for an intermediate hop in a route to forward the payment to the
-// next. This should be ideally used for private channels, since they are not
-// publicly advertised to the network for routing.
-type HopHint struct {
-	// NodeID is the public key of the node at the start of the channel.
-	NodeID *secp256k1.PublicKey
-
-	// ChannelID is the unique identifier of the channel.
-	ChannelID uint64
-
-	// FeeBaseMAtoms is the base fee of the channel in MilliAtoms.
-	FeeBaseMAtoms uint32
-
-	// FeeProportionalMillionths is the fee rate, in millionths of an
-	// atom, for every atom sent through the channel.
-	FeeProportionalMillionths uint32
-
-	// CLTVExpiryDelta is the time-lock delta of the channel.
-	CLTVExpiryDelta uint16
-}
-
-// Hop represents an intermediate or final node of the route. This naming
-// is in line with the definition given in BOLT #4: Onion Routing Protocol.
-// The struct houses the channel along which this hop can be reached and
-// the values necessary to create the HTLC that needs to be sent to the
-// next hop. It is also used to encode the per-hop payload included within
-// the Sphinx packet.
+// Hop represents an intermediate or final node of the route. This naming is in
+// line with the definition given in BOLT #4: Onion Routing Protocol.  The
+// struct houses the channel along which this hop can be reached and the values
+// necessary to create the HTLC that needs to be sent to the next hop. It is
+// also used to encode the per-hop payload included within the Sphinx packet.
 type Hop struct {
 	// PubKeyBytes is the raw bytes of the public key of the target node.
 	PubKeyBytes Vertex

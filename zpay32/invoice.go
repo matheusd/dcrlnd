@@ -14,7 +14,6 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/routing"
 )
 
 const (
@@ -156,7 +155,7 @@ type Invoice struct {
 	// represent private routes.
 	//
 	// NOTE: This is optional.
-	RouteHints [][]routing.HopHint
+	RouteHints [][]HopHint
 }
 
 // Amount is a functional option that allows callers of NewInvoice to set the
@@ -224,7 +223,7 @@ func FallbackAddr(fallbackAddr dcrutil.Address) func(*Invoice) {
 
 // RouteHint is a functional option that allows callers of NewInvoice to add
 // one or more hop hints that represent a private route to the destination.
-func RouteHint(routeHint []routing.HopHint) func(*Invoice) {
+func RouteHint(routeHint []HopHint) func(*Invoice) {
 	return func(i *Invoice) {
 		i.RouteHints = append(i.RouteHints, routeHint)
 	}
@@ -485,7 +484,7 @@ func (invoice *Invoice) MinFinalCLTVExpiry() uint64 {
 		return *invoice.minFinalCLTVExpiry
 	}
 
-	return routing.DefaultFinalCLTVDelta
+	return DefaultFinalCLTVDelta
 }
 
 // validateInvoice does a sanity check of the provided Invoice, making sure it
@@ -830,7 +829,7 @@ func parseFallbackAddr(data []byte, net *chaincfg.Params) (dcrutil.Address, erro
 
 // parseRouteHint converts the data (encoded in base32) into an array containing
 // one or more routing hop hints that represent a single route hint.
-func parseRouteHint(data []byte) ([]routing.HopHint, error) {
+func parseRouteHint(data []byte) ([]HopHint, error) {
 	base256Data, err := bech32.ConvertBits(data, 5, 8, false)
 	if err != nil {
 		return nil, err
@@ -841,10 +840,10 @@ func parseRouteHint(data []byte) ([]routing.HopHint, error) {
 			"got %d", hopHintLen, len(base256Data))
 	}
 
-	var routeHint []routing.HopHint
+	var routeHint []HopHint
 
 	for len(base256Data) > 0 {
-		hopHint := routing.HopHint{}
+		hopHint := HopHint{}
 		hopHint.NodeID, err = secp256k1.ParsePubKey(base256Data[:33])
 		if err != nil {
 			return nil, err

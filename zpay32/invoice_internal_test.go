@@ -12,7 +12,6 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/routing"
 )
 
 // TestDecodeAmount ensures that the amount string in the hrp of the Invoice
@@ -720,7 +719,7 @@ func TestParseRouteHint(t *testing.T) {
 	tests := []struct {
 		data   []byte
 		valid  bool
-		result []routing.HopHint
+		result []HopHint
 	}{
 		{
 			data:  []byte{0x0, 0x0, 0x0, 0x0},
@@ -729,7 +728,7 @@ func TestParseRouteHint(t *testing.T) {
 		{
 			data:   []byte{},
 			valid:  true,
-			result: []routing.HopHint{},
+			result: []HopHint{},
 		},
 		{
 			data:   testSingleHopData,
