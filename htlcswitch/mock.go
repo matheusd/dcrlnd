@@ -763,18 +763,18 @@ func (i *mockInvoiceRegistry) LookupInvoice(rHash lntypes.Hash) (channeldb.Invoi
 	return i.registry.LookupInvoice(rHash)
 }
 
-func (i *mockInvoiceRegistry) SettleInvoice(rhash lntypes.Hash,
-	amt lnwire.MilliAtom) error {
+func (i *mockInvoiceRegistry) NotifyExitHopHtlc(rhash lntypes.Hash,
+	amt lnwire.MilliAtom) (*invoices.HodlEvent, error) {
 
-	err := i.registry.SettleInvoice(rhash, amt)
+	event, err := i.registry.NotifyExitHopHtlc(rhash, amt)
 	if err != nil {
-		return err
+		return event, err
 	}
 	if i.settleChan != nil {
 		i.settleChan <- rhash
 	}
 
-	return nil
+	return event, err
 }
 
 func (i *mockInvoiceRegistry) CancelInvoice(payHash lntypes.Hash) error {
