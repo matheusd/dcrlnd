@@ -782,10 +782,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 		},
 	}
 
-	pCache := &mockPreimageCache{
-		// hash -> preimage
-		preimageMap: make(map[[32]byte][]byte),
-	}
+	pCache := newMockPreimageCache()
 
 	fundingTxOut := channel.signDesc.Output
 	_ = fundingTxOut

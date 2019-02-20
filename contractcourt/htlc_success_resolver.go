@@ -7,8 +7,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
+
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -40,7 +42,7 @@ type htlcSuccessResolver struct {
 	broadcastHeight uint32
 
 	// payHash is the payment hash of the original HTLC extended to us.
-	payHash [32]byte
+	payHash lntypes.Hash
 
 	// sweepTx will be non-nil if we've already crafted a transaction to
 	// sweep a direct HTLC output. This is only a concern if we're sweeping

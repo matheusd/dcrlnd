@@ -366,10 +366,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	aliceSigner := &mockSigner{aliceKeyPriv}
 	bobSigner := &mockSigner{bobKeyPriv}
 
-	pCache := &mockPreimageCache{
-		// hash -> preimage
-		preimageMap: make(map[[32]byte][]byte),
-	}
+	pCache := newMockPreimageCache()
 
 	alicePool := lnwallet.NewSigPool(runtime.NumCPU(), aliceSigner)
 	channelAlice, err := lnwallet.NewLightningChannel(
@@ -981,10 +978,7 @@ type hopNetwork struct {
 func newHopNetwork() *hopNetwork {
 	defaultDelta := uint32(6)
 
-	pCache := &mockPreimageCache{
-		// hash -> preimage
-		preimageMap: make(map[[32]byte][]byte),
-	}
+	pCache := newMockPreimageCache()
 
 	globalPolicy := ForwardingPolicy{
 		MinHTLC:       lnwire.NewMAtomsFromAtoms(5),

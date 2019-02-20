@@ -15,9 +15,11 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
+
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -599,7 +601,7 @@ func TestForceClose(t *testing.T) {
 
 	// Before we force close Alice's channel, we'll add the pre-image of
 	// Bob's HTLC to her preimage cache.
-	if err = aliceChannel.pCache.AddPreimages(preimageBob[:]); err != nil {
+	if err = aliceChannel.pCache.AddPreimages(lntypes.Preimage(preimageBob)); err != nil {
 		t.Fatalf("alice failed to add preimage bob: %v", err)
 	}
 
@@ -5021,7 +5023,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// Now that Bob has force closed, we'll modify Alice's pre image cache
 	// such that she now gains the ability to also settle the incoming HTLC
 	// from Bob.
-	err = aliceChannel.pCache.AddPreimages(preimageBob[:])
+	err = aliceChannel.pCache.AddPreimages(lntypes.Preimage(preimageBob))
 	if err != nil {
 		t.Fatalf("unable to add preimage: %v\n", err)
 	}

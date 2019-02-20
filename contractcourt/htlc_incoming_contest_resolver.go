@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lntypes"
 )
 
 // htlcIncomingContestResolver is a ContractResolver that's able to resolve an
@@ -75,10 +75,10 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 	// resolver with the preimage we learn of. This should be called once
 	// the preimage is revealed so the inner resolver can properly complete
 	// its duties.
-	applyPreimage := func(preimage []byte) {
-		copy(h.htlcResolution.Preimage[:], preimage)
+	applyPreimage := func(preimage lntypes.Preimage) {
+		h.htlcResolution.Preimage = preimage
 
-		log.Infof("%T(%v): extracted preimage=%x from beacon!", h,
+		log.Infof("%T(%v): extracted preimage=%v from beacon!", h,
 			h.htlcResolution.ClaimOutpoint, preimage)
 
 		// If this our commitment transaction, then we'll need to
@@ -93,7 +93,7 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 			// was a "contest" resolver, we didn't yet know of the
 			// preimage.
 			newSigScript, err := input.ReplaceReceiverHtlcSpendRedeemPreimage(
-				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript, preimage,
+				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript, preimage[:],
 			)
 			if err != nil {
 				// TODO(decred) Panic? Modify applyPreimage to return an error?
@@ -103,8 +103,6 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript = newSigScript
 			}
 		}
-
-		copy(h.htlcResolution.Preimage[:], preimage)
 	}
 
 	// If the HTLC hasn't expired yet, then we may still be able to claim
@@ -126,7 +124,7 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 
 	// With the epochs and preimage subscriptions initialized, we'll query
 	// to see if we already know the preimage.
-	preimage, ok := h.PreimageDB.LookupPreimage(h.payHash[:])
+	preimage, ok := h.PreimageDB.LookupPreimage(h.payHash)
 	if ok {
 		// If we do, then this means we can claim the HTLC!  However,
 		// we don't know how to ourselves, so we'll return our inner
@@ -141,8 +139,8 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 		case preimage := <-preimageSubscription.WitnessUpdates:
 			// If this isn't our preimage, then we'll continue
 			// onwards.
-			newHash := chainhash.HashB(preimage)
-			preimageMatches := bytes.Equal(newHash, h.payHash[:])
+			hash := preimage.Hash()
+			preimageMatches := bytes.Equal(hash[:], h.payHash[:])
 			if !preimageMatches {
 				continue
 			}
