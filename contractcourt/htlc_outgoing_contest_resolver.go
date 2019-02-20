@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lntypes"
 )
 
 // htlcOutgoingContestResolver is a ContractResolver that's able to resolve an
@@ -70,38 +71,47 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 		// If this is the remote party's commitment, then we'll be
 		// looking for them to spend using the second-level success
 		// transaction.
-		var preimage [32]byte
+		var preimageBytes []byte
 		if h.htlcResolution.SignedTimeoutTx == nil {
 			// The witness stack when the remote party sweeps the
 			// output to them looks like:
 			//
 			//  * <sender sig> <recvr sig> <preimage> <witness script>
-			copy(preimage[:], sigScriptPushes[2])
+			preimageBytes = sigScriptPushes[2]
 		} else {
 			// Otherwise, they'll be spending directly from our
 			// commitment output. In which case the witness stack
 			// looks like:
 			//
 			//  * <sig> <preimage> <witness script>
-			copy(preimage[:], sigScriptPushes[1])
+			preimageBytes = sigScriptPushes[1]
 		}
 
-		log.Infof("%T(%v): extracting preimage=%x from on-chain "+
-			"spend!", h, h.htlcResolution.ClaimOutpoint, preimage[:])
+		preimage, err := lntypes.MakePreimage(preimageBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Infof("%T(%v): extracting preimage=%v from on-chain "+
+			"spend!", h, h.htlcResolution.ClaimOutpoint,
+			preimage)
 
 		// With the preimage obtained, we can now add it to the global
 		// cache.
-		if err := h.PreimageDB.AddPreimages(preimage[:]); err != nil {
+		if err := h.PreimageDB.AddPreimages(preimage); err != nil {
 			log.Errorf("%T(%v): unable to add witness to cache",
 				h, h.htlcResolution.ClaimOutpoint)
 		}
+
+		var pre [32]byte
+		copy(pre[:], preimage[:])
 
 		// Finally, we'll send the clean up message, mark ourselves as
 		// resolved, then exit.
 		if err := h.DeliverResolutionMsg(ResolutionMsg{
 			SourceChan: h.ShortChanID,
 			HtlcIndex:  h.htlcIndex,
-			PreImage:   &preimage,
+			PreImage:   &pre,
 		}); err != nil {
 			return nil, err
 		}
