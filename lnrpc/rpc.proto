@@ -918,6 +918,7 @@ enum AddressType {
         NESTED_PUBKEY_HASH = 1;
         PUBKEY_HASH = 2;
         SCRIPT_HASH = 3;
+        UNUSED_PUBKEY_HASH = 4;
 }
 
 message NewAddressRequest {
