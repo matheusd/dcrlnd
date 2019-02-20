@@ -329,11 +329,13 @@ func (m *mockPreimageCache) LookupPreimage(hash []byte) ([]byte, bool) {
 	return p, ok
 }
 
-func (m *mockPreimageCache) AddPreimage(preimage []byte) error {
+func (m *mockPreimageCache) AddPreimages(preimages ...[]byte) error {
 	m.Lock()
 	defer m.Unlock()
 
-	m.preimageMap[chainhash.HashH(preimage)] = preimage
+	for _, preimage := range preimages {
+		m.preimageMap[chainhash.HashH(preimage)] = preimage
+	}
 
 	return nil
 }
