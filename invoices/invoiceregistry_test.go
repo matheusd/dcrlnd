@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/zpay32"
 )
 
 var (
@@ -28,6 +29,14 @@ var (
 	testPayReq = "lndcr1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsmvp0ygkvzd3zh9wkfj59cuze0se5fzuh4f7rysdukv68n6fafa45sudrzg8d33paaw50zczd5mzmppqaalvzneu0yd3zfrvzhnfzpkgppyrza2"
 )
 
+func decodeExpiry(payReq string) (uint32, error) {
+	invoice, err := zpay32.Decode(payReq, &chaincfg.MainNetParams)
+	if err != nil {
+		return 0, err
+	}
+	return uint32(invoice.MinFinalCLTVExpiry()), nil
+}
+
 // TestSettleInvoice tests settling of an invoice and related notifications.
 func TestSettleInvoice(t *testing.T) {
 
@@ -38,7 +47,7 @@ func TestSettleInvoice(t *testing.T) {
 	defer cleanup()
 
 	// Instantiate and start the invoice registry.
-	registry := NewRegistry(cdb, &chaincfg.MainNetParams)
+	registry := NewRegistry(cdb, decodeExpiry)
 
 	err = registry.Start()
 	if err != nil {
@@ -171,7 +180,7 @@ func TestCancelInvoice(t *testing.T) {
 	defer cleanup()
 
 	// Instantiate and start the invoice registry.
-	registry := NewRegistry(cdb, &chaincfg.MainNetParams)
+	registry := NewRegistry(cdb, decodeExpiry)
 
 	err = registry.Start()
 	if err != nil {
