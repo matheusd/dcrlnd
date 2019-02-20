@@ -795,7 +795,8 @@
               "WITNESS_PUBKEY_HASH",
               "NESTED_PUBKEY_HASH",
               "PUBKEY_HASH",
-              "SCRIPT_HASH"
+              "SCRIPT_HASH",
+              "UNUSED_PUBKEY_HASH"
             ],
             "default": "WITNESS_PUBKEY_HASH"
           }
@@ -1293,7 +1294,8 @@
         "WITNESS_PUBKEY_HASH",
         "NESTED_PUBKEY_HASH",
         "PUBKEY_HASH",
-        "SCRIPT_HASH"
+        "SCRIPT_HASH",
+        "UNUSED_PUBKEY_HASH"
       ],
       "default": "WITNESS_PUBKEY_HASH",
       "description": "- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)\n- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)\n- `p2pkh`: Pay to pubkey hash (`PUBKEY_HASH` = 2)\n- `p2sh`: Pay to script hash (`SCRIPT_HASH` = 3)",
