@@ -160,6 +160,14 @@ type WalletController interface {
 	// etc.
 	NewAddress(addrType AddressType, change bool) (dcrutil.Address, error)
 
+	// LastUnusedAddress returns the last *unused* address known by the
+	// wallet. An address is unused if it hasn't received any payments.
+	// This can be useful in UIs in order to continually show the
+	// "freshest" address without having to worry about "address inflation"
+	// caused by continual refreshing. Similar to NewAddress it can derive
+	// a specified address type. By default, this is a non-change address.
+	LastUnusedAddress(addrType AddressType) (dcrutil.Address, error)
+
 	// IsOurAddress checks if the passed address belongs to this wallet
 	IsOurAddress(a dcrutil.Address) bool
 

@@ -220,6 +220,32 @@ func (b *DcrWallet) NewAddress(t lnwallet.AddressType, change bool) (dcrutil.Add
 	return b.wallet.NewExternalAddress(defaultAccount)
 }
 
+// LastUnusedAddress returns the last *unused* address known by the wallet. An
+// address is unused if it hasn't received any payments. This can be useful in
+// UIs in order to continually show the "freshest" address without having to
+// worry about "address inflation" caused by continual refreshing. Similar to
+// NewAddress it can derive a specified address type, and also optionally a
+// change address.
+func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
+	dcrutil.Address, error) {
+
+	switch addrType {
+	case lnwallet.PubKeyHash:
+		// nop
+	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
+	case lnwallet.WitnessPubKey:
+		// TODO(decred): this should fail so we can remove lnwallet.WitnessPubKey
+		panic("remove witnessPubKey address requests")
+	case lnwallet.NestedWitnessPubKey:
+		// TODO(matheusd) this is likely to be changed to a p2sh
+		panic("remove nestedWitnessPubKey address requests")
+	default:
+		return nil, fmt.Errorf("unknown address type")
+	}
+
+	return b.wallet.CurrentAddress(defaultAccount)
+}
+
 // IsOurAddress checks if the passed address belongs to this wallet
 //
 // This is a part of the WalletController interface.
