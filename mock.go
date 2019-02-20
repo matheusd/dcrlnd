@@ -235,6 +235,11 @@ func (m *mockWalletController) NewAddress(addrType lnwallet.AddressType,
 	return addr, nil
 }
 
+func (*mockWalletController) LastUnusedAddress(addrType lnwallet.AddressType) (
+	dcrutil.Address, error) {
+	return nil, nil
+}
+
 func (*mockWalletController) IsOurAddress(a dcrutil.Address) bool {
 	return false
 }

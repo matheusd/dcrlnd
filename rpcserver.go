@@ -926,17 +926,28 @@ func (r *rpcServer) NewAddress(ctx context.Context,
 
 	// Translate the gRPC proto address type to the wallet controller's
 	// available address types.
-	var addrType lnwallet.AddressType
+	var (
+		addr dcrutil.Address
+		err  error
+	)
 	switch in.Type {
 	case lnrpc.AddressType_PUBKEY_HASH:
-		addrType = lnwallet.PubKeyHash
+		addr, err = r.server.cc.wallet.NewAddress(
+			lnwallet.PubKeyHash, false,
+		)
+		if err != nil {
+			return nil, err
+		}
+	case lnrpc.AddressType_UNUSED_PUBKEY_HASH:
+		addr, err = r.server.cc.wallet.LastUnusedAddress(
+			lnwallet.PubKeyHash,
+		)
+		if err != nil {
+			return nil, err
+		}
+
 	default:
 		return nil, fmt.Errorf("unsupported address type %s", in.Type)
-	}
-
-	addr, err := r.server.cc.wallet.NewAddress(addrType, false)
-	if err != nil {
-		return nil, err
 	}
 
 	rpcsLog.Infof("[newaddress] addr=%v", addr.String())
