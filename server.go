@@ -317,7 +317,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 	// HTLCs with the debug R-Hash immediately settled.
 	if cfg.DebugHTLC {
 		kiloCoin := dcrutil.Amount(dcrutil.AtomsPerCoin * 1000)
-		s.invoices.AddDebugInvoice(kiloCoin, *invoices.DebugPre)
+		s.invoices.AddDebugInvoice(kiloCoin, invoices.DebugPre)
 		srvrLog.Debugf("Debug HTLC invoice inserted, preimage=%x, hash=%x",
 			invoices.DebugPre[:], invoices.DebugHash[:])
 	}
