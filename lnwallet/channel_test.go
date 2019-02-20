@@ -599,7 +599,7 @@ func TestForceClose(t *testing.T) {
 
 	// Before we force close Alice's channel, we'll add the pre-image of
 	// Bob's HTLC to her preimage cache.
-	if err = aliceChannel.pCache.AddPreimage(preimageBob[:]); err != nil {
+	if err = aliceChannel.pCache.AddPreimages(preimageBob[:]); err != nil {
 		t.Fatalf("alice failed to add preimage bob: %v", err)
 	}
 
@@ -5021,10 +5021,11 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// Now that Bob has force closed, we'll modify Alice's pre image cache
 	// such that she now gains the ability to also settle the incoming HTLC
 	// from Bob.
-	err = aliceChannel.pCache.AddPreimage(preimageBob[:])
+	err = aliceChannel.pCache.AddPreimages(preimageBob[:])
 	if err != nil {
 		t.Fatalf("unable to add preimage: %v\n", err)
 	}
+
 	// We'll then use Bob's transaction to trigger a spend notification for
 	// Alice.
 	closeTx := bobForceClose.CloseTx
