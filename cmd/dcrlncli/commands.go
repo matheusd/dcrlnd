@@ -17,8 +17,10 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/walletunlocker"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -260,7 +262,7 @@ var listUnspentCommand = cli.Command{
 	confirmations.  Use --min_confs=0 to include unconfirmed coins. To list
 	all coins with at least min_confs confirmations, omit the second
 	argument or flag '--max_confs'. To list all confirmed and unconfirmed
-	coins, no arguments are required. To see only unconfirmed coins, use 
+	coins, no arguments are required. To see only unconfirmed coins, use
 	'--unconfirmed_only' with '--min_confs' and '--max_confs' set to zero or
 	not present.
 	`,
@@ -1327,6 +1329,13 @@ func create(ctx *cli.Context) error {
 	// If the passwords don't match, then we'll return an error.
 	if !bytes.Equal(pw1, pw2) {
 		return fmt.Errorf("passwords don't match")
+	}
+
+	// If the password length is less than 8 characters, then we'll
+	// return an error.
+	pwErr := walletunlocker.ValidatePassword(pw1)
+	if pwErr != nil {
+		return pwErr
 	}
 
 	// Next, we'll see if the user has 24-word mnemonic they want to use to
