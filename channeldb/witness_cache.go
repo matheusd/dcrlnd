@@ -3,7 +3,6 @@ package channeldb
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lntypes"
 	bolt "go.etcd.io/bbolt"
 )
@@ -190,7 +189,7 @@ func (w *WitnessCache) DeleteSha256Witness(hash lntypes.Hash) error {
 
 // deleteWitness attempts to delete a particular witness from the database.
 func (w *WitnessCache) deleteWitness(wType WitnessType, witnessKey []byte) error {
-	return w.db.Batch(func(tx *bbolt.Tx) error {
+	return w.db.Batch(func(tx *bolt.Tx) error {
 		witnessBucket, err := tx.CreateBucketIfNotExists(witnessBucketKey)
 		if err != nil {
 			return err
