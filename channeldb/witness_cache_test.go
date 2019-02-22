@@ -1,8 +1,6 @@
 package channeldb
 
 import (
-	"bytes"
-	"reflect"
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
