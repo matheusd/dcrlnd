@@ -32,7 +32,7 @@ import (
 
 // TODO(roasbeef): expose all fee conf targets
 
-const defaultRecoveryWindow int32 = 250
+const defaultRecoveryWindow int32 = 2500
 
 func printJSON(resp interface{}) {
 	b, err := json.Marshal(resp)
