@@ -2845,7 +2845,7 @@
           "type": "boolean",
           "format": "boolean"
         },
-        "max_htlc": {
+        "max_htlc_m_atoms": {
           "type": "string",
           "format": "uint64"
         }
