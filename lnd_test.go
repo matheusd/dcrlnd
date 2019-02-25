@@ -1235,10 +1235,15 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 			net.DisconnectNodes(ctxb, net.Alice, net.Bob)
 		}
 	}
+	logLine := fmt.Sprintf("=== %s: Reconnection tests successful\n",
+		time.Now())
+	net.Alice.AddToLog(logLine)
+	net.Bob.AddToLog(logLine)
 
 	// Wait for the final disconnection to release all resources, then
 	// ensure both nodes are connected again.
 	time.Sleep(time.Millisecond * 50)
+	assertNumConnections(t, net.Alice, net.Bob, 0)
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 	err := net.EnsureConnected(ctxt, net.Alice, net.Bob)
 	if err != nil {
