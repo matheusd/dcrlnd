@@ -872,6 +872,20 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 		in.Addr, dcrutil.Amount(in.Amount), int64(feePerKB),
 		in.SendAll)
 
+	// Decode the address receiving the coins, we need to check whether the
+	// address is valid for this network.
+	targetAddr, err := dcrutil.DecodeAddress(in.Addr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make the check on the decoded address according to the active network.
+	if !targetAddr.IsForNet(activeNetParams.Params) {
+		return nil, fmt.Errorf("address: %v is not valid for this "+
+			"network: %v", targetAddr.String(),
+			activeNetParams.Params.Name)
+	}
+
 	var txid *chainhash.Hash
 
 	wallet := r.server.cc.wallet
@@ -888,13 +902,6 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 				"active")
 		}
 
-		// Additionally, we'll need to convert the sweep address passed
-		// into a useable struct, and also query for the latest block
-		// height so we can properly construct the transaction.
-		sweepAddr, err := dcrutil.DecodeAddress(in.Addr)
-		if err != nil {
-			return nil, err
-		}
 		_, bestHeight, err := r.server.cc.chainIO.GetBestBlock()
 		if err != nil {
 			return nil, err
@@ -905,7 +912,7 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 		// single transaction. This will be generated in a concurrent
 		// safe manner, so no need to worry about locking.
 		sweepTxPkg, err := sweep.CraftSweepAllTx(
-			feePerKB, uint32(bestHeight), sweepAddr, wallet,
+			feePerKB, uint32(bestHeight), targetAddr, wallet,
 			wallet.WalletController, wallet.WalletController,
 			r.server.cc.feeEstimator, r.server.cc.signer,
 			activeNetParams.Params,
@@ -936,7 +943,7 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 		// coin selection synchronization method to ensure that no coin
 		// selection (funding, sweep alls, other sends) can proceed
 		// while we instruct the wallet to send this transaction.
-		paymentMap := map[string]int64{in.Addr: in.Amount}
+		paymentMap := map[string]int64{targetAddr.String(): in.Amount}
 		err := wallet.WithCoinSelectLock(func() error {
 			newTXID, err := r.sendCoinsOnChain(paymentMap, feePerKB)
 			if err != nil {
