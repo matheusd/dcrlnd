@@ -397,24 +397,24 @@ type graphParams struct {
 	bandwidthHints map[uint64]lnwire.MilliAtom
 }
 
-// restrictParams wraps the set of restrictions passed to findPath that the
+// RestrictParams wraps the set of restrictions passed to findPath that the
 // found path must adhere to.
-type restrictParams struct {
-	// ignoredNodes is an optional set of nodes that should be ignored if
+type RestrictParams struct {
+	// IgnoredNodes is an optional set of nodes that should be ignored if
 	// encountered during path finding.
-	ignoredNodes map[Vertex]struct{}
+	IgnoredNodes map[Vertex]struct{}
 
-	// ignoredEdges is an optional set of edges that should be ignored if
+	// IgnoredEdges is an optional set of edges that should be ignored if
 	// encountered during path finding.
-	ignoredEdges map[edgeLocator]struct{}
+	IgnoredEdges map[EdgeLocator]struct{}
 
-	// feeLimit is a maximum fee amount allowed to be used on the path from
+	// FeeLimit is a maximum fee amount allowed to be used on the path from
 	// the source to the target.
-	feeLimit lnwire.MilliAtom
+	FeeLimit lnwire.MilliAtom
 
-	// outgoingChannelID is the channel that needs to be taken to the first
+	// OutgoingChannelID is the channel that needs to be taken to the first
 	// hop. If nil, any channel may be used.
-	outgoingChannelID *uint64
+	OutgoingChannelID *uint64
 }
 
 // findPath attempts to find a path from the source node within the
@@ -428,7 +428,7 @@ type restrictParams struct {
 // destination node back to source. This is to properly accumulate fees
 // that need to be paid along the path and accurately check the amount
 // to forward at every node against the available bandwidth.
-func findPath(g *graphParams, r *restrictParams,
+func findPath(g *graphParams, r *RestrictParams,
 	sourceNode *channeldb.LightningNode, target *secp256k1.PublicKey,
 	amt lnwire.MilliAtom) ([]*channeldb.ChannelEdgePolicy, error) {
 
@@ -535,20 +535,20 @@ func findPath(g *graphParams, r *restrictParams,
 
 		// If we have an outgoing channel restriction and this is not
 		// the specified channel, skip it.
-		if isSourceChan && r.outgoingChannelID != nil &&
-			*r.outgoingChannelID != edge.ChannelID {
+		if isSourceChan && r.OutgoingChannelID != nil &&
+			*r.OutgoingChannelID != edge.ChannelID {
 
 			return
 		}
 
 		// If this vertex or edge has been black listed, then we'll
 		// skip exploring this edge.
-		if _, ok := r.ignoredNodes[fromVertex]; ok {
+		if _, ok := r.IgnoredNodes[fromVertex]; ok {
 			return
 		}
 
 		locator := newEdgeLocator(edge)
-		if _, ok := r.ignoredEdges[*locator]; ok {
+		if _, ok := r.IgnoredEdges[*locator]; ok {
 			return
 		}
 
@@ -602,7 +602,7 @@ func findPath(g *graphParams, r *restrictParams,
 		// Check if accumulated fees would exceed fee limit when this
 		// node would be added to the path.
 		totalFee := amountToReceive - amt
-		if totalFee > r.feeLimit {
+		if totalFee > r.FeeLimit {
 			return
 		}
 
@@ -783,7 +783,7 @@ func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 	amt lnwire.MilliAtom, feeLimit lnwire.MilliAtom, numPaths uint32,
 	bandwidthHints map[uint64]lnwire.MilliAtom) ([][]*channeldb.ChannelEdgePolicy, error) {
 
-	ignoredEdges := make(map[edgeLocator]struct{})
+	ignoredEdges := make(map[EdgeLocator]struct{})
 	ignoredVertexes := make(map[Vertex]struct{})
 
 	// TODO(roasbeef): modifying ordering within heap to eliminate final
@@ -802,10 +802,10 @@ func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 			graph:          graph,
 			bandwidthHints: bandwidthHints,
 		},
-		&restrictParams{
-			ignoredNodes: ignoredVertexes,
-			ignoredEdges: ignoredEdges,
-			feeLimit:     feeLimit,
+		&RestrictParams{
+			IgnoredNodes: ignoredVertexes,
+			IgnoredEdges: ignoredEdges,
+			FeeLimit:     feeLimit,
 		},
 		source, target, amt,
 	)
@@ -838,7 +838,7 @@ func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 			// we'll exclude from the next path finding attempt.
 			// These are required to ensure the paths are unique
 			// and loopless.
-			ignoredEdges = make(map[edgeLocator]struct{})
+			ignoredEdges = make(map[EdgeLocator]struct{})
 			ignoredVertexes = make(map[Vertex]struct{})
 
 			// Our spur node is the i-th node in the prior shortest
@@ -890,10 +890,10 @@ func findPaths(tx *bolt.Tx, graph *channeldb.ChannelGraph,
 					graph:          graph,
 					bandwidthHints: bandwidthHints,
 				},
-				&restrictParams{
-					ignoredNodes: ignoredVertexes,
-					ignoredEdges: ignoredEdges,
-					feeLimit:     feeLimit,
+				&RestrictParams{
+					IgnoredNodes: ignoredVertexes,
+					IgnoredEdges: ignoredEdges,
+					FeeLimit:     feeLimit,
 				}, spurNode, target, amt,
 			)
 
