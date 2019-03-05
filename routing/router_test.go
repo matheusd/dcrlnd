@@ -1954,9 +1954,6 @@ func TestFindPathFeeWeighting(t *testing.T) {
 		t.Fatalf("unable to fetch source node: %v", err)
 	}
 
-	ignoreVertex := make(map[Vertex]struct{})
-	ignoreEdge := make(map[EdgeLocator]struct{})
-
 	amt := lnwire.MilliAtom(100)
 
 	target := ctx.aliases["luoji"]
@@ -1972,9 +1969,7 @@ func TestFindPathFeeWeighting(t *testing.T) {
 			graph: ctx.graph,
 		},
 		&RestrictParams{
-			IgnoredNodes: ignoreVertex,
-			IgnoredEdges: ignoreEdge,
-			FeeLimit:     noFeeLimit,
+			FeeLimit: noFeeLimit,
 		},
 		sourceNode, target, amt,
 	)
