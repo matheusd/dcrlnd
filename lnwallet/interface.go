@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrwallet/wallet/v2/txauthor"
 )
 
 // AddressType is an enum-like type which denotes the possible address types
@@ -178,6 +179,19 @@ type WalletController interface {
 	// be used when crafting the transaction.
 	SendOutputs(outputs []*wire.TxOut,
 		feeRate AtomPerKByte) (*wire.MsgTx, error)
+
+	// CreateSimpleTx creates a Bitcoin transaction paying to the specified
+	// outputs. The transaction is not broadcasted to the network. In the
+	// case the wallet has insufficient funds, or the outputs are
+	// non-standard, an error should be returned. This method also takes
+	// the target fee expressed in sat/kw that should be used when crafting
+	// the transaction.
+	//
+	// NOTE: The dryRun argument can be set true to create a tx that
+	// doesn't alter the database. A tx created with this set to true
+	// SHOULD NOT be broadcasted.
+	CreateSimpleTx(outputs []*wire.TxOut, feeRate AtomPerKByte,
+		dryRun bool) (*txauthor.AuthoredTx, error)
 
 	// ListUnspentWitness returns all unspent outputs which are version 0
 	// witness programs. The 'minconfirms' and 'maxconfirms' parameters
