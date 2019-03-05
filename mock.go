@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrwallet/wallet/v2/txauthor"
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
@@ -246,6 +247,12 @@ func (*mockWalletController) IsOurAddress(a dcrutil.Address) bool {
 
 func (*mockWalletController) SendOutputs(outputs []*wire.TxOut,
 	_ lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
+
+	return nil, nil
+}
+
+func (*mockWalletController) CreateSimpleTx(outputs []*wire.TxOut,
+	_ lnwallet.AtomPerKByte, _ bool) (*txauthor.AuthoredTx, error) {
 
 	return nil, nil
 }
