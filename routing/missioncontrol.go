@@ -154,7 +154,7 @@ func (m *missionControl) GraphPruneView() graphPruneView {
 // in order to populate additional edges to explore when finding a path to the
 // payment's destination.
 func (m *missionControl) NewPaymentSession(routeHints [][]HopHint,
-	target *secp256k1.PublicKey) (*paymentSession, error) {
+	target Vertex) (*paymentSession, error) {
 
 	viewSnapshot := m.GraphPruneView()
 
@@ -176,7 +176,13 @@ func (m *missionControl) NewPaymentSession(routeHints [][]HopHint,
 			if i != len(routeHint)-1 {
 				endNode.AddPubKey(routeHint[i+1].NodeID)
 			} else {
-				endNode.AddPubKey(target)
+				targetPubKey, err := secp256k1.ParsePubKey(
+					target[:],
+				)
+				if err != nil {
+					return nil, err
+				}
+				endNode.AddPubKey(targetPubKey)
 			}
 
 			// Finally, create the channel edge from the hop hint
