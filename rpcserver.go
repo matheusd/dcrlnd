@@ -4212,17 +4212,48 @@ func (r *rpcServer) GetNodeInfo(ctx context.Context,
 func (r *rpcServer) QueryRoutes(ctx context.Context,
 	in *lnrpc.QueryRoutesRequest) (*lnrpc.QueryRoutesResponse, error) {
 
-	pubKeyBytes, err := hex.DecodeString(in.PubKey)
+	parsePubKey := func(key string) (routing.Vertex, error) {
+		pubKeyBytes, err := hex.DecodeString(key)
+		if err != nil {
+			return routing.Vertex{}, err
+		}
+
+		if len(pubKeyBytes) != 33 {
+			return routing.Vertex{},
+				errors.New("invalid key length")
+		}
+
+		var v routing.Vertex
+		copy(v[:], pubKeyBytes)
+
+		return v, nil
+	}
+
+	// Parse the hex-encoded source and target public keys into full public
+	// key objects we can properly manipulate.
+	targetPubKey, err := parsePubKey(in.PubKey)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(pubKeyBytes) != 33 {
-		return nil, errors.New("invalid key length")
-	}
+	var sourcePubKey routing.Vertex
+	if in.SourcePubKey != "" {
+		var err error
+		sourcePubKey, err = parsePubKey(in.SourcePubKey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// If no source is specified, use self.
 
-	var pubKey routing.Vertex
-	copy(pubKey[:], pubKeyBytes)
+		channelGraph := r.server.chanDB.ChannelGraph()
+		selfNode, err := channelGraph.SourceNode()
+		if err != nil {
+			return nil, err
+		}
+
+		sourcePubKey = selfNode.PubKeyBytes
+	}
 
 	// Currently, within the bootstrap phase of the network, we limit the
 	// largest payment size allotted to (2^32) - 1 milli-atoms or 4.29 million
@@ -4280,11 +4311,11 @@ func (r *rpcServer) QueryRoutes(ctx context.Context,
 
 	if in.FinalCltvDelta == 0 {
 		routes, findErr = r.server.chanRouter.FindRoutes(
-			pubKey, amtMAtoms, restrictions, numRoutesIn,
+			sourcePubKey, targetPubKey, amtMAtoms, restrictions, numRoutesIn,
 		)
 	} else {
 		routes, findErr = r.server.chanRouter.FindRoutes(
-			pubKey, amtMAtoms, restrictions, numRoutesIn,
+			sourcePubKey, targetPubKey, amtMAtoms, restrictions, numRoutesIn,
 			uint16(in.FinalCltvDelta),
 		)
 	}
