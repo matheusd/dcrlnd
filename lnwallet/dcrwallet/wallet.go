@@ -19,6 +19,7 @@ import (
 
 	walletloader "github.com/decred/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v2/txauthor"
 	"github.com/decred/dcrwallet/wallet/v2/txrules"
 	"github.com/decred/dcrwallet/wallet/v2/udb"
 )
@@ -281,6 +282,24 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	}
 
 	return txs[0], nil
+}
+
+// CreateSimpleTx creates a Bitcoin transaction paying to the specified
+// outputs. The transaction is not broadcasted to the network, but a new change
+// address might be created in the wallet database. In the case the wallet has
+// insufficient funds, or the outputs are non-standard, an error should be
+// returned. This method also takes the target fee expressed in sat/kw that
+// should be used when crafting the transaction.
+//
+// NOTE: The dryRun argument can be set true to create a tx that doesn't alter
+// the database. A tx created with this set to true SHOULD NOT be broadcasted.
+//
+// This is a part of the WalletController interface.
+func (b *DcrWallet) CreateSimpleTx(outputs []*wire.TxOut,
+	feeRate lnwallet.AtomPerKByte, dryRun bool) (*txauthor.AuthoredTx, error) {
+
+	// TODO(decred) Review semantics for btcwallet's CreateSimpleTx.
+	return nil, fmt.Errorf("CreateSimpleTx unimplemented for dcrwallet")
 }
 
 // LockOutpoint marks an outpoint as locked meaning it will no longer be deemed
