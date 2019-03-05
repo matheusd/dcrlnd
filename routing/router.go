@@ -1324,9 +1324,9 @@ func pathsToFeeSortedRoutes(source Vertex, paths [][]*channeldb.ChannelEdgePolic
 // the required fee and time lock values running backwards along the route. The
 // route that will be ranked the highest is the one with the lowest cumulative
 // fee along the route.
-func (r *ChannelRouter) FindRoutes(target Vertex, amt lnwire.MilliAtom,
-	restrictions *RestrictParams, numPaths uint32, finalExpiry ...uint16) (
-	[]*Route, error) {
+func (r *ChannelRouter) FindRoutes(source, target Vertex,
+	amt lnwire.MilliAtom, restrictions *RestrictParams, numPaths uint32,
+	finalExpiry ...uint16) ([]*Route, error) {
 
 	var finalCLTVDelta uint16
 	if len(finalExpiry) == 0 {
@@ -1393,8 +1393,8 @@ func (r *ChannelRouter) FindRoutes(target Vertex, amt lnwire.MilliAtom,
 	// we'll execute our KSP algorithm to find the k-shortest paths from
 	// our source to the destination.
 	shortestPaths, err := findPaths(
-		tx, r.cfg.Graph, r.selfNode.PubKeyBytes, target, amt,
-		restrictions, numPaths, bandwidthHints,
+		tx, r.cfg.Graph, source, target, amt, restrictions,
+		numPaths, bandwidthHints,
 	)
 	if err != nil {
 		tx.Rollback()

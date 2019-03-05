@@ -184,6 +184,7 @@ func TestFindRoutesFeeSorting(t *testing.T) {
 	paymentAmt := lnwire.NewMAtomsFromAtoms(100)
 	target := ctx.aliases["luoji"]
 	routes, err := ctx.router.FindRoutes(
+		ctx.router.selfNode.PubKeyBytes,
 		target, paymentAmt, noRestrictions, defaultNumRoutes,
 		DefaultFinalCLTVDelta,
 	)
@@ -245,6 +246,7 @@ func TestFindRoutesWithFeeLimit(t *testing.T) {
 	}
 
 	routes, err := ctx.router.FindRoutes(
+		ctx.router.selfNode.PubKeyBytes,
 		target, paymentAmt, restrictions, defaultNumRoutes,
 		DefaultFinalCLTVDelta,
 	)
@@ -1344,6 +1346,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	var targetPubKeyBytes Vertex
 	copy(targetPubKeyBytes[:], targetNode.SerializeCompressed())
 	routes, err := ctx.router.FindRoutes(
+		ctx.router.selfNode.PubKeyBytes,
 		targetPubKeyBytes, paymentAmt, noRestrictions, defaultNumRoutes,
 		DefaultFinalCLTVDelta,
 	)
@@ -1389,6 +1392,7 @@ func TestAddEdgeUnknownVertexes(t *testing.T) {
 	// Should still be able to find the routes, and the info should be
 	// updated.
 	routes, err = ctx.router.FindRoutes(
+		ctx.router.selfNode.PubKeyBytes,
 		targetPubKeyBytes, paymentAmt, noRestrictions, defaultNumRoutes,
 		DefaultFinalCLTVDelta,
 	)
