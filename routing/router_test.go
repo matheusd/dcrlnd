@@ -1955,7 +1955,7 @@ func TestFindPathFeeWeighting(t *testing.T) {
 	}
 
 	ignoreVertex := make(map[Vertex]struct{})
-	ignoreEdge := make(map[edgeLocator]struct{})
+	ignoreEdge := make(map[EdgeLocator]struct{})
 
 	amt := lnwire.MilliAtom(100)
 
@@ -1971,10 +1971,10 @@ func TestFindPathFeeWeighting(t *testing.T) {
 		&graphParams{
 			graph: ctx.graph,
 		},
-		&restrictParams{
-			ignoredNodes: ignoreVertex,
-			ignoredEdges: ignoreEdge,
-			feeLimit:     noFeeLimit,
+		&RestrictParams{
+			IgnoredNodes: ignoreVertex,
+			IgnoredEdges: ignoreEdge,
+			FeeLimit:     noFeeLimit,
 		},
 		sourceNode, target, amt,
 	)
