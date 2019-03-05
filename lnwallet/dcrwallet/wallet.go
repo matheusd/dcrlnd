@@ -263,6 +263,11 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	feeRate lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
 
+	// Sanity check outputs.
+	if len(outputs) < 1 {
+		return nil, lnwallet.ErrNoOutputs
+	}
+
 	// Ensure we haven't changed the default relay fee.
 	// TODO(decred) Potentially change to a construct/sign/publish cycle or
 	// add the fee as a parameter so that we don't risk changing the default
@@ -297,6 +302,11 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 // This is a part of the WalletController interface.
 func (b *DcrWallet) CreateSimpleTx(outputs []*wire.TxOut,
 	feeRate lnwallet.AtomPerKByte, dryRun bool) (*txauthor.AuthoredTx, error) {
+
+	// Sanity check outputs.
+	if len(outputs) < 1 {
+		return nil, lnwallet.ErrNoOutputs
+	}
 
 	// TODO(decred) Review semantics for btcwallet's CreateSimpleTx.
 	return nil, fmt.Errorf("CreateSimpleTx unimplemented for dcrwallet")
