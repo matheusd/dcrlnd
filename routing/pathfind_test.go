@@ -619,7 +619,7 @@ func TestFindLowestFeePath(t *testing.T) {
 		t.Fatalf("unable to find path: %v", err)
 	}
 	route, err := newRoute(
-		paymentAmt, infinity, sourceVertex, path, startingHeight,
+		paymentAmt, sourceVertex, path, startingHeight,
 		finalHopCLTV)
 	if err != nil {
 		t.Fatalf("unable to create path: %v", err)
@@ -772,7 +772,7 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 	}
 
 	route, err := newRoute(
-		paymentAmt, test.feeLimit, sourceVertex, path, startingHeight,
+		paymentAmt, sourceVertex, path, startingHeight,
 		finalHopCLTV,
 	)
 	if err != nil {
@@ -1052,8 +1052,6 @@ func TestNewRoute(t *testing.T) {
 		// expectedErrorCode indicates the expected error code when
 		// expectError is true.
 		expectedErrorCode errorCode
-
-		feeLimit lnwire.MilliAtom
 	}{
 		{
 			// For a single hop payment, no fees are expected to be paid.
@@ -1066,7 +1064,6 @@ func TestNewRoute(t *testing.T) {
 			expectedTimeLocks:     []uint32{1},
 			expectedTotalAmount:   100000,
 			expectedTotalTimeLock: 1,
-			feeLimit:              noFeeLimit,
 		}, {
 			// For a two hop payment, only the fee for the first hop
 			// needs to be paid. The destination hop does not require
@@ -1081,7 +1078,6 @@ func TestNewRoute(t *testing.T) {
 			expectedTimeLocks:     []uint32{1, 1},
 			expectedTotalAmount:   100130,
 			expectedTotalTimeLock: 6,
-			feeLimit:              noFeeLimit,
 		}, {
 			// A three hop payment where the first and second hop
 			// will both charge 1 mat. The fee for the first hop
@@ -1099,7 +1095,6 @@ func TestNewRoute(t *testing.T) {
 			expectedTotalAmount:   100002,
 			expectedTimeLocks:     []uint32{4, 1, 1},
 			expectedTotalTimeLock: 9,
-			feeLimit:              noFeeLimit,
 		}, {
 			// A three hop payment where the fee of the first hop
 			// is slightly higher (11) than the fee at the second hop,
@@ -1115,7 +1110,6 @@ func TestNewRoute(t *testing.T) {
 			expectedTotalAmount:   102010,
 			expectedTimeLocks:     []uint32{4, 1, 1},
 			expectedTotalTimeLock: 9,
-			feeLimit:              noFeeLimit,
 		}, {
 			// A three hop payment where the fee policies of the first and
 			// second hop are just high enough to show the fee carry over
@@ -1137,53 +1131,6 @@ func TestNewRoute(t *testing.T) {
 			expectedTotalAmount:   101101,
 			expectedTimeLocks:     []uint32{4, 1, 1},
 			expectedTotalTimeLock: 9,
-			feeLimit:              noFeeLimit,
-		},
-		// Check fee limit behaviour
-		{
-			name:          "two hop success with fee limit (greater)",
-			paymentAmount: 100000,
-			hops: []*channeldb.ChannelEdgePolicy{
-				createHop(0, 1000, 1000000, 144),
-				createHop(0, 1000, 1000000, 144),
-			},
-			expectedTotalAmount:   100100,
-			expectedFees:          []lnwire.MilliAtom{100, 0},
-			expectedTimeLocks:     []uint32{1, 1},
-			expectedTotalTimeLock: 145,
-			feeLimit:              150,
-		}, {
-			name:          "two hop success with fee limit (equal)",
-			paymentAmount: 100000,
-			hops: []*channeldb.ChannelEdgePolicy{
-				createHop(0, 1000, 1000000, 144),
-				createHop(0, 1000, 1000000, 144),
-			},
-			expectedTotalAmount:   100100,
-			expectedFees:          []lnwire.MilliAtom{100, 0},
-			expectedTimeLocks:     []uint32{1, 1},
-			expectedTotalTimeLock: 145,
-			feeLimit:              100,
-		}, {
-			name:          "two hop failure with fee limit (smaller)",
-			paymentAmount: 100000,
-			hops: []*channeldb.ChannelEdgePolicy{
-				createHop(0, 1000, 1000000, 144),
-				createHop(0, 1000, 1000000, 144),
-			},
-			feeLimit:          50,
-			expectError:       true,
-			expectedErrorCode: ErrFeeLimitExceeded,
-		}, {
-			name:          "two hop failure with fee limit (zero)",
-			paymentAmount: 100000,
-			hops: []*channeldb.ChannelEdgePolicy{
-				createHop(0, 1000, 1000000, 144),
-				createHop(0, 1000, 1000000, 144),
-			},
-			feeLimit:          0,
-			expectError:       true,
-			expectedErrorCode: ErrFeeLimitExceeded,
 		}}
 
 	for _, testCase := range testCases {
@@ -1234,7 +1181,6 @@ func TestNewRoute(t *testing.T) {
 
 		t.Run(testCase.name, func(t *testing.T) {
 			route, err := newRoute(testCase.paymentAmount,
-				testCase.feeLimit,
 				sourceVertex, testCase.hops, startingHeight,
 				finalHopCLTV)
 
@@ -2102,7 +2048,7 @@ func TestRestrictOutgoingChannel(t *testing.T) {
 		t.Fatalf("unable to find path: %v", err)
 	}
 	route, err := newRoute(
-		paymentAmt, infinity, sourceVertex, path, startingHeight,
+		paymentAmt, sourceVertex, path, startingHeight,
 		finalHopCLTV,
 	)
 	if err != nil {

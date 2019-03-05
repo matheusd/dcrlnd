@@ -1265,7 +1265,7 @@ type routingMsg struct {
 // initial set of paths as it's possible we drop a route if it can't handle the
 // total payment flow after fees are calculated.
 func pathsToFeeSortedRoutes(source Vertex, paths [][]*channeldb.ChannelEdgePolicy,
-	finalCLTVDelta uint16, amt, feeLimit lnwire.MilliAtom,
+	finalCLTVDelta uint16, amt lnwire.MilliAtom,
 	currentHeight uint32) ([]*Route, error) {
 
 	validRoutes := make([]*Route, 0, len(paths))
@@ -1274,8 +1274,7 @@ func pathsToFeeSortedRoutes(source Vertex, paths [][]*channeldb.ChannelEdgePolic
 		// hop in the path as it contains a "self-hop" that is inserted
 		// by our KSP algorithm.
 		route, err := newRoute(
-			amt, feeLimit, source, path[1:], currentHeight,
-			finalCLTVDelta,
+			amt, source, path[1:], currentHeight, finalCLTVDelta,
 		)
 		if err != nil {
 			// TODO(roasbeef): report straw breaking edge?
@@ -1411,7 +1410,7 @@ func (r *ChannelRouter) FindRoutes(target *secp256k1.PublicKey,
 	// factored in.
 	sourceVertex := Vertex(r.selfNode.PubKeyBytes)
 	validRoutes, err := pathsToFeeSortedRoutes(
-		sourceVertex, shortestPaths, finalCLTVDelta, amt, feeLimit,
+		sourceVertex, shortestPaths, finalCLTVDelta, amt,
 		uint32(currentHeight),
 	)
 	if err != nil {
