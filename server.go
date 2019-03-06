@@ -2111,7 +2111,7 @@ func (s *server) sendPeerMessages(
 			errChans = append(errChans, errChan)
 		}
 
-		targetPeer.queueMsg(msg, errChan)
+		targetPeer.queueMsgLazy(msg, errChan)
 	}
 
 	return errChans
