@@ -94,7 +94,7 @@ $(LINT_BIN):
 	GO111MODULE=off go get -u $(LINT_PKG)
 
 dcrd:
-	@$(call print, "Installing dcrd.")
+	@$(call print, "Installing dcrd $(DCRD_COMMIT).")
 	GO111MODULE=on go get -v github.com/decred/dcrd/@$(DCRD_COMMIT)
 
 # ============
