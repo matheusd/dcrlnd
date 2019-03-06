@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/rpcclient/v2"
 )
 
 const (

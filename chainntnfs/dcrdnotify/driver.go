@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/rpcclient"
+	"github.com/decred/dcrd/rpcclient/v2"
 	"github.com/decred/dcrlnd/chainntnfs"
 )
 
