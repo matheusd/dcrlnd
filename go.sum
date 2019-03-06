@@ -318,6 +318,8 @@ github.com/matheusd/dcrd v0.0.0-20190301141217-a65145576746 h1:jg8QOT04t2GV51p79
 github.com/matheusd/dcrd v0.0.0-20190301141217-a65145576746/go.mod h1:MY6GIjn6OreZNjZKYu72QikZoP98MwId1iYvDg3E8rE=
 github.com/matheusd/dcrd v0.0.0-20190306151227-fe7df03d5792 h1:6vYAwp7EtER9e3BiaZ8a77wnCPmxRbZPhKcfZ7jMrq4=
 github.com/matheusd/dcrd v0.0.0-20190306151227-fe7df03d5792/go.mod h1:mYkbnT1uLnpNoZi8SOdpz+bmjaHl97kUOV27J8ssAXQ=
+github.com/matheusd/dcrd/blockchain v0.0.0-20190306151227-fe7df03d5792 h1:Qh/0sa8/7qXVK3pdopM6D+PdNzFEVHr2wMD+5PKNqfY=
+github.com/matheusd/dcrd/blockchain v0.0.0-20190306151227-fe7df03d5792/go.mod h1:PKlKPwkerkrl7X5J6gRlQfdTFvYGHckkjlegcO/8dZ8=
 github.com/matheusd/dcrd/connmgr v0.0.0-20190301141217-a65145576746 h1:yEAH4vpoMOU7KD81euz9fep+6CakVeMY+EuYrap0AfU=
 github.com/matheusd/dcrd/connmgr v0.0.0-20190301141217-a65145576746/go.mod h1:jBNfQLh+454n3crgNCPrhMgZ9mVvYcMbWSCEAHsJQus=
 github.com/matheusd/dcrd/connmgr v0.0.0-20190306151227-fe7df03d5792 h1:LFY6ViIn7Sm6OGC9jZJ2cY8kI6lRBV9zoXpnyboSgD4=
