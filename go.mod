@@ -75,9 +75,9 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190301141217-a65145576746
-	github.com/decred/dcrd/connmgr => github.com/matheusd/dcrd/connmgr v0.0.0-20190301141217-a65145576746
-	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190301141217-a65145576746
+	github.com/decred/dcrd => github.com/matheusd/dcrd v0.0.0-20190306151227-fe7df03d5792
+	github.com/decred/dcrd/connmgr => github.com/matheusd/dcrd/connmgr v0.0.0-20190306151227-fe7df03d5792
+	github.com/decred/dcrd/rpctest => github.com/davecgh/btcd/rpctest v0.0.0-20190306151227-fe7df03d5792
 
 	github.com/decred/dcrwallet => github.com/matheusd/dcrwallet v0.0.0-20190225211924-3a618c61edb8
 	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190225211924-3a618c61edb8

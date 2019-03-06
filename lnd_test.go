@@ -217,10 +217,6 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 		t.Fatalf("unable to assert channel existence: %v", err)
 	}
 
-	if _, err := net.FillStakepool() ; err != nil {
-		t.Fatalf("unable to fill stakepool: %v", err)
-	}
-
 	return fundingChanPoint
 }
 
@@ -2636,7 +2632,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Advance the blockchain until just before the CLTV expires, nothing
 	// exciting should have happened during this time.
-	err = net.GenerateWithTickets(cltvHeightDelta)
+	_, err = net.Generate(cltvHeightDelta)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -6057,7 +6053,7 @@ func testGarbageCollectLinkNodes(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll need to mine some blocks in order to mark the channel fully
 	// closed.
-	err = net.GenerateWithTickets(defaultDecredTimeLockDelta - defaultCSV)
+	_, err = net.Generate(defaultDecredTimeLockDelta - defaultCSV)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -9195,7 +9191,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// chain in order to sweep her HTLC since the value is high enough.
 	// TODO(roasbeef): modify once go to chain policy changes
 	numBlocks := uint32(defaultDecredTimeLockDelta - (2 * defaultBroadcastDelta))
-	if err := net.GenerateWithTickets(numBlocks); err != nil {
+	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9474,7 +9470,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 
 	// We'll now mine enough blocks for the HTLC to expire. After this, Bob
 	// should hand off the now expired HTLC output to the utxo nursery.
-	if err := net.GenerateWithTickets(finalCltvDelta - defaultCSV - 1); err != nil {
+	if _, err := net.Generate(finalCltvDelta - defaultCSV - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -9918,7 +9914,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	// We mine up to just before the deadline to check the transaction is in
 	// the mempool.
 	numBlocks := uint32(defaultDecredTimeLockDelta - (2 * defaultBroadcastDelta) - 1)
-	if err := net.GenerateWithTickets(numBlocks); err != nil {
+	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -10273,8 +10269,8 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// We mine up to just before the deadline to check the transaction is in
 	// the mempool.
 	claimDelta := uint32(2 * defaultBroadcastDelta)
-	numBlocks := uint32(defaultDecredTimeLockDelta-claimDelta) - defaultCSV -1
-	if err := net.GenerateWithTickets(numBlocks); err != nil {
+	numBlocks := uint32(defaultDecredTimeLockDelta-claimDelta) - defaultCSV - 1
+	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}
 
@@ -12890,12 +12886,6 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		// framework.
 		if !success {
 			break
-		}
-
-		// Fill the stakepool with new tickets if needed, so we can keep the
-		// network advancing.
-		if _, err := lndHarness.FillStakepool(); err != nil {
-			t.Fatalf("unable to fill stakepool: %v", err)
 		}
 	}
 }
