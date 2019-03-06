@@ -131,9 +131,11 @@ itest-only:
 
 itest: dcrd build-itest itest-only
 
-unit: dcrd
+unit-only:
 	@$(call print, "Running unit tests.")
 	$(UNIT)
+
+unit: dcrd unit-only
 
 unit-cover:
 	@$(call print, "Running unit coverage tests.")
