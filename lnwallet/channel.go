@@ -3169,7 +3169,8 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, erro
 	if err != nil {
 		return sig, htlcSigs, err
 	}
-	if err := lc.channelState.AppendRemoteCommitChain(commitDiff); err != nil {
+	err = lc.channelState.AppendRemoteCommitChain(commitDiff)
+	if err != nil {
 		return sig, htlcSigs, err
 	}
 
