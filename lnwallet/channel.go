@@ -3070,8 +3070,9 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, erro
 	// ensure that we aren't violating any of the constraints the remote
 	// party set up when we initially set up the channel. If we are, then
 	// we'll abort this state transition.
-	err := lc.validateCommitmentSanity(remoteACKedIndex,
-		lc.localUpdateLog.logIndex, true, nil)
+	err := lc.validateCommitmentSanity(
+		remoteACKedIndex, lc.localUpdateLog.logIndex, true, nil,
+	)
 	if err != nil {
 		return sig, htlcSigs, err
 	}
@@ -3079,8 +3080,9 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, erro
 	// Grab the next commitment point for the remote party. This will be
 	// used within fetchCommitmentView to derive all the keys necessary to
 	// construct the commitment state.
-	keyRing := deriveCommitmentKeys(commitPoint, false, lc.localChanCfg,
-		lc.remoteChanCfg)
+	keyRing := deriveCommitmentKeys(
+		commitPoint, false, lc.localChanCfg, lc.remoteChanCfg,
+	)
 
 	// Create a new commitment view which will calculate the evaluated
 	// state of the remote node's new commitment including our latest added
@@ -4012,8 +4014,9 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 	// Ensure that this new local update from the remote node respects all
 	// the constraints we specified during initial channel setup. If not,
 	// then we'll abort the channel as they've violated our constraints.
-	err := lc.validateCommitmentSanity(lc.remoteUpdateLog.logIndex,
-		localACKedIndex, false, nil)
+	err := lc.validateCommitmentSanity(
+		lc.remoteUpdateLog.logIndex, localACKedIndex, false, nil,
+	)
 	if err != nil {
 		return err
 	}
@@ -4028,8 +4031,9 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 		return err
 	}
 	commitPoint := input.ComputeCommitmentPoint(commitSecret[:])
-	keyRing := deriveCommitmentKeys(commitPoint, true, lc.localChanCfg,
-		lc.remoteChanCfg)
+	keyRing := deriveCommitmentKeys(
+		commitPoint, true, lc.localChanCfg, lc.remoteChanCfg,
+	)
 
 	// With the current commitment point re-calculated, construct the new
 	// commitment view which includes all the entries (pending or committed)
@@ -4061,8 +4065,9 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 	// this newly proposed state update.
 	localCommitTx := localCommitmentView.txn
 	multiSigScript := lc.signDesc.WitnessScript
-	sigHash, err := txscript.CalcSignatureHash(multiSigScript,
-		txscript.SigHashAll, localCommitTx, 0, nil)
+	sigHash, err := txscript.CalcSignatureHash(
+		multiSigScript, txscript.SigHashAll, localCommitTx, 0, nil,
+	)
 	if err != nil {
 		// TODO(roasbeef): fetchview has already mutated the HTLCs...
 		//  * need to either roll-back, or make pure
@@ -4438,8 +4443,10 @@ func (lc *LightningChannel) ReceiveRevocation(revMsg *lnwire.RevokeAndAck) (
 	// As we've just completed a new state transition, attempt to see if we
 	// can remove any entries from the update log which have been removed
 	// from the PoV of both commitment chains.
-	compactLogs(lc.localUpdateLog, lc.remoteUpdateLog,
-		localChainTail, remoteChainTail)
+	compactLogs(
+		lc.localUpdateLog, lc.remoteUpdateLog, localChainTail,
+		remoteChainTail,
+	)
 
 	return fwdPkg, addsToForward, settleFailsToForward, nil
 }
