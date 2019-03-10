@@ -3503,7 +3503,16 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// as that's what they should send.
 	case msg.NextLocalCommitHeight == remoteTailHeight+1:
 		commitPoint = lc.channelState.RemoteCurrentRevocation
+
+	// Alternatively, if their height is two beyond what we know their best
+	// height to be, then they're holding onto two commitments, and the
+	// highest unrevoked point it their next revocation.
+	//
+	// TODO(roasbeef): verify this in the spec...
+	case msg.NextLocalCommitHeight == remoteTailHeight+2:
+		commitPoint = lc.channelState.RemoteNextRevocation
 	}
+
 	if commitPoint != nil &&
 		!commitPoint.IsEqual(msg.LocalUnrevokedCommitPoint) {
 
@@ -3515,6 +3524,7 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 		if err := lc.channelState.MarkBorked(); err != nil {
 			return nil, nil, nil, err
 		}
+
 		// TODO(halseth): force close?
 		return nil, nil, nil, ErrInvalidLocalUnrevokedCommitPoint
 	}
