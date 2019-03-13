@@ -105,6 +105,11 @@ type chainWatcherConfig struct {
 	// isOurAddr is a function that returns true if the passed address is
 	// known to us.
 	isOurAddr func(dcrutil.Address) bool
+
+	// extractStateNumHint extracts the encoded state hint using the passed
+	// obfuscater. This is used by the chain watcher to identify which
+	// state was broadcast and confirmed on-chain.
+	extractStateNumHint func(*wire.MsgTx, [lnwallet.StateHintSize]byte) uint64
 }
 
 // chainWatcher is a system that's assigned to every active channel. The duty
@@ -349,10 +354,9 @@ func (c *chainWatcher) closeObserver(spendNtfn *chainntnfs.SpendEvent) {
 			"ChannelPoint(%v) ", c.cfg.chanState.FundingOutpoint)
 
 		// Decode the state hint encoded within the commitment
-		// transaction to determine if this is a revoked state
-		// or not.
+		// transaction to determine if this is a revoked state or not.
 		obfuscator := c.stateHintObfuscator
-		broadcastStateNum := lnwallet.GetStateNumHint(
+		broadcastStateNum := c.cfg.extractStateNumHint(
 			commitTxBroadcast, obfuscator,
 		)
 		remoteStateNum := remoteCommit.CommitHeight
@@ -417,6 +421,7 @@ func (c *chainWatcher) closeObserver(spendNtfn *chainntnfs.SpendEvent) {
 			// point, there's not much we can do other than wait
 			// for us to retrieve it. We will attempt to retrieve
 			// it from the peer each time we connect to it.
+			//
 			// TODO(halseth): actively initiate re-connection to
 			// the peer?
 			var commitPoint *secp256k1.PublicKey
@@ -457,6 +462,7 @@ func (c *chainWatcher) closeObserver(spendNtfn *chainntnfs.SpendEvent) {
 			// state, we'll just pass an empty commitment. Note
 			// that this means we won't be able to recover any HTLC
 			// funds.
+			//
 			// TODO(halseth): can we try to recover some HTLCs?
 			err = c.dispatchRemoteForceClose(
 				commitSpend, channeldb.ChannelCommitment{},
