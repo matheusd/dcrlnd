@@ -4,13 +4,13 @@ package routerrpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwire"
@@ -190,12 +190,15 @@ func (s *Server) SendPayment(ctx context.Context,
 		return nil, fmt.Errorf("zero value invoices are not supported")
 	}
 
+	var destination routing.Vertex
+	copy(destination[:], payReq.Destination.SerializeCompressed())
+
 	// Now that all the information we need has been parsed, we'll map this
 	// proto request into a proper request that our backing router can
 	// understand.
 	finalDelta := uint16(payReq.MinFinalCLTVExpiry())
 	payment := routing.LightningPayment{
-		Target:            payReq.Destination,
+		Target:            destination,
 		Amount:            *payReq.MilliAt,
 		FeeLimit:          lnwire.MilliAtom(req.FeeLimitAtoms),
 		PaymentHash:       *payReq.PaymentHash,
@@ -226,22 +229,28 @@ func (s *Server) SendPayment(ctx context.Context,
 func (s *Server) EstimateRouteFee(ctx context.Context,
 	req *RouteFeeRequest) (*RouteFeeResponse, error) {
 
-	// First we'll parse out the raw public key into a value that we can
-	// utilize.
-	destNode, err := secp256k1.ParsePubKey(req.Dest)
-	if err != nil {
-		return nil, err
+	if len(req.Dest) != 33 {
+		return nil, errors.New("invalid length destination key")
 	}
+	var destNode routing.Vertex
+	copy(destNode[:], req.Dest)
 
 	// Next, we'll convert the amount in satoshis to mSAT, which are the
 	// native unit of LN.
-	amtMsat := lnwire.NewMAtomsFromAtoms(dcrutil.Amount(req.AmtAtoms))
+	amtMat := lnwire.NewMAtomsFromAtoms(dcrutil.Amount(req.AmtAtoms))
+
+	// Pick a fee limit
+	//
+	// TODO: Change this into behaviour that makes more sense.
+	feeLimit := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 
 	// Finally, we'll query for a route to the destination that can carry
 	// that target amount, we'll only request a single route.
 	routes, err := s.cfg.Router.FindRoutes(
-		destNode, amtMsat,
-		lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin), 1,
+		s.cfg.RouterBackend.SelfNode, destNode, amtMat,
+		&routing.RestrictParams{
+			FeeLimit: feeLimit,
+		}, 1,
 	)
 	if err != nil {
 		return nil, err
