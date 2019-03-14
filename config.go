@@ -786,6 +786,12 @@ func loadConfig() (*config, error) {
 		return nil, fmt.Errorf("maxbackoff must be greater than minbackoff")
 	}
 
+	// Assert that all worker pools will have a positive number of
+	// workers, otherwise the pools will rendered useless.
+	if err := cfg.Workers.Validate(); err != nil {
+		return nil, err
+	}
+
 	// Finally, ensure that the user's color is correctly formatted,
 	// otherwise the server will not be able to start after the unlocking
 	// the wallet.
