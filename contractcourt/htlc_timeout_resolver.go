@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -65,6 +68,96 @@ func (h *htlcTimeoutResolver) ResolverKey() []byte {
 
 	key := newResolverID(op)
 	return key[:]
+}
+
+const (
+	// expectedRemoteWitnessSuccessSize is the expected size of the witness
+	// on the remote commitment transaction for an outgoing HTLC that is
+	// swept on-chain by them with pre-image.
+	expectedRemoteWitnessSuccessSize = 4
+
+	// remotePreimageIndex index within the witness on the remote
+	// commitment transaction that will hold they pre-image if they go to
+	// sweep it on chain.
+	remotePreimageIndex = 2
+
+	// localPreimageIndex is the index within the witness on the local
+	// commitment transaction for an outgoing HTLC that will hold the
+	// pre-image if the remote party sweeps it.
+	localPreimageIndex = 1
+)
+
+// claimCleanUp is a helper method that's called once the HTLC output is spent
+// by the remote party. It'll extract the preimage, add it to the global cache,
+// and finally send the appropriate clean up message.
+func (h *htlcTimeoutResolver) claimCleanUp(commitSpend *chainntnfs.SpendDetail) (ContractResolver, error) {
+	// Depending on if this is our commitment or not, then we'll be looking
+	// for a different witness pattern.
+	spenderIndex := commitSpend.SpenderInputIndex
+	spendingInput := commitSpend.SpendingTx.TxIn[spenderIndex]
+
+	log.Infof("%T(%v): extracting preimage! remote party spent "+
+		"HTLC with tx=%v", h, h.htlcResolution.ClaimOutpoint,
+		spew.Sdump(commitSpend.SpendingTx))
+
+	// Decode the sigScript of the spendingInput into a series of
+	// data pushes, so that we can extract the preimage.
+	//
+	// TODO(decred) verify whether we need to check the length of
+	// sigScriptPushes before trying to copy one of its elements. This
+	// depends on the particulars of how this call site is reached.
+	sigScriptPushes, err := input.SigScriptToWitnessStack(spendingInput.SignatureScript)
+	if err != nil {
+		return nil, err
+
+	}
+
+	// If this is the remote party's commitment, then we'll be looking for
+	// them to spend using the second-level success transaction.
+	var preimageBytes []byte
+	if h.htlcResolution.SignedTimeoutTx == nil {
+		// The witness stack when the remote party sweeps the output to
+		// them looks like:
+		//
+		//  * <sender sig> <recvr sig> <preimage> <witness script>
+		preimageBytes = sigScriptPushes[2]
+	} else {
+		// Otherwise, they'll be spending directly from our commitment
+		// output. In which case the witness stack looks like:
+		//
+		//  * <sig> <preimage> <witness script>
+		preimageBytes = sigScriptPushes[1]
+	}
+
+	preimage, err := lntypes.MakePreimage(preimageBytes)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create pre-image from "+
+			"witness: %v", err)
+	}
+
+	log.Infof("%T(%v): extracting preimage=%v from on-chain "+
+		"spend!", h, h.htlcResolution.ClaimOutpoint, preimage)
+
+	// With the preimage obtained, we can now add it to the global cache.
+	if err := h.PreimageDB.AddPreimages(preimage); err != nil {
+		log.Errorf("%T(%v): unable to add witness to cache",
+			h, h.htlcResolution.ClaimOutpoint)
+	}
+
+	var pre [32]byte
+	copy(pre[:], preimage[:])
+
+	// Finally, we'll send the clean up message, mark ourselves as
+	// resolved, then exit.
+	if err := h.DeliverResolutionMsg(ResolutionMsg{
+		SourceChan: h.ShortChanID,
+		HtlcIndex:  h.htlcIndex,
+		PreImage:   &pre,
+	}); err != nil {
+		return nil, err
+	}
+	h.resolved = true
+	return nil, h.Checkpoint(h)
 }
 
 // Resolve kicks off full resolution of an outgoing HTLC output. If it's our
