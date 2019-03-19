@@ -5,9 +5,6 @@ import (
 	"io"
 
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/input"
 )
 
 // htlcOutgoingContestResolver is a ContractResolver that's able to resolve an
@@ -43,46 +40,20 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 
 	// Otherwise, we'll watch for two external signals to decide if we'll
 	// morph into another resolver, or fully resolve the contract.
-
+	//
 	// The output we'll be watching for is the *direct* spend from the HTLC
 	// output. If this isn't our commitment transaction, it'll be right on
 	// the resolution. Otherwise, we fetch this pointer from the input of
 	// the time out transaction.
-	var (
-		outPointToWatch wire.OutPoint
-		scriptToWatch   []byte
-		err             error
-	)
-
-	// TODO(joostjager): output already set properly in
-	// lnwallet.newOutgoingHtlcResolution? And script too?
-	if h.htlcResolution.SignedTimeoutTx == nil {
-		outPointToWatch = h.htlcResolution.ClaimOutpoint
-		scriptToWatch = h.htlcResolution.SweepSignDesc.Output.PkScript
-	} else {
-		// If this is the remote party's commitment, then we'll need to
-		// grab watch the output that our timeout transaction points
-		// to. We can directly grab the outpoint, then also extract the
-		// witness script (the last element of the witness stack) to
-		// re-construct the pkScipt we need to watch.
-		outPointToWatch = h.htlcResolution.SignedTimeoutTx.TxIn[0].PreviousOutPoint
-		sigScript := h.htlcResolution.SignedTimeoutTx.TxIn[0].SignatureScript
-		sigScriptPushes, err := txscript.PushedData(sigScript)
-		if err != nil {
-			return nil, err
-		}
-		scriptToWatch, err = input.ScriptHashPkScript(
-			sigScriptPushes[len(sigScriptPushes)-1],
-		)
-		if err != nil {
-			return nil, err
-		}
+	outPointToWatch, scriptToWatch, err := h.chainDetailsToWatch()
+	if err != nil {
+		return nil, err
 	}
 
 	// First, we'll register for a spend notification for this output. If
 	// the remote party sweeps with the pre-image, we'll be notified.
 	spendNtfn, err := h.Notifier.RegisterSpendNtfn(
-		&outPointToWatch, scriptToWatch, h.broadcastHeight,
+		outPointToWatch, scriptToWatch, h.broadcastHeight,
 	)
 	if err != nil {
 		return nil, err
