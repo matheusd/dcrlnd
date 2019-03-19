@@ -475,17 +475,28 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			Index: 0,
 		}
 
+		// Sort nodes
+		node1 := testChannel.Node1
+		node2 := testChannel.Node2
+		node1Vertex := aliasMap[node1.Alias]
+		node2Vertex := aliasMap[node2.Alias]
+		if bytes.Compare(node1Vertex[:], node2Vertex[:]) == 1 {
+			node1, node2 = node2, node1
+			node1Vertex, node2Vertex = node2Vertex, node1Vertex
+		}
+
 		// We first insert the existence of the edge between the two
 		// nodes.
 		edgeInfo := channeldb.ChannelEdgeInfo{
-			ChannelID:       channelID,
-			AuthProof:       &testAuthProof,
-			ChannelPoint:    *fundingPoint,
-			Capacity:        testChannel.Capacity,
-			NodeKey1Bytes:   aliasMap[testChannel.Node1.Alias],
-			DecredKey1Bytes: aliasMap[testChannel.Node1.Alias],
-			NodeKey2Bytes:   aliasMap[testChannel.Node2.Alias],
-			DecredKey2Bytes: aliasMap[testChannel.Node2.Alias],
+			ChannelID:    channelID,
+			AuthProof:    &testAuthProof,
+			ChannelPoint: *fundingPoint,
+			Capacity:     testChannel.Capacity,
+
+			NodeKey1Bytes:   node1Vertex,
+			DecredKey1Bytes: node1Vertex,
+			NodeKey2Bytes:   node2Vertex,
+			DecredKey2Bytes: node2Vertex,
 		}
 
 		err = graph.AddChannelEdge(&edgeInfo)
@@ -507,12 +518,12 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 				MessageFlags:              msgFlags,
 				ChannelFlags:              channelFlags,
 				ChannelID:                 channelID,
-				LastUpdate:                testChannel.Node1.LastUpdate,
-				TimeLockDelta:             testChannel.Node1.Expiry,
-				MinHTLC:                   testChannel.Node1.MinHTLC,
-				MaxHTLC:                   testChannel.Node1.MaxHTLC,
-				FeeBaseMAtoms:             testChannel.Node1.FeeBaseMAtoms,
-				FeeProportionalMillionths: testChannel.Node1.FeeRate,
+				LastUpdate:                node1.LastUpdate,
+				TimeLockDelta:             node1.Expiry,
+				MinHTLC:                   node1.MinHTLC,
+				MaxHTLC:                   node1.MaxHTLC,
+				FeeBaseMAtoms:             node1.FeeBaseMAtoms,
+				FeeProportionalMillionths: node1.FeeRate,
 			}
 			if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
 				return nil, err
@@ -533,12 +544,12 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 				MessageFlags:              msgFlags,
 				ChannelFlags:              channelFlags,
 				ChannelID:                 channelID,
-				LastUpdate:                testChannel.Node2.LastUpdate,
-				TimeLockDelta:             testChannel.Node2.Expiry,
-				MinHTLC:                   testChannel.Node2.MinHTLC,
-				MaxHTLC:                   testChannel.Node2.MaxHTLC,
-				FeeBaseMAtoms:             testChannel.Node2.FeeBaseMAtoms,
-				FeeProportionalMillionths: testChannel.Node2.FeeRate,
+				LastUpdate:                node2.LastUpdate,
+				TimeLockDelta:             node2.Expiry,
+				MinHTLC:                   node2.MinHTLC,
+				MaxHTLC:                   node2.MaxHTLC,
+				FeeBaseMAtoms:             node2.FeeBaseMAtoms,
+				FeeProportionalMillionths: node2.FeeRate,
 			}
 			if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
 				return nil, err
