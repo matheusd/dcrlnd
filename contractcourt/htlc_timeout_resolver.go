@@ -8,6 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -158,6 +159,44 @@ func (h *htlcTimeoutResolver) claimCleanUp(commitSpend *chainntnfs.SpendDetail) 
 	}
 	h.resolved = true
 	return nil, h.Checkpoint(h)
+}
+
+// chainDetailsToWatch returns the output and script which we use to watch for
+// spends from the direct HTLC output on the commitment transaction.
+//
+// TODO(joostjager): output already set properly in
+// lnwallet.newOutgoingHtlcResolution? And script too?
+func (h *htlcTimeoutResolver) chainDetailsToWatch() (*wire.OutPoint, []byte, error) {
+	// If there's no timeout transaction, then the claim output is the
+	// output directly on the commitment transaction, so we'll just use
+	// that.
+	if h.htlcResolution.SignedTimeoutTx == nil {
+		outPointToWatch := h.htlcResolution.ClaimOutpoint
+		scriptToWatch := h.htlcResolution.SweepSignDesc.Output.PkScript
+
+		return &outPointToWatch, scriptToWatch, nil
+	}
+
+	// If this is the remote party's commitment, then we'll need to grab
+	// watch the output that our timeout transaction points to. We can
+	// directly grab the outpoint, then also extract the witness script
+	// (the last element of the witness stack) to re-construct the pkScript
+	// we need to watch.
+	outPointToWatch := h.htlcResolution.SignedTimeoutTx.TxIn[0].PreviousOutPoint
+	sigScript := h.htlcResolution.SignedTimeoutTx.TxIn[0].SignatureScript
+	sigScriptPushes, err := input.SigScriptToWitnessStack(sigScript)
+	if err != nil {
+		return nil, nil, err
+	}
+	scriptToWatch, err := input.ScriptHashPkScript(
+		sigScriptPushes[len(sigScriptPushes)-1],
+	)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &outPointToWatch, scriptToWatch, nil
 }
 
 // Resolve kicks off full resolution of an outgoing HTLC output. If it's our
