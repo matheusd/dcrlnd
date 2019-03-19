@@ -31,6 +31,7 @@ import (
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -9354,8 +9355,14 @@ out:
 	// failed payment.
 	shutdownAndAssert(net, t, carol)
 
-	// TODO(roasbeef): mission control
-	time.Sleep(time.Second * 5)
+	// Reset mission control to forget the temporary channel failure above.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	_, err = net.Alice.RouterClient.ResetMissionControl(
+		ctxt, &routerrpc.ResetMissionControlRequest{},
+	)
+	if err != nil {
+		t.Fatalf("unable to reset mission control: %v", err)
+	}
 
 	sendReq = &lnrpc.SendRequest{
 		PaymentRequest: carolInvoice.PaymentRequest,
