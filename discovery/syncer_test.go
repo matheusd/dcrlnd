@@ -116,7 +116,7 @@ var _ ChannelGraphTimeSeries = (*mockChannelGraphTimeSeries)(nil)
 
 func newTestSyncer(hID lnwire.ShortChannelID,
 	encodingType lnwire.ShortChanIDEncoding, chunkSize int32,
-) (chan []lnwire.Message, *gossipSyncer, *mockChannelGraphTimeSeries) {
+) (chan []lnwire.Message, *GossipSyncer, *mockChannelGraphTimeSeries) {
 
 	msgChan := make(chan []lnwire.Message, 20)
 	cfg := gossipSyncerCfg{
@@ -140,7 +140,7 @@ func newTestSyncer(hID lnwire.ShortChannelID,
 func TestGossipSyncerFilterGossipMsgsNoHorizon(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	msgChan, syncer, _ := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding,
@@ -185,7 +185,7 @@ func unixStamp(a int64) uint32 {
 func TestGossipSyncerFilterGossipMsgsAllInMemory(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	msgChan, syncer, chanSeries := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding,
@@ -317,7 +317,7 @@ func TestGossipSyncerFilterGossipMsgsAllInMemory(t *testing.T) {
 func TestGossipSyncerApplyGossipFilter(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	msgChan, syncer, chanSeries := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding,
@@ -419,7 +419,7 @@ func TestGossipSyncerApplyGossipFilter(t *testing.T) {
 func TestGossipSyncerReplyShortChanIDsWrongChainHash(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	msgChan, syncer, _ := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding,
@@ -470,7 +470,7 @@ func TestGossipSyncerReplyShortChanIDsWrongChainHash(t *testing.T) {
 func TestGossipSyncerReplyShortChanIDs(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	msgChan, syncer, chanSeries := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding,
@@ -730,7 +730,7 @@ func TestGossipSyncerReplyChanRangeQueryNoNewChans(t *testing.T) {
 func TestGossipSyncerGenChanRangeQuery(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	const startingHeight = 200
 	_, syncer, _ := newTestSyncer(
@@ -765,7 +765,7 @@ func TestGossipSyncerGenChanRangeQuery(t *testing.T) {
 func TestGossipSyncerProcessChanRangeReply(t *testing.T) {
 	t.Parallel()
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	_, syncer, chanSeries := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding, defaultChunkSize,
@@ -841,7 +841,7 @@ func TestGossipSyncerProcessChanRangeReply(t *testing.T) {
 		t.Fatalf("unable to process reply: %v", err)
 	}
 
-	if syncer.SyncState() != queryNewChannels {
+	if syncer.syncState() != queryNewChannels {
 		t.Fatalf("wrong state: expected %v instead got %v",
 			queryNewChannels, syncer.state)
 	}
@@ -876,7 +876,7 @@ func TestGossipSyncerProcessChanRangeReply(t *testing.T) {
 		t.Fatalf("unable to process reply: %v", err)
 	}
 
-	if syncer.SyncState() != chansSynced {
+	if syncer.syncState() != chansSynced {
 		t.Fatalf("wrong state: expected %v instead got %v",
 			chansSynced, syncer.state)
 	}
@@ -894,7 +894,7 @@ func TestGossipSyncerSynchronizeChanIDs(t *testing.T) {
 	// queries: two full chunks, and one lingering chunk.
 	const chunkSize = 2
 
-	// First, we'll create a gossipSyncer instance with a canned sendToPeer
+	// First, we'll create a GossipSyncer instance with a canned sendToPeer
 	// message to allow us to intercept their potential sends.
 	msgChan, syncer, _ := newTestSyncer(
 		lnwire.NewShortChanIDFromInt(10), defaultEncoding, chunkSize,
@@ -1013,7 +1013,7 @@ func TestGossipSyncerDelayDOS(t *testing.T) {
 	const numDelayedQueries = 2
 	const delayTolerance = time.Millisecond * 200
 
-	// First, we'll create two gossipSyncer instances with a canned
+	// First, we'll create two GossipSyncer instances with a canned
 	// sendToPeer message to allow us to intercept their potential sends.
 	startHeight := lnwire.ShortChannelID{
 		BlockHeight: 1144,
@@ -1406,7 +1406,7 @@ func TestGossipSyncerRoutineSync(t *testing.T) {
 	// queries: two full chunks, and one lingering chunk.
 	const chunkSize = 2
 
-	// First, we'll create two gossipSyncer instances with a canned
+	// First, we'll create two GossipSyncer instances with a canned
 	// sendToPeer message to allow us to intercept their potential sends.
 	startHeight := lnwire.ShortChannelID{
 		BlockHeight: 1144,
@@ -1746,7 +1746,7 @@ func TestGossipSyncerAlreadySynced(t *testing.T) {
 	// queries: two full chunks, and one lingering chunk.
 	const chunkSize = 2
 
-	// First, we'll create two gossipSyncer instances with a canned
+	// First, we'll create two GossipSyncer instances with a canned
 	// sendToPeer message to allow us to intercept their potential sends.
 	startHeight := lnwire.ShortChannelID{
 		BlockHeight: 1144,
