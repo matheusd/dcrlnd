@@ -1018,6 +1018,7 @@ func (h *hopNetwork) createChannelLink(server, peer *mockServer,
 		fwdPkgTimeout       = 15 * time.Second
 		minFeeUpdateTimeout = 30 * time.Minute
 		maxFeeUpdateTimeout = 40 * time.Minute
+		expiryGraceDelta    = 3
 	)
 
 	link := NewChannelLink(
@@ -1047,6 +1048,7 @@ func (h *hopNetwork) createChannelLink(server, peer *mockServer,
 			MinFeeUpdateTimeout: minFeeUpdateTimeout,
 			MaxFeeUpdateTimeout: maxFeeUpdateTimeout,
 			OnChannelFailure:    func(lnwire.ChannelID, lnwire.ShortChannelID, LinkFailureError) {},
+			ExpiryGraceDelta:    expiryGraceDelta,
 		},
 		channel,
 	)
