@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
 	"github.com/decred/dcrlnd/lnrpc/chainrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
+	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -111,6 +112,16 @@ func init() {
 	chainrpc.UseLogger(ntfrLog)
 	invoicesrpc.UseLogger(irpcLog)
 	channelnotifier.UseLogger(chnfLog)
+
+	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
+}
+
+// addSubLogger is a helper method to conveniently register the logger of a sub
+// system.
+func addSubLogger(subsystem string, useLogger func(slog.Logger)) {
+	logger := build.NewSubLogger(subsystem, backendLog.Logger)
+	useLogger(logger)
+	subsystemLoggers[subsystem] = logger
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
