@@ -2,6 +2,7 @@ package routing
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -132,20 +133,28 @@ func ValidateChannelUpdateAnn(pubKey *secp256k1.PublicKey, capacity dcrutil.Amou
 		return err
 	}
 
-	data, err := a.DataToSign()
+	return VerifyChannelUpdateSignature(a, pubKey)
+}
+
+// VerifyChannelUpdateSignature verifies that the channel update message was
+// signed by the party with the given node public key.
+func VerifyChannelUpdateSignature(msg *lnwire.ChannelUpdate,
+	pubKey *secp256k1.PublicKey) error {
+
+	data, err := msg.DataToSign()
 	if err != nil {
-		return errors.Errorf("unable to reconstruct message: %v", err)
+		return fmt.Errorf("unable to reconstruct message data: %v", err)
 	}
 	dataHash := chainhash.HashB(data)
 
-	nodeSig, err := a.Signature.ToSignature()
+	nodeSig, err := msg.Signature.ToSignature()
 	if err != nil {
 		return err
 	}
 
 	if !nodeSig.Verify(dataHash, pubKey) {
-		return errors.Errorf("invalid signature for channel "+
-			"update %v", spew.Sdump(a))
+		return fmt.Errorf("invalid signature for channel update %v",
+			spew.Sdump(msg))
 	}
 
 	return nil
