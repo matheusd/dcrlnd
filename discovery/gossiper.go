@@ -1790,7 +1790,6 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		if d.cfg.Router.IsStaleEdgePolicy(
 			msg.ShortChannelID, timestamp, msg.ChannelFlags,
 		) {
-
 			nMsg.err <- nil
 			return nil
 		}
