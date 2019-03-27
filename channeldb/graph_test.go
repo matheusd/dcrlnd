@@ -2632,6 +2632,234 @@ func TestNodeIsPublic(t *testing.T) {
 	)
 }
 
+// TestEdgePolicyMissingMaxHtcl tests that if we find a ChannelEdgePolicy in
+// the DB that indicates that it should support the htlc_maximum_value_msat
+// field, but it is not part of the opaque data, then we'll handle it as it is
+// unknown. It also checks that we are correctly able to overwrite it when we
+// receive the proper update.
+func TestEdgePolicyMissingMaxHtcl(t *testing.T) {
+	t.Parallel()
+
+	db, cleanUp, err := makeTestDB()
+	defer cleanUp()
+	if err != nil {
+		t.Fatalf("unable to make test database: %v", err)
+	}
+
+	graph := db.ChannelGraph()
+
+	// We'd like to test the update of edges inserted into the database, so
+	// we create two vertexes to connect.
+	node1, err := createTestVertex(db)
+	if err != nil {
+		t.Fatalf("unable to create test node: %v", err)
+	}
+	if err := graph.AddLightningNode(node1); err != nil {
+		t.Fatalf("unable to add node: %v", err)
+	}
+	node2, err := createTestVertex(db)
+	if err != nil {
+		t.Fatalf("unable to create test node: %v", err)
+	}
+
+	edgeInfo, edge1, edge2 := createChannelEdge(db, node1, node2)
+	if err := graph.AddLightningNode(node2); err != nil {
+		t.Fatalf("unable to add node: %v", err)
+	}
+	if err := graph.AddChannelEdge(edgeInfo); err != nil {
+		t.Fatalf("unable to create channel edge: %v", err)
+	}
+
+	chanID := edgeInfo.ChannelID
+	from := edge2.Node.PubKeyBytes[:]
+	to := edge1.Node.PubKeyBytes[:]
+
+	// We'll remove the no max_htlc field from the first edge policy, and
+	// all other opaque data, and serialize it.
+	edge1.MessageFlags = 0
+	edge1.ExtraOpaqueData = nil
+
+	var b bytes.Buffer
+	err = serializeChanEdgePolicy(&b, edge1, to)
+	if err != nil {
+		t.Fatalf("unable to serialize policy")
+	}
+
+	// Set the max_htlc field. The extra bytes added to the serialization
+	// will be the opaque data containing the serialized field.
+	edge1.MessageFlags = lnwire.ChanUpdateOptionMaxHtlc
+	edge1.MaxHTLC = 13928598
+	var b2 bytes.Buffer
+	err = serializeChanEdgePolicy(&b2, edge1, to)
+	if err != nil {
+		t.Fatalf("unable to serialize policy")
+	}
+
+	withMaxHtlc := b2.Bytes()
+
+	// Remove the opaque data from the serialization.
+	stripped := withMaxHtlc[:len(b.Bytes())]
+
+	// Attempting to deserialize these bytes should return an error.
+	r := bytes.NewReader(stripped)
+	err = db.View(func(tx *bolt.Tx) error {
+		nodes := tx.Bucket(nodeBucket)
+		if nodes == nil {
+			return ErrGraphNotFound
+		}
+
+		_, err = deserializeChanEdgePolicy(r, nodes)
+		if err != ErrEdgePolicyOptionalFieldNotFound {
+			t.Fatalf("expected "+
+				"ErrEdgePolicyOptionalFieldNotFound, got %v",
+				err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("error reading db: %v", err)
+	}
+
+	// Put the stripped bytes in the DB.
+	err = db.Update(func(tx *bolt.Tx) error {
+		edges := tx.Bucket(edgeBucket)
+		if edges == nil {
+			return ErrEdgeNotFound
+		}
+
+		edgeIndex := edges.Bucket(edgeIndexBucket)
+		if edgeIndex == nil {
+			return ErrEdgeNotFound
+		}
+
+		var edgeKey [33 + 8]byte
+		copy(edgeKey[:], from)
+		byteOrder.PutUint64(edgeKey[33:], edge1.ChannelID)
+
+		var scratch [8]byte
+		var indexKey [8 + 8]byte
+		copy(indexKey[:], scratch[:])
+		byteOrder.PutUint64(indexKey[8:], edge1.ChannelID)
+
+		updateIndex, err := edges.CreateBucketIfNotExists(edgeUpdateIndexBucket)
+		if err != nil {
+			return err
+		}
+
+		if err := updateIndex.Put(indexKey[:], nil); err != nil {
+			return err
+		}
+
+		return edges.Put(edgeKey[:], stripped)
+	})
+	if err != nil {
+		t.Fatalf("error writing db: %v", err)
+	}
+
+	// And add the second, unmodified edge.
+	if err := graph.UpdateEdgePolicy(edge2); err != nil {
+		t.Fatalf("unable to update edge: %v", err)
+	}
+
+	// Attempt to fetch the edge and policies from the DB. Since the policy
+	// we added is invalid according to the new format, it should be as we
+	// are not aware of the policy (indicated by the policy returned being
+	// nil)
+	dbEdgeInfo, dbEdge1, dbEdge2, err := graph.FetchChannelEdgesByID(chanID)
+	if err != nil {
+		t.Fatalf("unable to fetch channel by ID: %v", err)
+	}
+
+	// The first edge should have a nil-policy returned
+	if dbEdge1 != nil {
+		t.Fatalf("expected db edge to be nil")
+	}
+	if err := compareEdgePolicies(dbEdge2, edge2); err != nil {
+		t.Fatalf("edge doesn't match: %v", err)
+	}
+	assertEdgeInfoEqual(t, dbEdgeInfo, edgeInfo)
+
+	// Now add the original, unmodified edge policy, and make sure the edge
+	// policies then become fully populated.
+	if err := graph.UpdateEdgePolicy(edge1); err != nil {
+		t.Fatalf("unable to update edge: %v", err)
+	}
+
+	dbEdgeInfo, dbEdge1, dbEdge2, err = graph.FetchChannelEdgesByID(chanID)
+	if err != nil {
+		t.Fatalf("unable to fetch channel by ID: %v", err)
+	}
+	if err := compareEdgePolicies(dbEdge1, edge1); err != nil {
+		t.Fatalf("edge doesn't match: %v", err)
+	}
+	if err := compareEdgePolicies(dbEdge2, edge2); err != nil {
+		t.Fatalf("edge doesn't match: %v", err)
+	}
+	assertEdgeInfoEqual(t, dbEdgeInfo, edgeInfo)
+}
+
+// TestGraphZombieIndex ensures that we can mark edges correctly as zombie/live.
+func TestGraphZombieIndex(t *testing.T) {
+	t.Parallel()
+
+	// We'll start by creating our test graph along with a test edge.
+	db, cleanUp, err := makeTestDB()
+	defer cleanUp()
+	if err != nil {
+		t.Fatalf("unable to create test database: %v", err)
+	}
+	graph := db.ChannelGraph()
+
+	node1, err := createTestVertex(db)
+	if err != nil {
+		t.Fatalf("unable to create test vertex: %v", err)
+	}
+	node2, err := createTestVertex(db)
+	if err != nil {
+		t.Fatalf("unable to create test vertex: %v", err)
+	}
+	edge, _, _ := createChannelEdge(db, node1, node2)
+
+	// If the graph is not aware of the edge, then it should not be a
+	// zombie.
+	isZombie, _, _ := graph.IsZombieEdge(edge.ChannelID)
+	if isZombie {
+		t.Fatal("expected edge to not be marked as zombie")
+	}
+
+	// If we mark the edge as a zombie, then we should expect to see it
+	// within the index.
+	err = graph.MarkEdgeZombie(
+		edge.ChannelID, node1.PubKeyBytes, node2.PubKeyBytes,
+	)
+	if err != nil {
+		t.Fatalf("unable to mark edge as zombie: %v", err)
+	}
+	isZombie, pubKey1, pubKey2 := graph.IsZombieEdge(edge.ChannelID)
+	if !isZombie {
+		t.Fatal("expected edge to be marked as zombie")
+	}
+	if pubKey1 != node1.PubKeyBytes {
+		t.Fatalf("expected pubKey1 %x, got %x", node1.PubKeyBytes,
+			pubKey1)
+	}
+	if pubKey2 != node2.PubKeyBytes {
+		t.Fatalf("expected pubKey2 %x, got %x", node2.PubKeyBytes,
+			pubKey2)
+	}
+
+	// Similarly, if we mark the same edge as live, we should no longer see
+	// it within the index.
+	if err := graph.MarkEdgeLive(edge.ChannelID); err != nil {
+		t.Fatalf("unable to mark edge as live: %v", err)
+	}
+	isZombie, _, _ = graph.IsZombieEdge(edge.ChannelID)
+	if isZombie {
+		t.Fatal("expected edge to not be marked as zombie")
+	}
+}
+
 // compareNodes is used to compare two LightningNodes while excluding the
 // Features struct, which cannot be compared as the semantics for reserializing
 // the featuresMap have not been defined.
