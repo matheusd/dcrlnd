@@ -333,7 +333,7 @@ func (c *ChannelGraph) sourceNode(nodes *bolt.Bucket) (*LightningNode, error) {
 func (c *ChannelGraph) SetSourceNode(node *LightningNode) error {
 	nodePubBytes := node.PubKeyBytes[:]
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes, err := tx.CreateBucketIfNotExists(nodeBucket)
@@ -362,7 +362,7 @@ func (c *ChannelGraph) SetSourceNode(node *LightningNode) error {
 //
 // TODO(roasbeef): also need sig of announcement
 func (c *ChannelGraph) AddLightningNode(node *LightningNode) error {
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		return addLightningNode(tx, node)
 	})
 }
@@ -426,7 +426,7 @@ func (c *ChannelGraph) LookupAlias(pub *secp256k1.PublicKey) (string, error) {
 // from the database according to the node's public key.
 func (c *ChannelGraph) DeleteLightningNode(nodePub *secp256k1.PublicKey) error {
 	// TODO(roasbeef): ensure dangling edges are removed...
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodeNotFound
@@ -490,7 +490,7 @@ func (c *ChannelGraph) deleteLightningNode(nodes *bolt.Bucket,
 // the channel supports. The chanPoint and chanID are used to uniquely identify
 // the edge globally within the database.
 func (c *ChannelGraph) AddChannelEdge(edge *ChannelEdgeInfo) error {
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		return c.addChannelEdge(tx, edge)
 	})
 }
@@ -674,7 +674,7 @@ func (c *ChannelGraph) UpdateChannelEdge(edge *ChannelEdgeInfo) error {
 	var chanKey [8]byte
 	binary.BigEndian.PutUint64(chanKey[:], edge.ChannelID)
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edge == nil {
 			return ErrEdgeNotFound
@@ -714,9 +714,7 @@ func (c *ChannelGraph) PruneGraph(spentOutputs []*wire.OutPoint,
 
 	var chansClosed []*ChannelEdgeInfo
 
-	err := c.db.Batch(func(tx *bolt.Tx) error {
-		chansClosed = nil
-
+	err := c.db.Update(func(tx *bolt.Tx) error {
 		// First grab the edges bucket which houses the information
 		// we'd like to delete
 		edges, err := tx.CreateBucketIfNotExists(edgeBucket)
@@ -825,7 +823,7 @@ func (c *ChannelGraph) PruneGraph(spentOutputs []*wire.OutPoint,
 // that we only maintain a graph of reachable nodes. In the event that a pruned
 // node gains more channels, it will be re-added back to the graph.
 func (c *ChannelGraph) PruneGraphNodes() error {
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodesNotFound
@@ -970,9 +968,7 @@ func (c *ChannelGraph) DisconnectBlockAtHeight(height uint32) ([]*ChannelEdgeInf
 	// Keep track of the channels that are removed from the graph.
 	var removedChans []*ChannelEdgeInfo
 
-	if err := c.db.Batch(func(tx *bolt.Tx) error {
-		removedChans = nil
-
+	if err := c.db.Update(func(tx *bolt.Tx) error {
 		edges, err := tx.CreateBucketIfNotExists(edgeBucket)
 		if err != nil {
 			return err
@@ -1102,7 +1098,7 @@ func (c *ChannelGraph) DeleteChannelEdge(chanPoint *wire.OutPoint) error {
 	// channels
 	// TODO(roasbeef): don't delete both edges?
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		// First grab the edges bucket which houses the information
 		// we'd like to delete
 		edges := tx.Bucket(edgeBucket)
@@ -1695,7 +1691,7 @@ func delChannelByEdge(edges, edgeIndex, chanIndex, zombieIndex,
 // determined by the lexicographical ordering of the identity public keys of
 // the nodes on either side of the channel.
 func (c *ChannelGraph) UpdateEdgePolicy(edge *ChannelEdgePolicy) error {
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bolt.Tx) error {
 		return updateEdgePolicy(tx, edge)
 	})
 }
