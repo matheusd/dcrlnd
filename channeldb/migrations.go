@@ -568,7 +568,7 @@ func migratePruneEdgeUpdateIndex(tx *bolt.Tx) error {
 			return err
 		}
 
-		err = updateEdgePolicy(tx, edgePolicy)
+		_, err = updateEdgePolicy(tx, edgePolicy)
 		if err != nil {
 			return err
 		}
