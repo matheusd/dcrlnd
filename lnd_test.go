@@ -10285,7 +10285,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// We'll now mine enough blocks to trigger Bob's broadcast of his
 	// commitment transaction due to the fact that the HTLC is about to
 	// timeout.
-	numBlocks := uint32(finalCltvDelta - defaultBroadcastDelta)
+	numBlocks := uint32(finalCltvDelta - defaultOutgoingBroadcastDelta)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -10329,10 +10329,9 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// We'll now mine the remaining blocks to cause the HTLC itself to
-	// timeout.
-	// We'll stop right after the second-level transaction is published but
-	// before it is mined.
-	if _, err := net.Generate(defaultBroadcastDelta - defaultCSV - 1); err != nil {
+	// timeout.  We'll stop right after the second-level transaction is
+	// published but before it is mined.
+	if _, err := net.Generate(defaultOutgoingBroadcastDelta - defaultCSV - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -10460,7 +10459,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	const invoiceAmt = 100000
 	invoiceReq := &lnrpc.Invoice{
 		Value:      invoiceAmt,
-		CltvExpiry: 20,
+		CltvExpiry: 40,
 	}
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 	carolInvoice, err := carol.AddInvoice(ctxt, invoiceReq)
@@ -10500,7 +10499,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// Now we'll mine enough blocks to prompt carol to actually go to the
 	// chain in order to sweep her HTLC since the value is high enough.
 	// TODO(roasbeef): modify once go to chain policy changes
-	numBlocks := uint32(invoiceReq.CltvExpiry - defaultBroadcastDelta)
+	numBlocks := uint32(invoiceReq.CltvExpiry - defaultIncomingBroadcastDelta)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -11166,7 +11165,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	const invoiceAmt = 100000
 	invoiceReq := &lnrpc.Invoice{
 		Value:      invoiceAmt,
-		CltvExpiry: 20,
+		CltvExpiry: 40,
 	}
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 	carolInvoice, err := carol.AddInvoice(ctxt, invoiceReq)
@@ -11217,10 +11216,9 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// We'll now mine enough blocks so Carol decides that she needs to go
-	// on-chain to claim the HTLC as Bob has been inactive.
-	// We mine up to just before the deadline to check the transaction is in
-	// the mempool.
-	numBlocks := uint32(20-defaultBroadcastDelta) - 1
+	// on-chain to claim the HTLC as Bob has been inactive. We mine up to
+	// just before the deadline to check the transaction is in the mempool.
+	numBlocks := uint32(invoiceReq.CltvExpiry-defaultIncomingBroadcastDelta) - 1
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -11501,7 +11499,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	const invoiceAmt = 100000
 	invoiceReq := &lnrpc.Invoice{
 		Value:      invoiceAmt,
-		CltvExpiry: 20,
+		CltvExpiry: 40,
 	}
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 	carolInvoice, err := carol.AddInvoice(ctxt, invoiceReq)
@@ -11566,10 +11564,9 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	}
 
 	// We'll now mine enough blocks so Carol decides that she needs to go
-	// on-chain to claim the HTLC as Bob has been inactive.
-	// We mine up to just before the deadline to check the transaction is in
-	// the mempool.
-	numBlocks := uint32(20-defaultBroadcastDelta) - defaultCSV - 1
+	// on-chain to claim the HTLC as Bob has been inactive. We mine up to
+	// just before the deadline to check the transaction is in the mempool.
+	numBlocks := uint32(invoiceReq.CltvExpiry-defaultIncomingBroadcastDelta) - defaultCSV - 1
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}
