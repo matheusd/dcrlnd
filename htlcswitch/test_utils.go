@@ -1018,7 +1018,6 @@ func (h *hopNetwork) createChannelLink(server, peer *mockServer,
 		fwdPkgTimeout       = 15 * time.Second
 		minFeeUpdateTimeout = 30 * time.Minute
 		maxFeeUpdateTimeout = 40 * time.Minute
-		expiryGraceDelta    = 3
 	)
 
 	link := NewChannelLink(
@@ -1040,15 +1039,16 @@ func (h *hopNetwork) createChannelLink(server, peer *mockServer,
 			UpdateContractSignals: func(*contractcourt.ContractSignals) error {
 				return nil
 			},
-			ChainEvents:         &contractcourt.ChainEventSubscription{},
-			SyncStates:          true,
-			BatchSize:           10,
-			BatchTicker:         ticker.NewForce(batchTimeout),
-			FwdPkgGCTicker:      ticker.NewForce(fwdPkgTimeout),
-			MinFeeUpdateTimeout: minFeeUpdateTimeout,
-			MaxFeeUpdateTimeout: maxFeeUpdateTimeout,
-			OnChannelFailure:    func(lnwire.ChannelID, lnwire.ShortChannelID, LinkFailureError) {},
-			ExpiryGraceDelta:    expiryGraceDelta,
+			ChainEvents:             &contractcourt.ChainEventSubscription{},
+			SyncStates:              true,
+			BatchSize:               10,
+			BatchTicker:             ticker.NewForce(batchTimeout),
+			FwdPkgGCTicker:          ticker.NewForce(fwdPkgTimeout),
+			MinFeeUpdateTimeout:     minFeeUpdateTimeout,
+			MaxFeeUpdateTimeout:     maxFeeUpdateTimeout,
+			OnChannelFailure:        func(lnwire.ChannelID, lnwire.ShortChannelID, LinkFailureError) {},
+			FinalCltvRejectDelta:    3,
+			OutgoingCltvRejectDelta: 3,
 		},
 		channel,
 	)
