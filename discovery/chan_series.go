@@ -6,7 +6,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/routing/route"
 )
 
 // ChannelGraphTimeSeries is an interface that provides time and block based
@@ -247,7 +247,7 @@ func (c *ChanSeries) FetchChanAnns(chain chainhash.Hash,
 	// We'll use this map to ensure we don't send the same node
 	// announcement more than one time as one node may have many channel
 	// anns we'll need to send.
-	nodePubsSent := make(map[routing.Vertex]struct{})
+	nodePubsSent := make(map[route.Vertex]struct{})
 
 	chanAnns := make([]lnwire.Message, 0, len(channels)*3)
 	for _, channel := range channels {

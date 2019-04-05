@@ -41,6 +41,7 @@ import (
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/pool"
 	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/dcrlnd/tor"
@@ -2089,7 +2090,7 @@ func (s *server) prunePersistentPeerConnection(compressedPubKey [33]byte) {
 // the target peers.
 //
 // NOTE: This function is safe for concurrent access.
-func (s *server) BroadcastMessage(skips map[routing.Vertex]struct{},
+func (s *server) BroadcastMessage(skips map[route.Vertex]struct{},
 	msgs ...lnwire.Message) error {
 
 	srvrLog.Debugf("Broadcasting %v messages", len(msgs))
