@@ -180,7 +180,8 @@ func createInterceptorFunc(prefix, receiver string, messages []expectedMessage,
 func TestChannelLinkSingleHopPayment(t *testing.T) {
 	t.Parallel()
 
-	channels, cleanUp, _, err := createClusterChannels(
+	// Setup a alice-bob network.
+	aliceChannel, bobChannel, cleanUp, err := createTwoClusterChannels(
 		dcrutil.AtomsPerCoin*3,
 		dcrutil.AtomsPerCoin*5)
 	if err != nil {
@@ -188,15 +189,14 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 	}
 	defer cleanUp()
 
-	n := newThreeHopNetwork(t, channels.aliceToBob, channels.bobToAlice,
-		channels.bobToCarol, channels.carolToBob, testStartingHeight)
+	n := newTwoHopNetwork(t, aliceChannel, bobChannel, testStartingHeight)
 	if err := n.start(); err != nil {
 		t.Fatal(err)
 	}
 	defer n.stop()
 
 	aliceBandwidthBefore := n.aliceChannelLink.Bandwidth()
-	bobBandwidthBefore := n.firstBobChannelLink.Bandwidth()
+	bobBandwidthBefore := n.bobChannelLink.Bandwidth()
 
 	debug := false
 	if debug {
@@ -206,12 +206,12 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 
 		// Log message that bob receives.
 		n.bobServer.intersect(createLogFunc("bob",
-			n.firstBobChannelLink.ChanID()))
+			n.bobChannelLink.ChanID()))
 	}
 
 	amount := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	htlcAmt, totalTimelock, hops := generateHops(amount, testStartingHeight,
-		n.firstBobChannelLink)
+		n.bobChannelLink)
 
 	// Wait for:
 	// * HTLC add request to be sent to bob.
@@ -220,7 +220,7 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 	// * alice<->bob commitment state to be updated.
 	// * user notification to be sent.
 	receiver := n.bobServer
-	firstHop := n.firstBobChannelLink.ShortChanID()
+	firstHop := n.bobChannelLink.ShortChanID()
 	rhash, err := makePayment(
 		n.aliceServer, receiver, firstHop, hops, amount, htlcAmt,
 		totalTimelock,
@@ -249,10 +249,10 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 			"amount")
 	}
 
-	if bobBandwidthBefore+amount != n.firstBobChannelLink.Bandwidth() {
+	if bobBandwidthBefore+amount != n.bobChannelLink.Bandwidth() {
 		t.Fatalf("bob bandwidth isn't match: expected %v, got %v",
 			bobBandwidthBefore+amount,
-			n.firstBobChannelLink.Bandwidth())
+			n.bobChannelLink.Bandwidth())
 	}
 }
 
