@@ -732,6 +732,8 @@ func newDB() (*channeldb.DB, func(), error) {
 	return cdb, cleanUp, nil
 }
 
+const testInvoiceCltvExpiry = 4
+
 type mockInvoiceRegistry struct {
 	settleChan chan lntypes.Hash
 
@@ -747,7 +749,7 @@ func newMockRegistry(minDelta uint32) *mockInvoiceRegistry {
 	}
 
 	decodeExpiry := func(invoice string) (uint32, error) {
-		return 3, nil
+		return testInvoiceCltvExpiry, nil
 	}
 
 	registry := invoices.NewRegistry(cdb, decodeExpiry)
