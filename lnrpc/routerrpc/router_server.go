@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/zpay32"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
@@ -190,7 +191,7 @@ func (s *Server) SendPayment(ctx context.Context,
 		return nil, fmt.Errorf("zero value invoices are not supported")
 	}
 
-	var destination routing.Vertex
+	var destination route.Vertex
 	copy(destination[:], payReq.Destination.SerializeCompressed())
 
 	// Now that all the information we need has been parsed, we'll map this
@@ -232,7 +233,7 @@ func (s *Server) EstimateRouteFee(ctx context.Context,
 	if len(req.Dest) != 33 {
 		return nil, errors.New("invalid length destination key")
 	}
-	var destNode routing.Vertex
+	var destNode route.Vertex
 	copy(destNode[:], req.Dest)
 
 	// Next, we'll convert the amount in satoshis to mSAT, which are the

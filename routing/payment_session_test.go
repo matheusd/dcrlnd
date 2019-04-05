@@ -5,6 +5,7 @@ import (
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing/route"
 )
 
 func TestRequestRoute(t *testing.T) {
@@ -13,7 +14,7 @@ func TestRequestRoute(t *testing.T) {
 	)
 
 	findPath := func(g *graphParams, r *RestrictParams,
-		source, target Vertex, amt lnwire.MilliAtom) (
+		source, target route.Vertex, amt lnwire.MilliAtom) (
 		[]*channeldb.ChannelEdgePolicy, error) {
 
 		// We expect find path to receive a cltv limit excluding the
