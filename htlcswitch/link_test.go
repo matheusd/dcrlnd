@@ -181,7 +181,7 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 	t.Parallel()
 
 	// Setup a alice-bob network.
-	aliceChannel, bobChannel, cleanUp, err := createTwoClusterChannels(
+	alice, bob, cleanUp, err := createTwoClusterChannels(
 		dcrutil.AtomsPerCoin*3,
 		dcrutil.AtomsPerCoin*5)
 	if err != nil {
@@ -189,7 +189,9 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 	}
 	defer cleanUp()
 
-	n := newTwoHopNetwork(t, aliceChannel, bobChannel, testStartingHeight)
+	n := newTwoHopNetwork(
+		t, alice.channel, bob.channel, testStartingHeight,
+	)
 	if err := n.start(); err != nil {
 		t.Fatal(err)
 	}
@@ -1596,7 +1598,7 @@ func (m *mockPeer) Inbound() bool {
 
 func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 	ChannelLink, *lnwallet.LightningChannel, chan time.Time, func() error,
-	func(), chanRestoreFunc, error) {
+	func(), func() (*lnwallet.LightningChannel, error), error) {
 
 	var chanIDBytes [8]byte
 	if _, err := io.ReadFull(rand.Reader, chanIDBytes[:]); err != nil {
@@ -1606,7 +1608,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 	chanID := lnwire.NewShortChanIDFromInt(
 		binary.BigEndian.Uint64(chanIDBytes[:]))
 
-	aliceChannel, bobChannel, fCleanUp, restore, err := createTestChannel(
+	aliceLc, bobLc, fCleanUp, err := createTestChannel(
 		alicePrivKey, bobPrivKey, chanAmt, chanAmt,
 		chanReserve, chanReserve, chanID,
 	)
@@ -1632,7 +1634,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 
 	pCache := newMockPreimageCache()
 
-	aliceDb := aliceChannel.State().Db
+	aliceDb := aliceLc.channel.State().Db
 	aliceSwitch, err := initSwitchWithDB(testStartingHeight, aliceDb)
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, err
@@ -1671,7 +1673,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 		MaxFeeUpdateTimeout: 40 * time.Minute,
 	}
 
-	aliceLink := NewChannelLink(aliceCfg, aliceChannel)
+	aliceLink := NewChannelLink(aliceCfg, aliceLc.channel)
 	start := func() error {
 		return aliceSwitch.AddLink(aliceLink)
 	}
@@ -1690,7 +1692,8 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 		defer fCleanUp()
 	}
 
-	return aliceLink, bobChannel, bticker.Force, start, cleanUp, restore, nil
+	return aliceLink, bobLc.channel, bticker.Force, start, cleanUp,
+		aliceLc.restore, nil
 }
 
 func assertLinkBandwidth(t *testing.T, link ChannelLink,
@@ -2549,7 +2552,9 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 		t.Fatalf("unable to start test harness: %v", err)
 	}
 
-	alice := newPersistentLinkHarness(t, aliceLink, batchTicker, restore)
+	alice := newPersistentLinkHarness(
+		t, aliceLink, batchTicker, restore,
+	)
 
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
@@ -2821,7 +2826,9 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 		t.Fatalf("unable to start test harness: %v", err)
 	}
 
-	alice := newPersistentLinkHarness(t, aliceLink, batchTicker, restore)
+	alice := newPersistentLinkHarness(
+		t, aliceLink, batchTicker, restore,
+	)
 
 	// We'll put Alice into hodl.Commit mode, such that the circuits for any
 	// outgoing ADDs are opened, but the changes are not committed in the
@@ -3983,14 +3990,15 @@ type persistentLinkHarness struct {
 	batchTicker chan time.Time
 	msgs        chan lnwire.Message
 
-	restoreChan chanRestoreFunc
+	restoreChan func() (*lnwallet.LightningChannel, error)
 }
 
 // newPersistentLinkHarness initializes a new persistentLinkHarness and derives
 // the supporting references from the active link.
 func newPersistentLinkHarness(t *testing.T, link ChannelLink,
 	batchTicker chan time.Time,
-	restore chanRestoreFunc) *persistentLinkHarness {
+	restore func() (*lnwallet.LightningChannel,
+		error)) *persistentLinkHarness {
 
 	coreLink := link.(*channelLink)
 
@@ -4037,7 +4045,7 @@ func (h *persistentLinkHarness) restart(restartSwitch bool,
 	// state, we will restore the persisted state to ensure we always start
 	// the link in a consistent state.
 	var err error
-	h.channel, _, err = h.restoreChan()
+	h.channel, err = h.restoreChan()
 	if err != nil {
 		h.t.Fatalf("unable to restore channels: %v", err)
 	}
@@ -5574,7 +5582,7 @@ func TestChannelLinkCanceledInvoice(t *testing.T) {
 	t.Parallel()
 
 	// Setup a alice-bob network.
-	aliceChannel, bobChannel, cleanUp, err := createTwoClusterChannels(
+	alice, bob, cleanUp, err := createTwoClusterChannels(
 		dcrutil.AtomsPerCoin*3,
 		dcrutil.AtomsPerCoin*5)
 	if err != nil {
@@ -5582,7 +5590,7 @@ func TestChannelLinkCanceledInvoice(t *testing.T) {
 	}
 	defer cleanUp()
 
-	n := newTwoHopNetwork(t, aliceChannel, bobChannel, testStartingHeight)
+	n := newTwoHopNetwork(t, alice.channel, bob.channel, testStartingHeight)
 	if err := n.start(); err != nil {
 		t.Fatal(err)
 	}
@@ -5639,7 +5647,7 @@ type hodlInvoiceTestCtx struct {
 
 func newHodlInvoiceTestCtx(t *testing.T) (*hodlInvoiceTestCtx, error) {
 	// Setup a alice-bob network.
-	aliceChannel, bobChannel, cleanUp, err := createTwoClusterChannels(
+	alice, bob, cleanUp, err := createTwoClusterChannels(
 		dcrutil.AtomsPerCoin*3,
 		dcrutil.AtomsPerCoin*5,
 	)
@@ -5647,7 +5655,7 @@ func newHodlInvoiceTestCtx(t *testing.T) (*hodlInvoiceTestCtx, error) {
 		t.Fatalf("unable to create channel: %v", err)
 	}
 
-	n := newTwoHopNetwork(t, aliceChannel, bobChannel, testStartingHeight)
+	n := newTwoHopNetwork(t, alice.channel, bob.channel, testStartingHeight)
 	if err := n.start(); err != nil {
 		t.Fatal(err)
 	}
