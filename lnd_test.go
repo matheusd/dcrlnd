@@ -14426,16 +14426,46 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
 
-	// With the two coins above mined, we'll now instruct Carol to sweep
-	// all the coins to an external address not under its control.  We will
-	// first attempt to send the coins to addresses that are not compatible
-	// with the current network. This is to test that the wallet will
-	// prevent any onchain transactions to addresses that are not on the
-	// same network as the user.
+	// Ensure that we can't send coins to our own Pubkey.
+	info, err := carol.GetInfo(ctxt, &lnrpc.GetInfoRequest{})
+	if err != nil {
+		t.Fatalf("unable to get node info: %v", err)
+	}
+
+	sweepReq := &lnrpc.SendCoinsRequest{
+		Addr:    info.IdentityPubkey,
+		SendAll: true,
+	}
+	_, err = carol.SendCoins(ctxt, sweepReq)
+	if err == nil {
+		t.Fatalf("expected SendCoins to users own pubkey to fail")
+	}
+
+	// Ensure that we can't send coins to another users Pubkey.
+	info, err = net.Alice.GetInfo(ctxt, &lnrpc.GetInfoRequest{})
+	if err != nil {
+		t.Fatalf("unable to get node info: %v", err)
+	}
+
+	sweepReq = &lnrpc.SendCoinsRequest{
+		Addr:    info.IdentityPubkey,
+		SendAll: true,
+	}
+	_, err = carol.SendCoins(ctxt, sweepReq)
+	if err == nil {
+		t.Fatalf("expected SendCoins to Alices pubkey to fail")
+	}
+
+	// With the two coins above mined, we'll now instruct ainz to sweep all
+	// the coins to an external address not under its control.
+	// We will first attempt to send the coins to addresses that are not
+	// compatible with the current network. This is to test that the wallet
+	// will prevent any onchain transactions to addresses that are not on
+	// the same network as the user.
 
 	// Send coins to a testnet3 address.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	sweepReq := &lnrpc.SendCoinsRequest{
+	sweepReq = &lnrpc.SendCoinsRequest{
 		Addr:    "Tsi6gGYNSMmFwi7JoL5Li39SrERZTTMu6vY",
 		SendAll: true,
 	}
