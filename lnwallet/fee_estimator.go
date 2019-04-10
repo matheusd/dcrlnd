@@ -3,7 +3,13 @@ package lnwallet
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	prand "math/rand"
+	"net"
+	"net/http"
+	"sync"
+	"time"
 
 	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil"
@@ -17,6 +23,25 @@ const (
 	// error, but in Decred we use this to track the widely deployed
 	// minimum relay fee.
 	FeePerKBFloor AtomPerKByte = 1e4
+
+	// maxBlockTarget is the highest number of blocks confirmations that
+	// a WebAPIFeeEstimator will cache fees for. This number is chosen
+	// because it's the highest number of confs bitcoind will return a fee
+	// estimate for.
+	maxBlockTarget uint32 = 1009
+
+	// minBlockTarget is the lowest number of blocks confirmations that
+	// a WebAPIFeeEstimator will cache fees for. Requesting an estimate for
+	// less than this will result in an error.
+	minBlockTarget uint32 = 2
+
+	// minFeeUpdateTimeout represents the minimum interval in which a
+	// WebAPIFeeEstimator will request fresh fees from its API.
+	minFeeUpdateTimeout = 5 * time.Minute
+
+	// maxFeeUpdateTimeout represents the maximum interval in which a
+	// WebAPIFeeEstimator will request fresh fees from its API.
+	maxFeeUpdateTimeout = 20 * time.Minute
 )
 
 // AtomPerKByte represents a fee rate in atom/kB.
@@ -325,3 +350,212 @@ func (s SparseConfFeeSource) ParseResponse(r io.Reader) (map[uint32]uint32, erro
 // A compile-time assertion to ensure that SparseConfFeeSource implements the
 // WebAPIFeeSource interface.
 var _ WebAPIFeeSource = (*SparseConfFeeSource)(nil)
+
+// WebAPIFeeEstimator is an implementation of the FeeEstimator interface that
+// queries an HTTP-based fee estimation from an existing web API.
+type WebAPIFeeEstimator struct {
+	started sync.Once
+	stopped sync.Once
+
+	// apiSource is the backing web API source we'll use for our queries.
+	apiSource WebAPIFeeSource
+
+	// updateFeeTicker is the ticker responsible for updating the Estimator's
+	// fee estimates every time it fires.
+	updateFeeTicker *time.Ticker
+
+	// feeByBlockTarget is our cache for fees pulled from the API. When a
+	// fee estimate request comes in, we pull the estimate from this array
+	// rather than re-querying the API, to prevent an inadvertent DoS attack.
+	feesMtx          sync.Mutex
+	feeByBlockTarget map[uint32]uint32
+
+	// defaultFeePerKB is a fallback value that we'll use if we're unable
+	// to query the API for any reason.
+	defaultFeePerKB AtomPerKByte
+
+	quit chan struct{}
+	wg   sync.WaitGroup
+}
+
+// NewWebAPIFeeEstimator creates a new WebAPIFeeEstimator from a given URL and a
+// fallback default fee. The fees are updated whenever a new block is mined.
+func NewWebAPIFeeEstimator(
+	api WebAPIFeeSource, defaultFee AtomPerKByte) *WebAPIFeeEstimator {
+
+	return &WebAPIFeeEstimator{
+		apiSource:        api,
+		feeByBlockTarget: make(map[uint32]uint32),
+		defaultFeePerKB:  defaultFee,
+		quit:             make(chan struct{}),
+	}
+}
+
+// EstimateFeePerKB takes in a target for the number of blocks until an initial
+// confirmation and returns the estimated fee expressed in sat/kw.
+//
+// NOTE: This method is part of the FeeEstimator interface.
+func (w *WebAPIFeeEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, error) {
+	if numBlocks > maxBlockTarget {
+		numBlocks = maxBlockTarget
+	} else if numBlocks < minBlockTarget {
+		return 0, fmt.Errorf("conf target of %v is too low, minimum "+
+			"accepted is %v", numBlocks, minBlockTarget)
+	}
+
+	feePerKB, err := w.getCachedFee(numBlocks)
+	if err != nil {
+		return 0, err
+	}
+	atomsPerKB := AtomPerKByte(feePerKB)
+
+	// If the result is too low, then we'll clamp it to our current fee
+	// floor.
+	if atomsPerKB < FeePerKBFloor {
+		atomsPerKB = FeePerKBFloor
+	}
+
+	walletLog.Debugf("Web API returning %v atoms/KB for conf target of %v",
+		atomsPerKB, numBlocks)
+
+	return atomsPerKB, nil
+}
+
+// Start signals the FeeEstimator to start any processes or goroutines it needs
+// to perform its duty.
+//
+// NOTE: This method is part of the FeeEstimator interface.
+func (w *WebAPIFeeEstimator) Start() error {
+	var err error
+	w.started.Do(func() {
+		walletLog.Infof("Starting web API fee estimator")
+
+		w.updateFeeTicker = time.NewTicker(w.randomFeeUpdateTimeout())
+		w.updateFeeEstimates()
+
+		w.wg.Add(1)
+		go w.feeUpdateManager()
+
+	})
+	return err
+}
+
+// Stop stops any spawned goroutines and cleans up the resources used by the
+// fee estimator.
+//
+// NOTE: This method is part of the FeeEstimator interface.
+func (w *WebAPIFeeEstimator) Stop() error {
+	w.stopped.Do(func() {
+		walletLog.Infof("Stopping web API fee estimator")
+
+		w.updateFeeTicker.Stop()
+
+		close(w.quit)
+		w.wg.Wait()
+	})
+	return nil
+}
+
+// RelayFeePerKB returns the minimum fee rate required for transactions to be
+// relayed.
+//
+// NOTE: This method is part of the FeeEstimator interface.
+func (w *WebAPIFeeEstimator) RelayFeePerKB() AtomPerKByte {
+	return FeePerKBFloor
+}
+
+// randomFeeUpdateTimeout returns a random timeout between minFeeUpdateTimeout
+// and maxFeeUpdateTimeout that will be used to determine how often the Estimator
+// should retrieve fresh fees from its API.
+func (w *WebAPIFeeEstimator) randomFeeUpdateTimeout() time.Duration {
+	lower := int64(minFeeUpdateTimeout)
+	upper := int64(maxFeeUpdateTimeout)
+	return time.Duration(prand.Int63n(upper-lower) + lower)
+}
+
+// getCachedFee takes in a target for the number of blocks until an initial
+// confirmation and returns an estimated fee (if one was returned by the API). If
+// the fee was not previously cached, we cache it here.
+func (w *WebAPIFeeEstimator) getCachedFee(numBlocks uint32) (uint32, error) {
+	w.feesMtx.Lock()
+	defer w.feesMtx.Unlock()
+
+	// Search our cached fees for the desired block target. If the target is
+	// not cached, then attempt to extrapolate it from the next lowest target
+	// that *is* cached. If we successfully extrapolate, then cache the
+	// target's fee.
+	for target := numBlocks; target >= minBlockTarget; target-- {
+		fee, ok := w.feeByBlockTarget[target]
+		if !ok {
+			continue
+		}
+
+		_, ok = w.feeByBlockTarget[numBlocks]
+		if !ok {
+			w.feeByBlockTarget[numBlocks] = fee
+		}
+		return fee, nil
+	}
+	return 0, fmt.Errorf("web API does not include a fee estimation for "+
+		"block target of %v", numBlocks)
+}
+
+// updateFeeEstimates re-queries the API for fresh fees and caches them.
+func (w *WebAPIFeeEstimator) updateFeeEstimates() {
+	// Rather than use the default http.Client, we'll make a custom one
+	// which will allow us to control how long we'll wait to read the
+	// response from the service. This way, if the service is down or
+	// overloaded, we can exit early and use our default fee.
+	netTransport := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+	netClient := &http.Client{
+		Timeout:   time.Second * 10,
+		Transport: netTransport,
+	}
+
+	// With the client created, we'll query the API source to fetch the URL
+	// that we should use to query for the fee estimation.
+	targetURL := w.apiSource.GenQueryURL()
+	resp, err := netClient.Get(targetURL)
+	if err != nil {
+		walletLog.Errorf("unable to query web api for fee response: %v",
+			err)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Once we've obtained the response, we'll instruct the WebAPIFeeSource
+	// to parse out the body to obtain our final result.
+	feesByBlockTarget, err := w.apiSource.ParseResponse(resp.Body)
+	if err != nil {
+		walletLog.Errorf("unable to query web api for fee response: %v",
+			err)
+		return
+	}
+
+	w.feesMtx.Lock()
+	w.feeByBlockTarget = feesByBlockTarget
+	w.feesMtx.Unlock()
+}
+
+// feeUpdateManager updates the fee estimates whenever a new block comes in.
+func (w *WebAPIFeeEstimator) feeUpdateManager() {
+	defer w.wg.Done()
+
+	for {
+		select {
+		case <-w.updateFeeTicker.C:
+			w.updateFeeEstimates()
+		case <-w.quit:
+			return
+		}
+	}
+}
+
+// A compile-time assertion to ensure that WebAPIFeeEstimator implements the
+// FeeEstimator interface.
+var _ FeeEstimator = (*WebAPIFeeEstimator)(nil)
