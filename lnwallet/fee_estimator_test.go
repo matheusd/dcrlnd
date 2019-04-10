@@ -3,11 +3,26 @@ package lnwallet_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/decred/dcrlnd/lnwallet"
 )
+
+type mockSparseConfFeeSource struct {
+	url  string
+	fees map[uint32]uint32
+}
+
+func (e mockSparseConfFeeSource) GenQueryURL() string {
+	return e.url
+}
+
+func (e mockSparseConfFeeSource) ParseResponse(r io.Reader) (map[uint32]uint32, error) {
+	return e.fees, nil
+}
 
 // TestStaticFeeEstimator checks that the StaticFeeEstimator returns the
 // expected fee rate.
@@ -81,5 +96,79 @@ func TestSparseConfFeeSource(t *testing.T) {
 	_, err = feeSource.ParseResponse(reader)
 	if err == nil {
 		t.Fatalf("expected ParseResponse to fail")
+	}
+}
+
+// TestWebAPIFeeEstimator checks that the WebAPIFeeEstimator returns fee rates
+// as expected.
+func TestWebAPIFeeEstimator(t *testing.T) {
+	t.Parallel()
+
+	feeFloor := uint32(lnwallet.FeePerKBFloor)
+	testCases := []struct {
+		name   string
+		target uint32
+		apiEst uint32
+		est    uint32
+		err    string
+	}{
+		{"target_below_min", 1, 12345, 12345, "too low, minimum"},
+		{"target_w_too-low_fee", 10, 42, feeFloor, ""},
+		{"API-omitted_target", 2, 0, 0, "web API does not include"},
+		{"valid_target", 20, 54321, 54321, ""},
+		{"valid_target_extrapolated_fee", 25, 0, 54321, ""},
+	}
+
+	// Construct mock fee source for the Estimator to pull fees from.
+	testFees := make(map[uint32]uint32)
+	for _, tc := range testCases {
+		if tc.apiEst != 0 {
+			testFees[tc.target] = tc.apiEst
+		}
+	}
+
+	feeSource := mockSparseConfFeeSource{
+		url:  "https://www.github.com",
+		fees: testFees,
+	}
+
+	estimator := lnwallet.NewWebAPIFeeEstimator(feeSource, 10)
+
+	// Test that requesting a fee when no fees have been cached fails.
+	_, err := estimator.EstimateFeePerKB(5)
+	if err == nil ||
+		!strings.Contains(err.Error(), "web API does not include") {
+
+		t.Fatalf("expected fee estimation to fail, instead got: %v", err)
+	}
+
+	if err := estimator.Start(); err != nil {
+		t.Fatalf("unable to start fee estimator, got: %v", err)
+	}
+	defer estimator.Stop()
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			est, err := estimator.EstimateFeePerKB(tc.target)
+			if tc.err != "" {
+				if err == nil ||
+					!strings.Contains(err.Error(), tc.err) {
+
+					t.Fatalf("expected fee estimation to "+
+						"fail, instead got: %v", err)
+				}
+			} else {
+				exp := lnwallet.AtomPerKByte(tc.est)
+				if err != nil {
+					t.Fatalf("unable to estimate fee for "+
+						"%v block target, got: %v",
+						tc.target, err)
+				}
+				if est != exp {
+					t.Fatalf("expected fee estimate of "+
+						"%v, got %v", exp, est)
+				}
+			}
+		})
 	}
 }
