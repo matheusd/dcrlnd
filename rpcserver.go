@@ -1062,7 +1062,7 @@ func (r *rpcServer) NewAddress(ctx context.Context,
 		return nil, fmt.Errorf("unsupported address type %s", in.Type)
 	}
 
-	rpcsLog.Infof("[newaddress] addr=%v", addr.String())
+	rpcsLog.Debugf("[newaddress] type=%v addr=%v", in.Type, addr.String())
 	return &lnrpc.NewAddressResponse{Address: addr.String()}, nil
 }
 
