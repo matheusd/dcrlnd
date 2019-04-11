@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
@@ -221,7 +222,8 @@ type config struct {
 	Color       string `long:"color" description:"The color of the node in hex format (i.e. '#3399FF'). Used to customize node appearance in intelligence services"`
 	MinChanSize int64  `long:"minchansize" description:"The smallest channel size (in atoms) that we should accept. Incoming channels smaller than this will be rejected"`
 
-	NumGraphSyncPeers int `long:"numgraphsyncpeers" description:"The number of peers that we should receive new graph updates from. This option can be tuned to save bandwidth for light clients or routing nodes."`
+	NumGraphSyncPeers      int           `long:"numgraphsyncpeers" description:"The number of peers that we should receive new graph updates from. This option can be tuned to save bandwidth for light clients or routing nodes."`
+	HistoricalSyncInterval time.Duration `long:"historicalsyncinterval" description:"The polling interval between historical graph sync attempts. Each historical graph sync attempt ensures we reconcile with the remote peer's graph from the genesis block."`
 
 	RejectPush bool `long:"rejectpush" description:"If true, lnd will not accept channel opening requests with non-zero push amounts. This should prevent accidental pushes to merchant nodes."`
 
@@ -291,6 +293,7 @@ func loadConfig() (*config, error) {
 		Color:                    defaultColor,
 		MinChanSize:              int64(minChanFundingSize),
 		NumGraphSyncPeers:        defaultMinPeers,
+		HistoricalSyncInterval:   discovery.DefaultHistoricalSyncInterval,
 		Tor: &torConfig{
 			SOCKS:   defaultTorSOCKS,
 			DNS:     defaultTorDNS,
