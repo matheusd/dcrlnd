@@ -2693,8 +2693,6 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 
 		aliceWalletController lnwallet.WalletController
 		bobWalletController   lnwallet.WalletController
-
-		feeEstimator lnwallet.FeeEstimator
 	)
 
 	tempTestDirAlice, err := ioutil.TempDir("", "lnwallet")
@@ -2729,12 +2727,6 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		var aliceSyncer, bobSyncer dcrwallet.WalletSyncer
 		switch backEnd {
 		case "dcrd":
-			feeEstimator, err = lnwallet.NewDcrdFeeEstimator(
-				rpcConfig, 250)
-			if err != nil {
-				t.Fatalf("unable to create dcrd fee estimator: %v",
-					err)
-			}
 			aliceSyncer, err = dcrwallet.NewRPCSyncer(rpcConfig,
 				netParams)
 			if err != nil {
@@ -2758,13 +2750,12 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		aliceSeedBytes := aliceSeed.Sum(nil)
 
 		aliceWalletConfig := &dcrwallet.Config{
-			PrivatePass:  []byte("alice-pass"),
-			HdSeed:       aliceSeedBytes,
-			DataDir:      tempTestDirAlice,
-			NetParams:    netParams,
-			Syncer:       aliceSyncer,
-			FeeEstimator: feeEstimator,
-			DB:           aliceCDB,
+			PrivatePass: []byte("alice-pass"),
+			HdSeed:      aliceSeedBytes,
+			DataDir:     tempTestDirAlice,
+			NetParams:   netParams,
+			Syncer:      aliceSyncer,
+			DB:          aliceCDB,
 		}
 		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
 		if err != nil {
@@ -2779,13 +2770,12 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		bobSeedBytes := bobSeed.Sum(nil)
 
 		bobWalletConfig := &dcrwallet.Config{
-			PrivatePass:  []byte("bob-pass"),
-			HdSeed:       bobSeedBytes,
-			DataDir:      tempTestDirBob,
-			NetParams:    netParams,
-			Syncer:       bobSyncer,
-			FeeEstimator: feeEstimator,
-			DB:           bobCDB,
+			PrivatePass: []byte("bob-pass"),
+			HdSeed:      bobSeedBytes,
+			DataDir:     tempTestDirBob,
+			NetParams:   netParams,
+			Syncer:      bobSyncer,
+			DB:          bobCDB,
 		}
 		bobWalletController, err = walletDriver.New(bobWalletConfig)
 		if err != nil {

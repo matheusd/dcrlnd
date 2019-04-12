@@ -77,11 +77,6 @@ type Config struct {
 	// backend synced to the chain.
 	Syncer WalletSyncer
 
-	// FeeEstimator is an instance of the fee estimator interface which
-	// will be used by the wallet to dynamically set transaction fees when
-	// crafting transactions.
-	//FeeEstimator lnwallet.FeeEstimator // TODO(decred): Uncomment
-
 	// NetParams is the net parameters for the target chain.
 	NetParams *chaincfg.Params
 
