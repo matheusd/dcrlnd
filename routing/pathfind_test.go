@@ -1773,7 +1773,6 @@ func TestPathFindSpecExample(t *testing.T) {
 	}
 
 	// We'll now request a route from A -> B -> C.
-	ctx.router.routeCache = make(map[routeTuple][]*Route)
 	routes, err = ctx.router.FindRoutes(
 		source.PubKeyBytes, carol, amt, noRestrictions, 100,
 	)
