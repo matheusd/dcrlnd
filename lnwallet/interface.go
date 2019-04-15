@@ -9,7 +9,6 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrwallet/wallet/v2/txauthor"
 )
 
@@ -306,21 +305,6 @@ type MessageSigner interface {
 	// is unable to be found, then an error will be returned. The actual
 	// digest signed is the double SHA-256 of the passed message.
 	SignMessage(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error)
-}
-
-// PreimageCache is an interface that represents a global cache for preimages.
-// We'll utilize this cache to communicate the discovery of new preimages
-// across sub-systems.
-type PreimageCache interface {
-	// LookupPreimage attempts to look up a preimage according to its hash.
-	// If found, the preimage is returned along with true for the second
-	// argument. Otherwise, it'll return false.
-	LookupPreimage(hash lntypes.Hash) (lntypes.Preimage, bool)
-
-	// AddPreimages adds a batch of newly discovered preimages to the global
-	// cache, and also signals any subscribers of the newly discovered
-	// witness.
-	AddPreimages(preimages ...lntypes.Preimage) error
 }
 
 // WalletDriver represents a "driver" for a particular concrete

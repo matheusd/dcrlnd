@@ -1310,13 +1310,6 @@ type LightningChannel struct {
 	// signatures, of which there may be hundreds.
 	sigPool *SigPool
 
-	// pCache is the global preimage cache shared across all other
-	// LightningChannel instance. We'll use this cache either when we force
-	// close, or we detect that the remote party has force closed. If the
-	// preimage for an incoming HTLC is found in the cache, then we'll try
-	// to claim it on chain.
-	pCache PreimageCache
-
 	// Capacity is the total capacity of this channel.
 	Capacity dcrutil.Amount
 
@@ -1371,7 +1364,7 @@ type LightningChannel struct {
 // settled channel state. Throughout state transitions, then channel will
 // automatically persist pertinent state to the database in an efficient
 // manner.
-func NewLightningChannel(signer input.Signer, pCache PreimageCache,
+func NewLightningChannel(signer input.Signer,
 	state *channeldb.OpenChannel,
 	sigPool *SigPool) (*LightningChannel, error) {
 
@@ -1390,7 +1383,6 @@ func NewLightningChannel(signer input.Signer, pCache PreimageCache,
 	lc := &LightningChannel{
 		Signer:            signer,
 		sigPool:           sigPool,
-		pCache:            pCache,
 		currentHeight:     localCommit.CommitHeight,
 		remoteCommitChain: newCommitmentChain(),
 		localCommitChain:  newCommitmentChain(),
@@ -5096,7 +5088,7 @@ type UnilateralCloseSummary struct {
 // which case we will attempt to sweep the non-HTLC output using the passed
 // commitPoint.
 func NewUnilateralCloseSummary(chanState *channeldb.OpenChannel, signer input.Signer,
-	pCache PreimageCache, commitSpend *chainntnfs.SpendDetail,
+	commitSpend *chainntnfs.SpendDetail,
 	remoteCommit channeldb.ChannelCommitment,
 	commitPoint *secp256k1.PublicKey) (*UnilateralCloseSummary, error) {
 
@@ -5113,7 +5105,6 @@ func NewUnilateralCloseSummary(chanState *channeldb.OpenChannel, signer input.Si
 		AtomPerKByte(remoteCommit.FeePerKB), false, signer,
 		remoteCommit.Htlcs, keyRing, &chanState.LocalChanCfg,
 		&chanState.RemoteChanCfg, *commitSpend.SpenderTxHash,
-		pCache,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create htlc "+
@@ -5211,11 +5202,11 @@ func NewUnilateralCloseSummary(chanState *channeldb.OpenChannel, signer input.Si
 // using this struct if we need to go on-chain for any reason, or if we detect
 // that the remote party broadcasts their commitment transaction.
 type IncomingHtlcResolution struct {
-	// Preimage is the preimage that will be used to satisfy the contract
-	// of the HTLC.
+	// Preimage is the preimage that will be used to satisfy the contract of
+	// the HTLC.
 	//
-	// NOTE: This field will only be populated if we know the preimage at
-	// the time a unilateral or force close occurs.
+	// NOTE: This field will only be populated in the incoming contest
+	// resolver.
 	Preimage [32]byte
 
 	// SignedSuccessTx is the fully signed HTLC success transaction. This
@@ -5452,7 +5443,7 @@ func newOutgoingHtlcResolution(signer input.Signer, localChanCfg *channeldb.Chan
 func newIncomingHtlcResolution(signer input.Signer, localChanCfg *channeldb.ChannelConfig,
 	commitHash chainhash.Hash, htlc *channeldb.HTLC, keyRing *CommitmentKeyRing,
 	feePerKB AtomPerKByte, dustLimit dcrutil.Amount, csvDelay uint32,
-	localCommit bool, preimage [32]byte) (*IncomingHtlcResolution, error) {
+	localCommit bool) (*IncomingHtlcResolution, error) {
 
 	op := wire.OutPoint{
 		Hash:  commitHash,
@@ -5479,7 +5470,6 @@ func newIncomingHtlcResolution(signer input.Signer, localChanCfg *channeldb.Chan
 		// With the script generated, we can completely populated the
 		// input.SignDescriptor needed to sweep the output.
 		return &IncomingHtlcResolution{
-			Preimage:      preimage,
 			ClaimOutpoint: op,
 			CsvDelay:      csvDelay,
 			SweepSignDesc: input.SignDescriptor{
@@ -5529,10 +5519,12 @@ func newIncomingHtlcResolution(signer input.Signer, localChanCfg *channeldb.Chan
 		InputIndex: 0,
 	}
 
-	// Next, we'll construct the full witness needed to satisfy the input
-	// of the success transaction.
+	// Next, we'll construct the full witness needed to satisfy the input of
+	// the success transaction. Don't specify the preimage yet. The preimage
+	// will be supplied by the contract resolver, either directly or when it
+	// becomes known.
 	successWitness, err := input.ReceiverHtlcSpendRedeem(
-		htlc.Signature, preimage[:], signer, &successSignDesc, successTx,
+		htlc.Signature, nil, signer, &successSignDesc, successTx,
 	)
 	if err != nil {
 		return nil, err
@@ -5560,7 +5552,6 @@ func newIncomingHtlcResolution(signer input.Signer, localChanCfg *channeldb.Chan
 		keyRing.CommitPoint, localChanCfg.DelayBasePoint.PubKey,
 	)
 	return &IncomingHtlcResolution{
-		Preimage:        preimage,
 		SignedSuccessTx: successTx,
 		CsvDelay:        csvDelay,
 		ClaimOutpoint: wire.OutPoint{
@@ -5610,7 +5601,7 @@ func (r *OutgoingHtlcResolution) HtlcPoint() wire.OutPoint {
 func extractHtlcResolutions(feePerKB AtomPerKByte, ourCommit bool,
 	signer input.Signer, htlcs []channeldb.HTLC, keyRing *CommitmentKeyRing,
 	localChanCfg, remoteChanCfg *channeldb.ChannelConfig,
-	commitHash chainhash.Hash, pCache PreimageCache) (*HtlcResolutions, error) {
+	commitHash chainhash.Hash) (*HtlcResolutions, error) {
 
 	// TODO(roasbeef): don't need to swap csv delay?
 	dustLimit := remoteChanCfg.DustLimit
@@ -5634,19 +5625,11 @@ func extractHtlcResolutions(feePerKB AtomPerKByte, ourCommit bool,
 		// If the HTLC is incoming, then we'll attempt to see if we
 		// know the pre-image to the HTLC.
 		if htlc.Incoming {
-			// We'll now query the preimage cache for the preimage
-			// for this HTLC. If it's present then we can fully
-			// populate this resolution.
-			preimage, _ := pCache.LookupPreimage(htlc.RHash)
-
 			// Otherwise, we'll create an incoming HTLC resolution
 			// as we can satisfy the contract.
-			var pre [32]byte
-			copy(pre[:], preimage[:])
 			ihr, err := newIncomingHtlcResolution(
 				signer, localChanCfg, commitHash, &htlc, keyRing,
 				feePerKB, dustLimit, uint32(csvDelay), ourCommit,
-				pre,
 			)
 			if err != nil {
 				return nil, err
@@ -5736,7 +5719,7 @@ func (lc *LightningChannel) ForceClose() (*LocalForceCloseSummary, error) {
 
 	localCommitment := lc.channelState.LocalCommitment
 	summary, err := NewLocalForceCloseSummary(
-		lc.channelState, lc.Signer, lc.pCache, commitTx,
+		lc.channelState, lc.Signer, commitTx,
 		localCommitment,
 	)
 	if err != nil {
@@ -5754,8 +5737,8 @@ func (lc *LightningChannel) ForceClose() (*LocalForceCloseSummary, error) {
 // channel state.  The passed commitTx must be a fully signed commitment
 // transaction corresponding to localCommit.
 func NewLocalForceCloseSummary(chanState *channeldb.OpenChannel, signer input.Signer,
-	pCache PreimageCache, commitTx *wire.MsgTx,
-	localCommit channeldb.ChannelCommitment) (*LocalForceCloseSummary, error) {
+	commitTx *wire.MsgTx, localCommit channeldb.ChannelCommitment) (
+	*LocalForceCloseSummary, error) {
 
 	// Re-derive the original pkScript for to-self output within the
 	// commitment transaction. We'll need this to find the corresponding
@@ -5836,7 +5819,8 @@ func NewLocalForceCloseSummary(chanState *channeldb.OpenChannel, signer input.Si
 	htlcResolutions, err := extractHtlcResolutions(
 		AtomPerKByte(localCommit.FeePerKB), true, signer,
 		localCommit.Htlcs, keyRing, &chanState.LocalChanCfg,
-		&chanState.RemoteChanCfg, txHash, pCache)
+		&chanState.RemoteChanCfg, txHash,
+	)
 	if err != nil {
 		return nil, err
 	}
