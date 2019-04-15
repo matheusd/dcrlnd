@@ -19,7 +19,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -560,12 +559,6 @@ func TestForceClose(t *testing.T) {
 		t.Fatalf("Can't update the channel state: %v", err)
 	}
 
-	// Before we force close Alice's channel, we'll add the pre-image of
-	// Bob's HTLC to her preimage cache.
-	if err = aliceChannel.pCache.AddPreimages(lntypes.Preimage(preimageBob)); err != nil {
-		t.Fatalf("alice failed to add preimage bob: %v", err)
-	}
-
 	// With the cache populated, we'll now attempt the force close
 	// initiated by Alice.
 	closeSummary, err := aliceChannel.ForceClose()
@@ -706,8 +699,16 @@ func TestForceClose(t *testing.T) {
 	receiverHtlcScriptVersion := closeSummary.CloseTx.TxOut[inHtlcIndex].Version
 
 	// With the original pkscript located, we'll now verify that the second
-	// level transaction can spend from the multi-sig out.
+	// level transaction can spend from the multi-sig out. Supply the
+	// preimage manually. This is usually done by the contract resolver
+	// before publication.
 	successTx := inHtlcResolution.SignedSuccessTx
+	successTx.TxIn[0].SignatureScript, err = input.ReplaceReceiverHtlcSpendRedeemPreimage(
+		successTx.TxIn[0].SignatureScript, preimageBob[:],
+	)
+	if err != nil {
+		t.Fatalf("unable to replace preimage in sigScript: %v", err)
+	}
 	vm, err = txscript.NewEngine(receiverHtlcScript,
 		successTx, 0, scriptFlagsForTest, receiverHtlcScriptVersion, nil)
 	if err != nil {
@@ -805,10 +806,6 @@ func TestForceClose(t *testing.T) {
 		t.Fatalf("bob in htlc resolutions not populated: expected %v "+
 			"htlcs, got %v htlcs",
 			1, len(closeSummary.HtlcResolutions.IncomingHTLCs))
-	}
-	var zeroHash [32]byte
-	if closeSummary.HtlcResolutions.IncomingHTLCs[0].Preimage != zeroHash {
-		t.Fatalf("bob shouldn't know preimage but does")
 	}
 }
 
@@ -1495,16 +1492,14 @@ func TestStateUpdatePersistence(t *testing.T) {
 	}
 
 	aliceChannelNew, err := NewLightningChannel(
-		aliceChannel.Signer, nil, aliceChannels[0],
-		aliceChannel.sigPool,
+		aliceChannel.Signer, aliceChannels[0], aliceChannel.sigPool,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
 	}
 
 	bobChannelNew, err := NewLightningChannel(
-		bobChannel.Signer, nil, bobChannels[0],
-		bobChannel.sigPool,
+		bobChannel.Signer, bobChannels[0], bobChannel.sigPool,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -2714,13 +2709,13 @@ func TestChanSyncFullySynced(t *testing.T) {
 	}
 
 	aliceChannelNew, err := NewLightningChannel(
-		aliceChannel.Signer, nil, aliceChannels[0], aliceChannel.sigPool,
+		aliceChannel.Signer, aliceChannels[0], aliceChannel.sigPool,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
 	}
 	bobChannelNew, err := NewLightningChannel(
-		bobChannel.Signer, nil, bobChannels[0], bobChannel.sigPool,
+		bobChannel.Signer, bobChannels[0], bobChannel.sigPool,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -2742,7 +2737,7 @@ func restartChannel(channelOld *LightningChannel) (*LightningChannel, error) {
 	}
 
 	channelNew, err := NewLightningChannel(
-		channelOld.Signer, channelOld.pCache, nodeChannels[0],
+		channelOld.Signer, nodeChannels[0],
 		channelOld.sigPool,
 	)
 	if err != nil {
@@ -5012,14 +5007,6 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 		t.Fatalf("unable to close: %v", err)
 	}
 
-	// Now that Bob has force closed, we'll modify Alice's pre image cache
-	// such that she now gains the ability to also settle the incoming HTLC
-	// from Bob.
-	err = aliceChannel.pCache.AddPreimages(lntypes.Preimage(preimageBob))
-	if err != nil {
-		t.Fatalf("unable to add preimage: %v\n", err)
-	}
-
 	// We'll then use Bob's transaction to trigger a spend notification for
 	// Alice.
 	closeTx := bobForceClose.CloseTx
@@ -5030,7 +5017,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	}
 	aliceCloseSummary, err := NewUnilateralCloseSummary(
 		aliceChannel.channelState, aliceChannel.Signer,
-		aliceChannel.pCache, spendDetail,
+		spendDetail,
 		aliceChannel.channelState.RemoteCommitment,
 		aliceChannel.channelState.RemoteCurrentRevocation,
 	)
@@ -5183,7 +5170,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 	// our output wasn't picked up.
 	aliceWrongCloseSummary, err := NewUnilateralCloseSummary(
 		aliceChannel.channelState, aliceChannel.Signer,
-		aliceChannel.pCache, spendDetail,
+		spendDetail,
 		aliceChannel.channelState.RemoteCommitment,
 		aliceChannel.channelState.RemoteCurrentRevocation,
 	)
@@ -5204,7 +5191,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 	}
 	aliceCloseSummary, err := NewUnilateralCloseSummary(
 		aliceChannel.channelState, aliceChannel.Signer,
-		aliceChannel.pCache, spendDetail,
+		spendDetail,
 		aliceRemoteChainTip.Commitment,
 		aliceChannel.channelState.RemoteNextRevocation,
 	)
@@ -5997,7 +5984,7 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 	// We now re-create the channels, mimicking a restart. This should sync
 	// the update logs up to the correct state set up above.
 	newAliceChannel, err := NewLightningChannel(
-		aliceChannel.Signer, nil, aliceChannel.channelState,
+		aliceChannel.Signer, aliceChannel.channelState,
 		aliceChannel.sigPool,
 	)
 	if err != nil {
@@ -6005,7 +5992,7 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 	}
 
 	newBobChannel, err := NewLightningChannel(
-		bobChannel.Signer, nil, bobChannel.channelState,
+		bobChannel.Signer, bobChannel.channelState,
 		bobChannel.sigPool,
 	)
 	if err != nil {
@@ -6079,7 +6066,7 @@ func restoreAndAssert(t *testing.T, channel *LightningChannel, numAddsLocal,
 	numFailsLocal, numAddsRemote, numFailsRemote int) {
 
 	newChannel, err := NewLightningChannel(
-		channel.Signer, nil, channel.channelState,
+		channel.Signer, channel.channelState,
 		channel.sigPool,
 	)
 	if err != nil {
@@ -6389,8 +6376,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 		expLocal, expRemote uint64) *LightningChannel {
 
 		newChannel, err := NewLightningChannel(
-			channel.Signer, nil, channel.channelState,
-			channel.sigPool,
+			channel.Signer, channel.channelState, channel.sigPool,
 		)
 		if err != nil {
 			t.Fatalf("unable to create new channel: %v", err)
