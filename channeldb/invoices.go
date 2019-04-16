@@ -631,8 +631,12 @@ func (d *DB) QueryInvoices(q InvoiceQuery) (InvoiceSlice, error) {
 //
 // When the preimage for the invoice is unknown (hold invoice), the invoice is
 // marked as accepted.
+//
+// TODO: Store invoice cltv as separate field in database so that it doesn't
+// need to be decoded from the payment request.
 func (d *DB) AcceptOrSettleInvoice(paymentHash [32]byte,
-	amtPaid lnwire.MilliAtom) (*Invoice, error) {
+	amtPaid lnwire.MilliAtom,
+	checkHtlcParameters func(invoice *Invoice) error) (*Invoice, error) {
 
 	var settledInvoice *Invoice
 	err := d.Update(func(tx *bolt.Tx) error {
@@ -662,6 +666,7 @@ func (d *DB) AcceptOrSettleInvoice(paymentHash [32]byte,
 
 		settledInvoice, err = acceptOrSettleInvoice(
 			invoices, settleIndex, invoiceNum, amtPaid,
+			checkHtlcParameters,
 		)
 
 		return err
@@ -988,8 +993,10 @@ func deserializeInvoice(r io.Reader) (Invoice, error) {
 	return invoice, nil
 }
 
-func acceptOrSettleInvoice(invoices, settleIndex *bolt.Bucket, invoiceNum []byte,
-	amtPaid lnwire.MilliAtom) (*Invoice, error) {
+func acceptOrSettleInvoice(invoices, settleIndex *bolt.Bucket,
+	invoiceNum []byte, amtPaid lnwire.MilliAtom,
+	checkHtlcParameters func(invoice *Invoice) error) (
+	*Invoice, error) {
 
 	invoice, err := fetchInvoice(invoiceNum, invoices)
 	if err != nil {
@@ -1007,6 +1014,13 @@ func acceptOrSettleInvoice(invoices, settleIndex *bolt.Bucket, invoiceNum []byte
 		return &invoice, ErrInvoiceAlreadyCanceled
 	}
 
+	// If the invoice is still open, check the htlc parameters.
+	if err := checkHtlcParameters(&invoice); err != nil {
+		return &invoice, err
+	}
+
+	// Check to see if we can settle or this is an hold invoice and we need
+	// to wait for the preimage.
 	holdInvoice := invoice.Terms.PaymentPreimage == UnknownPreimage
 	if holdInvoice {
 		invoice.Terms.State = ContractAccepted

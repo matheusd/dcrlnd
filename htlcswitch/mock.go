@@ -770,7 +770,9 @@ func newMockRegistry(minDelta uint32) *mockInvoiceRegistry {
 		return testInvoiceCltvExpiry, nil
 	}
 
-	registry := invoices.NewRegistry(cdb, decodeExpiry)
+	finalCltvRejectDelta := int32(5)
+
+	registry := invoices.NewRegistry(cdb, decodeExpiry, finalCltvRejectDelta)
 	registry.Start()
 
 	return &mockInvoiceRegistry{
@@ -788,10 +790,12 @@ func (i *mockInvoiceRegistry) SettleHodlInvoice(preimage lntypes.Preimage) error
 }
 
 func (i *mockInvoiceRegistry) NotifyExitHopHtlc(rhash lntypes.Hash,
-	amt lnwire.MilliAtom, hodlChan chan<- interface{}) (
-	*invoices.HodlEvent, error) {
+	amt lnwire.MilliAtom, expiry uint32, currentHeight int32,
+	hodlChan chan<- interface{}) (*invoices.HodlEvent, error) {
 
-	event, err := i.registry.NotifyExitHopHtlc(rhash, amt, hodlChan)
+	event, err := i.registry.NotifyExitHopHtlc(
+		rhash, amt, expiry, currentHeight, hodlChan,
+	)
 	if err != nil {
 		return nil, err
 	}
