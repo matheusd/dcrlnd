@@ -12,7 +12,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -146,7 +145,7 @@ type ChainArbitratorConfig struct {
 
 	// Registry is the invoice database that is used by resolvers to lookup
 	// preimages and settle invoices.
-	Registry *invoices.InvoiceRegistry
+	Registry Registry
 
 	// NotifyClosedChannel is a function closure that the ChainArbitrator
 	// will use to notify the ChannelNotifier about a newly closed channel.
