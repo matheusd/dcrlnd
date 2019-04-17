@@ -171,11 +171,15 @@ func validateOptionalFields(capacity dcrutil.Amount,
 			return errors.Errorf("invalid max htlc for channel "+
 				"update %v", spew.Sdump(msg))
 		}
-		cap := lnwire.NewMAtomsFromAtoms(capacity)
-		if maxHtlc > cap {
+
+		// For light clients, the capacity will not be set so we'll skip
+		// checking whether the MaxHTLC value respects the channel's
+		// capacity.
+		capacityMat := lnwire.NewMAtomsFromAtoms(capacity)
+		if capacityMat != 0 && maxHtlc > capacityMat {
 			return errors.Errorf("max_htlc(%v) for channel "+
 				"update greater than capacity(%v)", maxHtlc,
-				cap)
+				capacityMat)
 		}
 	}
 
