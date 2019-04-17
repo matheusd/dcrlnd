@@ -15,6 +15,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
@@ -303,6 +304,7 @@ type testChannelPolicy struct {
 	MaxHTLC       lnwire.MilliAtom
 	FeeBaseMAtoms lnwire.MilliAtom
 	FeeRate       lnwire.MilliAtom
+	LastUpdate    time.Time
 }
 
 type testChannelEnd struct {
@@ -319,6 +321,7 @@ func defaultTestChannelEnd(alias string, capacity dcrutil.Amount) *testChannelEn
 			MaxHTLC:       lnwire.NewMAtomsFromAtoms(capacity),
 			FeeBaseMAtoms: lnwire.MilliAtom(1000),
 			FeeRate:       lnwire.MilliAtom(1),
+			LastUpdate:    testTime,
 		},
 	}
 }
@@ -497,7 +500,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 				MessageFlags:              msgFlags,
 				ChannelFlags:              0,
 				ChannelID:                 channelID,
-				LastUpdate:                testTime,
+				LastUpdate:                testChannel.Node1.LastUpdate,
 				TimeLockDelta:             testChannel.Node1.Expiry,
 				MinHTLC:                   testChannel.Node1.MinHTLC,
 				MaxHTLC:                   testChannel.Node1.MaxHTLC,
@@ -519,7 +522,7 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 				MessageFlags:              msgFlags,
 				ChannelFlags:              lnwire.ChanUpdateDirection,
 				ChannelID:                 channelID,
-				LastUpdate:                testTime,
+				LastUpdate:                testChannel.Node2.LastUpdate,
 				TimeLockDelta:             testChannel.Node2.Expiry,
 				MinHTLC:                   testChannel.Node2.MinHTLC,
 				MaxHTLC:                   testChannel.Node2.MaxHTLC,
