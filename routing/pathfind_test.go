@@ -307,13 +307,13 @@ type testChannelPolicy struct {
 
 type testChannelEnd struct {
 	Alias string
-	testChannelPolicy
+	*testChannelPolicy
 }
 
 func defaultTestChannelEnd(alias string, capacity dcrutil.Amount) *testChannelEnd {
 	return &testChannelEnd{
 		Alias: alias,
-		testChannelPolicy: testChannelPolicy{
+		testChannelPolicy: &testChannelPolicy{
 			Expiry:        144,
 			MinHTLC:       lnwire.MilliAtom(1000),
 			MaxHTLC:       lnwire.NewMAtomsFromAtoms(capacity),
@@ -337,11 +337,11 @@ func symmetricTestChannel(alias1 string, alias2 string, capacity dcrutil.Amount,
 		Capacity: capacity,
 		Node1: &testChannelEnd{
 			Alias:             alias1,
-			testChannelPolicy: *policy,
+			testChannelPolicy: policy,
 		},
 		Node2: &testChannelEnd{
 			Alias:             alias2,
-			testChannelPolicy: *policy,
+			testChannelPolicy: policy,
 		},
 		ChannelID: id,
 	}
@@ -487,45 +487,48 @@ func createTestGraphFromChannels(testChannels []*testChannel) (*testGraphInstanc
 			return nil, err
 		}
 
-		var msgFlags lnwire.ChanUpdateMsgFlags
-		if testChannel.Node1.MaxHTLC != 0 {
-			msgFlags = 1
-		}
-		edgePolicy := &channeldb.ChannelEdgePolicy{
-			SigBytes:                  testSig.Serialize(),
-			MessageFlags:              msgFlags,
-			ChannelFlags:              0,
-			ChannelID:                 channelID,
-			LastUpdate:                testTime,
-			TimeLockDelta:             testChannel.Node1.Expiry,
-			MinHTLC:                   testChannel.Node1.MinHTLC,
-			MaxHTLC:                   testChannel.Node1.MaxHTLC,
-			FeeBaseMAtoms:             testChannel.Node1.FeeBaseMAtoms,
-			FeeProportionalMillionths: testChannel.Node1.FeeRate,
-		}
-		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
-			return nil, err
-		}
-
-		msgFlags = 0
-		if testChannel.Node2.MaxHTLC != 0 {
-			msgFlags = 1
-		}
-		edgePolicy = &channeldb.ChannelEdgePolicy{
-			SigBytes:                  testSig.Serialize(),
-			MessageFlags:              msgFlags,
-			ChannelFlags:              lnwire.ChanUpdateDirection,
-			ChannelID:                 channelID,
-			LastUpdate:                testTime,
-			TimeLockDelta:             testChannel.Node2.Expiry,
-			MinHTLC:                   testChannel.Node2.MinHTLC,
-			MaxHTLC:                   testChannel.Node2.MaxHTLC,
-			FeeBaseMAtoms:             testChannel.Node2.FeeBaseMAtoms,
-			FeeProportionalMillionths: testChannel.Node2.FeeRate,
+		if testChannel.Node1.testChannelPolicy != nil {
+			var msgFlags lnwire.ChanUpdateMsgFlags
+			if testChannel.Node1.MaxHTLC != 0 {
+				msgFlags = 1
+			}
+			edgePolicy := &channeldb.ChannelEdgePolicy{
+				SigBytes:                  testSig.Serialize(),
+				MessageFlags:              msgFlags,
+				ChannelFlags:              0,
+				ChannelID:                 channelID,
+				LastUpdate:                testTime,
+				TimeLockDelta:             testChannel.Node1.Expiry,
+				MinHTLC:                   testChannel.Node1.MinHTLC,
+				MaxHTLC:                   testChannel.Node1.MaxHTLC,
+				FeeBaseMAtoms:             testChannel.Node1.FeeBaseMAtoms,
+				FeeProportionalMillionths: testChannel.Node1.FeeRate,
+			}
+			if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
+				return nil, err
+			}
 		}
 
-		if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
-			return nil, err
+		if testChannel.Node2.testChannelPolicy != nil {
+			var msgFlags lnwire.ChanUpdateMsgFlags
+			if testChannel.Node2.MaxHTLC != 0 {
+				msgFlags = 1
+			}
+			edgePolicy := &channeldb.ChannelEdgePolicy{
+				SigBytes:                  testSig.Serialize(),
+				MessageFlags:              msgFlags,
+				ChannelFlags:              lnwire.ChanUpdateDirection,
+				ChannelID:                 channelID,
+				LastUpdate:                testTime,
+				TimeLockDelta:             testChannel.Node2.Expiry,
+				MinHTLC:                   testChannel.Node2.MinHTLC,
+				MaxHTLC:                   testChannel.Node2.MaxHTLC,
+				FeeBaseMAtoms:             testChannel.Node2.FeeBaseMAtoms,
+				FeeProportionalMillionths: testChannel.Node2.FeeRate,
+			}
+			if err := graph.UpdateEdgePolicy(edgePolicy); err != nil {
+				return nil, err
+			}
 		}
 	}
 
