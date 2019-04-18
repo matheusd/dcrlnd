@@ -4,12 +4,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
+	"github.com/decred/dcrlnd/zpay32"
 
 	context "golang.org/x/net/context"
 )
@@ -39,6 +42,12 @@ type RouterBackend struct {
 		finalExpiry ...uint16) (*route.Route, error)
 
 	MissionControl *routing.MissionControl
+
+	// ActiveNetParams are the network parameters of the primary network
+	// that the route is operating on. This is necessary so we can ensure
+	// that we receive payment requests that send to destinations on our
+	// network.
+	ActiveNetParams *chaincfg.Params
 }
 
 // QueryRoutes attempts to query the daemons' Channel Router for a possible
@@ -336,4 +345,159 @@ func (r *RouterBackend) UnmarshallRoute(rpcroute *lnrpc.Route) (
 	}
 
 	return route, nil
+}
+
+// extractIntentFromSendRequest attempts to parse the SendRequest details
+// required to dispatch a client from the information presented by an RPC
+// client.
+func (r *RouterBackend) extractIntentFromSendRequest(rpcPayReq *PaymentRequest) (
+	*routing.LightningPayment, error) {
+
+	payIntent := &routing.LightningPayment{}
+
+	// Pass along an outgoing channel restriction if specified.
+	if rpcPayReq.OutgoingChanId != 0 {
+		payIntent.OutgoingChannelID = &rpcPayReq.OutgoingChanId
+	}
+
+	// Take cltv limit from request if set.
+	if rpcPayReq.CltvLimit != 0 {
+		cltvLimit := uint32(rpcPayReq.CltvLimit)
+		payIntent.CltvLimit = &cltvLimit
+	}
+
+	// Take fee limit from request.
+	payIntent.FeeLimit = lnwire.NewMAtomsFromAtoms(
+		dcrutil.Amount(rpcPayReq.FeeLimitAtoms),
+	)
+
+	// Set payment attempt timeout.
+	if rpcPayReq.TimeoutSeconds == 0 {
+		return nil, errors.New("timeout_seconds must be specified")
+	}
+
+	payIntent.PayAttemptTimeout = time.Second *
+		time.Duration(rpcPayReq.TimeoutSeconds)
+
+	// If the payment request field isn't blank, then the details of the
+	// invoice are encoded entirely within the encoded payReq.  So we'll
+	// attempt to decode it, populating the payment accordingly.
+	if rpcPayReq.PaymentRequest != "" {
+		switch {
+
+		case len(rpcPayReq.Dest) > 0:
+			return nil, errors.New("dest and payment_request " +
+				"cannot appear together")
+
+		case len(rpcPayReq.PaymentHash) > 0:
+			return nil, errors.New("dest and payment_hash " +
+				"cannot appear together")
+
+		case rpcPayReq.FinalCltvDelta != 0:
+			return nil, errors.New("dest and final_cltv_delta " +
+				"cannot appear together")
+		}
+
+		payReq, err := zpay32.Decode(
+			rpcPayReq.PaymentRequest, r.ActiveNetParams,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Next, we'll ensure that this payreq hasn't already expired.
+		err = ValidatePayReqExpiry(payReq)
+		if err != nil {
+			return nil, err
+		}
+
+		// If the amount was not included in the invoice, then we let
+		// the payee specify the amount of satoshis they wish to send.
+		// We override the amount to pay with the amount provided from
+		// the payment request.
+		if payReq.MilliAt == nil {
+			if rpcPayReq.Amt == 0 {
+				return nil, errors.New("amount must be " +
+					"specified when paying a zero amount " +
+					"invoice")
+			}
+
+			payIntent.Amount = lnwire.NewMAtomsFromAtoms(
+				dcrutil.Amount(rpcPayReq.Amt),
+			)
+		} else {
+			if rpcPayReq.Amt != 0 {
+				return nil, errors.New("amount must not be " +
+					"specified when paying a non-zero " +
+					" amount invoice")
+			}
+
+			payIntent.Amount = *payReq.MilliAt
+		}
+
+		copy(payIntent.PaymentHash[:], payReq.PaymentHash[:])
+		destKey := payReq.Destination.SerializeCompressed()
+		copy(payIntent.Target[:], destKey)
+
+		payIntent.FinalCLTVDelta = uint16(payReq.MinFinalCLTVExpiry())
+		payIntent.RouteHints = payReq.RouteHints
+	} else {
+		// Otherwise, If the payment request field was not specified
+		// (and a custom route wasn't specified), construct the payment
+		// from the other fields.
+
+		// Payment destination.
+		if len(rpcPayReq.Dest) != 33 {
+			return nil, errors.New("invalid key length")
+
+		}
+		pubBytes := rpcPayReq.Dest
+		copy(payIntent.Target[:], pubBytes)
+
+		// Final payment CLTV delta.
+		if rpcPayReq.FinalCltvDelta != 0 {
+			payIntent.FinalCLTVDelta =
+				uint16(rpcPayReq.FinalCltvDelta)
+		} else {
+			payIntent.FinalCLTVDelta = zpay32.DefaultFinalCLTVDelta
+		}
+
+		// Amount.
+		if rpcPayReq.Amt == 0 {
+			return nil, errors.New("amount must be specified")
+		}
+
+		payIntent.Amount = lnwire.NewMAtomsFromAtoms(
+			dcrutil.Amount(rpcPayReq.Amt),
+		)
+
+		// Payment hash.
+		copy(payIntent.PaymentHash[:], rpcPayReq.PaymentHash)
+	}
+
+	// Currently, within the bootstrap phase of the network, we limit the
+	// largest payment size allotted to (2^32) - 1 mSAT or 4.29 million
+	// satoshis.
+	if payIntent.Amount > r.MaxPaymentMAtoms {
+		// In this case, we'll send an error to the caller, but
+		// continue our loop for the next payment.
+		return payIntent, fmt.Errorf("payment of %v is too large, "+
+			"max payment allowed is %v", payIntent.Amount,
+			r.MaxPaymentMAtoms)
+
+	}
+
+	return payIntent, nil
+}
+
+// ValidatePayReqExpiry checks if the passed payment request has expired. In
+// the case it has expired, an error will be returned.
+func ValidatePayReqExpiry(payReq *zpay32.Invoice) error {
+	expiry := payReq.Expiry()
+	validUntil := payReq.Timestamp.Add(expiry)
+	if time.Now().After(validUntil) {
+		return fmt.Errorf("invoice expired. Valid until %v", validUntil)
+	}
+
+	return nil
 }
