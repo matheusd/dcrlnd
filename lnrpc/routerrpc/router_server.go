@@ -221,7 +221,7 @@ func (s *Server) SendPayment(ctx context.Context,
 		Amount:            *payReq.MilliAt,
 		FeeLimit:          lnwire.MilliAtom(req.FeeLimitAtoms),
 		PaymentHash:       *payReq.PaymentHash,
-		FinalCLTVDelta:    &finalDelta,
+		FinalCLTVDelta:    finalDelta,
 		PayAttemptTimeout: time.Second * time.Duration(req.TimeoutSeconds),
 		RouteHints:        payReq.RouteHints,
 	}
