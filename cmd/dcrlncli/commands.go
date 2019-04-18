@@ -2025,6 +2025,38 @@ var cltvLimitFlag = cli.UintFlag{
 		"this payment",
 }
 
+// paymentFlags returns common flags for sendpayment and payinvoice.
+func paymentFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "pay_req",
+			Usage: "a zpay32 encoded payment request to fulfill",
+		},
+		cli.Int64Flag{
+			Name: "fee_limit",
+			Usage: "maximum fee allowed in satoshis when " +
+				"sending the payment",
+		},
+		cli.Int64Flag{
+			Name: "fee_limit_percent",
+			Usage: "percentage of the payment's amount used as " +
+				"the maximum fee allowed when sending the " +
+				"payment",
+		},
+		cltvLimitFlag,
+		cli.Uint64Flag{
+			Name: "outgoing_chan_id",
+			Usage: "short channel id of the outgoing channel to " +
+				"use for the first hop of the payment",
+			Value: 0,
+		},
+		cli.BoolFlag{
+			Name:  "force, f",
+			Usage: "will skip payment request confirmation",
+		},
+	}
+}
+
 var sendPaymentCommand = cli.Command{
 	Name:     "sendpayment",
 	Category: "Payments",
@@ -2051,7 +2083,7 @@ var sendPaymentCommand = cli.Command{
 	destination.
 	`,
 	ArgsUsage: "dest amt payment_hash final_cltv_delta | --pay_req=[payment request]",
-	Flags: []cli.Flag{
+	Flags: append(paymentFlags(),
 		cli.StringFlag{
 			Name: "dest, d",
 			Usage: "the compressed identity pubkey of the " +
@@ -2061,17 +2093,6 @@ var sendPaymentCommand = cli.Command{
 			Name:  "amt, a",
 			Usage: "number of atoms to send",
 		},
-		cli.Int64Flag{
-			Name: "fee_limit",
-			Usage: "maximum fee allowed in atoms when sending" +
-				"the payment",
-		},
-		cli.Int64Flag{
-			Name: "fee_limit_percent",
-			Usage: "percentage of the payment's amount used as the" +
-				"maximum fee allowed when sending the payment",
-		},
-		cltvLimitFlag,
 		cli.StringFlag{
 			Name:  "payment_hash, r",
 			Usage: "the hash to use within the payment's HTLC",
@@ -2080,31 +2101,11 @@ var sendPaymentCommand = cli.Command{
 			Name:  "debug_send",
 			Usage: "use the debug rHash when sending the HTLC",
 		},
-		cli.StringFlag{
-			Name:  "pay_req",
-			Usage: "a zpay32 encoded payment request to fulfill",
-		},
 		cli.Int64Flag{
 			Name:  "final_cltv_delta",
 			Usage: "the number of blocks the last hop has to reveal the preimage",
 		},
-		cli.Uint64Flag{
-			Name: "outgoing_chan_id",
-			Usage: "short channel id of the outgoing channel to " +
-				"use for the first hop of the payment",
-			Value: 0,
-		},
-		cli.BoolFlag{
-			Name:  "force, f",
-			Usage: "will skip payment request confirmation",
-		},
-		cli.BoolFlag{
-			Name: "ignore_max_outbound_amt",
-			Usage: "ignore check for available outbound capacity " +
-				"in directly connected channels and attempt " +
-				"the payment anyway",
-		},
-	},
+	),
 	Action: sendPayment,
 }
 
@@ -2134,26 +2135,7 @@ func retrieveFeeLimit(ctx *cli.Context) (*lnrpc.FeeLimit, error) {
 	return nil, nil
 }
 
-func confirmPayReq(ctx *cli.Context, client lnrpc.LightningClient, payReq string) error {
-	ctxb := context.Background()
-
-	req := &lnrpc.PayReqString{PayReq: payReq}
-	resp, err := client.DecodePayReq(ctxb, req)
-	if err != nil {
-		return err
-	}
-
-	// If the amount was not included in the invoice, then we let
-	// the payee specify the amount of atoms they wish to send.
-	amt := resp.GetNumAtoms()
-	if amt == 0 {
-		amt = ctx.Int64("amt")
-		if amt == 0 {
-			return fmt.Errorf("amount must be specified when " +
-				"paying a zero amount invoice")
-		}
-	}
-
+func confirmPayReq(resp *lnrpc.PayReq, amt int64) error {
 	fmt.Printf("Description: %v\n", resp.GetDescription())
 	fmt.Printf("Amount (in atoms): %v\n", amt)
 	fmt.Printf("Destination: %v\n", resp.GetDestination())
@@ -2167,46 +2149,27 @@ func confirmPayReq(ctx *cli.Context, client lnrpc.LightningClient, payReq string
 }
 
 func sendPayment(ctx *cli.Context) error {
-	client, cleanUp := getClient(ctx)
-	defer cleanUp()
 	// Show command help if no arguments provided
 	if ctx.NArg() == 0 && ctx.NumFlags() == 0 {
 		cli.ShowCommandHelp(ctx, "sendpayment")
 		return nil
 	}
 
-	// First, we'll retrieve the fee limit value passed since it can apply
-	// to both ways of sending payments (with the payment request or
-	// providing the details manually).
-	feeLimit, err := retrieveFeeLimit(ctx)
-	if err != nil {
-		return err
-	}
-
 	// If a payment request was provided, we can exit early since all of the
 	// details of the payment are encoded within the request.
 	if ctx.IsSet("pay_req") {
-		if !ctx.Bool("force") {
-			err = confirmPayReq(ctx, client, ctx.String("pay_req"))
-			if err != nil {
-				return err
-			}
-		}
 		req := &lnrpc.SendRequest{
-			PaymentRequest:       ctx.String("pay_req"),
-			Amt:                  ctx.Int64("amt"),
-			FeeLimit:             feeLimit,
-			OutgoingChanId:       ctx.Uint64("outgoing_chan_id"),
-			IgnoreMaxOutboundAmt: ctx.Bool("ignore_max_outbound_amt"),
-			CltvLimit:            uint32(ctx.Int(cltvLimitFlag.Name)),
+			PaymentRequest: ctx.String("pay_req"),
+			Amt:            ctx.Int64("amt"),
 		}
 
-		return sendPaymentRequest(client, req)
+		return sendPaymentRequest(ctx, req)
 	}
 
 	var (
 		destNode []byte
 		amount   int64
+		err      error
 	)
 
 	args := ctx.Args()
@@ -2242,7 +2205,6 @@ func sendPayment(ctx *cli.Context) error {
 	req := &lnrpc.SendRequest{
 		Dest:                 destNode,
 		Amt:                  amount,
-		FeeLimit:             feeLimit,
 		IgnoreMaxOutboundAmt: ctx.Bool("ignore_max_outbound_amt"),
 	}
 
@@ -2282,10 +2244,47 @@ func sendPayment(ctx *cli.Context) error {
 		}
 	}
 
-	return sendPaymentRequest(client, req)
+	return sendPaymentRequest(ctx, req)
 }
 
-func sendPaymentRequest(client lnrpc.LightningClient, req *lnrpc.SendRequest) error {
+func sendPaymentRequest(ctx *cli.Context, req *lnrpc.SendRequest) error {
+	client, cleanUp := getClient(ctx)
+	defer cleanUp()
+
+	// First, we'll retrieve the fee limit value passed since it can apply
+	// to both ways of sending payments (with the payment request or
+	// providing the details manually).
+	feeLimit, err := retrieveFeeLimit(ctx)
+	if err != nil {
+		return err
+	}
+	req.FeeLimit = feeLimit
+
+	req.OutgoingChanId = ctx.Uint64("outgoing_chan_id")
+	req.CltvLimit = uint32(ctx.Int(cltvLimitFlag.Name))
+
+	amt := req.Amt
+
+	if req.PaymentRequest != "" {
+		req := &lnrpc.PayReqString{PayReq: req.PaymentRequest}
+		resp, err := client.DecodePayReq(context.Background(), req)
+		if err != nil {
+			return err
+		}
+
+		invoiceAmt := resp.GetNumAtoms()
+		if invoiceAmt != 0 {
+			amt = invoiceAmt
+		}
+
+		if !ctx.Bool("force") {
+			err := confirmPayReq(resp, amt)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	paymentStream, err := client.SendPayment(context.Background())
 	if err != nil {
 		return err
@@ -2327,45 +2326,18 @@ var payInvoiceCommand = cli.Command{
 	Category:  "Payments",
 	Usage:     "Pay an invoice over lightning.",
 	ArgsUsage: "pay_req",
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "pay_req",
-			Usage: "a zpay32 encoded payment request to fulfill",
-		},
+	Flags: append(paymentFlags(),
 		cli.Int64Flag{
 			Name: "amt",
 			Usage: "(optional) number of atoms to fulfill the " +
 				"invoice",
 		},
-		cli.Int64Flag{
-			Name: "fee_limit",
-			Usage: "maximum fee allowed in atoms when sending " +
-				"the payment",
-		},
-		cli.Int64Flag{
-			Name: "fee_limit_percent",
-			Usage: "percentage of the payment's amount used as the" +
-				"maximum fee allowed when sending the payment",
-		},
-		cltvLimitFlag,
-		cli.Uint64Flag{
-			Name: "outgoing_chan_id",
-			Usage: "short channel id of the outgoing channel to " +
-				"use for the first hop of the payment",
-			Value: 0,
-		},
-		cli.BoolFlag{
-			Name:  "force, f",
-			Usage: "will skip payment request confirmation",
-		},
-	},
+	),
 	Action: actionDecorator(payInvoice),
 }
 
 func payInvoice(ctx *cli.Context) error {
 	args := ctx.Args()
-	client, cleanUp := getClient(ctx)
-	defer cleanUp()
 
 	var payReq string
 	switch {
@@ -2377,27 +2349,12 @@ func payInvoice(ctx *cli.Context) error {
 		return fmt.Errorf("pay_req argument missing")
 	}
 
-	feeLimit, err := retrieveFeeLimit(ctx)
-	if err != nil {
-		return err
-	}
-
-	if !ctx.Bool("force") {
-		err = confirmPayReq(ctx, client, payReq)
-		if err != nil {
-			return err
-		}
-	}
-
 	req := &lnrpc.SendRequest{
 		PaymentRequest: payReq,
 		Amt:            ctx.Int64("amt"),
-		FeeLimit:       feeLimit,
-		OutgoingChanId: ctx.Uint64("outgoing_chan_id"),
-		CltvLimit:      uint32(ctx.Int(cltvLimitFlag.Name)),
 	}
 
-	return sendPaymentRequest(client, req)
+	return sendPaymentRequest(ctx, req)
 }
 
 var sendToRouteCommand = cli.Command{
