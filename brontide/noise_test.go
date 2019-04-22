@@ -269,6 +269,8 @@ func TestWriteMessageChunking(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		bytesWritten, err := localConn.Write(largeMessage)
 		if err != nil {
 			t.Errorf("unable to write message: %v", err)
@@ -283,7 +285,6 @@ func TestWriteMessageChunking(t *testing.T) {
 			return
 		}
 
-		wg.Done()
 	}()
 
 	// Attempt to read the entirety of the message generated above.
