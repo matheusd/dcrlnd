@@ -65,7 +65,7 @@ replace (
 	github.com/decred/dcrd => github.com/decred/dcrd v0.0.0-20190306151227-8cbb5ae69df7
 	github.com/decred/dcrd/bech32 => github.com/decred/dcrd/bech32 v0.0.0-20190306151227-8cbb5ae69df7
 	github.com/decred/dcrd/blockchain => github.com/decred/dcrd/blockchain v0.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v0.0.0-20190306151227-8cbb5ae69df7
+	github.com/decred/dcrd/connmgr => github.com/matheusd/dcrd/connmgr v0.0.0-20190410055418-df36222d0b5d
 	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.0-20190306151227-8cbb5ae69df7
 	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v0.0.0-20190306151227-8cbb5ae69df7
 	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190306151227-8cbb5ae69df7
