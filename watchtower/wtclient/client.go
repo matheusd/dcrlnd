@@ -10,7 +10,6 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
@@ -78,7 +77,7 @@ type Config struct {
 	// SecretKeyRing is used to derive the session keys used to communicate
 	// with the tower. The client only stores the KeyLocators internally so
 	// that we never store private keys on disk.
-	SecretKeyRing keychain.SecretKeyRing
+	SecretKeyRing SecretKeyRing
 
 	// Dial connects to an addr using the specified net and returns the
 	// connection object.
@@ -206,15 +205,16 @@ func New(config *Config) (*TowerClient, error) {
 		forceQuit:      make(chan struct{}),
 	}
 	c.negotiator = newSessionNegotiator(&NegotiatorConfig{
-		DB:          cfg.DB,
-		Policy:      cfg.Policy,
-		ChainHash:   cfg.ChainHash,
-		SendMessage: c.sendMessage,
-		ReadMessage: c.readMessage,
-		Dial:        c.dial,
-		Candidates:  newTowerListIterator(tower),
-		MinBackoff:  cfg.MinBackoff,
-		MaxBackoff:  cfg.MaxBackoff,
+		DB:            cfg.DB,
+		SecretKeyRing: cfg.SecretKeyRing,
+		Policy:        cfg.Policy,
+		ChainHash:     cfg.ChainHash,
+		SendMessage:   c.sendMessage,
+		ReadMessage:   c.readMessage,
+		Dial:          c.dial,
+		Candidates:    newTowerListIterator(tower),
+		MinBackoff:    cfg.MinBackoff,
+		MaxBackoff:    cfg.MaxBackoff,
 	})
 
 	// Next, load all active sessions from the db into the client. We will
@@ -227,14 +227,25 @@ func New(config *Config) (*TowerClient, error) {
 	}
 
 	// Reload any towers from disk using the tower IDs contained in each
-	// candidate session.
+	// candidate session. We will also rederive any session keys needed to
+	// be able to communicate with the towers and authenticate session
+	// requests. This prevents us from having to store the private keys on
+	// disk.
 	for _, s := range c.candidateSessions {
 		tower, err := c.cfg.DB.LoadTower(s.TowerID)
 		if err != nil {
 			return nil, err
 		}
 
+		sessionPriv, err := DeriveSessionKey(
+			c.cfg.SecretKeyRing, s.KeyIndex,
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		s.Tower = tower
+		s.SessionPrivKey = sessionPriv
 	}
 
 	// Finally, load the sweep pkscripts that have been generated for all
