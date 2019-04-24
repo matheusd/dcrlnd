@@ -5,6 +5,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/brontide"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtserver"
@@ -76,4 +77,12 @@ func AuthDial(localPriv *secp256k1.PrivateKey, netAddr *lnwire.NetAddress,
 	dialer func(string, string) (net.Conn, error)) (wtserver.Peer, error) {
 
 	return brontide.Dial(localPriv, netAddr, dialer)
+}
+
+// SecretKeyRing abstracts the ability to derive HD private keys given a
+// description of the derivation path.
+type SecretKeyRing interface {
+	// DerivePrivKey derives the private key from the root seed using a
+	// key descriptor specifying the key's derivation path.
+	DerivePrivKey(loc keychain.KeyDescriptor) (*secp256k1.PrivateKey, error)
 }
