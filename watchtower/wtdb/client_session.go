@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
@@ -57,14 +56,17 @@ type ClientSession struct {
 	// tower with TowerID.
 	Tower *Tower
 
-	// SessionKeyDesc is the key descriptor used to derive the client's
+	// KeyIndex is the index of key locator used to derive the client's
 	// session key so that it can authenticate with the tower to update its
-	// session.
-	SessionKeyDesc keychain.KeyLocator
+	// session. In order to rederive the private key, the key locator should
+	// use the keychain.KeyFamilyTowerSession key family.
+	KeyIndex uint32
 
 	// SessionPrivKey is the ephemeral secret key used to connect to the
 	// watchtower.
-	// TODO(conner): remove after HD keys
+	//
+	// NOTE: This value is not serialized. It is derived using the KeyIndex
+	// on startup to avoid storing private keys on disk.
 	SessionPrivKey *secp256k1.PrivateKey
 
 	// Policy holds the negotiated session parameters.
