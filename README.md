@@ -83,8 +83,13 @@ For questions and discussions, all Decred communities can be found at:
 https://decred.org/community
 
 ## Installation
-  In order to build from source, please see [the installation
+
+  Knowledgeable users may use the [quickstart guide](/docs/QUICKSTART.md).
+
+  For more detailed instructions, please see [the installation
   instructions](docs/INSTALL.md).
+
+  And a sample config file with annotated options is [also available here](sample-dcrlnd.conf).
 
 ## Docker
   To run lnd from Docker, please see the main [Docker instructions](docs/DOCKER.md)

@@ -279,5 +279,5 @@ decred.testnet=1
 
 Notice the `[Decred]` section. This section houses the parameters for the
 Decred chain. See a more detailed sample config file available
-[here](https://github.com/decred/dcrlnd/blob/master/sample-lnd.conf)
+[here](https://github.com/decred/dcrlnd/blob/master/sample-dcrlnd.conf)
 and explore the other sections for node configuration.
