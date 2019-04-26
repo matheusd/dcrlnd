@@ -87,7 +87,7 @@ Since `dcrlnd` requires macaroons by default in order to call RPC methods, `dcrl
 now reads a macaroon and provides it in the RPC call. Unless the path is
 changed by the `--macaroonpath` option, `dcrlncli` tries to read the macaroon from
 the network directory of `dcrlnd`'s currently active network (e.g. for simnet
-`lnddir/data/chain/bitcoin/simnet/admin.macaroon`) by default and will error if
+`~/.dcrlnd/data/chain/decred/simnet/admin.macaroon`) by default and will error if
 that file doesn't exist unless provided the `--no-macaroons` option. Keep this
 in mind when running `dcrlnd` with `--no-macaroons`, as `dcrlncli` will error out
 unless called the same way **or** `dcrlnd` has generated a macaroon on a previous
