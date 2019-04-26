@@ -84,7 +84,9 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 
 	// With the connection established, we'll now establish our connection
 	// to the target peer, waiting for the first update before we exit.
-	feePerKB, err := c.server.cc.feeEstimator.EstimateFeePerKB(3)
+	feePerKB, err := c.server.cc.feeEstimator.EstimateFeePerKB(
+		autopilot.DefaultConfTarget,
+	)
 	if err != nil {
 		return err
 	}
