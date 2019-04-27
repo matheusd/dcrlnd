@@ -1,5 +1,3 @@
-// +build dev
-
 package wtserver_test
 
 import (
@@ -51,7 +49,7 @@ func initServer(t *testing.T, db wtserver.DB,
 	t.Helper()
 
 	if db == nil {
-		db = wtdb.NewMockDB()
+		db = wtmock.NewTowerDB()
 	}
 
 	s, err := wtserver.New(&wtserver.Config{
@@ -685,7 +683,7 @@ func testServerStateUpdates(t *testing.T, test stateUpdateTestCase) {
 // checking that the proper error is returned when the session doesn't exist and
 // that a successful deletion does not disrupt other sessions.
 func TestServerDeleteSession(t *testing.T) {
-	db := wtdb.NewMockDB()
+	db := wtmock.NewTowerDB()
 
 	localPub := randPubKey(t)
 

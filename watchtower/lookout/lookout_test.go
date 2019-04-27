@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/lookout"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/watchtower/wtmock"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
 
@@ -74,7 +75,7 @@ func makeRandomP2PKHPkScript() []byte {
 }
 
 func TestLookoutBreachMatching(t *testing.T) {
-	db := wtdb.NewMockDB()
+	db := wtmock.NewTowerDB()
 
 	// Initialize an mock backend to feed the lookout blocks.
 	backend := lookout.NewMockBackend()
