@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/zpay32"
+	"github.com/go-errors/errors"
 )
 
 type mockPaymentAttemptDispatcher struct {
@@ -283,4 +284,10 @@ func (m *mockControlTower) FetchInFlightPayments() (
 	}
 
 	return fl, nil
+}
+
+func (m *mockControlTower) SubscribePayment(paymentHash lntypes.Hash) (
+	bool, chan PaymentResult, error) {
+
+	return false, nil, errors.New("not implemented")
 }
