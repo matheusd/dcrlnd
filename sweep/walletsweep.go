@@ -31,6 +31,14 @@ type FeePreference struct {
 	FeeRate lnwallet.AtomPerKByte
 }
 
+// String returns a human-readable string of the fee preference.
+func (p FeePreference) String() string {
+	if p.ConfTarget != 0 {
+		return fmt.Sprintf("%v blocks", p.ConfTarget)
+	}
+	return p.FeeRate.String()
+}
+
 // DetermineFeePerKw will determine the fee in atom/KB that should be paid
 // given an estimator, a confirmation target, and a manual value for sat/byte.
 // A value is chosen based on the two free parameters as one, or both of them
