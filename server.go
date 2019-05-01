@@ -716,7 +716,6 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		NewBatchTimer: func() <-chan time.Time {
 			return time.NewTimer(sweep.DefaultBatchWindowDuration).C
 		},
-		SweepTxConfTarget:    6,
 		Notifier:             cc.chainNotifier,
 		ChainIO:              cc.chainIO,
 		Store:                sweeperStore,
@@ -724,6 +723,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		MaxSweepAttempts:     sweep.DefaultMaxSweepAttempts,
 		NextAttemptDeltaFunc: sweep.DefaultNextAttemptDeltaFunc,
 		NetParams:            activeNetParams.Params,
+		MaxFeeRate:           sweep.DefaultMaxFeeRate,
+		FeeRateBucketSize:    sweep.DefaultFeeRateBucketSize,
 	})
 
 	s.utxoNursery = newUtxoNursery(&NurseryConfig{
