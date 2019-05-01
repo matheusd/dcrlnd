@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/input"
@@ -25,6 +24,8 @@ var (
 	testMaxSweepAttempts = 3
 
 	testMaxInputsPerTx = 3
+
+	defaultFeePref = FeePreference{ConfTarget: 1}
 )
 
 type sweeperTestContext struct {
@@ -99,7 +100,7 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 
 	backend := newMockBackend(notifier)
 
-	estimator := newMockFeeEstimator(10000, 1000)
+	estimator := newMockFeeEstimator(10000, lnwallet.FeePerKBFloor)
 
 	publishChan := make(chan wire.MsgTx, 2)
 	ctx := &sweeperTestContext{
@@ -130,10 +131,9 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 			ctx.timeoutChan <- c
 			return c
 		},
-		Store:             store,
-		Signer:            &mockSigner{},
-		SweepTxConfTarget: 1,
-		ChainIO:           &mockChainIO{},
+		Store:   store,
+		Signer:  &mockSigner{},
+		ChainIO: &mockChainIO{},
 		GenSweepScript: func() ([]byte, error) {
 			// This needs to be a valid script, otherwise it fails
 			// checkTransactionSanity(). We use a simple OP_RETURN, given the
@@ -149,12 +149,22 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 			// Use delta func without random factor.
 			return 1 << uint(attempts-1)
 		},
-		NetParams: &chaincfg.RegNetParams,
+		NetParams:         &chaincfg.RegNetParams,
+		MaxFeeRate:        DefaultMaxFeeRate,
+		FeeRateBucketSize: DefaultFeeRateBucketSize,
 	})
 
 	ctx.sweeper.Start()
 
 	return ctx
+}
+
+func (ctx *sweeperTestContext) restartSweeper() {
+	ctx.t.Helper()
+
+	ctx.sweeper.Stop()
+	ctx.sweeper = New(ctx.sweeper.cfg)
+	ctx.sweeper.Start()
 }
 
 func (ctx *sweeperTestContext) tick() {
@@ -258,11 +268,95 @@ func (ctx *sweeperTestContext) expectResult(c chan Result, expected error) {
 	}
 }
 
+// receiveSpendTx receives the transaction sent through the given resultChan.
+func receiveSpendTx(t *testing.T, resultChan chan Result) *wire.MsgTx {
+	t.Helper()
+
+	var result Result
+	select {
+	case result = <-resultChan:
+	case <-time.After(5 * time.Second):
+		t.Fatal("no sweep result received")
+	}
+
+	if result.Err != nil {
+		t.Fatalf("expected successful spend, but received error "+
+			"\"%v\" instead", result.Err)
+	}
+
+	return result.Tx
+}
+
+// assertTxSweepsInputs ensures that the transaction returned within the value
+// received from resultChan spends the given inputs.
+func assertTxSweepsInputs(t *testing.T, sweepTx *wire.MsgTx,
+	inputs ...input.Input) {
+
+	t.Helper()
+
+	if len(sweepTx.TxIn) != len(inputs) {
+		t.Fatalf("expected sweep tx to contain %d inputs, got %d",
+			len(inputs), len(sweepTx.TxIn))
+	}
+	m := make(map[wire.OutPoint]struct{}, len(inputs))
+	for _, input := range inputs {
+		m[*input.OutPoint()] = struct{}{}
+	}
+	for _, txIn := range sweepTx.TxIn {
+		if _, ok := m[txIn.PreviousOutPoint]; !ok {
+			t.Fatalf("expected tx %v to spend input %v",
+				txIn.PreviousOutPoint, sweepTx.TxHash())
+		}
+	}
+}
+
+// assertTxFeeRate asserts that the transaction was created with the given
+// inputs and fee rate.
+//
+// NOTE: This assumes that transactions only have one output, as this is the
+// only type of transaction the UtxoSweeper can create at the moment.
+func assertTxFeeRate(t *testing.T, tx *wire.MsgTx,
+	expectedFeeRate lnwallet.AtomPerKByte, inputs ...input.Input) {
+
+	t.Helper()
+
+	if len(tx.TxIn) != len(inputs) {
+		t.Fatalf("expected %d inputs, got %d", len(tx.TxIn), len(inputs))
+	}
+
+	m := make(map[wire.OutPoint]input.Input, len(inputs))
+	for _, input := range inputs {
+		m[*input.OutPoint()] = input
+	}
+
+	var inputAmt int64
+	for _, txIn := range tx.TxIn {
+		input, ok := m[txIn.PreviousOutPoint]
+		if !ok {
+			t.Fatalf("expected input %v to be provided",
+				txIn.PreviousOutPoint)
+		}
+		inputAmt += input.SignDesc().Output.Value
+	}
+	outputAmt := tx.TxOut[0].Value
+
+	fee := dcrutil.Amount(inputAmt - outputAmt)
+	_, txSize, _, _ := getSizeEstimate(inputs)
+
+	expectedFee := expectedFeeRate.FeeForSize(txSize)
+	if fee != expectedFee {
+		t.Fatalf("expected fee rate %v results in %v fee, got %v fee",
+			expectedFeeRate, expectedFee, fee)
+	}
+}
+
 // TestSuccess tests the sweeper happy flow.
 func TestSuccess(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	resultChan, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan, err := ctx.sweeper.SweepInput(
+		spendableInputs[0], defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,7 +420,7 @@ func TestDust(t *testing.T) {
 	// won't be swept immediately due to the resulting tx having an output
 	// value lower than the dust limit.
 	dustInput := createTestInput(maxDustOutputValue, input.CommitmentTimeLock)
-	_, err := ctx.sweeper.SweepInput(&dustInput)
+	_, err := ctx.sweeper.SweepInput(&dustInput, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +436,7 @@ func TestDust(t *testing.T) {
 	largeInput := createTestInput(maxDustOutputValue*10,
 		input.CommitmentTimeLock)
 
-	_, err = ctx.sweeper.SweepInput(&largeInput)
+	_, err = ctx.sweeper.SweepInput(&largeInput, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,10 +462,16 @@ func TestDust(t *testing.T) {
 func TestNegativeInput(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
+	// Increase the default fee rate so that we can perform the test. This
+	// is necessary in decred due to lower minimum relay fee.
+	ctx.estimator.updateFees(25000, 10000)
+
 	// Sweep an input large enough to cover fees, so in any case the tx
 	// output will be above the dust limit.
-	largeInput := createTestInput(100000, input.CommitmentNoDelay)
-	largeInputResult, err := ctx.sweeper.SweepInput(&largeInput)
+	largeInput := createTestInput(20000000, input.CommitmentNoDelay)
+	largeInputResult, err := ctx.sweeper.SweepInput(
+		&largeInput, defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -379,16 +479,18 @@ func TestNegativeInput(t *testing.T) {
 	// Sweep an additional input with a negative net yield. The size of the
 	// HtlcOfferedRemoteTimeout input type adds more in fees than its value
 	// at the current fee level.
-	negInput := createTestInput(2500, input.HtlcOfferedRemoteTimeout)
-	negInputResult, err := ctx.sweeper.SweepInput(&negInput)
+	negInput := createTestInput(5500, input.HtlcOfferedRemoteTimeout)
+	negInputResult, err := ctx.sweeper.SweepInput(&negInput, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Sweep a third input that has a smaller output than the previous one,
 	// but yields positively because of its lower size.
-	positiveInput := createTestInput(2200, input.CommitmentNoDelay)
-	positiveInputResult, err := ctx.sweeper.SweepInput(&positiveInput)
+	positiveInput := createTestInput(5000, input.CommitmentNoDelay)
+	positiveInputResult, err := ctx.sweeper.SweepInput(
+		&positiveInput, defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -399,12 +501,7 @@ func TestNegativeInput(t *testing.T) {
 	// contain the large input. The negative input should stay out of sweeps
 	// until fees come down to get a positive net yield.
 	sweepTx1 := ctx.receiveTx()
-
-	if !testTxIns(t, &sweepTx1, []*wire.OutPoint{
-		largeInput.OutPoint(), positiveInput.OutPoint(),
-	}) {
-		t.Fatal("Tx does not contain expected inputs")
-	}
+	assertTxSweepsInputs(t, &sweepTx1, &largeInput, &positiveInput)
 
 	ctx.backend.mine()
 
@@ -412,11 +509,13 @@ func TestNegativeInput(t *testing.T) {
 	ctx.expectResult(positiveInputResult, nil)
 
 	// Lower fee rate so that the negative input is no longer negative.
-	ctx.estimator.updateFees(1000, 1000)
+	ctx.estimator.updateFees(10000, 10000)
 
-	// Create another large input
+	// Create another large input.
 	secondLargeInput := createTestInput(100000, input.CommitmentNoDelay)
-	secondLargeInputResult, err := ctx.sweeper.SweepInput(&secondLargeInput)
+	secondLargeInputResult, err := ctx.sweeper.SweepInput(
+		&secondLargeInput, defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,11 +523,7 @@ func TestNegativeInput(t *testing.T) {
 	ctx.tick()
 
 	sweepTx2 := ctx.receiveTx()
-	if !testTxIns(t, &sweepTx2, []*wire.OutPoint{
-		secondLargeInput.OutPoint(), negInput.OutPoint(),
-	}) {
-		t.Fatal("Tx does not contain expected inputs")
-	}
+	assertTxSweepsInputs(t, &sweepTx2, &secondLargeInput, &negInput)
 
 	ctx.backend.mine()
 
@@ -438,36 +533,13 @@ func TestNegativeInput(t *testing.T) {
 	ctx.finish(1)
 }
 
-func testTxIns(t *testing.T, tx *wire.MsgTx, inputs []*wire.OutPoint) bool {
-	ins := make(map[wire.OutPoint]struct{}, len(tx.TxIn))
-	for _, in := range tx.TxIn {
-		ins[in.PreviousOutPoint] = struct{}{}
-	}
-
-	if len(tx.TxIn) != len(inputs) {
-		t.Errorf("Expected Inputs:\n%s\nBut found Inputs:\n%s\n",
-			spew.Sdump(inputs), spew.Sdump(ins))
-		return false
-	}
-
-	for _, expectedIn := range inputs {
-		if _, ok := ins[*expectedIn]; !ok {
-			t.Errorf("Expected Inputs:\n%s\nBut found Inputs:\n%s\n",
-				spew.Sdump(inputs), spew.Sdump(ins))
-			return false
-		}
-	}
-
-	return true
-}
-
 // TestChunks asserts that large sets of inputs are split into multiple txes.
 func TestChunks(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	// Sweep five inputs.
 	for _, input := range spendableInputs[:5] {
-		_, err := ctx.sweeper.SweepInput(input)
+		_, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -508,12 +580,16 @@ func TestRemoteSpend(t *testing.T) {
 func testRemoteSpend(t *testing.T, postSweep bool) {
 	ctx := createSweeperTestContext(t)
 
-	resultChan1, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan1, err := ctx.sweeper.SweepInput(
+		spendableInputs[0], defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resultChan2, err := ctx.sweeper.SweepInput(spendableInputs[1])
+	resultChan2, err := ctx.sweeper.SweepInput(
+		spendableInputs[1], defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -586,12 +662,13 @@ func testRemoteSpend(t *testing.T, postSweep bool) {
 func TestIdempotency(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	resultChan1, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	input := spendableInputs[0]
+	resultChan1, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resultChan2, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan2, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -600,7 +677,7 @@ func TestIdempotency(t *testing.T) {
 
 	ctx.receiveTx()
 
-	resultChan3, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan3, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -617,7 +694,7 @@ func TestIdempotency(t *testing.T) {
 	// immediately receive the spend notification with a spending tx hash.
 	// Because the sweeper kept track of all of its sweep txes, it will
 	// recognize the spend as its own.
-	resultChan4, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan4, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -644,8 +721,8 @@ func TestRestart(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	// Sweep input and expect sweep tx.
-	_, err := ctx.sweeper.SweepInput(spendableInputs[0])
-	if err != nil {
+	input1 := spendableInputs[0]
+	if _, err := ctx.sweeper.SweepInput(input1, defaultFeePref); err != nil {
 		t.Fatal(err)
 	}
 	ctx.tick()
@@ -653,21 +730,19 @@ func TestRestart(t *testing.T) {
 	ctx.receiveTx()
 
 	// Restart sweeper.
-	ctx.sweeper.Stop()
-
-	ctx.sweeper = New(ctx.sweeper.cfg)
-	ctx.sweeper.Start()
+	ctx.restartSweeper()
 
 	// Expect last tx to be republished.
 	ctx.receiveTx()
 
 	// Simulate other subsystem (eg contract resolver) re-offering inputs.
-	spendChan1, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	spendChan1, err := ctx.sweeper.SweepInput(input1, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	spendChan2, err := ctx.sweeper.SweepInput(spendableInputs[1])
+	input2 := spendableInputs[1]
+	spendChan2, err := ctx.sweeper.SweepInput(input2, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -705,9 +780,7 @@ func TestRestart(t *testing.T) {
 	}
 
 	// Restart sweeper again. No action is expected.
-	ctx.sweeper.Stop()
-	ctx.sweeper = New(ctx.sweeper.cfg)
-	ctx.sweeper.Start()
+	ctx.restartSweeper()
 
 	// Expect last tx to be republished.
 	ctx.receiveTx()
@@ -722,14 +795,14 @@ func TestRestartRemoteSpend(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	// Sweep input.
-	_, err := ctx.sweeper.SweepInput(spendableInputs[0])
-	if err != nil {
+	input1 := spendableInputs[0]
+	if _, err := ctx.sweeper.SweepInput(input1, defaultFeePref); err != nil {
 		t.Fatal(err)
 	}
 
 	// Sweep another input.
-	_, err = ctx.sweeper.SweepInput(spendableInputs[1])
-	if err != nil {
+	input2 := spendableInputs[1]
+	if _, err := ctx.sweeper.SweepInput(input2, defaultFeePref); err != nil {
 		t.Fatal(err)
 	}
 
@@ -738,10 +811,7 @@ func TestRestartRemoteSpend(t *testing.T) {
 	sweepTx := ctx.receiveTx()
 
 	// Restart sweeper.
-	ctx.sweeper.Stop()
-
-	ctx.sweeper = New(ctx.sweeper.cfg)
-	ctx.sweeper.Start()
+	ctx.restartSweeper()
 
 	// Expect last tx to be republished.
 	ctx.receiveTx()
@@ -752,12 +822,11 @@ func TestRestartRemoteSpend(t *testing.T) {
 	remoteTx := &wire.MsgTx{
 		TxIn: []*wire.TxIn{
 			{
-				PreviousOutPoint: *(spendableInputs[1].OutPoint()),
+				PreviousOutPoint: *(input2.OutPoint()),
 			},
 		},
 	}
-	err = ctx.backend.publishTransaction(remoteTx)
-	if err != nil {
+	if err := ctx.backend.publishTransaction(remoteTx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -765,7 +834,7 @@ func TestRestartRemoteSpend(t *testing.T) {
 	ctx.backend.mine()
 
 	// Simulate other subsystem (eg contract resolver) re-offering input 0.
-	spendChan, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	spendChan, err := ctx.sweeper.SweepInput(input1, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -789,8 +858,8 @@ func TestRestartConfirmed(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	// Sweep input.
-	_, err := ctx.sweeper.SweepInput(spendableInputs[0])
-	if err != nil {
+	input := spendableInputs[0]
+	if _, err := ctx.sweeper.SweepInput(input, defaultFeePref); err != nil {
 		t.Fatal(err)
 	}
 
@@ -799,10 +868,7 @@ func TestRestartConfirmed(t *testing.T) {
 	ctx.receiveTx()
 
 	// Restart sweeper.
-	ctx.sweeper.Stop()
-
-	ctx.sweeper = New(ctx.sweeper.cfg)
-	ctx.sweeper.Start()
+	ctx.restartSweeper()
 
 	// Expect last tx to be republished.
 	ctx.receiveTx()
@@ -811,7 +877,7 @@ func TestRestartConfirmed(t *testing.T) {
 	ctx.backend.mine()
 
 	// Simulate other subsystem (eg contract resolver) re-offering input 0.
-	spendChan, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	spendChan, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -830,7 +896,7 @@ func TestRestartConfirmed(t *testing.T) {
 func TestRestartRepublish(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	_, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	_, err := ctx.sweeper.SweepInput(spendableInputs[0], defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -840,9 +906,7 @@ func TestRestartRepublish(t *testing.T) {
 	sweepTx := ctx.receiveTx()
 
 	// Restart sweeper again. No action is expected.
-	ctx.sweeper.Stop()
-	ctx.sweeper = New(ctx.sweeper.cfg)
-	ctx.sweeper.Start()
+	ctx.restartSweeper()
 
 	republishedTx := ctx.receiveTx()
 
@@ -860,7 +924,9 @@ func TestRestartRepublish(t *testing.T) {
 func TestRetry(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	resultChan0, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan0, err := ctx.sweeper.SweepInput(
+		spendableInputs[0], defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -875,7 +941,9 @@ func TestRetry(t *testing.T) {
 	ctx.notifier.NotifyEpoch(1000)
 
 	// Offer a fresh input.
-	resultChan1, err := ctx.sweeper.SweepInput(spendableInputs[1])
+	resultChan1, err := ctx.sweeper.SweepInput(
+		spendableInputs[1], defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -900,7 +968,9 @@ func TestRetry(t *testing.T) {
 func TestGiveUp(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
-	resultChan0, err := ctx.sweeper.SweepInput(spendableInputs[0])
+	resultChan0, err := ctx.sweeper.SweepInput(
+		spendableInputs[0], defaultFeePref,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -928,6 +998,66 @@ func TestGiveUp(t *testing.T) {
 	ctx.expectResult(resultChan0, ErrTooManyAttempts)
 
 	ctx.backend.mine()
+
+	ctx.finish(1)
+}
+
+// TestDifferentFeePreferences ensures that the sweeper can have different
+// transactions for different fee preferences.
+func TestDifferentFeePreferences(t *testing.T) {
+	ctx := createSweeperTestContext(t)
+
+	// Throughout this test, we'll be attempting to sweep three inputs, two
+	// with the higher fee preference, and the last with the lower. We do
+	// this to ensure the sweeper can broadcast distinct transactions for
+	// each sweep with a different fee preference.
+	lowFeePref := FeePreference{
+		ConfTarget: 12,
+	}
+	ctx.estimator.blocksToFee[lowFeePref.ConfTarget] = 10000
+	highFeePref := FeePreference{
+		ConfTarget: 6,
+	}
+	ctx.estimator.blocksToFee[highFeePref.ConfTarget] = 100000
+
+	input1 := spendableInputs[0]
+	resultChan1, err := ctx.sweeper.SweepInput(input1, highFeePref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input2 := spendableInputs[1]
+	resultChan2, err := ctx.sweeper.SweepInput(input2, highFeePref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input3 := spendableInputs[2]
+	resultChan3, err := ctx.sweeper.SweepInput(input3, lowFeePref)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Start the sweeper's batch ticker, which should cause the sweep
+	// transactions to be broadcast.
+	ctx.tick()
+
+	ctx.receiveTx()
+	ctx.receiveTx()
+
+	// With the transactions broadcast, we'll mine a block to so that the
+	// result is delivered to each respective client.
+	ctx.backend.mine()
+
+	// We should expect to see a single transaction that sweeps the high fee
+	// preference inputs.
+	sweepTx1 := receiveSpendTx(t, resultChan1)
+	assertTxSweepsInputs(t, sweepTx1, input1, input2)
+	sweepTx2 := receiveSpendTx(t, resultChan2)
+	assertTxSweepsInputs(t, sweepTx2, input1, input2)
+
+	// We should expect to see a distinct transaction that sweeps the low
+	// fee preference inputs.
+	sweepTx3 := receiveSpendTx(t, resultChan3)
+	assertTxSweepsInputs(t, sweepTx3, input3)
 
 	ctx.finish(1)
 }

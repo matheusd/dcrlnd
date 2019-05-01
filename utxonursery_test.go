@@ -1055,7 +1055,9 @@ func newMockSweeper(t *testing.T) *mockSweeper {
 	}
 }
 
-func (s *mockSweeper) sweepInput(input input.Input) (chan sweep.Result, error) {
+func (s *mockSweeper) sweepInput(input input.Input,
+	_ sweep.FeePreference) (chan sweep.Result, error) {
+
 	utxnLog.Debugf("mockSweeper sweepInput called for %v", *input.OutPoint())
 
 	select {
