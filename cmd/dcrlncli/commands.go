@@ -104,8 +104,7 @@ var newAddressCommand = cli.Command{
 	ArgsUsage: "address-type",
 	Description: `
 	Generate a wallet new address. Address-types has to be one of:
-	    - p2wkh:  Pay to witness key hash
-	    - np2wkh: Pay to nested witness key hash`,
+	    - p2pkh: Pay to public key hash`,
 	Action: actionDecorator(newAddress),
 }
 
@@ -170,7 +169,7 @@ var sendCoinsCommand = cli.Command{
 		cli.Int64Flag{
 			Name: "atoms_per_byte",
 			Usage: "(optional) a manual fee expressed in " +
-				"atom/byte that should be used when crafting " +
+				"atoms/byte that should be used when crafting " +
 				"the transaction",
 		},
 	},
