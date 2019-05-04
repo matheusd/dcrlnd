@@ -289,7 +289,7 @@ func TestChainWatcherCorrectSpendNtnf(t *testing.T) {
 	}
 }
 
-// dlpTestCase is a speical struct that we'll use to generate randomized test
+// dlpTestCase is a special struct that we'll use to generate randomized test
 // cases for the main TestChainWatcherDataLossProtect test. This struct has a
 // special Generate method that will generate a random state number, and a
 // broadcast state number which is greater than that state number.

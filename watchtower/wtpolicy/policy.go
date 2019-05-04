@@ -122,7 +122,7 @@ func (p *Policy) ComputeAltruistOutput(totalAmt dcrutil.Amount,
 
 // ComputeRewardOutputs splits the total funds in a breaching commitment
 // transaction between the victim and the tower, according to the sweep fee rate
-// and reward rate. The reward to he tower is substracted first, before
+// and reward rate. The reward to he tower is subtracted first, before
 // splitting the remaining balance amongst the victim and fees.
 func (p *Policy) ComputeRewardOutputs(totalAmt dcrutil.Amount,
 	txSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
