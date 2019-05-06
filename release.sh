@@ -63,7 +63,7 @@ for i in $SYS; do
     cd $PACKAGE-$i-$TAG
 
     echo "Building:" $OS $ARCH $ARM
-    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" -tags="signrpc walletrpc chainrpc invoicesrpc" github.com/decred/dcrlnd
+    env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" -tags="signrpc walletrpc chainrpc invoicesrpc" github.com/decred/cmd/dcrlnd
     env GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -ldflags "$COMMITFLAGS" -tags="invoicesrpc" github.com/decred/dcrlnd/cmd/dcrlncli
     cd ..
 
