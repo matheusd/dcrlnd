@@ -1652,7 +1652,6 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         carol.PubKeyStr,
 		Amt:            int64(payAmt),
-		NumRoutes:      1,
 		FinalCltvDelta: defaultTimeLockDelta,
 	}
 
@@ -4581,7 +4580,6 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         net.Bob.PubKeyStr,
 		Amt:            paymentAmt,
-		NumRoutes:      1,
 		FinalCltvDelta: defaultDecredTimeLockDelta,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -4753,7 +4751,6 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         carol.PubKeyStr,
 		Amt:            paymentAmt,
-		NumRoutes:      1,
 		FinalCltvDelta: defaultDecredTimeLockDelta,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -4915,9 +4912,8 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 	// Query routes from Carol to Dave which will be an invalid route for
 	// Alice -> Bob.
 	fakeReq := &lnrpc.QueryRoutesRequest{
-		PubKey:    dave.PubKeyStr,
-		Amt:       int64(1),
-		NumRoutes: 1,
+		PubKey: dave.PubKeyStr,
+		Amt:    int64(1),
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	fakeRoute, err := carol.QueryRoutes(ctxt, fakeReq)
@@ -13178,9 +13174,8 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 	// Query for routes to pay from Alice to Dave.
 	const paymentAmt = 1000
 	routesReq := &lnrpc.QueryRoutesRequest{
-		PubKey:    dave.PubKeyStr,
-		Amt:       paymentAmt,
-		NumRoutes: 1,
+		PubKey: dave.PubKeyStr,
+		Amt:    paymentAmt,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	routesRes, err := net.Alice.QueryRoutes(ctxt, routesReq)
@@ -13486,20 +13481,14 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	// payments.
 	testFeeCutoff := func(feeLimit *lnrpc.FeeLimit) {
 		queryRoutesReq := &lnrpc.QueryRoutesRequest{
-			PubKey:    dave.PubKeyStr,
-			Amt:       paymentAmt,
-			FeeLimit:  feeLimit,
-			NumRoutes: 2,
+			PubKey:   dave.PubKeyStr,
+			Amt:      paymentAmt,
+			FeeLimit: feeLimit,
 		}
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		routesResp, err := net.Alice.QueryRoutes(ctxt, queryRoutesReq)
 		if err != nil {
 			t.Fatalf("unable to get routes: %v", err)
-		}
-
-		if len(routesResp.Routes) != 1 {
-			t.Fatalf("expected one route, got %d",
-				len(routesResp.Routes))
 		}
 
 		checkRoute(routesResp.Routes[0])
