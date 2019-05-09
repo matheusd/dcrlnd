@@ -1981,7 +1981,6 @@ func (l *LightningNode) PubKey() (*secp256k1.PublicKey, error) {
 		return nil, err
 	}
 	l.pubKey = key
-	l.pubKey.Curve = nil
 
 	return key, nil
 }
