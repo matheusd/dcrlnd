@@ -5213,7 +5213,7 @@ func testInvoiceRoutingHints(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	// Make sure all the channels have been opened.
-	nodeNames := []string{"bob", "carol", "dave", "eve"}
+	nodeNames := []string{"bob", "carol", "bob->carol", "dave", "eve"}
 	aliceChans := []*lnrpc.ChannelPoint{
 		chanPointBob, chanPointCarol, chanPointBobCarol, chanPointDave,
 		chanPointEve,
