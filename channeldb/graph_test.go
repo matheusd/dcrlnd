@@ -37,15 +37,10 @@ var (
 	testFeatures = lnwire.NewFeatureVector(nil, lnwire.GlobalFeatures)
 )
 
-func createTestVertex(db *DB) (*LightningNode, error) {
+func createLightningNode(db *DB, priv *secp256k1.PrivateKey) (*LightningNode, error) {
 	updateTime := prand.Int63()
 
-	priv, err := secp256k1.GeneratePrivateKey()
-	if err != nil {
-		return nil, err
-	}
-
-	pub := (*secp256k1.PublicKey)(&priv.PublicKey).SerializeCompressed()
+	pub := priv.PubKey().SerializeCompressed()
 	n := &LightningNode{
 		HaveNodeAnnouncement: true,
 		AuthSigBytes:         testSig.Serialize(),
@@ -59,6 +54,15 @@ func createTestVertex(db *DB) (*LightningNode, error) {
 	copy(n.PubKeyBytes[:], pub)
 
 	return n, nil
+}
+
+func createTestVertex(db *DB) (*LightningNode, error) {
+	priv, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	return createLightningNode(db, priv)
 }
 
 func TestNodeInsertionAndDeletion(t *testing.T) {
@@ -3016,4 +3020,55 @@ func compareEdgePolicies(a, b *ChannelEdgePolicy) error {
 			"got %#v", a.db, b.db)
 	}
 	return nil
+}
+
+// TestLightningNodeSigVerifcation checks that we can use the LightningNode's
+// pubkey to verify signatures.
+func TestLightningNodeSigVerification(t *testing.T) {
+	t.Parallel()
+
+	// Create some dummy data to sign.
+	var data [32]byte
+	if _, err := prand.Read(data[:]); err != nil {
+		t.Fatalf("unable to read prand: %v", err)
+	}
+
+	// Create private key and sign the data with it.
+	priv, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		t.Fatalf("unable to crete priv key: %v", err)
+	}
+
+	sign, err := priv.Sign(data[:])
+	if err != nil {
+		t.Fatalf("unable to sign: %v", err)
+	}
+
+	// Sanity check that the signature checks out.
+	if !sign.Verify(data[:], priv.PubKey()) {
+		t.Fatalf("signature doesn't check out")
+	}
+
+	// Create a LightningNode from the same private key.
+	db, cleanUp, err := makeTestDB()
+	if err != nil {
+		t.Fatalf("unable to make test database: %v", err)
+	}
+	defer cleanUp()
+
+	node, err := createLightningNode(db, priv)
+	if err != nil {
+		t.Fatalf("unable to create node: %v", err)
+	}
+
+	// And finally check that we can verify the same signature from the
+	// pubkey returned from the lightning node.
+	nodePub, err := node.PubKey()
+	if err != nil {
+		t.Fatalf("unable to get pubkey: %v", err)
+	}
+
+	if !sign.Verify(data[:], nodePub) {
+		t.Fatalf("unable to verify sig")
+	}
 }
