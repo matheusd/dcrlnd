@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/context"
@@ -31,8 +32,10 @@ import (
 )
 
 var (
-	// numActiveNodes is the number of active nodes within the test network.
-	numActiveNodes = 0
+	// numActiveNodes is the number of active nodes within the test
+	// network. This must be used atomically to allow concurrent use of the
+	// lntest lib.
+	numActiveNodes int32 = 0
 
 	// defaultNodePort is the initial p2p port which will be used by the
 	// first created lightning node to listen on for incoming p2p
@@ -71,24 +74,34 @@ var (
 	trickleDelay = 50
 )
 
-// generateListeningPorts returns three ints representing ports to listen on
-// designated for the current lightning network test. If there haven't been any
-// test instances created, the default ports are used. Otherwise, in order to
-// support multiple test nodes running at once, the p2p, rpc, and rest ports
+// generateListeningPortsAndID returns three ints representing ports to listen
+// on designated for the current lightning network test. If there haven't been
+// any test instances created, the default ports are used. Otherwise, in order
+// to support multiple test nodes running at once, the p2p, rpc, and rest ports
 // are incremented after each initialization.
-func generateListeningPorts() (int, int, int) {
+//
+// It also returns the desired nodeID for a new node, ensuring correct usage of
+// the global ID generator.
+func generateListeningPorts() (int, int, int, int) {
 	var p2p, rpc, rest int
-	if numActiveNodes == 0 {
+
+	// Atomically generate the ID, so that concurrent creation of nodes
+	// does not introduce errors. Subtract one from the generated ID, since
+	// the first returned value for the addition will be 1 and we want to
+	// start indexing nodes at 0.
+	id := int(atomic.AddInt32(&numActiveNodes, 1) - 1)
+
+	if id == 0 {
 		p2p = defaultNodePort
 		rpc = defaultClientPort
 		rest = defaultRestPort
 	} else {
-		p2p = defaultNodePort + (3 * numActiveNodes)
-		rpc = defaultClientPort + (3 * numActiveNodes)
-		rest = defaultRestPort + (3 * numActiveNodes)
+		p2p = defaultNodePort + (3 * id)
+		rpc = defaultClientPort + (3 * id)
+		rest = defaultRestPort + (3 * id)
 	}
 
-	return p2p, rpc, rest
+	return p2p, rpc, rest, id
 }
 
 type nodeConfig struct {
@@ -240,10 +253,9 @@ func newNode(cfg nodeConfig) (*HarnessNode, error) {
 	cfg.ReadMacPath = filepath.Join(cfg.DataDir, "readonly.macaroon")
 	cfg.InvoiceMacPath = filepath.Join(cfg.DataDir, "invoice.macaroon")
 
-	cfg.P2PPort, cfg.RPCPort, cfg.RESTPort = generateListeningPorts()
+	var nodeNum int
 
-	nodeNum := numActiveNodes
-	numActiveNodes++
+	cfg.P2PPort, cfg.RPCPort, cfg.RESTPort, nodeNum = generateListeningPorts()
 
 	return &HarnessNode{
 		cfg:               &cfg,
