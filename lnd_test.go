@@ -4522,13 +4522,14 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("alice didn't advertise her channel: %v", err)
 	}
 
-	// Create a new nodes (Carol and Charlie), load her with some funds,
-	// then establish a connection between Carol and Charlie with a channel
-	// that has identical capacity to the one created above.Then we will
-	// get route via queryroutes call which will be fake route for Alice ->
-	// Bob graph.
+	// Create a new nodes (Carol and Dave), load her with some funds, then
+	// establish a connection between Carol and Dave with a channel that
+	// has identical capacity to the one created above.Then we will get
+	// route via queryroutes call which will be fake route for Alice -> Bob
+	// graph.
 	//
-	// The network topology should now look like: Alice -> Bob; Carol -> Charlie.
+	// The network topology should now look like: Alice -> Bob; Carol ->
+	// Dave.
 	carol, err := net.NewNode("Carol", nil)
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
@@ -4541,26 +4542,26 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
 
-	charlie, err := net.NewNode("Charlie", nil)
+	dave, err := net.NewNode("Dave", nil)
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
 	}
-	defer shutdownAndAssert(net, t, charlie)
+	defer shutdownAndAssert(net, t, dave)
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, charlie)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
-		t.Fatalf("unable to send coins to charlie: %v", err)
+		t.Fatalf("unable to send coins to dave: %v", err)
 	}
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	if err := net.ConnectNodes(ctxt, carol, charlie); err != nil {
+	if err := net.ConnectNodes(ctxt, carol, dave); err != nil {
 		t.Fatalf("unable to connect carol to alice: %v", err)
 	}
 
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointCarol := openChannelAndAssert(
-		ctxt, t, net, carol, charlie,
+		ctxt, t, net, carol, dave,
 		lntest.OpenChannelParams{
 			Amt: chanAmt,
 		},
@@ -4571,10 +4572,10 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("carol didn't advertise her channel: %v", err)
 	}
 
-	// Query routes from Carol to Charlie which will be an invalid route
-	// for Alice -> Bob.
+	// Query routes from Carol to Dave which will be an invalid route for
+	// Alice -> Bob.
 	fakeReq := &lnrpc.QueryRoutesRequest{
-		PubKey:    charlie.PubKeyStr,
+		PubKey:    dave.PubKeyStr,
 		Amt:       int64(1),
 		NumRoutes: 1,
 	}
