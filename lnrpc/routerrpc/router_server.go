@@ -58,6 +58,10 @@ var (
 			Entity: "offchain",
 			Action: "read",
 		}},
+		"/routerrpc.Router/ResetMissionControl": {{
+			Entity: "offchain",
+			Action: "write",
+		}},
 	}
 
 	// DefaultRouterMacFilename is the default name of the router macaroon
@@ -437,4 +441,14 @@ func marshallChannelUpdate(update *lnwire.ChannelUpdate) *ChannelUpdate {
 		HtlcMaximumMAtoms: uint64(update.HtlcMaximumMAtoms),
 		ExtraOpaqueData:   update.ExtraOpaqueData,
 	}
+}
+
+// ResetMissionControl clears all mission control state and starts with a clean
+// slate.
+func (s *Server) ResetMissionControl(ctx context.Context,
+	req *ResetMissionControlRequest) (*ResetMissionControlResponse, error) {
+
+	s.cfg.RouterBackend.MissionControl.ResetHistory()
+
+	return &ResetMissionControlResponse{}, nil
 }
