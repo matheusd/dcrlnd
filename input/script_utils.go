@@ -359,7 +359,7 @@ func SenderHtlcSpendRedeem(signer Signer, signDesc *SignDescriptor,
 		return nil, err
 	}
 
-	// The stack require to spend this output is simply the signature
+	// The stack required to spend this output is simply the signature
 	// generated above under the receiver's public key, and the payment
 	// pre-image.
 	witnessStack := TxWitness(make([][]byte, 3))
@@ -890,7 +890,7 @@ func CommitScriptToSelf(csvTimeout uint32, selfKey, revokeKey *secp256k1.PublicK
 // transaction paying to the "other" party. The constructed output is a normal
 // p2wkh output spendable immediately, requiring no contestation period.
 func CommitScriptUnencumbered(key *secp256k1.PublicKey) ([]byte, error) {
-	// This script goes to the "other" party, and it spendable immediately.
+	// This script goes to the "other" party, and is spendable immediately.
 
 	pkh := dcrutil.Hash160(key.SerializeCompressed())
 	builder := txscript.NewScriptBuilder()
@@ -1025,8 +1025,8 @@ func SingleTweakBytes(commitPoint, basePoint *secp256k1.PublicKey) []byte {
 //            := G*(k + sha256(commitPoint || basePoint))
 //
 // Therefore, if a party possess the value k, the private key of the base
-// point, then they are able to derive the private key by computing: compute
-// the proper private key for the revokeKey by computing:
+// point, then they are able to derive the proper private key for the
+// revokeKey by computing:
 //
 //   revokePriv := k + sha256(commitPoint || basePoint) mod N
 //
