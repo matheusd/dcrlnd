@@ -175,7 +175,7 @@ message UnlockWalletRequest {
     /**
     recovery_window is an optional argument specifying the address lookahead
     when restoring a wallet seed. The recovery window applies to each
-    invdividual branch of the BIP44 derivation paths. Supplying a recovery
+    individual branch of the BIP44 derivation paths. Supplying a recovery
     window of zero indicates that no addresses should be recovered, such after
     the first initialization of the wallet.
     */
@@ -1547,7 +1547,7 @@ message PendingChannelsResponse {
         /// The balance in atoms encumbered in this pending channel
         int64 limbo_balance = 3 [ json_name = "limbo_balance" ];
 
-        /// The height at which funds can be sweeped into the wallet
+        /// The height at which funds can be swept into the wallet
         uint32 maturity_height = 4 [ json_name = "maturity_height" ];
 
         /*
@@ -1730,7 +1730,7 @@ message Route {
     /**
     The sum of the fees paid at each hop within the final route.  In the case
     of a one-hop payment, this value will be zero as we don't need to pay a fee
-    it ourself.
+    to ourselves.
     */
     int64 total_fees = 2 [json_name = "total_fees", deprecated = true];
 
@@ -2342,7 +2342,7 @@ message ForwardingHistoryResponse {
 }
 
 message ExportChannelBackupRequest {
-    /// The target chanenl point to obtain a back up for.
+    /// The target channel point to obtain a back up for.
     ChannelPoint chan_point = 1;
 }
 
@@ -2354,7 +2354,7 @@ message ChannelBackup {
 
     /**
     Is an encrypted single-chan backup. this can be passed to
-    RestoreChannelBackups, or the WalletUnlocker Innit and Unlock methods in
+    RestoreChannelBackups, or the WalletUnlocker Init and Unlock methods in
     order to trigger the recovery protocol.
     */
     bytes chan_backup = 2 [ json_name = "chan_backup" ];
