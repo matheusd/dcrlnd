@@ -111,7 +111,7 @@ func New(cfg Config) (*DcrWallet, error) {
 		syncedChan: make(chan struct{}),
 		netParams:  cfg.NetParams,
 		utxoCache:  make(map[wire.OutPoint]*wire.TxOut),
-		keyring:    keychain.NewWalletKeyRing(wallet),
+		keyring:    NewWalletKeyRing(wallet),
 	}, nil
 }
 
