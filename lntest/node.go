@@ -356,7 +356,8 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	}
 
 	if err := hn.cmd.Start(); err != nil {
-		return fmt.Errorf("unable to start %s's dcrlnd-itest: %v", hn.Name(), err)
+		return fmt.Errorf("unable to start %s's (%d) dcrlnd-itest: %v",
+			hn.Name(), hn.NodeID, err)
 	}
 
 	// Launch a new goroutine which that bubbles up any potential fatal
@@ -390,7 +391,8 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	conn, err := hn.ConnectRPC(useMacaroons)
 	if err != nil {
 		hn.cmd.Process.Kill()
-		return fmt.Errorf("unable to connect to %s's RPC: %v", hn.Name(), err)
+		return fmt.Errorf("unable to connect to %s's (%d) RPC: %v",
+			hn.Name(), hn.NodeID, err)
 	}
 
 	// If the node was created with a seed, we will need to perform an
@@ -528,6 +530,10 @@ func (hn *HarnessNode) writePidFile() error {
 // ConnectRPC uses the TLS certificate and admin macaroon files written by the
 // lnd node to create a gRPC client connection.
 func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
+
+	fmt.Println(time.Now().Format("15:04:05.000"),
+		"starting connectRPC procedures", hn.Name(), hn.NodeID)
+
 	// Wait until TLS certificate and admin macaroon are created before
 	// using them, up to 20 sec.
 	tlsTimeout := time.After(30 * time.Second)
@@ -542,7 +548,7 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
-		grpc.WithTimeout(time.Second * 40),
+		grpc.WithTimeout(time.Second * 60),
 		grpc.WithBackoffMaxDelay(time.Millisecond * 20),
 	}
 
@@ -578,6 +584,8 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 
 	macCred := macaroons.NewMacaroonCredential(mac)
 	opts = append(opts, grpc.WithPerRPCCredentials(macCred))
+
+	fmt.Println(time.Now().Format("15:04:05.000"), "gonna try and connect", hn.Name(), hn.NodeID)
 
 	return grpc.Dial(hn.cfg.RPCAddr(), opts...)
 }

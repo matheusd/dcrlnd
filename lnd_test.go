@@ -49,6 +49,7 @@ const (
 	minerMempoolTimeout = lntest.MinerMempoolTimeout
 	channelOpenTimeout  = lntest.ChannelOpenTimeout
 	channelCloseTimeout = lntest.ChannelCloseTimeout
+	nodeBufferSize      = 3
 
 	// defaultChanAmt is the default channel capacity for channels opened
 	// for testing. This is an amount that should allow a large number of
@@ -976,7 +977,7 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
 	}
-	defer shutdownAndAssert(net, t, carol)
+	defer shutdownAndAssert(net, t, dave)
 
 	carolToDaveReq := &lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{
@@ -14138,6 +14139,9 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		// using a non-standard signature script.
 		//"--rejectnonstd",
 
+		"--rpcmaxwebsockets=200",
+		"--rpcmaxconcurrentreqs=200",
+
 		"--txindex",
 		"--debuglevel=debug",
 		"--logdir=" + logDir,
@@ -14208,7 +14212,90 @@ func TestLightningNetworkDaemon(t *testing.T) {
 	}
 
 	// Closure that initializes a new harness node.
-	newNode := lndHarness.NewNode
+	nodeMakers := make(map[string]chan *lntest.HarnessNode)
+	quit := make(chan struct{})
+	newNode := func(name string, args []string) (*lntest.HarnessNode, error) {
+		makerChan, has := nodeMakers[name]
+
+		if !has {
+			makerChan = make(chan *lntest.HarnessNode, nodeBufferSize)
+			nodeMakers[name] = makerChan
+			go func() {
+				for {
+					select {
+					case <-quit:
+						fmt.Println(time.Now().Format("15:04:05.000"), "closing nodeMaker", name)
+						close(makerChan)
+						return
+					default:
+					}
+					fmt.Println(time.Now().Format("15:04:05.000"), "creating new node", name)
+					node, err := lndHarness.NewNode(name, nil)
+					if err != nil {
+						fmt.Println("xxxxx error creating new node", err)
+					}
+					fmt.Println(time.Now().Format("15:04:05.000"), "new node created. Gonna send.", name)
+					makerChan <- node
+					fmt.Println(time.Now().Format("15:04:05.000"), "sent new node", name)
+				}
+			}()
+			fmt.Println(time.Now().Format("15:04:05.000"), "initialized node maker", name)
+		}
+
+		fmt.Println(time.Now().Format("15:04:05.000"), "gonna request new node", name)
+		select {
+		case node := <-makerChan:
+			var err error
+			if node == nil {
+				return nil, fmt.Errorf("empty new node")
+			}
+			fmt.Println(time.Now().Format("15:04:05.000"), "got new node to return", name, node.NodeID)
+			if args != nil {
+				fmt.Println(time.Now().Format("15:04:05.000"), "changing args", name, args)
+				node.SetExtraArgs(args)
+				err = lndHarness.RestartNode(node, nil)
+				fmt.Println(time.Now().Format("15:04:05.000"), "restarted after changing args", name, err)
+			}
+			return node, err
+		case <-quit:
+			return nil, fmt.Errorf("new node cancelled")
+		}
+
+	}
+
+	// Cleanup func for buffered nodes
+	nodesCleaned := make(chan struct{})
+	go func() {
+		<-quit
+		fmt.Println(time.Now().Format("15:04:05.000"), "starting cleanup")
+		var wg sync.WaitGroup
+		wg.Add(len(nodeMakers))
+		for name, nodeChan := range nodeMakers {
+			go func(name string, nodeChan chan *lntest.HarnessNode) {
+				var nodeWg sync.WaitGroup
+				for node := range nodeChan {
+					if node == nil {
+						break
+					}
+					nodeWg.Add(1)
+					go func(node *lntest.HarnessNode) {
+						fmt.Println(time.Now().Format("15:04:05.000"), "shuttding down draining", node.Name(), node.NodeID)
+						err := lndHarness.ShutdownNode(node)
+						if err != nil {
+							fmt.Println("error cleaning up node", err)
+						}
+						nodeWg.Done()
+					}(node)
+				}
+				nodeWg.Wait()
+				fmt.Println(time.Now().Format("15:04:05.000"), "finished draining nodemaker for", name)
+				wg.Done()
+			}(name, nodeChan)
+		}
+		wg.Wait()
+		fmt.Println(time.Now().Format("15:04:05.000"), "cleanup done.")
+		close(nodesCleaned)
+	}()
 
 	t.Logf("Running %v integration tests", len(testsCases))
 	for _, testCase := range testsCases {
@@ -14240,5 +14327,15 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		if !success {
 			break
 		}
+
 	}
+
+	// Close node creation channels (if not yet closed) and cleanup
+	// outstanding (unused) nodes.
+	select {
+	case <-quit:
+	default:
+		close(quit)
+	}
+	<-nodesCleaned
 }
