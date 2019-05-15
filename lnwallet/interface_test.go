@@ -327,17 +327,11 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 
 // createTestWallet creates a test LightningWallet will a total of 20DCR
 // available for funding channels.
-func createTestWallet(tempTestDir string, miningNode *rpctest.Harness,
+func createTestWallet(cdb *channeldb.DB, miningNode *rpctest.Harness,
 	netParams *chaincfg.Params, notifier chainntnfs.ChainNotifier,
 	wc lnwallet.WalletController, keyRing keychain.SecretKeyRing,
 	signer lnwallet.Signer, bio lnwallet.BlockChainIO,
 	vw *rpctest.VotingWallet) (*lnwallet.LightningWallet, error) {
-
-	dbDir := filepath.Join(tempTestDir, "cdb")
-	cdb, err := channeldb.Open(dbDir)
-	if err != nil {
-		return nil, err
-	}
 
 	cfg := lnwallet.Config{
 		Database:         cdb,
@@ -2467,6 +2461,20 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	}
 	defer os.RemoveAll(tempTestDirBob)
 
+	aliceDBDir := filepath.Join(tempTestDirAlice, "cdb")
+	aliceCDB, err := channeldb.Open(aliceDBDir)
+	if err != nil {
+		t.Fatalf("unable to open alice cdb: %v", err)
+	}
+	defer aliceCDB.Close()
+
+	bobDBDir := filepath.Join(tempTestDirBob, "cdb")
+	bobCDB, err := channeldb.Open(bobDBDir)
+	if err != nil {
+		t.Fatalf("unable to open bob cdb: %v", err)
+	}
+	defer bobCDB.Close()
+
 	walletType := walletDriver.WalletType
 	switch walletType {
 	case "dcrwallet":
@@ -2508,15 +2516,14 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			NetParams:    netParams,
 			Syncer:       aliceSyncer,
 			FeeEstimator: feeEstimator,
+			DB:           aliceCDB,
 		}
 		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
 		if err != nil {
 			t.Fatalf("unable to create alice wallet: %v", err)
 		}
 		aliceSigner = aliceWalletController.(*dcrwallet.DcrWallet)
-		aliceKeyRing = dcrwallet.NewWalletKeyRing(
-			aliceWalletController.(*dcrwallet.DcrWallet).InternalWallet(),
-		)
+		aliceKeyRing = aliceWalletController.(*dcrwallet.DcrWallet)
 
 		bobSeed := sha256.New()
 		bobSeed.Write([]byte(backEnd))
@@ -2530,23 +2537,21 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			NetParams:    netParams,
 			Syncer:       bobSyncer,
 			FeeEstimator: feeEstimator,
+			DB:           bobCDB,
 		}
 		bobWalletController, err = walletDriver.New(bobWalletConfig)
 		if err != nil {
 			t.Fatalf("unable to create bob wallet: %v", err)
 		}
 		bobSigner = bobWalletController.(*dcrwallet.DcrWallet)
-		bobKeyRing = dcrwallet.NewWalletKeyRing(
-			bobSigner.(*dcrwallet.DcrWallet).InternalWallet(),
-		)
-
+		bobKeyRing = bobWalletController.(*dcrwallet.DcrWallet)
 	default:
 		t.Fatalf("unknown wallet driver: %v", walletType)
 	}
 
 	// Funding via 20 outputs with 4DCR each.
 	alice, err := createTestWallet(
-		tempTestDirAlice, miningNode, netParams,
+		aliceCDB, miningNode, netParams,
 		chainNotifier, aliceWalletController, aliceKeyRing,
 		aliceSigner, aliceBio, votingWallet,
 	)
@@ -2556,7 +2561,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	defer alice.Shutdown()
 
 	bob, err := createTestWallet(
-		tempTestDirBob, miningNode, netParams,
+		bobCDB, miningNode, netParams,
 		chainNotifier, bobWalletController, bobKeyRing,
 		bobSigner, bobBio, votingWallet,
 	)

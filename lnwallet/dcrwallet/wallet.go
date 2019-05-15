@@ -15,7 +15,6 @@ import (
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 
-	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 
 	walletloader "github.com/decred/dcrwallet/loader"
@@ -32,6 +31,12 @@ const (
 // backed by an active instance of dcrwallet. At the time of the writing of
 // this documentation, this implementation requires a full dcrd node to
 // operate.
+//
+// This struct implements the lnwallet.Signer, lnWallet.MessageSigner,
+// keychain.SecretKeyRing and keychain.KeyRing interfaces.
+//
+// Note that most of its functions might produce errors or panics until the
+// wallet has been fully synced.
 type DcrWallet struct {
 	// wallet is an active instance of dcrwallet.
 	wallet             *base.Wallet
@@ -53,7 +58,7 @@ type DcrWallet struct {
 
 	syncer WalletSyncer
 
-	keyring keychain.SecretKeyRing
+	*walletKeyRing
 }
 
 // A compile time check to ensure that DcrWallet implements the
@@ -111,7 +116,6 @@ func New(cfg Config) (*DcrWallet, error) {
 		syncedChan: make(chan struct{}),
 		netParams:  cfg.NetParams,
 		utxoCache:  make(map[wire.OutPoint]*wire.TxOut),
-		keyring:    NewWalletKeyRing(wallet),
 	}, nil
 }
 
@@ -707,6 +711,19 @@ func (b *DcrWallet) InitialSyncChannel() <-chan struct{} {
 
 func (b *DcrWallet) onRPCSyncerSynced(synced bool) {
 	dcrwLog.Debug("RPC syncer notified wallet is synced")
+
+	// Now that the wallet is synced and address discovery has ended, we
+	// can create the keyring. We can only do this here (after sync)
+	// because address discovery might upgrade the underlying dcrwallet
+	// coin type.
+	var err error
+	b.walletKeyRing, err = newWalletKeyRing(b.wallet, b.cfg.DB)
+	if err != nil {
+		// Sign operations will fail, so signal the error and prevent
+		// the wallet from considering itself synced (to prevent usage)
+		dcrwLog.Errorf("Unable to create wallet key ring: %v", err)
+		return
+	}
 
 	// Signal that the wallet is synced by closing the channel.
 	if atomic.CompareAndSwapUint32(&b.atomicWalletSynced, 0, 1) {
