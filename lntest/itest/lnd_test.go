@@ -1,6 +1,6 @@
 // +build rpctest
 
-package dcrlnd
+package itest
 
 import (
 	"bytes"
@@ -27,6 +27,7 @@ import (
 	"github.com/decred/dcrd/rpcclient/v2"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -34,6 +35,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -148,7 +150,7 @@ func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash)
 }
 
 func rpcPointToWirePoint(t *harnessTest, chanPoint *lnrpc.ChannelPoint) wire.OutPoint {
-	txid, err := getChanPointFundingTxid(chanPoint)
+	txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -229,7 +231,7 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 	if err != nil {
 		t.Fatalf("error while waiting for channel open: %v", err)
 	}
-	fundingTxID, err := getChanPointFundingTxid(fundingChanPoint)
+	fundingTxID, err := dcrlnd.GetChanPointFundingTxid(fundingChanPoint)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -330,7 +332,7 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 	fundingChanPoint *lnrpc.ChannelPoint,
 	closeUpdates lnrpc.Lightning_CloseChannelClient) *chainhash.Hash {
 
-	txid, err := getChanPointFundingTxid(fundingChanPoint)
+	txid, err := dcrlnd.GetChanPointFundingTxid(fundingChanPoint)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -398,7 +400,7 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 func waitForChannelPendingForceClose(ctx context.Context,
 	node *lntest.HarnessNode, fundingChanPoint *lnrpc.ChannelPoint) error {
 
-	txid, err := getChanPointFundingTxid(fundingChanPoint)
+	txid, err := dcrlnd.GetChanPointFundingTxid(fundingChanPoint)
 	if err != nil {
 		return err
 	}
@@ -1281,7 +1283,7 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 
 // txStr returns the string representation of the channel's funding transaction.
 func txStr(chanPoint *lnrpc.ChannelPoint) string {
-	fundingTxID, err := getChanPointFundingTxid(chanPoint)
+	fundingTxID, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 	if err != nil {
 		return ""
 	}
@@ -1484,7 +1486,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	const (
 		defaultFeeBase       = 1000
 		defaultFeeRate       = 1
-		defaultTimeLockDelta = defaultDecredTimeLockDelta
+		defaultTimeLockDelta = dcrlnd.DefaultDecredTimeLockDelta
 		defaultMinHtlc       = 1000
 	)
 
@@ -2591,7 +2593,7 @@ func testChannelUnsettledBalance(net *lntest.NetworkHarness, t *harnessTest) {
 			Dest:           carolPubKey,
 			Amt:            int64(payAmt),
 			PaymentHash:    makeFakePayHash(t),
-			FinalCltvDelta: defaultDecredTimeLockDelta,
+			FinalCltvDelta: dcrlnd.DefaultDecredTimeLockDelta,
 		})
 		if err != nil {
 			t.Fatalf("unable to send alice htlc: %v", err)
@@ -2789,7 +2791,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// TODO(roasbeef): should check default value in config here
 	// instead, or make delay a param
-	defaultCLTV := uint32(defaultDecredTimeLockDelta)
+	defaultCLTV := uint32(dcrlnd.DefaultDecredTimeLockDelta)
 
 	// Since we'd like to test failure scenarios with outstanding htlcs,
 	// we'll introduce another node into our test network: Carol.
@@ -2858,7 +2860,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 			Dest:           carolPubKey,
 			Amt:            int64(paymentAmt),
 			PaymentHash:    makeFakePayHash(t),
-			FinalCltvDelta: defaultDecredTimeLockDelta,
+			FinalCltvDelta: dcrlnd.DefaultDecredTimeLockDelta,
 		})
 		if err != nil {
 			t.Fatalf("unable to send alice htlc: %v", err)
@@ -2927,7 +2929,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Compute the outpoint of the channel, which we will use repeatedly to
 	// locate the pending channel information in the rpc responses.
-	txid, err := getChanPointFundingTxid(chanPoint)
+	txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4362,7 +4364,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4401,7 +4403,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 	networkChans = append(networkChans, chanPointDave)
-	daveChanTXID, err := getChanPointFundingTxid(chanPointDave)
+	daveChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointDave)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4436,7 +4438,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointCarol)
 
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4450,7 +4452,7 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -4501,12 +4503,12 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	// possible to pick up more subtle fee calculation errors.
 	updateChannelPolicy(
 		t, net.Alice, chanPointAlice, 1000, 100000,
-		defaultDecredTimeLockDelta, carol,
+		dcrlnd.DefaultDecredTimeLockDelta, carol,
 	)
 
 	updateChannelPolicy(
 		t, dave, chanPointDave, 5000, 150000,
-		defaultDecredTimeLockDelta, carol,
+		dcrlnd.DefaultDecredTimeLockDelta, carol,
 	)
 
 	// Using Carol as the source, pay to the 5 invoices from Bob created
@@ -4640,7 +4642,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4654,7 +4656,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -4681,7 +4683,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         net.Bob.PubKeyStr,
 		Amt:            paymentAmt,
-		FinalCltvDelta: defaultDecredTimeLockDelta,
+		FinalCltvDelta: dcrlnd.DefaultDecredTimeLockDelta,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	routes, err := net.Alice.QueryRoutes(ctxt, routesReq)
@@ -4776,7 +4778,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4811,7 +4813,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 	networkChans = append(networkChans, chanPointBob)
-	bobChanTXID, err := getChanPointFundingTxid(chanPointBob)
+	bobChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointBob)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -4825,7 +4827,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob", "Carol"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -4852,7 +4854,7 @@ func testMultiHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	routesReq := &lnrpc.QueryRoutesRequest{
 		PubKey:         carol.PubKeyStr,
 		Amt:            paymentAmt,
-		FinalCltvDelta: defaultDecredTimeLockDelta,
+		FinalCltvDelta: dcrlnd.DefaultDecredTimeLockDelta,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	routes, err := net.Alice.QueryRoutes(ctxt, routesReq)
@@ -5209,7 +5211,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -5242,7 +5244,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 	networkChans = append(networkChans, chanPointDave)
-	daveChanTXID, err := getChanPointFundingTxid(chanPointDave)
+	daveChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointDave)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -5277,7 +5279,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointCarol)
 
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -5292,7 +5294,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -5337,7 +5339,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("error while waiting for channel open: %v", err)
 	}
-	fundingTxID, err := getChanPointFundingTxid(chanPointPrivate)
+	fundingTxID, err := dcrlnd.GetChanPointFundingTxid(chanPointPrivate)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -5776,7 +5778,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// Retrieve Alice's funding outpoint.
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -5825,7 +5827,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// Retrieve Bob's funding outpoint.
-	bobChanTXID, err := getChanPointFundingTxid(chanPointBob)
+	bobChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointBob)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -5880,7 +5882,7 @@ func testMultiHopOverPrivateChannels(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// Retrieve Carol's funding point.
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -6418,7 +6420,7 @@ func testBasicChannelCreationAndUpdates(net *lntest.NetworkHarness, t *harnessTe
 func testMaxPendingChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	maxPendingChannels := defaultMaxPendingChannels + 1
+	maxPendingChannels := dcrlnd.DefaultMaxPendingChannels + 1
 	amount := defaultChanAmt
 
 	// Create a new node (Carol) with greater number of max pending
@@ -6495,7 +6497,7 @@ func testMaxPendingChannels(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("error while waiting for channel open: %v", err)
 		}
 
-		fundingTxID, err := getChanPointFundingTxid(fundingChanPoint)
+		fundingTxID, err := dcrlnd.GetChanPointFundingTxid(fundingChanPoint)
 		if err != nil {
 			t.Fatalf("unable to get txid: %v", err)
 		}
@@ -6963,7 +6965,7 @@ func testGarbageCollectLinkNodes(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll need to mine some blocks in order to mark the channel fully
 	// closed.
-	_, err = net.Generate(defaultDecredTimeLockDelta - defaultCSV)
+	_, err = net.Generate(dcrlnd.DefaultDecredTimeLockDelta - defaultCSV)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -9251,7 +9253,7 @@ out:
 		// We'll send in chunks of the max payment amount. If we're
 		// about to send too much, then we'll only send the amount
 		// remaining.
-		toSend := int64(maxPaymentMAtoms.ToAtoms())
+		toSend := int64(dcrlnd.MaxPaymentMAtoms.ToAtoms())
 		if toSend+amtSent > amtToSend {
 			toSend = amtToSend - amtSent
 		}
@@ -9529,11 +9531,11 @@ out:
 					"expected %v, got %v", blockHeight+1,
 					closedChan.ClosedHeight)
 			}
-			chanPointTxid, err := getChanPointFundingTxid(chanPoint)
+			chanPointTxid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
-			closedChanTxid, err := getChanPointFundingTxid(
+			closedChanTxid, err := dcrlnd.GetChanPointFundingTxid(
 				closedChan.ChanPoint,
 			)
 			if err != nil {
@@ -10472,13 +10474,13 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// commitment transaction due to the fact that the HTLC is about to
 	// timeout. With the default outgoing broadcast delta of zero, this will
 	// be the same height as the htlc expiry height.
-	numBlocks := uint32(finalCltvDelta - defaultOutgoingBroadcastDelta)
+	numBlocks := uint32(finalCltvDelta - dcrlnd.DefaultOutgoingBroadcastDelta)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
 	// Bob's force close transaction should now be found in the mempool.
-	bobFundingTxid, err := getChanPointFundingTxid(bobChanPoint)
+	bobFundingTxid, err := dcrlnd.GetChanPointFundingTxid(bobChanPoint)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11114,7 +11116,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11154,7 +11156,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 	networkChans = append(networkChans, chanPointDave)
-	daveChanTXID, err := getChanPointFundingTxid(chanPointDave)
+	daveChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointDave)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11191,7 +11193,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointCarol)
 
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11205,7 +11207,7 @@ func testSwitchCircuitPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -11426,7 +11428,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11466,7 +11468,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 	networkChans = append(networkChans, chanPointDave)
-	daveChanTXID, err := getChanPointFundingTxid(chanPointDave)
+	daveChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointDave)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11504,7 +11506,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 	networkChans = append(networkChans, chanPointCarol)
 
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11518,7 +11520,7 @@ func testSwitchOfflineDelivery(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -11752,7 +11754,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11793,7 +11795,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	)
 
 	networkChans = append(networkChans, chanPointDave)
-	daveChanTXID, err := getChanPointFundingTxid(chanPointDave)
+	daveChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointDave)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11830,7 +11832,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	)
 	networkChans = append(networkChans, chanPointCarol)
 
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -11844,7 +11846,7 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -12085,7 +12087,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	)
 	networkChans = append(networkChans, chanPointAlice)
 
-	aliceChanTXID, err := getChanPointFundingTxid(chanPointAlice)
+	aliceChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointAlice)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -12125,7 +12127,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 		},
 	)
 	networkChans = append(networkChans, chanPointDave)
-	daveChanTXID, err := getChanPointFundingTxid(chanPointDave)
+	daveChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointDave)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -12160,7 +12162,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	)
 	networkChans = append(networkChans, chanPointCarol)
 
-	carolChanTXID, err := getChanPointFundingTxid(chanPointCarol)
+	carolChanTXID, err := dcrlnd.GetChanPointFundingTxid(chanPointCarol)
 	if err != nil {
 		t.Fatalf("unable to get txid: %v", err)
 	}
@@ -12174,7 +12176,7 @@ func testSwitchOfflineDeliveryOutgoingOffline(
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -12411,7 +12413,7 @@ func testQueryRoutes(net *lntest.NetworkHarness, t *harnessTest) {
 	nodeNames := []string{"Alice", "Bob", "Carol", "Dave"}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -12623,7 +12625,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	for _, chanPoint := range networkChans {
 		for i, node := range nodes {
-			txid, err := getChanPointFundingTxid(chanPoint)
+			txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 			if err != nil {
 				t.Fatalf("unable to get txid: %v", err)
 			}
@@ -12649,7 +12651,7 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	//	Alice -> Carol -> Dave
 	baseFee := int64(10000)
 	feeRate := int64(5)
-	timeLockDelta := uint32(defaultDecredTimeLockDelta)
+	timeLockDelta := uint32(dcrlnd.DefaultDecredTimeLockDelta)
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
 		FeeBaseMAtoms:      baseFee,
@@ -12908,9 +12910,9 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	// We should expect to see a channel update with the default routing
 	// policy, except that it should indicate the channel is disabled.
 	expectedPolicy := &lnrpc.RoutingPolicy{
-		FeeBaseMAtoms:      int64(defaultDecredBaseFeeMAtoms),
-		FeeRateMilliMAtoms: int64(defaultDecredFeeRate),
-		TimeLockDelta:      defaultDecredTimeLockDelta,
+		FeeBaseMAtoms:      int64(dcrlnd.DefaultDecredBaseFeeMAtoms),
+		FeeRateMilliMAtoms: int64(dcrlnd.DefaultDecredFeeRate),
+		TimeLockDelta:      dcrlnd.DefaultDecredTimeLockDelta,
 		MinHtlc:            1000, // default value
 		Disabled:           true,
 	}

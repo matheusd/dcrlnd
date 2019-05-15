@@ -29,9 +29,16 @@ import (
 const (
 	// TODO(decred) verify these amounts
 	defaultDecredMinHTLCMAtoms = lnwire.MilliAtom(1000)
-	defaultDecredBaseFeeMAtoms = lnwire.MilliAtom(1000)
-	defaultDecredFeeRate       = lnwire.MilliAtom(1)
-	defaultDecredTimeLockDelta = 80
+
+	// DefaultDecredBaseFeeMAtoms is the default forwarding base fee.
+	DefaultDecredBaseFeeMAtoms = lnwire.MilliAtom(1000)
+
+	// DefaultBitcoinFeeRate is the default forwarding fee rate.
+	DefaultDecredFeeRate = lnwire.MilliAtom(1)
+
+	// DefaultBitcoinTimeLockDelta is the default forwarding time lock
+	// delta.
+	DefaultDecredTimeLockDelta = 80
 
 	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/kB
 	defaultDecredStaticFeePerKB = lnwallet.AtomPerKByte(1e4)

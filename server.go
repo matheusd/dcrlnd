@@ -762,8 +762,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 
 	s.chainArb = contractcourt.NewChainArbitrator(contractcourt.ChainArbitratorConfig{
 		ChainHash:              *activeNetParams.GenesisHash,
-		IncomingBroadcastDelta: defaultIncomingBroadcastDelta,
-		OutgoingBroadcastDelta: defaultOutgoingBroadcastDelta,
+		IncomingBroadcastDelta: DefaultIncomingBroadcastDelta,
+		OutgoingBroadcastDelta: DefaultOutgoingBroadcastDelta,
 		NewSweepAddr: func() ([]byte, error) {
 			return newSweepPkScript(cc.wallet)
 		},
@@ -933,7 +933,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			minConf := uint64(3)
 			maxConf := uint64(6)
 			maxChannelSize := uint64(
-				lnwire.NewMAtomsFromAtoms(maxFundingAmount))
+				lnwire.NewMAtomsFromAtoms(MaxFundingAmount))
 			stake := lnwire.NewMAtomsFromAtoms(chanAmt) + pushAmt
 			conf := maxConf * uint64(stake) / maxChannelSize
 			if conf < minConf {
@@ -948,8 +948,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 			// We scale the remote CSV delay (the time the
 			// remote have to claim funds in case of a unilateral
 			// close) linearly from minRemoteDelay blocks
-			// for small channels, to maxRemoteDelay blocks
-			// for channels of size maxFundingAmount.
+			// for small channels, to maxRemoteDelay blocks for
+			// channels of size MaxFundingAmount.
 
 			// In case the user has explicitly specified
 			// a default value for the remote delay, we
@@ -961,7 +961,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 
 			// If not we scale according to channel size.
 			delay := uint16(dcrutil.Amount(maxRemoteDelay) *
-				chanAmt / maxFundingAmount)
+				chanAmt / MaxFundingAmount)
 			if delay < minRemoteDelay {
 				delay = minRemoteDelay
 			}
