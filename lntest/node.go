@@ -313,7 +313,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 
 	args := hn.cfg.genArgs()
 	args = append(args, fmt.Sprintf("--profile=%d", 9000+hn.NodeID))
-	hn.cmd = exec.Command("./dcrlnd-itest", args...)
+	hn.cmd = exec.Command("../../dcrlnd-itest", args...)
 
 	// Redirect stderr output to buffer
 	var errb bytes.Buffer
@@ -1050,7 +1050,7 @@ func (hn *HarnessNode) WaitForBalance(expectedBalance dcrutil.Amount, confirmed 
 }
 
 // fileExists reports whether the named file or directory exists.
-// This function is taken from https://github.com/btcsuite/btcd
+// This function is taken from https://github.com/decred/dcrd
 func fileExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {

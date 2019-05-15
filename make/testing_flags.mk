@@ -65,4 +65,4 @@ else
 ITEST_TAGS += dcrd
 endif
 
-ITEST := rm output*.log; date; $(GOTEST) -tags="$(ITEST_TAGS)" $(TEST_FLAGS) -logoutput
+ITEST := rm ./lntest/itest/output*.log; date; $(GOTEST) ./lntest/itest -tags="$(ITEST_TAGS)" $(TEST_FLAGS) -logoutput

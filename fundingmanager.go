@@ -54,17 +54,17 @@ const (
 	// Protocol. This limit is defined in BOLT-0002, and serves as an
 	// initial precautionary limit while implementations are battle tested
 	// in the real world.
-	maxDecredFundingAmount = dcrutil.Amount(1<<30) - 1
+	MaxDecredFundingAmount = dcrutil.Amount(1<<30) - 1
 )
 
 var (
-	// maxFundingAmount is a soft-limit of the maximum channel size
+	// MaxFundingAmount is a soft-limit of the maximum channel size
 	// currently accepted within the Lightning Protocol. This limit is
 	// defined in BOLT-0002, and serves as an initial precautionary limit
 	// while implementations are battle tested in the real world.
 	//
 	// TODO(roasbeef): add command line param to modify
-	maxFundingAmount = maxDecredFundingAmount
+	MaxFundingAmount = MaxDecredFundingAmount
 
 	// ErrFundingManagerShuttingDown is an error returned when attempting to
 	// process a funding request/message but the funding manager has already
@@ -1006,7 +1006,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 
 	// We'll reject any request to create a channel that's above the
 	// current soft-limit for channel size.
-	if msg.FundingAmount > maxFundingAmount {
+	if msg.FundingAmount > MaxFundingAmount {
 		f.failFundingFlow(
 			fmsg.peer, fmsg.msg.PendingChannelID,
 			lnwire.ErrChanTooLarge,
