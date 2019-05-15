@@ -29,7 +29,7 @@ require (
 	github.com/decred/lightning-onion v1.0.0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
-	github.com/golang/protobuf v1.2.0
+	github.com/golang/protobuf v1.3.1
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
 	github.com/jackpal/gateway v1.0.5
 	github.com/jackpal/go-nat-pmp v0.0.0-20170405195558-28a68d0c24ad
