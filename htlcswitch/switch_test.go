@@ -1797,10 +1797,6 @@ func TestSwitchSendPayment(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("err wasn't received")
 	}
-
-	if s.numPendingPayments() != 0 {
-		t.Fatal("wrong amount of pending payments")
-	}
 }
 
 // TestLocalPaymentNoForwardingEvents tests that if we send a series of locally
