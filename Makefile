@@ -96,6 +96,8 @@ $(LINT_BIN):
 dcrd:
 	@$(call print, "Installing dcrd $(DCRD_COMMIT).")
 	GO111MODULE=on go get -v github.com/decred/dcrd/@$(DCRD_COMMIT)
+	which dcrd
+	dcrd --version
 
 # ============
 # INSTALLATION
