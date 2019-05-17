@@ -670,12 +670,14 @@ func openChannel(ctx *cli.Context) error {
 		return nil
 	}
 
+	minConfs := int32(ctx.Uint64("min_confs"))
 	req := &lnrpc.OpenChannelRequest{
-		TargetConf:     int32(ctx.Int64("conf_target")),
-		AtomsPerByte:   ctx.Int64("atoms_per_byte"),
-		MinHtlcMAtoms:  ctx.Int64("min_htlc_m_atoms"),
-		RemoteCsvDelay: uint32(ctx.Uint64("remote_csv_delay")),
-		MinConfs:       int32(ctx.Uint64("min_confs")),
+		TargetConf:       int32(ctx.Int64("conf_target")),
+		AtomsPerByte:     ctx.Int64("atoms_per_byte"),
+		MinHtlcMAtoms:    ctx.Int64("min_htlc_m_atoms"),
+		RemoteCsvDelay:   uint32(ctx.Uint64("remote_csv_delay")),
+		MinConfs:         int32(ctx.Uint64("min_confs")),
+		SpendUnconfirmed: minConfs == 0,
 	}
 
 	switch {
