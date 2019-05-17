@@ -1764,7 +1764,7 @@ func handleStateUpdate(link *channelLink,
 	}
 	link.HandleChannelUpdate(remoteRev)
 
-	remoteSig, remoteHtlcSigs, err := remoteChannel.SignNextCommitment()
+	remoteSig, remoteHtlcSigs, _, err := remoteChannel.SignNextCommitment()
 	if err != nil {
 		return err
 	}
@@ -1785,7 +1785,7 @@ func handleStateUpdate(link *channelLink,
 	if !ok {
 		return fmt.Errorf("expected RevokeAndAck got %T", msg)
 	}
-	_, _, _, err = remoteChannel.ReceiveRevocation(revoke)
+	_, _, _, _, err = remoteChannel.ReceiveRevocation(revoke)
 	if err != nil {
 		return fmt.Errorf("unable to receive "+
 			"revocation: %v", err)
@@ -1815,7 +1815,7 @@ func updateState(batchTick chan time.Time, link *channelLink,
 
 	// The remote is triggering the state update, emulate this by
 	// signing and sending CommitSig to the link.
-	remoteSig, remoteHtlcSigs, err := remoteChannel.SignNextCommitment()
+	remoteSig, remoteHtlcSigs, _, err := remoteChannel.SignNextCommitment()
 	if err != nil {
 		return err
 	}
@@ -1839,7 +1839,7 @@ func updateState(batchTick chan time.Time, link *channelLink,
 		return fmt.Errorf("expected RevokeAndAck got %T",
 			msg)
 	}
-	_, _, _, err = remoteChannel.ReceiveRevocation(revoke)
+	_, _, _, _, err = remoteChannel.ReceiveRevocation(revoke)
 	if err != nil {
 		return fmt.Errorf("unable to receive "+
 			"revocation: %v", err)
@@ -4399,7 +4399,7 @@ func sendCommitSigBobToAlice(t *testing.T, aliceLink ChannelLink,
 
 	t.Helper()
 
-	sig, htlcSigs, err := bobChannel.SignNextCommitment()
+	sig, htlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("error signing commitment: %v", err)
 	}
@@ -4437,7 +4437,7 @@ func receiveRevAndAckAliceToBob(t *testing.T, aliceMsgs chan lnwire.Message,
 		t.Fatalf("expected RevokeAndAck, got %T", msg)
 	}
 
-	_, _, _, err := bobChannel.ReceiveRevocation(rev)
+	_, _, _, _, err := bobChannel.ReceiveRevocation(rev)
 	if err != nil {
 		t.Fatalf("bob failed receiving revocation: %v", err)
 	}
@@ -5328,7 +5328,7 @@ func TestChannelLinkFail(t *testing.T) {
 
 				// Sign a commitment that will include
 				// signature for the HTLC just sent.
-				sig, htlcSigs, err :=
+				sig, htlcSigs, _, err :=
 					remoteChannel.SignNextCommitment()
 				if err != nil {
 					t.Fatalf("error signing commitment: %v",
@@ -5360,7 +5360,7 @@ func TestChannelLinkFail(t *testing.T) {
 
 				// Sign a commitment that will include
 				// signature for the HTLC just sent.
-				sig, htlcSigs, err :=
+				sig, htlcSigs, _, err :=
 					remoteChannel.SignNextCommitment()
 				if err != nil {
 					t.Fatalf("error signing commitment: %v",
