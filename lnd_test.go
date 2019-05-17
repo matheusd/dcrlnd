@@ -1677,7 +1677,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
-	if err := miner.SetUp(true, 16); err != nil {
+	if err := miner.SetUp(false, 0); err != nil {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer miner.TearDown()
@@ -1686,8 +1686,8 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to request transaction notifications: %v", err)
 	}
 
-	// We start by connecting the new miner to our original miner,
-	// such that it will sync to our original chain.
+	// We start by connecting the new miner to our original miner, such
+	// that it will sync to our original chain.
 	if err := rpctest.ConnectNode(net.Miner, miner); err != nil {
 		t.Fatalf("unable to connect harnesses: %v", err)
 	}
@@ -1752,7 +1752,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	// channel, which should be considered open.
 	block := mineBlocks(t, net, 10, 1)[0]
 	assertTxInBlock(t, block, fundingTxID)
-	miner.Node.Generate(15)
+	lntest.AdjustedSimnetMiner(miner.Node, 15)
 
 	// Ensure the chain lengths are what we expect.
 	_, newNodeHeight, err = miner.Node.GetBestBlock()
@@ -14179,7 +14179,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		}
 	}()
 
-	if err := dcrdHarness.SetUp(true, 32); err != nil {
+	if err := dcrdHarness.SetUp(false, 0); err != nil {
 		ht.Fatalf("unable to set up mining node: %v", err)
 	}
 	if err := dcrdHarness.Node.NotifyNewTransactions(false); err != nil {
