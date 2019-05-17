@@ -10,15 +10,12 @@ import (
 
 	prand "math/rand"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrlnd/lnwire"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -565,133 +562,6 @@ func TestContractResolutionsStorage(t *testing.T) {
 	_, err = testLog.FetchContractResolutions()
 	if err != errScopeBucketNoExist {
 		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// TestChainActionStorage tests that were able to properly store a set of chain
-// actions, and then retrieve the same set of chain actions from disk.
-func TestChainActionStorage(t *testing.T) {
-	t.Parallel()
-
-	// First, we'll create a test instance of the ArbitratorLog
-	// implementation backed by boltdb.
-	testLog, cleanUp, err := newTestBoltArbLog(
-		testChainHash, testChanPoint2,
-	)
-	if err != nil {
-		t.Fatalf("unable to create test log: %v", err)
-	}
-	defer cleanUp()
-
-	chainActions := ChainActionMap{
-		NoAction: []channeldb.HTLC{
-			{
-				RHash:         testPreimage,
-				Amt:           lnwire.MilliAtom(prand.Uint64()),
-				RefundTimeout: prand.Uint32(),
-				OutputIndex:   int32(prand.Uint32()),
-				Incoming:      true,
-				HtlcIndex:     prand.Uint64(),
-				LogIndex:      prand.Uint64(),
-				OnionBlob:     make([]byte, 0),
-				Signature:     make([]byte, 0),
-			},
-		},
-		HtlcTimeoutAction: []channeldb.HTLC{
-			{
-				RHash:         testPreimage,
-				Amt:           lnwire.MilliAtom(prand.Uint64()),
-				RefundTimeout: prand.Uint32(),
-				OutputIndex:   int32(prand.Uint32()),
-				Incoming:      true,
-				HtlcIndex:     prand.Uint64(),
-				LogIndex:      prand.Uint64(),
-				OnionBlob:     make([]byte, 0),
-				Signature:     make([]byte, 0),
-			},
-		},
-		HtlcClaimAction: []channeldb.HTLC{
-			{
-				RHash:         testPreimage,
-				Amt:           lnwire.MilliAtom(prand.Uint64()),
-				RefundTimeout: prand.Uint32(),
-				OutputIndex:   int32(prand.Uint32()),
-				Incoming:      true,
-				HtlcIndex:     prand.Uint64(),
-				LogIndex:      prand.Uint64(),
-				OnionBlob:     make([]byte, 0),
-				Signature:     make([]byte, 0),
-			},
-		},
-		HtlcFailNowAction: []channeldb.HTLC{
-			{
-				RHash:         testPreimage,
-				Amt:           lnwire.MilliAtom(prand.Uint64()),
-				RefundTimeout: prand.Uint32(),
-				OutputIndex:   int32(prand.Uint32()),
-				Incoming:      true,
-				HtlcIndex:     prand.Uint64(),
-				LogIndex:      prand.Uint64(),
-				OnionBlob:     make([]byte, 0),
-				Signature:     make([]byte, 0),
-			},
-		},
-		HtlcOutgoingWatchAction: []channeldb.HTLC{
-			{
-				RHash:         testPreimage,
-				Amt:           lnwire.MilliAtom(prand.Uint64()),
-				RefundTimeout: prand.Uint32(),
-				OutputIndex:   int32(prand.Uint32()),
-				Incoming:      true,
-				HtlcIndex:     prand.Uint64(),
-				LogIndex:      prand.Uint64(),
-				OnionBlob:     make([]byte, 0),
-				Signature:     make([]byte, 0),
-			},
-		},
-		HtlcIncomingWatchAction: []channeldb.HTLC{
-			{
-				RHash:         testPreimage,
-				Amt:           lnwire.MilliAtom(prand.Uint64()),
-				RefundTimeout: prand.Uint32(),
-				OutputIndex:   int32(prand.Uint32()),
-				Incoming:      true,
-				HtlcIndex:     prand.Uint64(),
-				LogIndex:      prand.Uint64(),
-				OnionBlob:     make([]byte, 0),
-				Signature:     make([]byte, 0),
-			},
-		},
-	}
-
-	// With our set of test chain actions constructed, we'll now insert
-	// them into the database, retrieve them, then assert equality with the
-	// set of chain actions create above.
-	if err := testLog.LogChainActions(chainActions); err != nil {
-		t.Fatalf("unable to write chain actions: %v", err)
-	}
-	diskActions, err := testLog.FetchChainActions()
-	if err != nil {
-		t.Fatalf("unable to read chain actions: %v", err)
-	}
-
-	for k, contracts := range chainActions {
-		diskContracts := diskActions[k]
-		if !reflect.DeepEqual(contracts, diskContracts) {
-			t.Fatalf("chain action mismatch: expected %v, got %v",
-				spew.Sdump(contracts), spew.Sdump(diskContracts))
-		}
-	}
-
-	// We'll now delete the state, then attempt to retrieve the set of
-	// chain actions, no resolutions should be found.
-	if err := testLog.WipeHistory(); err != nil {
-		t.Fatalf("unable to wipe log: %v", err)
-	}
-	actions, err := testLog.FetchChainActions()
-	if len(actions) != 0 && err != nil {
-		t.Fatalf("expected no chain actions, instead found: %v",
-			len(actions))
 	}
 }
 
