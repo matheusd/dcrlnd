@@ -304,6 +304,7 @@ func main() {
 	app.Commands = append(app.Commands, autopilotCommands()...)
 	app.Commands = append(app.Commands, invoicesCommands()...)
 	app.Commands = append(app.Commands, routerCommands()...)
+	app.Commands = append(app.Commands, walletCommands()...)
 
 	if err := app.Run(os.Args); err != nil {
 		fatal(err)
@@ -312,7 +313,7 @@ func main() {
 
 // cleanAndExpandPath expands environment variables and leading ~ in the
 // passed path, cleans the result, and returns it.
-// This function is taken from https://github.com/btcsuite/btcd
+// This function is taken from https://github.com/decred/dcrd
 func cleanAndExpandPath(path string) string {
 	if path == "" {
 		return ""
