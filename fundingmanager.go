@@ -41,10 +41,9 @@ const (
 	minDcrRemoteDelay uint16 = 288
 	maxDcrRemoteDelay uint16 = 4032
 
-	// maxWaitNumBlocksFundingConf is the maximum number of blocks to wait
-	// for the funding transaction to be confirmed before forgetting about
-	// the channel. 576 blocks is ~48 hrs
-	maxWaitNumBlocksFundingConf = 576
+	// for the funding transaction to be confirmed before forgetting
+	// channels that aren't initiated by us. 4032 blocks is ~2 weeks.
+	maxWaitNumBlocksFundingConf = 4032
 
 	// minChanFundingSize is the smallest channel that we'll allow to be
 	// created over the RPC interface.
