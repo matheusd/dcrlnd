@@ -960,31 +960,18 @@ func testUnconfirmedChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	// Create two new nodes: Carol and Dave
-	carol, err := net.NewNode("Carol", nil)
-	if err != nil {
-		t.Fatalf("unable to create new nodes: %v", err)
-	}
-	defer shutdownAndAssert(net, t, carol)
-
-	dave, err := net.NewNode("Dave", nil)
-	if err != nil {
-		t.Fatalf("unable to create new nodes: %v", err)
-	}
-	defer shutdownAndAssert(net, t, carol)
-
-	carolToDaveReq := &lnrpc.ConnectPeerRequest{
+	aliceToBobReq := &lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{
-			Pubkey: dave.PubKeyStr,
-			Host:   dave.P2PAddr(),
+			Pubkey: net.Bob.PubKeyStr,
+			Host:   net.Bob.P2PAddr(),
 		},
 		Perm: false,
 	}
 
-	daveToCarolReq := &lnrpc.ConnectPeerRequest{
+	bobToAliceReq := &lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{
-			Pubkey: carol.PubKeyStr,
-			Host:   carol.P2PAddr(),
+			Pubkey: net.Alice.PubKeyStr,
+			Host:   net.Alice.P2PAddr(),
 		},
 		Perm: false,
 	}
@@ -995,25 +982,32 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 		return err
 	}
 
+	// Initially disconnect Alice and Bob. Several connection attempts will
+	// be performed later on. Ignore errors if they are not connected and
+	// give some time for the disconnection to clear all resources.
+	net.DisconnectNodes(ctxb, net.Alice, net.Bob)
+	time.Sleep(50 * time.Millisecond)
+
 	// Perform a number of trial runs in sequence, so we have some reasonable
 	// chance actually performing connections "at the same time".
 	nbAttempts := 10
 	for i := 0; i < nbAttempts; i++ {
 		// Sanity check that neither node has a connection.
-		assertNumConnections(t, carol, dave, 0)
+		assertNumConnections(t, net.Alice, net.Bob, 0)
 
 		logLine := fmt.Sprintf("=== %s: Starting connection iteration %d\n",
 			time.Now(), i)
-		dave.AddToLog(logLine)
-		carol.AddToLog(logLine)
+		net.Alice.AddToLog(logLine)
+		net.Bob.AddToLog(logLine)
 
-		var carolReply, daveReply error
+		var aliceReply, bobReply error
 		wg := new(sync.WaitGroup)
 
-		// Start two go routines which will try to connect "at the same time".
+		// Start two go routines which will try to connect "at the same
+		// time".
 		wg.Add(2)
-		go func() { carolReply = connect(carol, carolToDaveReq, wg) }()
-		go func() { daveReply = connect(dave, daveToCarolReq, wg) }()
+		go func() { aliceReply = connect(net.Alice, aliceToBobReq, wg) }()
+		go func() { bobReply = connect(net.Bob, bobToAliceReq, wg) }()
 
 		wgWaitChan := make(chan struct{})
 		go func() {
@@ -1023,7 +1017,7 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 
 		select {
 		case <-wgWaitChan:
-			if carolReply != nil && daveReply != nil {
+			if aliceReply != nil && bobReply != nil {
 				// Depending on exact timings, one of the replies might fail
 				// due to the nodes already being connected, but not both.
 				t.Fatalf("Both replies should not error out")
@@ -1034,30 +1028,41 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Give the nodes time to settle their connections and background
 		// processes.
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 
 		logLine = fmt.Sprintf("=== %s: Connections requests sent. Will check on status\n",
 			time.Now())
-		dave.AddToLog(logLine)
-		carol.AddToLog(logLine)
+		net.Alice.AddToLog(logLine)
+		net.Bob.AddToLog(logLine)
 
 		// Sanity check connection number.
-		assertNumConnections(t, carol, dave, 1)
+		assertNumConnections(t, net.Alice, net.Bob, 1)
 
-		// Check whether the connection was made carol -> dave or dave -> carol.
-		// The assert above ensures we can safely access carolsPeers[0].
-		carolPeers, err := carol.ListPeers(ctxb, &lnrpc.ListPeersRequest{})
+		// Check whether the connection was made alice -> bob or bob ->
+		// alice.  The assert above ensures we can safely access
+		// alicePeers[0].
+		alicePeers, err := net.Alice.ListPeers(ctxb, &lnrpc.ListPeersRequest{})
 		if err != nil {
 			t.Fatalf("unable to fetch carol's peers %v", err)
 		}
-		if !carolPeers.Peers[0].Inbound {
-			// Connection was made in the carol -> dave direction.
-			net.DisconnectNodes(ctxb, carol, dave)
+		if !alicePeers.Peers[0].Inbound {
+			// Connection was made in the alice -> bob direction.
+			net.DisconnectNodes(ctxb, net.Alice, net.Bob)
 		} else {
-			// Connection was made in the carol <- dave direction.
-			net.DisconnectNodes(ctxb, dave, carol)
+			// Connection was made in the alice <- bob direction.
+			net.DisconnectNodes(ctxb, net.Alice, net.Bob)
 		}
 	}
+
+	// Wait for the final disconnection to release all resources, then
+	// ensure both nodes are connected again.
+	time.Sleep(time.Millisecond * 50)
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	err := net.EnsureConnected(ctxt, net.Alice, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to connect alice to bob: %v", err)
+	}
+	time.Sleep(time.Millisecond * 50)
 }
 
 // txStr returns the string representation of the channel's funding transaction.
