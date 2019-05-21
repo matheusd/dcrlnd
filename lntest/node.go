@@ -587,6 +587,10 @@ func (hn *HarnessNode) SetExtraArgs(extraArgs []string) {
 	hn.cfg.ExtraArgs = extraArgs
 }
 
+func (hn *HarnessNode) GetExtraArgs() []string {
+	return hn.cfg.ExtraArgs
+}
+
 // cleanup cleans up all the temporary files created by the node's process.
 func (hn *HarnessNode) cleanup() error {
 	return os.RemoveAll(hn.cfg.BaseDir)

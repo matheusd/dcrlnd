@@ -13962,8 +13962,9 @@ func testMaxIOChannelBalances(net *lntest.NetworkHarness, t *harnessTest) {
 }
 
 type testCase struct {
-	name string
-	test func(net *lntest.NetworkHarness, t *harnessTest)
+	name  string
+	test  func(net *lntest.NetworkHarness, t *harnessTest)
+	nodes map[string][]string
 }
 
 var testsCases = []*testCase{
@@ -13989,18 +13990,34 @@ var testsCases = []*testCase{
 	{
 		name: "unconfirmed channel funding",
 		test: testUnconfirmedChannelFunding,
+		nodes: map[string][]string{
+			"Carol": nil,
+		},
 	},
 	{
 		name: "update channel policy",
 		test: testUpdateChannelPolicy,
+		nodes: map[string][]string{
+			"Carol": nil,
+		},
 	},
 	{
 		name: "send update disable channel",
 		test: testSendUpdateDisableChannel,
+		nodes: map[string][]string{
+			"Carol": nil,
+			"Dave":  nil,
+			"Eve":   {"--inactivechantimeout=2s"},
+		},
 	},
 	{
 		name: "invoice routing hints",
 		test: testInvoiceRoutingHints,
+		nodes: map[string][]string{
+			"Dave":  nil,
+			"Carol": nil,
+			"Eve":   nil,
+		},
 	},
 	{
 		name: "disconnecting target peer",
@@ -14009,14 +14026,23 @@ var testsCases = []*testCase{
 	{
 		name: "graph topology notifications",
 		test: testGraphTopologyNotifications,
+		nodes: map[string][]string{
+			"Carol": nil,
+		},
 	},
 	{
 		name: "funding flow persistence",
 		test: testChannelFundingPersistence,
+		nodes: map[string][]string{
+			"Carol": {"--decred.defaultchanconfs=5"},
+		},
 	},
 	{
 		name: "channel force closure",
 		test: testChannelForceClosure,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "channel balance",
@@ -14029,10 +14055,18 @@ var testsCases = []*testCase{
 	{
 		name: "offline hop invoice",
 		test: testOfflineHopInvoice,
+		nodes: map[string][]string{
+			"Dave":  nil,
+			"Carol": {"--unsafe-disconnect", "--nolisten"},
+		},
 	},
 	{
 		name: "sphinx replay persistence",
 		test: testSphinxReplayPersistence,
+		nodes: map[string][]string{
+			"Dave":  {"--debughtlc", "--hodl.exit-settle"},
+			"Carol": {"--unsafe-replay"},
+		},
 	},
 	{
 		name: "list outgoing payments",
@@ -14041,10 +14075,17 @@ var testsCases = []*testCase{
 	{
 		name: "max pending channel",
 		test: testMaxPendingChannels,
+		nodes: map[string][]string{
+			"Carol": {"--maxpendingchannels=2"},
+		},
 	},
 	{
 		name: "multi-hop payments",
 		test: testMultiHopPayments,
+		nodes: map[string][]string{
+			"Dave":  nil,
+			"Carol": nil,
+		},
 	},
 	{
 		name: "single-hop send to route",
@@ -14053,10 +14094,17 @@ var testsCases = []*testCase{
 	{
 		name: "multi-hop send to route",
 		test: testMultiHopSendToRoute,
+		nodes: map[string][]string{
+			"Carol": nil,
+		},
 	},
 	{
 		name: "send to route error propagation",
 		test: testSendToRouteErrorPropagation,
+		nodes: map[string][]string{
+			"Carol": nil,
+			"Dave":  nil,
+		},
 	},
 	{
 		name: "unannounced channels",
@@ -14065,10 +14113,18 @@ var testsCases = []*testCase{
 	{
 		name: "private channels",
 		test: testPrivateChannels,
+		nodes: map[string][]string{
+			"Dave":  nil,
+			"Carol": nil,
+		},
 	},
 	{
 		name: "multi-hop payments over private channels",
 		test: testMultiHopOverPrivateChannels,
+		nodes: map[string][]string{
+			"Carol": nil,
+			"Dave":  nil,
+		},
 	},
 	{
 		name: "multiple channel creation",
@@ -14081,15 +14137,29 @@ var testsCases = []*testCase{
 	{
 		name: "multi-hop htlc error propagation",
 		test: testHtlcErrorPropagation,
+		nodes: map[string][]string{
+			"Carol": nil,
+		},
 	},
 	// TODO(roasbeef): multi-path integration test
 	{
 		name: "node announcement",
 		test: testNodeAnnouncement,
+		nodes: map[string][]string{
+			"Dave": {
+				"--externalip=192.168.1.1:8333",
+				"--externalip=[2001:db8:85a3:8d3:1319:8a2e:370:7348]:8337",
+				"--externalip=bkb6azqggsaiskzi.onion:9735",
+				"--externalip=fomvuglh6h6vcag73xo5t5gv56ombih3zr2xvplkpbfd7wrog4swjwid.onion:1234",
+			},
+		},
 	},
 	{
 		name: "node sign verify",
 		test: testNodeSignVerify,
+		nodes: map[string][]string{
+			"Carol": nil,
+		},
 	},
 	{
 		name: "async payments benchmark",
@@ -14104,24 +14174,36 @@ var testsCases = []*testCase{
 		// carol: incoming their commit watch and see timeout
 		name: "test multi-hop htlc local force close immediate expiry",
 		test: testMultiHopHtlcLocalTimeout,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		// bob: outgoing watch and see, they sweep on chain
 		// carol: incoming our commit, know preimage
 		name: "test multi-hop htlc receiver chain claim",
 		test: testMultiHopReceiverChainClaim,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		// bob: outgoing our commit watch and see timeout
 		// carol: incoming their commit watch and see timeout
 		name: "test multi-hop local force close on-chain htlc timeout",
 		test: testMultiHopLocalForceCloseOnChainHtlcTimeout,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		// bob: outgoing their commit watch and see timeout
 		// carol: incoming our commit watch and see timeout
 		name: "test multi-hop remote force close on-chain htlc timeout",
 		test: testMultiHopRemoteForceCloseOnChainHtlcTimeout,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		// bob: outgoing our commit watch and see, they sweep on chain
@@ -14129,6 +14211,9 @@ var testsCases = []*testCase{
 		// carol: incoming their commit know preimage
 		name: "test multi-hop htlc local chain claim",
 		test: testMultiHopHtlcLocalChainClaim,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		// bob: outgoing their commit watch and see, they sweep on chain
@@ -14136,36 +14221,65 @@ var testsCases = []*testCase{
 		// carol: incoming our commit know preimage
 		name: "test multi-hop htlc remote chain claim",
 		test: testMultiHopHtlcRemoteChainClaim,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "switch circuit persistence",
 		test: testSwitchCircuitPersistence,
+		nodes: map[string][]string{
+			"Dave":  nil,
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "switch offline delivery",
 		test: testSwitchOfflineDelivery,
+		nodes: map[string][]string{
+			"Dave":  {"--unsafe-disconnect"},
+			"Carol": {"--debughtlc", "--hodl.exit-settle", "--nolisten"},
+		},
 	},
 	{
 		name: "switch offline delivery persistence",
 		test: testSwitchOfflineDeliveryPersistence,
+		nodes: map[string][]string{
+			"Dave":  {"--unsafe-disconnect"},
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "switch offline delivery outgoing offline",
 		test: testSwitchOfflineDeliveryOutgoingOffline,
+		nodes: map[string][]string{
+			"Dave":  {"--unsafe-disconnect"},
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		// TODO(roasbeef): test always needs to be last as Bob's state
 		// is borked since we trick him into attempting to cheat Alice?
 		name: "revoked uncooperative close retribution",
 		test: testRevokedCloseRetribution,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.exit-settle", "--nolisten", "--unsafe-disconnect"},
+		},
 	},
 	{
 		name: "failing link",
 		test: testFailingChannel,
+		nodes: map[string][]string{
+			"Carol": {"--debughtlc", "--hodl.bogus-settle"},
+		},
 	},
 	{
 		name: "garbage collect link nodes",
 		test: testGarbageCollectLinkNodes,
+		nodes: map[string][]string{
+			"Dave":  nil,
+			"Carol": nil,
+		},
 	},
 	{
 		name: "abandonchannel",
@@ -14174,42 +14288,78 @@ var testsCases = []*testCase{
 	{
 		name: "revoked uncooperative close retribution zero value remote output",
 		test: testRevokedCloseRetributionZeroValueRemoteOutput,
+		nodes: map[string][]string{
+			"Dave":  {"--debughtlc", "--hodl.exit-settle", "--nolisten", "--unsafe-disconnect"},
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "revoked uncooperative close retribution remote hodl",
 		test: testRevokedCloseRetributionRemoteHodl,
+		nodes: map[string][]string{
+			"Dave":  {"--debughtlc", "--hodl.exit-settle", "--nolisten", "--unsafe-disconnect"},
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "revoked uncooperative close retribution remote hodl second level",
 		test: testRevokedCloseRetributionRemoteHodlSecondLevel,
+		nodes: map[string][]string{
+			"Dave":  {"--debughtlc", "--hodl.exit-settle", "--nolisten", "--unsafe-disconnect"},
+			"Carol": {"--debughtlc", "--hodl.exit-settle"},
+		},
 	},
 	{
 		name: "data loss protection",
 		test: testDataLossProtection,
+		nodes: map[string][]string{
+			"Carol": {"--nolisten", "--unsafe-disconnect"},
+			"Dave":  nil,
+		},
 	},
 	{
 		name: "query routes",
 		test: testQueryRoutes,
+		nodes: map[string][]string{
+			"Carol": nil,
+			"Dave":  nil,
+		},
 	},
 	{
 		name: "route fee cutoff",
 		test: testRouteFeeCutoff,
+		nodes: map[string][]string{
+			"Carol": nil,
+			"Dave":  nil,
+		},
 	},
 	{
 		name: "add invoice max inbound amount",
 		test: testAddInvoiceMaxInboundAmt,
+		nodes: map[string][]string{
+			"Carol": {"--unsafe-disconnect"},
+		},
 	},
 	{
 		name: "add and receive invoice at max inbound amount",
 		test: testAddReceiveInvoiceMaxInboundAmt,
+		nodes: map[string][]string{
+			"Carol": {"--unsafe-disconnect"},
+		},
 	},
 	{
 		name: "send payment max outbound amt",
 		test: testSendPaymentMaxOutboundAmt,
+		nodes: map[string][]string{
+			"Carol": {"--unsafe-disconnect"},
+		},
 	},
 	{
 		name: "max io channel balance",
 		test: testMaxIOChannelBalances,
+		nodes: map[string][]string{
+			"Carol": {"--unsafe-disconnect"},
+		},
 	},
 }
 
@@ -14304,36 +14454,73 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		ht.Fatalf("unable to set up test lightning network: %v", err)
 	}
 
+	// For each node name used in tests, build a sequence of args that is
+	// used to initialize them.
+	testNodes := make(map[string][][]string)
+	totNodes := 0
+	for _, tc := range testsCases {
+		var (
+			nodesArgs [][]string
+			has       bool
+		)
+		for name, args := range tc.nodes {
+			nodesArgs, has = testNodes[name]
+			if !has {
+				nodesArgs = make([][]string, 0)
+			}
+			totNodes++
+			nodesArgs = append(nodesArgs, args)
+			testNodes[name] = nodesArgs
+		}
+	}
+
+	fmt.Println("xxxx", testNodes)
+	fmt.Println("tot nodes", totNodes)
+
 	// Closure that initializes a new harness node.
 	nodeMakers := make(map[string]chan *lntest.HarnessNode)
 	quit := make(chan struct{})
-	newNode := func(name string, args []string) (*lntest.HarnessNode, error) {
-		makerChan, has := nodeMakers[name]
 
-		if !has {
-			makerChan = make(chan *lntest.HarnessNode, nodeBufferSize)
-			nodeMakers[name] = makerChan
-			go func() {
-				for {
-					select {
-					case <-quit:
-						fmt.Println(time.Now().Format("15:04:05.000"), "closing nodeMaker", name)
-						close(makerChan)
-						return
-					default:
-					}
-					fmt.Println(time.Now().Format("15:04:05.000"), "creating new node", name)
-					node, err := lndHarness.NewNode(name, nil)
-					if err != nil {
-						fmt.Println("xxxxx error creating new node", err)
-					}
-					fmt.Println(time.Now().Format("15:04:05.000"), "new node created. Gonna send.", name)
-					makerChan <- node
-					fmt.Println(time.Now().Format("15:04:05.000"), "sent new node", name)
+	newNodeMaker := func(name string) {
+		makerChan := make(chan *lntest.HarnessNode, nodeBufferSize)
+		nodeMakers[name] = makerChan
+		go func() {
+			for {
+				select {
+				case <-quit:
+					fmt.Println(time.Now().Format("15:04:05.000"), "closing nodeMaker", name)
+					close(makerChan)
+					return
+				default:
 				}
-			}()
-			fmt.Println(time.Now().Format("15:04:05.000"), "initialized node maker", name)
-		}
+				nodesArgs := testNodes[name]
+				var thisNodeArgs []string
+				if len(nodesArgs) == 0 {
+					fmt.Println(time.Now().Format("15:04:05.000"), "no more nodes for", name)
+					close(makerChan)
+					return
+				}
+				thisNodeArgs = nodesArgs[0]
+				testNodes[name] = nodesArgs[1:]
+				fmt.Println(time.Now().Format("15:04:05.000"), "creating new node", name, thisNodeArgs)
+				node, err := lndHarness.NewNode(name, thisNodeArgs)
+				if err != nil {
+					fmt.Println("xxxxx error creating new node", err)
+				}
+				fmt.Println(time.Now().Format("15:04:05.000"), "new node created. Gonna send.", name, node.NodeID)
+				makerChan <- node
+				fmt.Println(time.Now().Format("15:04:05.000"), "sent new node", name, node.NodeID)
+			}
+		}()
+		fmt.Println(time.Now().Format("15:04:05.000"), "initialized node maker", name)
+	}
+
+	newNodeMaker("Carol")
+	newNodeMaker("Dave")
+	newNodeMaker("Eve")
+
+	newNode := func(name string, args []string) (*lntest.HarnessNode, error) {
+		makerChan := nodeMakers[name]
 
 		fmt.Println(time.Now().Format("15:04:05.000"), "gonna request new node", name)
 		select {
@@ -14343,7 +14530,8 @@ func TestLightningNetworkDaemon(t *testing.T) {
 				return nil, fmt.Errorf("empty new node")
 			}
 			fmt.Println(time.Now().Format("15:04:05.000"), "got new node to return", name, node.NodeID)
-			if args != nil {
+			if strings.Join(args, " ") != strings.Join(node.GetExtraArgs(), " ") {
+				fmt.Println("    YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
 				fmt.Println(time.Now().Format("15:04:05.000"), "changing args", name, args)
 				node.SetExtraArgs(args)
 				err = lndHarness.RestartNode(node, nil)
