@@ -219,6 +219,11 @@ type WalletController interface {
 	// known to the wallet, expressed in Unix epoch time
 	IsSynced() (bool, int64, error)
 
+	// InitialSyncChannel returns a channel that is closed once the wallet
+	// has performed its initial sync procedures, is caught up to the
+	// network and potentially ready for use.
+	InitialSyncChannel() <-chan struct{}
+
 	// Start initializes the wallet, making any necessary connections,
 	// starting up required goroutines etc.
 	Start() error

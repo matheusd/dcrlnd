@@ -275,6 +275,11 @@ func (*mockWalletController) SubscribeTransactions() (lnwallet.TransactionSubscr
 func (*mockWalletController) IsSynced() (bool, int64, error) {
 	return true, int64(0), nil
 }
+func (*mockWalletController) InitialSyncChannel() <-chan struct{} {
+	c := make(chan struct{})
+	close(c)
+	return c
+}
 func (*mockWalletController) Start() error {
 	return nil
 }
