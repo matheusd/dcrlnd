@@ -63,6 +63,7 @@ COVER = for dir in $(GOLISTCOVER); do \
 
 LINT = $(LINT_BIN) \
 	run \
+	--build-tags rpctest \
 	--disable-all \
 	--enable=gofmt \
 	--enable=vet \
