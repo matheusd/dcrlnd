@@ -46,9 +46,13 @@ var (
 	// succeeding.
 	DefaultPaymentAttemptPenalty = lnwire.NewMAtomsFromAtoms(100)
 
-	// DefaultMinProbability is the default minimum probability for routes
+	// DefaultMinRouteProbability is the default minimum probability for routes
 	// returned from findPath.
-	DefaultMinProbability = float64(0.01)
+	DefaultMinRouteProbability = float64(0.01)
+
+	// DefaultAprioriHopProbability is the default a priori probability for
+	// a hop.
+	DefaultAprioriHopProbability = float64(0.95)
 )
 
 // edgePolicyWithSource is a helper struct to keep track of the source node
