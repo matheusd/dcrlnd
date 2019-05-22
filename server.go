@@ -35,6 +35,7 @@ import (
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/nat"
@@ -638,8 +639,13 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		return link.Bandwidth()
 	}
 
+	// Instantiate mission control with config from the sub server.
+	//
+	// TODO(joostjager): When we are further in the process of moving to sub
+	// servers, the mission control instance itself can be moved there too.
 	s.missionControl = routing.NewMissionControl(
 		chanGraph, selfNode, queryBandwidth,
+		routerrpc.GetMissionControlConfig(cfg.SubRPCServers.RouterRPC),
 	)
 
 	s.chanRouter, err = routing.New(routing.Config{
