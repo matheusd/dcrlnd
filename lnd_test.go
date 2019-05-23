@@ -109,6 +109,7 @@ func (h *harnessTest) RunTestCase(testCase *testCase,
 	}()
 
 	testCase.test(net, h)
+	assertCleanState(h, net)
 }
 
 func (h *harnessTest) Logf(format string, args ...interface{}) {
@@ -117,6 +118,16 @@ func (h *harnessTest) Logf(format string, args ...interface{}) {
 
 func (h *harnessTest) Log(args ...interface{}) {
 	h.t.Log(args...)
+}
+
+// assertCleanState ensures the state of the main test nodes and the mempool
+// are in a clean state (no open channels, no txs in the mempool, etc).
+func assertCleanState(h *harnessTest, net *lntest.NetworkHarness) {
+	assertNodeNumChannels(h, net.Alice, 0)
+	assertNumPendingChannels(h, net.Alice, 0, 0, 0, 0)
+	assertNodeNumChannels(h, net.Bob, 0)
+	assertNumPendingChannels(h, net.Bob, 0, 0, 0, 0)
+	waitForNTxsInMempool(net.Miner.Node, 0, minerMempoolTimeout)
 }
 
 func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash) {
@@ -7964,7 +7975,9 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 // assertNumPendingChannels checks that a PendingChannels response from the
 // node reports the expected number of pending channels.
 func assertNumPendingChannels(t *harnessTest, node *lntest.HarnessNode,
-	expWaitingClose, expPendingForceClose int) {
+	expWaitingClose, expPendingForceClose, expPendingClosing,
+	expPendingOpen int) {
+
 	ctxb := context.Background()
 
 	var predErr error
@@ -7989,6 +8002,19 @@ func assertNumPendingChannels(t *harnessTest, node *lntest.HarnessNode,
 			predErr = fmt.Errorf("expected to find %d channel "+
 				"pending force close, found %d", expPendingForceClose, n)
 			return false
+		}
+
+		n = len(pendingChanResp.PendingClosingChannels)
+		if n != expPendingClosing {
+			predErr = fmt.Errorf("expected to find %d channels "+
+				"pending closing, found %d", expPendingClosing,
+				n)
+		}
+
+		n = len(pendingChanResp.PendingOpenChannels)
+		if n != expPendingOpen {
+			predErr = fmt.Errorf("expected to find %d channels "+
+				"pending open, found %d", expPendingOpen, n)
 		}
 		return true
 	}, time.Second*15)
@@ -8243,12 +8269,12 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Channel should be in the state "waiting close" for Carol since she
 	// broadcasted the force close tx.
-	assertNumPendingChannels(t, carol, 1, 0)
+	assertNumPendingChannels(t, carol, 1, 0, 0, 0)
 
 	// Dave should also consider the channel "waiting close", as he noticed
 	// the channel was out of sync, and is now waiting for a force close to
 	// hit the chain.
-	assertNumPendingChannels(t, dave, 1, 0)
+	assertNumPendingChannels(t, dave, 1, 0, 0, 0)
 
 	// Restart Dave to make sure he is able to sweep the funds after
 	// shutdown.
@@ -8268,18 +8294,18 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Dave should consider the channel pending force close (since he is
 	// waiting for his sweep to confirm).
-	assertNumPendingChannels(t, dave, 0, 1)
+	assertNumPendingChannels(t, dave, 0, 1, 0, 0)
 
 	// Carol is considering it "pending force close", as whe must wait
 	// before she can sweep her outputs.
-	assertNumPendingChannels(t, carol, 0, 1)
+	assertNumPendingChannels(t, carol, 0, 1, 0, 0)
 
 	// Mine the sweep tx.
 	block = mineBlocks(t, net, 1, 1)[0]
 	assertTxInBlock(t, block, daveSweep)
 
 	// Now Dave should consider the channel fully closed.
-	assertNumPendingChannels(t, dave, 0, 0)
+	assertNumPendingChannels(t, dave, 0, 0, 0, 0)
 
 	// We query Dave's balance to make sure it increased after the channel
 	// closed. This checks that he was able to sweep the funds he had in
@@ -8306,7 +8332,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	assertTxInBlock(t, block, carolSweep)
 
 	// Now the channel should be fully closed also from Carol's POV.
-	assertNumPendingChannels(t, carol, 0, 0)
+	assertNumPendingChannels(t, carol, 0, 0, 0, 0)
 
 	// Make sure Carol got her balance back.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -8365,7 +8391,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	assertTxInBlock(t, block, carolSweep)
 
 	// Now the channel should be fully closed also from Carol's POV.
-	assertNumPendingChannels(t, carol, 0, 0)
+	assertNumPendingChannels(t, carol, 0, 0, 0, 0)
 
 	// Make sure Carol got her balance back.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
