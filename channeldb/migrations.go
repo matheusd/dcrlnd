@@ -849,13 +849,6 @@ func migrateOutgoingPayments(tx *bolt.Tx) error {
 			return err
 		}
 
-		// Since only completed payments were previously stored as
-		// OutgoingPayments, set the status as Completed.
-		err = bucket.Put(paymentStatusKey, StatusSucceeded.Bytes())
-		if err != nil {
-			return err
-		}
-
 		return nil
 	})
 	if err != nil {
