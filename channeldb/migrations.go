@@ -453,7 +453,7 @@ func paymentStatusesMigration(tx *bolt.Tx) error {
 		// Update status for current payment to completed. If it fails,
 		// the migration is aborted and the payment bucket is returned
 		// to its previous state.
-		return paymentStatuses.Put(paymentHash, StatusCompleted.Bytes())
+		return paymentStatuses.Put(paymentHash, StatusSucceeded.Bytes())
 	})
 	if err != nil {
 		return err
@@ -851,7 +851,7 @@ func migrateOutgoingPayments(tx *bolt.Tx) error {
 
 		// Since only completed payments were previously stored as
 		// OutgoingPayments, set the status as Completed.
-		err = bucket.Put(paymentStatusKey, StatusCompleted.Bytes())
+		err = bucket.Put(paymentStatusKey, StatusSucceeded.Bytes())
 		if err != nil {
 			return err
 		}
