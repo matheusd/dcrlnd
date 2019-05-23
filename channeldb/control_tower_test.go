@@ -9,6 +9,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lnwire"
+	bolt "go.etcd.io/bbolt"
 )
 
 func initDB() (*DB, error) {
@@ -363,13 +364,28 @@ func assertPaymentStatus(t *testing.T, db *DB,
 
 	t.Helper()
 
-	pStatus, err := db.FetchPaymentStatus(hash)
+	var paymentStatus = StatusGrounded
+	err := db.View(func(tx *bolt.Tx) error {
+		payments := tx.Bucket(paymentsRootBucket)
+		if payments == nil {
+			return nil
+		}
+
+		bucket := payments.Bucket(hash[:])
+		if bucket == nil {
+			return nil
+		}
+
+		// Get the existing status of this payment, if any.
+		paymentStatus = fetchPaymentStatus(bucket)
+		return nil
+	})
 	if err != nil {
 		t.Fatalf("unable to fetch payment status: %v", err)
 	}
 
-	if pStatus != expStatus {
+	if paymentStatus != expStatus {
 		t.Fatalf("payment status mismatch: expected %v, got %v",
-			expStatus, pStatus)
+			expStatus, paymentStatus)
 	}
 }
