@@ -2742,33 +2742,6 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 	}
 }
 
-// savePayment saves a successfully completed payment to the database for
-// historical record keeping.
-func (r *rpcServer) savePayment(route *route.Route,
-	amount lnwire.MilliAtom, preImage []byte) error {
-
-	paymentPath := make([][33]byte, len(route.Hops))
-	for i, hop := range route.Hops {
-		hopPub := hop.PubKeyBytes
-		copy(paymentPath[i][:], hopPub[:])
-	}
-
-	payment := &channeldb.OutgoingPayment{
-		Invoice: channeldb.Invoice{
-			Terms: channeldb.ContractTerm{
-				Value: amount,
-			},
-			CreationDate: time.Now(),
-		},
-		Path:           paymentPath,
-		Fee:            route.TotalFees(),
-		TimeLockLength: route.TotalTimeLock,
-	}
-	copy(payment.PaymentPreimage[:], preImage)
-
-	return r.server.chanDB.AddPayment(payment)
-}
-
 // validatePayReqExpiry checks if the passed payment request has expired. In
 // the case it has expired, an error will be returned.
 func validatePayReqExpiry(payReq *zpay32.Invoice) error {
@@ -3239,18 +3212,6 @@ func (r *rpcServer) dispatchPaymentIntent(
 		return &paymentIntentResponse{
 			Err: routerErr,
 		}, nil
-	}
-
-	// Calculate amount paid to receiver.
-	amt := route.TotalAmount - route.TotalFees()
-
-	// Save the completed payment to the database for record keeping
-	// purposes.
-	err := r.savePayment(route, amt, preImage[:])
-	if err != nil {
-		// We weren't able to save the payment, so we return the save
-		// err, but a nil routing err.
-		return nil, err
 	}
 
 	return &paymentIntentResponse{
@@ -4364,8 +4325,8 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 
 	rpcsLog.Debugf("[ListPayments]")
 
-	payments, err := r.server.chanDB.FetchAllPayments()
-	if err != nil && err != channeldb.ErrNoPaymentsCreated {
+	payments, err := r.server.chanDB.FetchPayments()
+	if err != nil {
 		return nil, err
 	}
 
@@ -4373,24 +4334,37 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 		Payments: make([]*lnrpc.Payment, len(payments)),
 	}
 	for i, payment := range payments {
-		path := make([]string, len(payment.Path))
-		for i, hop := range payment.Path {
-			path[i] = hex.EncodeToString(hop[:])
+		// If a payment attempt has been made we can fetch the route.
+		// Otherwise we'll just populate the RPC response with an empty
+		// one.
+		var route route.Route
+		if payment.Attempt != nil {
+			route = payment.Attempt.Route
+		}
+		path := make([]string, len(route.Hops))
+		for i, hop := range route.Hops {
+			path[i] = hex.EncodeToString(hop.PubKeyBytes[:])
 		}
 
-		mAtomsValue := int64(payment.Terms.Value)
-		atomsValue := int64(payment.Terms.Value.ToAtoms())
+		// If this payment is settled, the preimage will be available.
+		var preimage lntypes.Preimage
+		if payment.PaymentPreimage != nil {
+			preimage = *payment.PaymentPreimage
+		}
 
-		paymentHash := chainhash.HashH(payment.PaymentPreimage[:])
+		mAtomsValue := int64(payment.Info.Value)
+		atomsValue := int64(payment.Info.Value.ToAtoms())
+
+		paymentHash := payment.Info.PaymentHash
 		paymentsResp.Payments[i] = &lnrpc.Payment{
 			PaymentHash:     hex.EncodeToString(paymentHash[:]),
 			Value:           atomsValue,
 			ValueMAtoms:     mAtomsValue,
 			ValueAtoms:      atomsValue,
-			CreationDate:    payment.CreationDate.Unix(),
+			CreationDate:    payment.Info.CreationDate.Unix(),
 			Path:            path,
-			Fee:             int64(payment.Fee.ToAtoms()),
-			PaymentPreimage: hex.EncodeToString(payment.PaymentPreimage[:]),
+			Fee:             int64(route.TotalFees().ToAtoms()),
+			PaymentPreimage: hex.EncodeToString(preimage[:]),
 		}
 	}
 
@@ -4403,7 +4377,7 @@ func (r *rpcServer) DeleteAllPayments(ctx context.Context,
 
 	rpcsLog.Debugf("[DeleteAllPayments]")
 
-	if err := r.server.chanDB.DeleteAllPayments(); err != nil {
+	if err := r.server.chanDB.DeletePayments(); err != nil {
 		return nil, err
 	}
 
