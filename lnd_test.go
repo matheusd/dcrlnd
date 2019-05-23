@@ -13274,6 +13274,12 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 	mineBlocks(t, net, 1, 1)
+
+	// Since we force-closed the Alice->Carol channel, mine enough blocks
+	// for the resulting sweep tx to be broadcast and confirmed (taking
+	// into account we already mined one block after closing that channel).
+	mineBlocks(t, net, defaultCSV-1, 0)
+	mineBlocks(t, net, 1, 1)
 }
 
 // testAbandonChannel abandones a channel and asserts that it is no
