@@ -13957,6 +13957,14 @@ var testsCases = []*testCase{
 		test: testUpdateChannelPolicy,
 	},
 	{
+		name: "send update disable channel",
+		test: testSendUpdateDisableChannel,
+	},
+	{
+		name: "invoice routing hints",
+		test: testInvoiceRoutingHints,
+	},
+	{
 		name: "disconnecting target peer",
 		test: testDisconnectingTargetPeer,
 	},
@@ -14019,10 +14027,6 @@ var testsCases = []*testCase{
 	{
 		name: "private channels",
 		test: testPrivateChannels,
-	},
-	{
-		name: "invoice routing hints",
-		test: testInvoiceRoutingHints,
 	},
 	{
 		name: "multi-hop payments over private channels",
@@ -14152,10 +14156,6 @@ var testsCases = []*testCase{
 	{
 		name: "route fee cutoff",
 		test: testRouteFeeCutoff,
-	},
-	{
-		name: "send update disable channel",
-		test: testSendUpdateDisableChannel,
 	},
 	{
 		name: "add invoice max inbound amount",
