@@ -376,7 +376,7 @@ func checkSettleInfo(bucket *bolt.Bucket, preimg lntypes.Preimage) error {
 	return nil
 }
 
-func checkFailInfo(bucket *bbolt.Bucket, failReason *FailureReason) error {
+func checkFailInfo(bucket *bolt.Bucket, failReason *FailureReason) error {
 	b := bucket.Get(paymentFailInfoKey)
 	switch {
 	case b == nil && failReason == nil:
