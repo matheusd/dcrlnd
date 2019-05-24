@@ -52,6 +52,11 @@ func (b DcrdBackendConfig) DisconnectMiner() error {
 	return rpctest.RemoveNode(b.harness, b.miner)
 }
 
+// Name returns the name of the backend type.
+func (b DcrdBackendConfig) Name() string {
+	return "dcrd"
+}
+
 // NewBackend starts a new rpctest.Harness and returns a DcrdBackendConfig for
 // that node.
 func NewBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
