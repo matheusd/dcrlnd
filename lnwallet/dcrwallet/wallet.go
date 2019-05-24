@@ -43,6 +43,10 @@ type DcrWallet struct {
 	loader             *walletloader.Loader
 	atomicWalletSynced uint32 // CAS (synced=1) when wallet syncing complete
 
+	// syncedChan is a channel that is closed once the wallet has initially
+	// synced to the network. It is protected by atomicWalletSynced.
+	syncedChan chan struct{}
+
 	cfg *Config
 
 	netParams *chaincfg.Params
@@ -105,12 +109,13 @@ func New(cfg Config) (*DcrWallet, error) {
 	}
 
 	return &DcrWallet{
-		cfg:       &cfg,
-		wallet:    wallet,
-		loader:    loader,
-		syncer:    syncer,
-		netParams: cfg.NetParams,
-		utxoCache: make(map[wire.OutPoint]*wire.TxOut),
+		cfg:        &cfg,
+		wallet:     wallet,
+		loader:     loader,
+		syncer:     syncer,
+		syncedChan: make(chan struct{}),
+		netParams:  cfg.NetParams,
+		utxoCache:  make(map[wire.OutPoint]*wire.TxOut),
 	}, nil
 }
 
@@ -696,6 +701,14 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	return walletSynced, walletBestHeader.Timestamp.Unix(), nil
 }
 
+// InitialSyncChannel returns the channel used to signal that wallet init has
+// finished.
+//
+// This is a part of the WalletController interface.
+func (b *DcrWallet) InitialSyncChannel() <-chan struct{} {
+	return b.syncedChan
+}
+
 func (b *DcrWallet) onRPCSyncerSynced(synced bool) {
 	dcrwLog.Debug("RPC syncer notified wallet is synced")
 
@@ -712,5 +725,8 @@ func (b *DcrWallet) onRPCSyncerSynced(synced bool) {
 		return
 	}
 
-	atomic.StoreUint32(&b.atomicWalletSynced, 1)
+	// Signal that the wallet is synced by closing the channel.
+	if atomic.CompareAndSwapUint32(&b.atomicWalletSynced, 0, 1) {
+		close(b.syncedChan)
+	}
 }
