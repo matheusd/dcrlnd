@@ -447,15 +447,6 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 	hn.wg.Add(1)
 	go hn.lightningNetworkWatcher()
 
-	// TODO: add some user-verifiable signal that the node is ready for
-	// standard operations (all services and goroutines started, etc).
-	// Without this wait here, sometimes test functions will attempt to
-	// perform some operation right after the node process has started but
-	// before some service goroutine has had enough time to perform its
-	// duties and will then fail in mysterious ways.
-	time.Sleep(time.Second * 3)
-	hn.AddToLog(fmt.Sprintf("+++++ HarnessNode %s considered started\n", hn.Name()))
-
 	return nil
 }
 
