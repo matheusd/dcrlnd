@@ -428,10 +428,13 @@ func marshallChannelUpdate(update *lnwire.ChannelUpdate) *ChannelUpdate {
 		ChainHash:         update.ChainHash[:],
 		ChanId:            update.ShortChannelID.ToUint64(),
 		Timestamp:         update.Timestamp,
+		MessageFlags:      uint32(update.MessageFlags),
 		ChannelFlags:      uint32(update.ChannelFlags),
 		TimeLockDelta:     uint32(update.TimeLockDelta),
 		HtlcMinimumMAtoms: uint64(update.HtlcMinimumMAtoms),
 		BaseFee:           update.BaseFee,
 		FeeRate:           update.FeeRate,
+		HtlcMaximumMAtoms: uint64(update.HtlcMaximumMAtoms),
+		ExtraOpaqueData:   update.ExtraOpaqueData,
 	}
 }
