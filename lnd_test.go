@@ -14889,8 +14889,8 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		ht.Fatalf("unable to request transaction notifications: %v", err)
 	}
 
-	// Start a dcrd chain backend.
-	chainBackend, cleanUp, err := lntest.NewDcrdBackend(miner)
+	// Start a chain backend.
+	chainBackend, cleanUp, err := lntest.NewBackend(miner)
 	if err != nil {
 		ht.Fatalf("unable to start dcrd: %v", err)
 	}
