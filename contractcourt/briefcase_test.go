@@ -10,10 +10,12 @@ import (
 
 	prand "math/rand"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	bolt "go.etcd.io/bbolt"
@@ -676,6 +678,62 @@ func TestScopeIsolation(t *testing.T) {
 		t.Fatalf("state mismatch: expected %v, got %v",
 			StateContractClosed, log2State)
 	}
+}
+
+// TestCommitSetStorage tests that we're able to properly read/write active
+// commitment sets.
+func TestCommitSetStorage(t *testing.T) {
+	t.Parallel()
+
+	testLog, cleanUp, err := newTestBoltArbLog(
+		testChainHash, testChanPoint1,
+	)
+	if err != nil {
+		t.Fatalf("unable to create test log: %v", err)
+	}
+	defer cleanUp()
+
+	activeHTLCs := []channeldb.HTLC{
+		{
+			Amt:       1000,
+			OnionBlob: make([]byte, 0),
+			Signature: make([]byte, 0),
+		},
+	}
+
+	confTypes := []HtlcSetKey{
+		LocalHtlcSet, RemoteHtlcSet, RemotePendingHtlcSet,
+	}
+	for _, pendingRemote := range []bool{true, false} {
+		for _, confType := range confTypes {
+			commitSet := &CommitSet{
+				ConfCommitKey: &confType,
+				HtlcSets:      make(map[HtlcSetKey][]channeldb.HTLC),
+			}
+			commitSet.HtlcSets[LocalHtlcSet] = activeHTLCs
+			commitSet.HtlcSets[RemoteHtlcSet] = activeHTLCs
+
+			if pendingRemote {
+				commitSet.HtlcSets[RemotePendingHtlcSet] = activeHTLCs
+			}
+
+			err := testLog.InsertConfirmedCommitSet(commitSet)
+			if err != nil {
+				t.Fatalf("unable to write commit set: %v", err)
+			}
+
+			diskCommitSet, err := testLog.FetchConfirmedCommitSet()
+			if err != nil {
+				t.Fatalf("unable to read commit set: %v", err)
+			}
+
+			if !reflect.DeepEqual(commitSet, diskCommitSet) {
+				t.Fatalf("commit set mismatch: expected %v, got %v",
+					spew.Sdump(commitSet), spew.Sdump(diskCommitSet))
+			}
+		}
+	}
+
 }
 
 func init() {
