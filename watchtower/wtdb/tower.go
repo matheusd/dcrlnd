@@ -1,18 +1,11 @@
 package wtdb
 
 import (
-	"errors"
 	"io"
 	"net"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/lnwire"
-)
-
-var (
-	// ErrTowerNotFound signals that the target tower was not found in the
-	// database.
-	ErrTowerNotFound = errors.New("tower not found")
 )
 
 // TowerID is a unique 64-bit identifier allocated to each unique watchtower.
