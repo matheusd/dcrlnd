@@ -1,3 +1,5 @@
+// +build dcrd
+
 package lntest
 
 import (
@@ -50,9 +52,9 @@ func (b DcrdBackendConfig) DisconnectMiner() error {
 	return rpctest.RemoveNode(b.harness, b.miner)
 }
 
-// NewDcrdBackend starts a new rpctest.Harness and returns a DcrdBackendConfig
-// for that node.
-func NewDcrdBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
+// NewBackend starts a new rpctest.Harness and returns a DcrdBackendConfig for
+// that node.
+func NewBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
 	args := []string{
 		// rejectnonstd cannot be used in decred due to votes in simnet
 		// using a non-standard signature script.
