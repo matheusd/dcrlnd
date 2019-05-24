@@ -119,7 +119,7 @@ scratch: build
 check: unit itest
 
 itest-only:
-	@$(call print, "Running integration tests.")
+	@$(call print, "Running integration tests with ${backend} backend.")
 	$(ITEST)
 
 itest: dcrd build-itest itest-only
@@ -154,7 +154,7 @@ travis-itest: itest
 # =============
 
 flakehunter: build-itest
-	@$(call print, "Flake hunting integration tests.")
+	@$(call print, "Flake hunting ${backend} integration tests.")
 	while [ $$? -eq 0 ]; do $(ITEST); done
 
 flake-unit:
