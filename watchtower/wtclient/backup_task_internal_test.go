@@ -78,7 +78,7 @@ type backupTaskTest struct {
 	expSweepAmt      int64
 	expRewardAmt     int64
 	expRewardScript  []byte
-	session          *wtdb.ClientSession
+	session          *wtdb.ClientSessionBody
 	bindErr          error
 	expSweepScript   []byte
 	signer           input.Signer
@@ -215,7 +215,7 @@ func genTaskTest(
 		expSweepAmt:      expSweepAmt,
 		expRewardAmt:     expRewardAmt,
 		expRewardScript:  rewardScript,
-		session: &wtdb.ClientSession{
+		session: &wtdb.ClientSessionBody{
 			Policy: wtpolicy.Policy{
 				BlobType:     blobType,
 				SweepFeeRate: sweepFeeRate,
