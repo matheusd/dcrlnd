@@ -40,11 +40,6 @@ const (
 )
 
 var (
-	// ErrNoRouteHopsProvided is returned when a caller attempts to
-	// construct a new sphinx packet, but provides an empty set of hops for
-	// each route.
-	ErrNoRouteHopsProvided = fmt.Errorf("empty route hops provided")
-
 	// ErrRouterShuttingDown is returned if the router is in the process of
 	// shutting down.
 	ErrRouterShuttingDown = fmt.Errorf("router shutting down")
