@@ -135,6 +135,11 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
+	case uint8:
+		if err := binary.Write(w, byteOrder, e); err != nil {
+			return err
+		}
+
 	case bool:
 		if err := binary.Write(w, byteOrder, e); err != nil {
 			return err
@@ -292,6 +297,11 @@ func ReadElement(r io.Reader, element interface{}) error {
 		}
 
 	case *uint16:
+		if err := binary.Read(r, byteOrder, e); err != nil {
+			return err
+		}
+
+	case *uint8:
 		if err := binary.Read(r, byteOrder, e); err != nil {
 			return err
 		}
