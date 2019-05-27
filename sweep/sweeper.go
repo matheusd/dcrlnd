@@ -81,6 +81,10 @@ type pendingInput struct {
 	// map it into a fee rate whenever we attempt to cluster inputs for a
 	// sweep.
 	feePreference FeePreference
+
+	// lastFeeRate is the most recent fee rate used for this input within a
+	// transaction broadcast to the network.
+	lastFeeRate lnwallet.AtomPerKByte
 }
 
 // pendingInputs is a type alias for a set of pending inputs.
@@ -585,6 +589,8 @@ func (s *UtxoSweeper) clusterBySweepFeeRate() []inputCluster {
 			inputs = make(pendingInputs)
 			bucketInputs[bucket] = inputs
 		}
+
+		input.lastFeeRate = feeRate
 		inputs[op] = input
 		inputFeeRates[op] = feeRate
 	}
