@@ -62,8 +62,6 @@ const (
 )
 
 var (
-	zeroHash [32]byte
-
 	// MaxPaymentMAtoms is the maximum allowed payment currently permitted
 	// as defined in BOLT-002. This value depends on which chain is active.
 	// It is set to the value under the Decred chain as default.
@@ -3030,7 +3028,9 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 	// If we're in debug HTLC mode, then all outgoing HTLCs will pay to the
 	// same debug rHash. Otherwise, we pay to the rHash specified within
 	// the RPC request.
-	case cfg.DebugHTLC && bytes.Equal(payIntent.rHash[:], zeroHash[:]):
+	case cfg.DebugHTLC &&
+		bytes.Equal(payIntent.rHash[:], lntypes.ZeroHash[:]):
+
 		copy(payIntent.rHash[:], invoices.DebugHash[:])
 
 	default:
