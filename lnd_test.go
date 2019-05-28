@@ -3924,16 +3924,18 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 		},
 	}
 
+	// Create the subscription before sending the update so we're certain
+	// to get it.
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	graphSub := subscribeGraphNotifications(t, ctxt, listenerNode)
+	defer close(graphSub.quit)
+
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	if _, err := node.UpdateChannelPolicy(ctxt, updateFeeReq); err != nil {
 		t.Fatalf("unable to update chan policy: %v", err)
 	}
 
 	// Wait for listener node to receive the channel update from node.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	graphSub := subscribeGraphNotifications(t, ctxt, listenerNode)
-	defer close(graphSub.quit)
-
 	waitForChannelUpdate(
 		t, graphSub,
 		[]expectedChanUpdate{
@@ -12997,16 +12999,20 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 			ChanPoint: chanPointCarolDave,
 		},
 	}
+
+	// Create a graph ntfn subscription on Alice to watch for Carol's
+	// updates.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	aliceSub := subscribeGraphNotifications(t, ctxt, net.Alice)
+	defer close(aliceSub.quit)
+
+	// Update Carol's policy.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	if _, err := carol.UpdateChannelPolicy(ctxt, updateFeeReq); err != nil {
 		t.Fatalf("unable to update chan policy: %v", err)
 	}
 
 	// Wait for Alice to receive the channel update from Carol.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	aliceSub := subscribeGraphNotifications(t, ctxt, net.Alice)
-	defer close(aliceSub.quit)
-
 	waitForChannelUpdate(
 		t, aliceSub,
 		[]expectedChanUpdate{
