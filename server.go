@@ -933,7 +933,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 // Started returns true if the server has been started, and false otherwise.
 // NOTE: This function is safe for concurrent access.
 func (s *server) Started() bool {
-	return atomic.LoadInt32(&s.started) != 0
+	return atomic.LoadInt32(&s.started) > 1
 }
 
 // Start starts the main daemon server, all requested listeners, and any helper
@@ -1032,6 +1032,9 @@ func (s *server) Start() error {
 	// based on a channel's status.
 	s.wg.Add(1)
 	go s.watchChannelStatus()
+
+	// Register that all services have started.
+	atomic.StoreInt32(&s.started, 2)
 
 	return nil
 }
