@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -429,10 +430,29 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 	hn.LightningClient = lnrpc.NewLightningClient(conn)
 
 	// Set the harness node's pubkey to what the node claims in GetInfo.
-	err := hn.FetchNodeInfo()
-	if err != nil {
-		return fmt.Errorf("unable to fetch %s's node info: %v", hn.Name(), err)
+	deadline := time.Now().Add(time.Second * 15)
+	var err error
+	for !time.Now().After(deadline) {
+		err = hn.FetchNodeInfo()
+		if err != nil && strings.Contains(err.Error(), "unconnected to the network") {
+			fmt.Println(time.Now().Format("15:04:05.000"), "xxxx unconnected yet", hn.Name(), hn.NodeID)
+			time.Sleep(time.Millisecond * 50)
+			continue
+		}
+		if err != nil && strings.Contains(err.Error(), "connection refused") {
+			fmt.Println(time.Now().Format("15:04:05.000"), "xxxx connection refused", hn.Name(), hn.NodeID)
+			time.Sleep(time.Millisecond * 50)
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("unable to fetch %s's node info: %v", hn.Name(), err)
+		}
+		break
 	}
+	if err != nil {
+		return err
+	}
+	fmt.Println(time.Now().Format("15:04:05.000"), "got info for node", hn.Name(), hn.NodeID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
