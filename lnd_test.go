@@ -12244,6 +12244,14 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	assertAmountPaid(t, "Bob(local) => Alice(remote)", net.Bob,
 		aliceFundPoint, amountPaid+(baseFee*numPayments)*2, int64(0))
 
+	// Before completing the final payment request, ensure that the
+	// connection between Dave and Carol has been healed.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.EnsureConnected(ctxt, dave, carol)
+	if err != nil {
+		t.Fatalf("unable to reconnect dave and carol: %v", err)
+	}
+
 	// Lastly, we will send one more payment to ensure all channels are
 	// still functioning properly.
 	finalInvoice := &lnrpc.Invoice{
@@ -12257,14 +12265,6 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	}
 
 	payReqs = []string{resp.PaymentRequest}
-
-	// Before completing the final payment request, ensure that the
-	// connection between Dave and Carol has been healed.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.EnsureConnected(ctxt, dave, carol)
-	if err != nil {
-		t.Fatalf("unable to reconnect dave and carol: %v", err)
-	}
 
 	// Using Carol as the source, pay to the 5 invoices from Bob created
 	// above.
