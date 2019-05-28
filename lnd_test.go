@@ -14451,7 +14451,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 	// initialization of the network. args - list of lnd arguments,
 	// example: "--debuglevel=debug"
 	// TODO(roasbeef): create master balanced channel with all the monies?
-	if err = lndHarness.SetUp(nil); err != nil {
+	if err = lndHarness.SetUp([]string{"--no-macaroons"}); err != nil {
 		ht.Fatalf("unable to set up test lightning network: %v", err)
 	}
 
@@ -14503,6 +14503,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 				}
 				thisNodeArgs = nodesArgs[0]
 				testNodes[name] = nodesArgs[1:]
+				thisNodeArgs = append(thisNodeArgs, "--no-macaroons")
 				fmt.Println(time.Now().Format("15:04:05.000"), "creating new node", name, thisNodeArgs)
 				node, err := lndHarness.NewNode(name, thisNodeArgs)
 				if err != nil {
@@ -14531,6 +14532,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 				return nil, fmt.Errorf("empty new node")
 			}
 			fmt.Println(time.Now().Format("15:04:05.000"), "got new node to return", name, node.NodeID)
+			args = append(args, "--no-macaroons")
 			if strings.Join(args, " ") != strings.Join(node.GetExtraArgs(), " ") {
 				fmt.Println("    YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
 				fmt.Println(time.Now().Format("15:04:05.000"), "changing args", name, args)
