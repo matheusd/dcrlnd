@@ -169,6 +169,8 @@ func lndMain() error {
 	}
 	defer chanDB.Close()
 
+	ltndLog.Info("Channel db successfully opened")
+
 	// Only process macaroons if --no-macaroons isn't set.
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
@@ -197,6 +199,8 @@ func lndMain() error {
 		return err
 	}
 	proxyOpts := []grpc.DialOption{grpc.WithTransportCredentials(cCreds)}
+
+	ltndLog.Info("TLS cert generated")
 
 	var (
 		privateWalletPw = lnwallet.DefaultPrivatePassphrase
@@ -266,6 +270,9 @@ func lndMain() error {
 				return err
 			}
 		}
+		ltndLog.Info("Macaroon generated")
+	} else {
+		ltndLog.Info("Skipping macaroon creation")
 	}
 
 	// With the information parsed from the configuration, create valid
