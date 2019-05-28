@@ -144,6 +144,15 @@ func (cfg nodeConfig) DBPath() string {
 		fmt.Sprintf("%v/channel.db", cfg.NetParams.Name))
 }
 
+func (cfg nodeConfig) NoMacaroons() bool {
+	for _, s := range cfg.ExtraArgs {
+		if s == "--no-macaroons" {
+			return true
+		}
+	}
+	return false
+}
+
 // genArgs generates a slice of command line arguments from the lightning node
 // config struct.
 func (cfg nodeConfig) genArgs() []string {
@@ -388,7 +397,7 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 
 	// Since Stop uses the LightningClient to stop the node, if we fail to get a
 	// connected client, we have to kill the process.
-	useMacaroons := !hn.cfg.HasSeed
+	useMacaroons := !hn.cfg.HasSeed && !hn.cfg.NoMacaroons()
 	conn, err := hn.ConnectRPC(useMacaroons)
 	if err != nil {
 		hn.cmd.Process.Kill()
@@ -427,7 +436,7 @@ func (hn *HarnessNode) Init(ctx context.Context,
 	// it via a macaroon-authenticated rpc connection.
 	var conn *grpc.ClientConn
 	if err = WaitPredicate(func() bool {
-		conn, err = hn.ConnectRPC(true)
+		conn, err = hn.ConnectRPC(!hn.cfg.NoMacaroons())
 		return err == nil
 	}, 5*time.Second); err != nil {
 		return fmt.Errorf("unable to connect to %s's rpc: %v", hn.Name(), err)
