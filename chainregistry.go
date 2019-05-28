@@ -259,6 +259,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			srvrLog.Errorf("unable to create chain view: %v", err)
 			return nil, nil, err
 		}
+		srvrLog.Infof("Created filtered chain view")
 
 		// Verify that the provided dcrd instance exists, is reachable,
 		// it's on the correct network and has the features required
@@ -268,6 +269,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 				err)
 			return nil, nil, err
 		}
+		srvrLog.Info("Checked dcrd node")
 
 		// Initialize an RPC syncer for this wallet and use it as
 		// blockchain IO source.
@@ -278,6 +280,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		}
 		walletConfig.Syncer = syncer
 		chainIO = syncer
+
+		srvrLog.Info("Created RPC Syncer")
 
 		// If we're not in simnet or regtest mode, then we'll attempt
 		// to use a proper fee estimator for testnet.
@@ -312,6 +316,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		return nil, nil, err
 	}
 
+	srvrLog.Info("Made new dcrwallet")
+
 	cc.msgSigner = wc
 	cc.signer = wc
 	cc.chainIO = chainIO
@@ -339,6 +345,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		fmt.Printf("unable to create wallet: %v\n", err)
 		return nil, nil, err
 	}
+	srvrLog.Info("Created new Lightning Wallet")
 	if err := lnWallet.Startup(); err != nil {
 		fmt.Printf("unable to start wallet: %v\n", err)
 		return nil, nil, err
