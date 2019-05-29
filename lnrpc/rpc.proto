@@ -2206,6 +2206,9 @@ message Payment {
 
     /// The value of the payment in milli-atoms
     int64 value_m_atoms = 8 [json_name = "value_m_atoms"];
+
+    /// The optional payment request being fulfilled.
+    string payment_request = 9 [json_name = "payment_request"];
 }
 
 message ListPaymentsRequest {
