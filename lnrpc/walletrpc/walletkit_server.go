@@ -9,12 +9,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/sweep"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
@@ -78,6 +81,10 @@ var (
 		"/walletrpc.WalletKit/PendingSweeps": {{
 			Entity: "onchain",
 			Action: "read",
+		}},
+		"/walletrpc.WalletKit/BumpFee": {{
+			Entity: "onchain",
+			Action: "write",
 		}},
 	}
 
@@ -408,4 +415,106 @@ func (w *WalletKit) PendingSweeps(ctx context.Context,
 	return &PendingSweepsResponse{
 		PendingSweeps: rpcPendingSweeps,
 	}, nil
+}
+
+// unmarshallOutPoint converts an outpoint from its lnrpc type to its canonical
+// type.
+func unmarshallOutPoint(op *lnrpc.OutPoint) (*wire.OutPoint, error) {
+	var hash chainhash.Hash
+	switch {
+	case len(op.TxidBytes) == 0 && len(op.TxidStr) == 0:
+		fallthrough
+
+	case len(op.TxidBytes) != 0 && len(op.TxidStr) != 0:
+		return nil, fmt.Errorf("either TxidBytes or TxidStr must be " +
+			"specified, but not both")
+
+	// The hash was provided as raw bytes.
+	case len(op.TxidBytes) != 0:
+		copy(hash[:], op.TxidBytes)
+
+	// The hash was provided as a hex-encoded string.
+	case len(op.TxidStr) != 0:
+		h, err := chainhash.NewHashFromStr(op.TxidStr)
+		if err != nil {
+			return nil, err
+		}
+		hash = *h
+	}
+
+	return &wire.OutPoint{
+		Hash:  hash,
+		Index: op.OutputIndex,
+	}, nil
+}
+
+// BumpFee allows bumping the fee rate of an arbitrary input. A fee preference
+// can be expressed either as a specific fee rate or a delta of blocks in which
+// the output should be swept on-chain within. If a fee preference is not
+// explicitly specified, then an error is returned. The status of the input
+// sweep can be checked through the PendingSweeps RPC.
+func (w *WalletKit) BumpFee(ctx context.Context,
+	in *BumpFeeRequest) (*BumpFeeResponse, error) {
+
+	// Parse the outpoint from the request.
+	op, err := unmarshallOutPoint(in.Outpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct the request's fee preference.
+	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	feePreference := sweep.FeePreference{
+		ConfTarget: uint32(in.TargetConf),
+		FeeRate:    atomsPerKB,
+	}
+
+	// We'll attempt to bump the fee of the input through the UtxoSweeper.
+	// If it is currently attempting to sweep the input, then it'll simply
+	// bump its fee, which will result in a replacement transaction (RBF)
+	// being broadcast. If it is not aware of the input however,
+	// lnwallet.ErrNotMine is returned.
+	_, err = w.cfg.Sweeper.BumpFee(*op, feePreference)
+	switch err {
+	case nil:
+		return &BumpFeeResponse{}, nil
+	case lnwallet.ErrNotMine:
+		break
+	default:
+		return nil, err
+	}
+
+	// Since we're unable to perform a bump through RBF, we'll assume the
+	// user is attempting to bump an unconfirmed transaction's fee rate by
+	// sweeping an output within it under control of the wallet with a
+	// higher fee rate, essentially performing a Child-Pays-For-Parent
+	// (CPFP).
+	//
+	// We'll gather all of the information required by the UtxoSweeper in
+	// order to sweep the output.
+	txOut, err := w.cfg.Wallet.FetchInputInfo(op)
+	if err != nil {
+		return nil, err
+	}
+
+	var witnessType input.WitnessType
+	cls := txscript.GetScriptClass(txOut.Version, txOut.PkScript)
+	switch cls {
+	case txscript.PubKeyHashTy:
+		witnessType = input.PublicKeyHash
+	default:
+		return nil, fmt.Errorf("unknown input witness %v", op)
+	}
+
+	signDesc := &input.SignDescriptor{
+		Output:   txOut,
+		HashType: txscript.SigHashAll,
+	}
+
+	input := input.NewBaseInput(op, witnessType, signDesc, 0)
+	if _, err = w.cfg.Sweeper.SweepInput(input, feePreference); err != nil {
+		return nil, err
+	}
+
+	return &BumpFeeResponse{}, nil
 }
