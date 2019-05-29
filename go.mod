@@ -9,7 +9,7 @@ require (
 	github.com/decred/dcrd/bech32 v1.0.0
 	github.com/decred/dcrd/blockchain v1.1.1
 	github.com/decred/dcrd/blockchain/stake v1.1.0
-	github.com/decred/dcrd/chaincfg v1.3.0
+	github.com/decred/dcrd/chaincfg v1.4.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/connmgr v1.0.2
 	github.com/decred/dcrd/dcrec v0.0.0-20190214012338-9265b4051009
@@ -18,7 +18,7 @@ require (
 	github.com/decred/dcrd/dcrjson/v2 v2.0.0
 	github.com/decred/dcrd/dcrutil v1.2.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
-	github.com/decred/dcrd/mempool v1.1.1
+	github.com/decred/dcrd/mempool/v2 v2.0.0
 	github.com/decred/dcrd/rpcclient/v2 v2.0.0
 	github.com/decred/dcrd/txscript v1.0.2
 	github.com/decred/dcrd/wire v1.2.0
@@ -62,13 +62,14 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd => github.com/decred/dcrd v0.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/bech32 => github.com/decred/dcrd/bech32 v0.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/blockchain => github.com/decred/dcrd/blockchain v0.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v0.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v0.0.0-20190306151227-8cbb5ae69df7
-	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190306151227-8cbb5ae69df7
+	github.com/decred/dcrd => github.com/decred/dcrd v0.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/bech32 => github.com/decred/dcrd/bech32 v0.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/blockchain => github.com/decred/dcrd/blockchain v0.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v0.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/mempool/v2 => github.com/decred/dcrd/mempool/v2 v2.0.0-20190524113024-5048959fdcf6
+	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v0.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190410055418-5048959fdcf6
 
 	github.com/decred/dcrwallet => github.com/decred/dcrwallet v0.0.0-20190322135901-7e0e5a4227d7
 	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.0-20190322135901-7e0e5a4227d7
