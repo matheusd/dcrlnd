@@ -396,6 +396,56 @@ func cleanupForceClose(t *harnessTest, net *lntest.NetworkHarness,
 	mineBlocks(t, net, 1, 1)
 }
 
+// waitForPendingHtlcs waits for up to 15 seconds for the given channel in the
+// given node to show the specified number of pending HTLCs.
+func waitForPendingHtlcs(node *lntest.HarnessNode,
+	chanPoint *lnrpc.ChannelPoint, pendingHtlcs int) error {
+
+	fundingTxID, err := chainhash.NewHash(chanPoint.GetFundingTxidBytes())
+	if err != nil {
+		return fmt.Errorf("unable to convert funding txid into "+
+			"chainhash.Hash: %v", err)
+	}
+	outPoint := wire.OutPoint{
+		Hash:  *fundingTxID,
+		Index: chanPoint.OutputIndex,
+	}
+	targetChan := outPoint.String()
+
+	req := &lnrpc.ListChannelsRequest{}
+	ctxb := context.Background()
+
+	var predErr error
+	lntest.WaitPredicate(func() bool {
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		channelInfo, err := node.ListChannels(ctxt, req)
+		if err != nil {
+			predErr = err
+			return false
+		}
+
+		for _, channel := range channelInfo.Channels {
+			if channel.ChannelPoint != targetChan {
+				continue
+			}
+
+			foundHtlcs := len(channel.PendingHtlcs)
+			if foundHtlcs == pendingHtlcs {
+				predErr = nil
+				return true
+			}
+
+			predErr = fmt.Errorf("found only %d htlcs (wanted %d)",
+				foundHtlcs, pendingHtlcs)
+			return false
+		}
+
+		predErr = fmt.Errorf("could not find channel %s", targetChan)
+		return false
+	}, time.Second*15)
+	return predErr
+}
+
 // numOpenChannelsPending sends an RPC request to a node to get a count of the
 // node's channels that are currently in a pending state (with a broadcast, but
 // not confirmed funding transaction).
@@ -1693,7 +1743,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
-	if err := miner.SetUp(true, 16); err != nil {
+	if err := miner.SetUp(false, 0); err != nil {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer miner.TearDown()
@@ -1702,8 +1752,8 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to request transaction notifications: %v", err)
 	}
 
-	// We start by connecting the new miner to our original miner,
-	// such that it will sync to our original chain.
+	// We start by connecting the new miner to our original miner, such
+	// that it will sync to our original chain.
 	if err := rpctest.ConnectNode(net.Miner, miner); err != nil {
 		t.Fatalf("unable to connect harnesses: %v", err)
 	}
@@ -1768,7 +1818,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	// channel, which should be considered open.
 	block := mineBlocks(t, net, 10, 1)[0]
 	assertTxInBlock(t, block, fundingTxID)
-	miner.Node.Generate(15)
+	lntest.AdjustedSimnetMiner(miner.Node, 15)
 
 	// Ensure the chain lengths are what we expect.
 	_, newNodeHeight, err = miner.Node.GetBestBlock()
@@ -7125,6 +7175,12 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	)
 	if err != nil {
 		t.Fatalf("unable to send payments: %v", err)
+	}
+
+	// Wait until the channel has acknowledged the pending htlc count.
+	err = waitForPendingHtlcs(carol, chanPoint, numInvoices)
+	if err != nil {
+		t.Fatalf("unable to wait for pending htlcs: %v", err)
 	}
 
 	// Next query for Carol's channel state, as we sent 3 payments of 10k
@@ -14223,7 +14279,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		}
 	}()
 
-	if err := dcrdHarness.SetUp(true, 32); err != nil {
+	if err := dcrdHarness.SetUp(false, 0); err != nil {
 		ht.Fatalf("unable to set up mining node: %v", err)
 	}
 	if err := dcrdHarness.Node.NotifyNewTransactions(false); err != nil {

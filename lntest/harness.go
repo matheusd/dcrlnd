@@ -144,9 +144,22 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	// statements on the floor.
 	grpclog.SetLogger(&fakeLogger{})
 
+	// Generate the premine block the usual way.
+	_, err := n.Miner.Node.Generate(1)
+	if err != nil {
+		return fmt.Errorf("unable to generate premine: %v", err)
+	}
+
+	// Generate enough blocks so that the network harness can have funds to
+	// send to the voting wallet, Alice and Bob.
+	_, err = AdjustedSimnetMiner(n.Miner.Node, 64)
+	if err != nil {
+		return fmt.Errorf("unable to init chain: %v", err)
+	}
+
 	// Setup a ticket buying/voting dcrwallet, so that the network advances
 	// past SVH.
-	err := n.setupVotingWallet()
+	err = n.setupVotingWallet()
 	if err != nil {
 		return err
 	}
@@ -1320,6 +1333,13 @@ func (n *NetworkHarness) setupVotingWallet() error {
 	if err != nil {
 		return err
 	}
+
+	// Use a custom miner on the voting wallet that ensures simnet blocks
+	// are generated as fast as possible without triggering PoW difficulty
+	// increases.
+	vw.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
+		return AdjustedSimnetMiner(n.Miner.Node, nb)
+	})
 
 	err = vw.Start()
 	if err != nil {

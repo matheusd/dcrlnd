@@ -35,6 +35,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -69,7 +70,7 @@ var (
 		0x69, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
 
-	netParams = &chaincfg.RegNetParams
+	netParams = &chaincfg.SimNetParams
 	chainHash = netParams.GenesisHash
 
 	// TODO(matheusd) Are these all?
@@ -238,6 +239,7 @@ func assertTxInWallet(t *testing.T, w *lnwallet.LightningWallet,
 }
 
 func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
+	blockGenerator func(uint32) ([]*chainhash.Hash, error),
 	numOutputs int, dcrPerOutput float64) error {
 
 	// Using the mining node, spend from a coinbase output numOutputs to
@@ -290,7 +292,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	// Generate 10 blocks with the mining node, this should mine all
 	// numOutputs transactions created above. We generate 10 blocks here
 	// in order to give all the outputs a "sufficient" number of confirmations.
-	if _, err := generateBlocks(miner, 10); err != nil {
+	if _, err := blockGenerator(10); err != nil {
 		return err
 	}
 
@@ -328,7 +330,8 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 func createTestWallet(cdb *channeldb.DB, miningNode *rpctest.Harness,
 	netParams *chaincfg.Params, notifier chainntnfs.ChainNotifier,
 	wc lnwallet.WalletController, keyRing keychain.SecretKeyRing,
-	signer lnwallet.Signer, bio lnwallet.BlockChainIO) (*lnwallet.LightningWallet, error) {
+	signer lnwallet.Signer, bio lnwallet.BlockChainIO,
+	vw *rpctest.VotingWallet) (*lnwallet.LightningWallet, error) {
 
 	cfg := lnwallet.Config{
 		Database:         cdb,
@@ -1923,7 +1926,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	// reorganization that doesn't invalidate any existing transactions or
 	// create any new non-coinbase transactions. We'll then check if it's
 	// the same after the empty reorg.
-	_, err := generateBlocks(r, 5)
+	_, err := vw.GenerateBlocks(5)
 	if err != nil {
 		t.Fatalf("unable to generate blocks on passed node: %v", err)
 	}
@@ -1935,7 +1938,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	}
 
 	// Send some money from the miner to the wallet
-	err = loadTestCredits(r, w, 20, 4)
+	err = loadTestCredits(r, w, vw.GenerateBlocks, 20, 4)
 	if err != nil {
 		t.Fatalf("unable to send money to lnwallet: %v", err)
 	}
@@ -1963,7 +1966,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	_, err = generateBlocks(r, 16)
+	_, err = vw.GenerateBlocks(3)
 	if err != nil {
 		t.Fatalf("unable to generate blocks on passed node: %v", err)
 	}
@@ -2011,6 +2014,13 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		t.Fatalf("unable to synchronize mining nodes: %v", err)
 	}
 
+	mineFirst := func(nb uint32) ([]*chainhash.Hash, error) {
+		return vw.GenerateBlocks(nb)
+	}
+	mineSecond := func(nb uint32) ([]*chainhash.Hash, error) {
+		return lntest.AdjustedSimnetMiner(r2.Node, nb)
+	}
+
 	// Step 3: Do a set of reorgs by disconnecting the two miners, mining
 	// one block on the passed miner and two on the created miner,
 	// connecting them, and waiting for them to sync.
@@ -2037,12 +2047,12 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 					err)
 			}
 		}
-		_, err = generateBlocks(r, 2)
+		_, err = mineFirst(2)
 		if err != nil {
 			t.Fatalf("unable to generate blocks on passed node: %v",
 				err)
 		}
-		_, err = generateBlocks(r2, 3)
+		_, err = mineSecond(3)
 		if err != nil {
 			t.Fatalf("unable to generate blocks on created node: %v",
 				err)
@@ -2167,7 +2177,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 
 	// Finally, we'll replenish Alice's wallet with some more coins to
 	// ensure she has enough for any following test cases.
-	if err := loadTestCredits(r, alice, 20, 4); err != nil {
+	if err := loadTestCredits(r, alice, vw.GenerateBlocks, 20, 4); err != nil {
 		t.Fatalf("unable to replenish alice's wallet: %v", err)
 	}
 }
@@ -2244,39 +2254,6 @@ func clearWalletStates(a, b *lnwallet.LightningWallet) error {
 	}
 
 	return b.Cfg.Database.Wipe()
-}
-
-func generateBlocks(r *rpctest.Harness, nb uint32) ([]*chainhash.Hash, error) {
-
-	genChan := make(chan error)
-	blockHashes := make([]*chainhash.Hash, nb)
-
-	for i := uint32(0); i < nb; i++ {
-		go func() {
-			h, e := r.Node.Generate(1)
-			if len(h) > 0 {
-				blockHashes[i] = h[0]
-
-				// Give enough time for this block to be
-				// processed by connected nodes.
-				time.Sleep(time.Millisecond * 100)
-			}
-			genChan <- e
-		}()
-		select {
-		case err := <-genChan:
-			if err != nil {
-				return nil, err
-			}
-		case <-time.After(time.Second * 10):
-			_, height, _ := r.Node.GetBestBlock()
-			return nil, fmt.Errorf("failed to generate block %d of %d "+
-				"at height %d before timeout", i, nb, height)
-
-		}
-	}
-
-	return blockHashes, nil
 }
 
 func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
@@ -2383,8 +2360,22 @@ func TestLightningWallet(t *testing.T) {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
 	defer miningNode.TearDown()
-	if err := miningNode.SetUp(true, 25); err != nil {
+	if err := miningNode.SetUp(true, 0); err != nil {
 		t.Fatalf("unable to set up mining node: %v", err)
+	}
+
+	// Generate the premine block.
+	_, err = miningNode.Node.Generate(1)
+	if err != nil {
+		t.Fatalf("unable to generate premine: %v", err)
+	}
+
+	// Generate enough blocks for the initial load of test and voting
+	// wallet but not so many that it would trigger a reorg after SVH
+	// during the testReorgWalletBalance test.
+	_, err = lntest.AdjustedSimnetMiner(miningNode.Node, 40)
+	if err != nil {
+		t.Fatalf("unable to generate initial blocks: %v", err)
 	}
 
 	// Setup a voting wallet for when the chain passes SVH.
@@ -2392,6 +2383,12 @@ func TestLightningWallet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create voting wallet: %v", err)
 	}
+	votingWallet.SetErrorReporting(func(err error) {
+		t.Logf("Voting wallet error: %v", err)
+	})
+	votingWallet.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
+		return lntest.AdjustedSimnetMiner(miningNode.Node, nb)
+	})
 	if err = votingWallet.Start(); err != nil {
 		t.Fatalf("unable to start voting wallet: %v", err)
 	}
@@ -2556,7 +2553,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	alice, err := createTestWallet(
 		aliceCDB, miningNode, netParams,
 		chainNotifier, aliceWalletController, aliceKeyRing,
-		aliceSigner, aliceBio,
+		aliceSigner, aliceBio, votingWallet,
 	)
 	if err != nil {
 		t.Fatalf("unable to create test ln wallet: %v", err)
@@ -2566,7 +2563,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	bob, err := createTestWallet(
 		bobCDB, miningNode, netParams,
 		chainNotifier, bobWalletController, bobKeyRing,
-		bobSigner, bobBio,
+		bobSigner, bobBio, votingWallet,
 	)
 	if err != nil {
 		t.Fatalf("unable to create test ln wallet: %v", err)
@@ -2591,10 +2588,10 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	}
 
 	// Load our test wallets with 20 outputs each holding 4DCR.
-	if err := loadTestCredits(miningNode, alice, 20, 4); err != nil {
+	if err := loadTestCredits(miningNode, alice, votingWallet.GenerateBlocks, 20, 4); err != nil {
 		t.Logf("unable to send initial funds to alice: %v", err)
 	}
-	if err := loadTestCredits(miningNode, bob, 20, 4); err != nil {
+	if err := loadTestCredits(miningNode, bob, votingWallet.GenerateBlocks, 20, 4); err != nil {
 		t.Logf("unable to send initial funds to bob: %v", err)
 	}
 
