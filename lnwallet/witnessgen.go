@@ -80,6 +80,14 @@ const (
 	// output that sends to a nested P2SH script that pays to a key solely
 	// under our control. The witness generated needs to include the
 	NestedWitnessKeyHash WitnessType = 11
+
+	// PublicKeyHash is a witness type that allows us to sweep an output
+	// that sends to a standard p2pkh script that pays to a key solely
+	// under the control of the backing wallet.
+	//
+	// NODE(decred): The value was chosen so that it won't conflict with
+	// future new types added to the upstream lnd project.
+	PublicKeyHash WitnessType = 901
 )
 
 // Stirng returns a human readable version of the target WitnessType.
