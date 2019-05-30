@@ -357,27 +357,6 @@ func createTestWallet(cdb *channeldb.DB, miningNode *rpctest.Harness,
 		return nil, err
 	}
 
-	// Wait for the initial wallet sync and rescan.
-	timeout := time.After(time.Second * 30)
-	var synced bool
-	for !synced {
-		// Do a short wait
-		select {
-		case <-timeout:
-			return nil, fmt.Errorf("timeout after 30 while performing initial sync")
-		case <-time.Tick(100 * time.Millisecond):
-			synced, _, err = wallet.IsSynced()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// Load our test wallet with 20 outputs each holding 4DCR.
-	if err := loadTestCredits(miningNode, wallet, 20, 4); err != nil {
-		return nil, err
-	}
-
 	return wallet, nil
 }
 
@@ -2593,6 +2572,31 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		t.Fatalf("unable to create test ln wallet: %v", err)
 	}
 	defer bob.Shutdown()
+
+	// Wait for both wallets to be synced.
+	timeout := time.After(time.Second * 120)
+	aliceSync := aliceWalletController.InitialSyncChannel()
+	bobSync := bobWalletController.InitialSyncChannel()
+	for aliceSync != nil || bobSync != nil {
+		select {
+		case <-timeout:
+			t.Fatalf("timeout while waiting for wallets to sync")
+		case <-aliceSync:
+			t.Logf("Alice synced")
+			aliceSync = nil
+		case <-bobSync:
+			t.Logf("Bob synced")
+			bobSync = nil
+		}
+	}
+
+	// Load our test wallets with 20 outputs each holding 4DCR.
+	if err := loadTestCredits(miningNode, alice, 20, 4); err != nil {
+		t.Logf("unable to send initial funds to alice: %v", err)
+	}
+	if err := loadTestCredits(miningNode, bob, 20, 4); err != nil {
+		t.Logf("unable to send initial funds to bob: %v", err)
+	}
 
 	// Both wallets should now have 80DCR available for
 	// spending.

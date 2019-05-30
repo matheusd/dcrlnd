@@ -299,21 +299,10 @@ func lndMain() error {
 	ltndLog.Infof("Waiting for chain backend to finish sync, "+
 		"start_height=%v", bestHeight)
 
-	for {
-		if !signal.Alive() {
-			return nil
-		}
-
-		synced, _, err := activeChainControl.wallet.IsSynced()
-		if err != nil {
-			return err
-		}
-
-		if synced {
-			break
-		}
-
-		time.Sleep(time.Second * 1)
+	select {
+	case <-signal.ShutdownChannel():
+		return nil
+	case <-activeChainControl.wallet.InitialSyncChannel():
 	}
 
 	_, bestHeight, err = activeChainControl.chainIO.GetBestBlock()
