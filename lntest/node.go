@@ -373,6 +373,8 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 		return err
 	}
 
+	fmt.Println(time.Now().Format("15:04:05.000"), "starting connect rpc procedures", hn.Name(), hn.NodeID)
+
 	// Since Stop uses the LightningClient to stop the node, if we fail to get a
 	// connected client, we have to kill the process.
 	useMacaroons := !hn.cfg.HasSeed
@@ -542,7 +544,10 @@ func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second * 40),
-		grpc.WithBackoffMaxDelay(time.Millisecond * 20),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			BackoffBaseDelay: time.Millisecond * 20,
+			BackoffMaxDelay:  time.Millisecond * 20,
+		}),
 	}
 
 	tlsCreds, err := credentials.NewClientTLSFromFile(hn.cfg.TLSCertPath, "")

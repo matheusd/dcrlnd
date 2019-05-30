@@ -51,7 +51,7 @@ require (
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
 	go.etcd.io/bbolt v1.3.2
 	golang.org/x/crypto v0.0.0-20190320223903-b7391e95e576
-	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
+	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
 	google.golang.org/grpc v1.18.0
@@ -75,4 +75,6 @@ replace (
 	github.com/decred/dcrwallet/wallet/v2 => github.com/matheusd/dcrwallet/wallet/v2 v2.0.0-20190528160227-69d1bec44c2f
 
 	github.com/decred/lightning-onion => github.com/decred/lightning-onion v0.0.0-20190321210301-95556fb4cc37
+
+	google.golang.org/grpc => github.com/easwars/grpc-go v0.0.0-20190516164002-c91f66385984
 )
