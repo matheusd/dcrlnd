@@ -748,8 +748,13 @@ func (l *LightningWallet) handleContributionMsg(req *addContributionMsg) {
 			req.err <- err
 			return
 		}
+		sigScript, err := WitnessStackToSigScript(inputScript.Witness)
+		if err != nil {
+			req.err <- err
+			return
+		}
 
-		txIn.SignatureScript = inputScript.SigScript
+		txIn.SignatureScript = sigScript
 		pendingReservation.ourFundingInputScripts = append(
 			pendingReservation.ourFundingInputScripts,
 			inputScript,

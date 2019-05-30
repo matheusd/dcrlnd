@@ -149,6 +149,31 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 	return sig[:len(sig)-1], nil
 }
 
+// p2pkhSigScriptToWitness converts a raw sigScript that signs a p2pkh output
+// into a list of individual data pushes, amenable to be used a pseudo-witness
+// stack.
+func p2pkhSigScriptToWitness(scriptVersion uint16, sigScript []byte) ([][]byte, error) {
+	data := make([][]byte, 0, 2)
+	tokenizer := txscript.MakeScriptTokenizer(scriptVersion, sigScript)
+	for tokenizer.Next() && len(data) < 2 {
+		if tokenizer.Data() == nil {
+			return nil, errors.New("expected pushed data in p2pkh " +
+				"sigScript but found none")
+		}
+		data = append(data, tokenizer.Data())
+	}
+	if err := tokenizer.Err(); err != nil {
+		return nil, err
+
+	}
+	if len(data) != 2 {
+		return nil, fmt.Errorf("expected p2pkh sigScript to have 2 "+
+			"data pushes but found %d", len(data))
+	}
+	return data, nil
+
+}
+
 // ComputeInputScript generates a complete InputScript for the passed
 // transaction with the signature as defined within the passed SignDescriptor.
 // This method is capable of generating the proper input script only for
@@ -195,7 +220,12 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 		return nil, err
 	}
 
-	return &lnwallet.InputScript{SigScript: sigScript}, nil
+	witness, err := p2pkhSigScriptToWitness(outputScriptVer, sigScript)
+	if err != nil {
+		return nil, err
+	}
+
+	return &lnwallet.InputScript{Witness: witness}, nil
 }
 
 // A compile time check to ensure that DcrWallet implements the Signer
