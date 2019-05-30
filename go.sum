@@ -117,6 +117,8 @@ github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190410055418-5048959fdcf6 h1:qsVI6B
 github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190410055418-5048959fdcf6/go.mod h1:M9vimgZXZ2E46MdMnzdlBaz22F7+oImLD8+5qRgFr70=
 github.com/decred/dcrd/rpcclient/v2 v2.0.0 h1:Zy9twdEaOGUdCj/89LAs/IrStm6FcabxzBve4UsA73A=
 github.com/decred/dcrd/rpcclient/v2 v2.0.0/go.mod h1:9XjbRHBSNqN+DXz8I47gUZszvVjvugqLGK8TZQ4c/u0=
+github.com/decred/dcrd/txscript v0.0.0-20190410055418-5048959fdcf6 h1:8l9QyQJoEOCwPl2JYiWI/3F54VY3LO2EhrZtKKbzsvI=
+github.com/decred/dcrd/txscript v0.0.0-20190410055418-5048959fdcf6/go.mod h1:OhSIXbXdGDRNtkzW7Pil22tj+fcqpUp8r/E4LAz1yoQ=
 github.com/decred/dcrd/txscript v1.0.1/go.mod h1:FqUX07Y+u3cJ1eIGPoyWbJg+Wk1NTllln/TyDpx9KnY=
 github.com/decred/dcrd/txscript v1.0.2 h1:kzJZDuteyzvI15VNhtgFHxeeq210RTkFyfzN7d+1iPo=
 github.com/decred/dcrd/txscript v1.0.2/go.mod h1:hmUOHFlOjU7H6T/czt6kurWwXJvGPGKKGtXoft6w/qY=
