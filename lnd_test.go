@@ -109,6 +109,7 @@ func (h *harnessTest) RunTestCase(testCase *testCase,
 	}()
 
 	testCase.test(net, h)
+	assertCleanState(h, net)
 }
 
 func (h *harnessTest) Logf(format string, args ...interface{}) {
@@ -117,6 +118,16 @@ func (h *harnessTest) Logf(format string, args ...interface{}) {
 
 func (h *harnessTest) Log(args ...interface{}) {
 	h.t.Log(args...)
+}
+
+// assertCleanState ensures the state of the main test nodes and the mempool
+// are in a clean state (no open channels, no txs in the mempool, etc).
+func assertCleanState(h *harnessTest, net *lntest.NetworkHarness) {
+	assertNodeNumChannels(h, net.Alice, 0)
+	assertNumPendingChannels(h, net.Alice, 0, 0, 0, 0)
+	assertNodeNumChannels(h, net.Bob, 0)
+	assertNumPendingChannels(h, net.Bob, 0, 0, 0, 0)
+	waitForNTxsInMempool(net.Miner.Node, 0, minerMempoolTimeout)
 }
 
 func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash) {
@@ -960,31 +971,18 @@ func testUnconfirmedChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	// Create two new nodes: Carol and Dave
-	carol, err := net.NewNode("Carol", nil)
-	if err != nil {
-		t.Fatalf("unable to create new nodes: %v", err)
-	}
-	defer shutdownAndAssert(net, t, carol)
-
-	dave, err := net.NewNode("Dave", nil)
-	if err != nil {
-		t.Fatalf("unable to create new nodes: %v", err)
-	}
-	defer shutdownAndAssert(net, t, carol)
-
-	carolToDaveReq := &lnrpc.ConnectPeerRequest{
+	aliceToBobReq := &lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{
-			Pubkey: dave.PubKeyStr,
-			Host:   dave.P2PAddr(),
+			Pubkey: net.Bob.PubKeyStr,
+			Host:   net.Bob.P2PAddr(),
 		},
 		Perm: false,
 	}
 
-	daveToCarolReq := &lnrpc.ConnectPeerRequest{
+	bobToAliceReq := &lnrpc.ConnectPeerRequest{
 		Addr: &lnrpc.LightningAddress{
-			Pubkey: carol.PubKeyStr,
-			Host:   carol.P2PAddr(),
+			Pubkey: net.Alice.PubKeyStr,
+			Host:   net.Alice.P2PAddr(),
 		},
 		Perm: false,
 	}
@@ -995,25 +993,32 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 		return err
 	}
 
+	// Initially disconnect Alice and Bob. Several connection attempts will
+	// be performed later on. Ignore errors if they are not connected and
+	// give some time for the disconnection to clear all resources.
+	net.DisconnectNodes(ctxb, net.Alice, net.Bob)
+	time.Sleep(50 * time.Millisecond)
+
 	// Perform a number of trial runs in sequence, so we have some reasonable
 	// chance actually performing connections "at the same time".
 	nbAttempts := 10
 	for i := 0; i < nbAttempts; i++ {
 		// Sanity check that neither node has a connection.
-		assertNumConnections(t, carol, dave, 0)
+		assertNumConnections(t, net.Alice, net.Bob, 0)
 
 		logLine := fmt.Sprintf("=== %s: Starting connection iteration %d\n",
 			time.Now(), i)
-		dave.AddToLog(logLine)
-		carol.AddToLog(logLine)
+		net.Alice.AddToLog(logLine)
+		net.Bob.AddToLog(logLine)
 
-		var carolReply, daveReply error
+		var aliceReply, bobReply error
 		wg := new(sync.WaitGroup)
 
-		// Start two go routines which will try to connect "at the same time".
+		// Start two go routines which will try to connect "at the same
+		// time".
 		wg.Add(2)
-		go func() { carolReply = connect(carol, carolToDaveReq, wg) }()
-		go func() { daveReply = connect(dave, daveToCarolReq, wg) }()
+		go func() { aliceReply = connect(net.Alice, aliceToBobReq, wg) }()
+		go func() { bobReply = connect(net.Bob, bobToAliceReq, wg) }()
 
 		wgWaitChan := make(chan struct{})
 		go func() {
@@ -1023,7 +1028,7 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 
 		select {
 		case <-wgWaitChan:
-			if carolReply != nil && daveReply != nil {
+			if aliceReply != nil && bobReply != nil {
 				// Depending on exact timings, one of the replies might fail
 				// due to the nodes already being connected, but not both.
 				t.Fatalf("Both replies should not error out")
@@ -1034,30 +1039,41 @@ func testConcurrentNodeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Give the nodes time to settle their connections and background
 		// processes.
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 
 		logLine = fmt.Sprintf("=== %s: Connections requests sent. Will check on status\n",
 			time.Now())
-		dave.AddToLog(logLine)
-		carol.AddToLog(logLine)
+		net.Alice.AddToLog(logLine)
+		net.Bob.AddToLog(logLine)
 
 		// Sanity check connection number.
-		assertNumConnections(t, carol, dave, 1)
+		assertNumConnections(t, net.Alice, net.Bob, 1)
 
-		// Check whether the connection was made carol -> dave or dave -> carol.
-		// The assert above ensures we can safely access carolsPeers[0].
-		carolPeers, err := carol.ListPeers(ctxb, &lnrpc.ListPeersRequest{})
+		// Check whether the connection was made alice -> bob or bob ->
+		// alice.  The assert above ensures we can safely access
+		// alicePeers[0].
+		alicePeers, err := net.Alice.ListPeers(ctxb, &lnrpc.ListPeersRequest{})
 		if err != nil {
 			t.Fatalf("unable to fetch carol's peers %v", err)
 		}
-		if !carolPeers.Peers[0].Inbound {
-			// Connection was made in the carol -> dave direction.
-			net.DisconnectNodes(ctxb, carol, dave)
+		if !alicePeers.Peers[0].Inbound {
+			// Connection was made in the alice -> bob direction.
+			net.DisconnectNodes(ctxb, net.Alice, net.Bob)
 		} else {
-			// Connection was made in the carol <- dave direction.
-			net.DisconnectNodes(ctxb, dave, carol)
+			// Connection was made in the alice <- bob direction.
+			net.DisconnectNodes(ctxb, net.Alice, net.Bob)
 		}
 	}
+
+	// Wait for the final disconnection to release all resources, then
+	// ensure both nodes are connected again.
+	time.Sleep(time.Millisecond * 50)
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	err := net.EnsureConnected(ctxt, net.Alice, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to connect alice to bob: %v", err)
+	}
+	time.Sleep(time.Millisecond * 50)
 }
 
 // txStr returns the string representation of the channel's funding transaction.
@@ -3852,16 +3868,18 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 		},
 	}
 
+	// Create the subscription before sending the update so we're certain
+	// to get it.
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	graphSub := subscribeGraphNotifications(t, ctxt, listenerNode)
+	defer close(graphSub.quit)
+
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	if _, err := node.UpdateChannelPolicy(ctxt, updateFeeReq); err != nil {
 		t.Fatalf("unable to update chan policy: %v", err)
 	}
 
 	// Wait for listener node to receive the channel update from node.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	graphSub := subscribeGraphNotifications(t, ctxt, listenerNode)
-	defer close(graphSub.quit)
-
 	waitForChannelUpdate(
 		t, graphSub,
 		[]expectedChanUpdate{
@@ -4522,13 +4540,14 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("alice didn't advertise her channel: %v", err)
 	}
 
-	// Create a new nodes (Carol and Charlie), load her with some funds,
-	// then establish a connection between Carol and Charlie with a channel
-	// that has identical capacity to the one created above.Then we will
-	// get route via queryroutes call which will be fake route for Alice ->
-	// Bob graph.
+	// Create a new nodes (Carol and Dave), load her with some funds, then
+	// establish a connection between Carol and Dave with a channel that
+	// has identical capacity to the one created above.Then we will get
+	// route via queryroutes call which will be fake route for Alice -> Bob
+	// graph.
 	//
-	// The network topology should now look like: Alice -> Bob; Carol -> Charlie.
+	// The network topology should now look like: Alice -> Bob; Carol ->
+	// Dave.
 	carol, err := net.NewNode("Carol", nil)
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
@@ -4541,26 +4560,26 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("unable to send coins to carol: %v", err)
 	}
 
-	charlie, err := net.NewNode("Charlie", nil)
+	dave, err := net.NewNode("Dave", nil)
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
 	}
-	defer shutdownAndAssert(net, t, charlie)
+	defer shutdownAndAssert(net, t, dave)
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, charlie)
+	err = net.SendCoins(ctxt, dcrutil.AtomsPerCoin, dave)
 	if err != nil {
-		t.Fatalf("unable to send coins to charlie: %v", err)
+		t.Fatalf("unable to send coins to dave: %v", err)
 	}
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	if err := net.ConnectNodes(ctxt, carol, charlie); err != nil {
+	if err := net.ConnectNodes(ctxt, carol, dave); err != nil {
 		t.Fatalf("unable to connect carol to alice: %v", err)
 	}
 
 	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointCarol := openChannelAndAssert(
-		ctxt, t, net, carol, charlie,
+		ctxt, t, net, carol, dave,
 		lntest.OpenChannelParams{
 			Amt: chanAmt,
 		},
@@ -4571,10 +4590,10 @@ func testSendToRouteErrorPropagation(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("carol didn't advertise her channel: %v", err)
 	}
 
-	// Query routes from Carol to Charlie which will be an invalid route
-	// for Alice -> Bob.
+	// Query routes from Carol to Dave which will be an invalid route for
+	// Alice -> Bob.
 	fakeReq := &lnrpc.QueryRoutesRequest{
-		PubKey:    charlie.PubKeyStr,
+		PubKey:    dave.PubKeyStr,
 		Amt:       int64(1),
 		NumRoutes: 1,
 	}
@@ -7902,7 +7921,9 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 // assertNumPendingChannels checks that a PendingChannels response from the
 // node reports the expected number of pending channels.
 func assertNumPendingChannels(t *harnessTest, node *lntest.HarnessNode,
-	expWaitingClose, expPendingForceClose int) {
+	expWaitingClose, expPendingForceClose, expPendingClosing,
+	expPendingOpen int) {
+
 	ctxb := context.Background()
 
 	var predErr error
@@ -7927,6 +7948,19 @@ func assertNumPendingChannels(t *harnessTest, node *lntest.HarnessNode,
 			predErr = fmt.Errorf("expected to find %d channel "+
 				"pending force close, found %d", expPendingForceClose, n)
 			return false
+		}
+
+		n = len(pendingChanResp.PendingClosingChannels)
+		if n != expPendingClosing {
+			predErr = fmt.Errorf("expected to find %d channels "+
+				"pending closing, found %d", expPendingClosing,
+				n)
+		}
+
+		n = len(pendingChanResp.PendingOpenChannels)
+		if n != expPendingOpen {
+			predErr = fmt.Errorf("expected to find %d channels "+
+				"pending open, found %d", expPendingOpen, n)
 		}
 		return true
 	}, time.Second*15)
@@ -8181,12 +8215,12 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Channel should be in the state "waiting close" for Carol since she
 	// broadcasted the force close tx.
-	assertNumPendingChannels(t, carol, 1, 0)
+	assertNumPendingChannels(t, carol, 1, 0, 0, 0)
 
 	// Dave should also consider the channel "waiting close", as he noticed
 	// the channel was out of sync, and is now waiting for a force close to
 	// hit the chain.
-	assertNumPendingChannels(t, dave, 1, 0)
+	assertNumPendingChannels(t, dave, 1, 0, 0, 0)
 
 	// Restart Dave to make sure he is able to sweep the funds after
 	// shutdown.
@@ -8206,18 +8240,18 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Dave should consider the channel pending force close (since he is
 	// waiting for his sweep to confirm).
-	assertNumPendingChannels(t, dave, 0, 1)
+	assertNumPendingChannels(t, dave, 0, 1, 0, 0)
 
 	// Carol is considering it "pending force close", as whe must wait
 	// before she can sweep her outputs.
-	assertNumPendingChannels(t, carol, 0, 1)
+	assertNumPendingChannels(t, carol, 0, 1, 0, 0)
 
 	// Mine the sweep tx.
 	block = mineBlocks(t, net, 1, 1)[0]
 	assertTxInBlock(t, block, daveSweep)
 
 	// Now Dave should consider the channel fully closed.
-	assertNumPendingChannels(t, dave, 0, 0)
+	assertNumPendingChannels(t, dave, 0, 0, 0, 0)
 
 	// We query Dave's balance to make sure it increased after the channel
 	// closed. This checks that he was able to sweep the funds he had in
@@ -8244,7 +8278,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	assertTxInBlock(t, block, carolSweep)
 
 	// Now the channel should be fully closed also from Carol's POV.
-	assertNumPendingChannels(t, carol, 0, 0)
+	assertNumPendingChannels(t, carol, 0, 0, 0, 0)
 
 	// Make sure Carol got her balance back.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -8303,7 +8337,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	assertTxInBlock(t, block, carolSweep)
 
 	// Now the channel should be fully closed also from Carol's POV.
-	assertNumPendingChannels(t, carol, 0, 0)
+	assertNumPendingChannels(t, carol, 0, 0, 0, 0)
 
 	// Make sure Carol got her balance back.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -12212,6 +12246,14 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	assertAmountPaid(t, "Bob(local) => Alice(remote)", net.Bob,
 		aliceFundPoint, amountPaid+(baseFee*numPayments)*2, int64(0))
 
+	// Before completing the final payment request, ensure that the
+	// connection between Dave and Carol has been healed.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.EnsureConnected(ctxt, dave, carol)
+	if err != nil {
+		t.Fatalf("unable to reconnect dave and carol: %v", err)
+	}
+
 	// Lastly, we will send one more payment to ensure all channels are
 	// still functioning properly.
 	finalInvoice := &lnrpc.Invoice{
@@ -12225,14 +12267,6 @@ func testSwitchOfflineDeliveryPersistence(net *lntest.NetworkHarness, t *harness
 	}
 
 	payReqs = []string{resp.PaymentRequest}
-
-	// Before completing the final payment request, ensure that the
-	// connection between Dave and Carol has been healed.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err = net.EnsureConnected(ctxt, dave, carol)
-	if err != nil {
-		t.Fatalf("unable to reconnect dave and carol: %v", err)
-	}
 
 	// Using Carol as the source, pay to the 5 invoices from Bob created
 	// above.
@@ -12903,16 +12937,20 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 			ChanPoint: chanPointCarolDave,
 		},
 	}
+
+	// Create a graph ntfn subscription on Alice to watch for Carol's
+	// updates.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	aliceSub := subscribeGraphNotifications(t, ctxt, net.Alice)
+	defer close(aliceSub.quit)
+
+	// Update Carol's policy.
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	if _, err := carol.UpdateChannelPolicy(ctxt, updateFeeReq); err != nil {
 		t.Fatalf("unable to update chan policy: %v", err)
 	}
 
 	// Wait for Alice to receive the channel update from Carol.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	aliceSub := subscribeGraphNotifications(t, ctxt, net.Alice)
-	defer close(aliceSub.quit)
-
 	waitForChannelUpdate(
 		t, aliceSub,
 		[]expectedChanUpdate{
@@ -13211,6 +13249,12 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 			{eve.PubKeyStr, expectedPolicy, chanPointEveCarol},
 		},
 	)
+	mineBlocks(t, net, 1, 1)
+
+	// Since we force-closed the Alice->Carol channel, mine enough blocks
+	// for the resulting sweep tx to be broadcast and confirmed (taking
+	// into account we already mined one block after closing that channel).
+	mineBlocks(t, net, defaultCSV-1, 0)
 	mineBlocks(t, net, 1, 1)
 }
 
@@ -13895,6 +13939,14 @@ var testsCases = []*testCase{
 		test: testUpdateChannelPolicy,
 	},
 	{
+		name: "send update disable channel",
+		test: testSendUpdateDisableChannel,
+	},
+	{
+		name: "invoice routing hints",
+		test: testInvoiceRoutingHints,
+	},
+	{
 		name: "disconnecting target peer",
 		test: testDisconnectingTargetPeer,
 	},
@@ -13957,10 +14009,6 @@ var testsCases = []*testCase{
 	{
 		name: "private channels",
 		test: testPrivateChannels,
-	},
-	{
-		name: "invoice routing hints",
-		test: testInvoiceRoutingHints,
 	},
 	{
 		name: "multi-hop payments over private channels",
@@ -14090,10 +14138,6 @@ var testsCases = []*testCase{
 	{
 		name: "route fee cutoff",
 		test: testRouteFeeCutoff,
-	},
-	{
-		name: "send update disable channel",
-		test: testSendUpdateDisableChannel,
 	},
 	{
 		name: "add invoice max inbound amount",
