@@ -70,6 +70,7 @@ replace (
 	github.com/decred/dcrd/mempool/v2 => github.com/decred/dcrd/mempool/v2 v2.0.0-20190524113024-5048959fdcf6
 	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v0.0.0-20190410055418-5048959fdcf6
 	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd/txscript => github.com/decred/dcrd/txscript v0.0.0-20190410055418-5048959fdcf6
 
 	github.com/decred/dcrwallet => github.com/decred/dcrwallet v0.0.0-20190322135901-7e0e5a4227d7
 	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.0-20190322135901-7e0e5a4227d7
