@@ -9700,10 +9700,11 @@ func assertNumActiveHtlcs(nodes []*lntest.HarnessNode, numHtlcs int) error {
 			return err
 		}
 
-		for _, channel := range nodeChans.Channels {
+		for c, channel := range nodeChans.Channels {
 			if len(channel.PendingHtlcs) != numHtlcs {
-				return fmt.Errorf("expected %v HTLCs, got %v",
-					numHtlcs, len(channel.PendingHtlcs))
+				return fmt.Errorf("expected %v HTLCs, got %v on node %s(%d) chan %d (of %d)",
+					numHtlcs, len(channel.PendingHtlcs),
+					node.Name(), node.NodeID, c, len(nodeChans.Channels))
 			}
 		}
 	}
