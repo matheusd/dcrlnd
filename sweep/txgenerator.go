@@ -285,6 +285,10 @@ func getInputSigScriptSizeUpperBound(input Input) (int64, error) {
 	case lnwallet.HtlcAcceptedRemoteSuccess:
 		return lnwallet.OfferedHtlcSuccessSigScriptSize, nil
 
+	// A standard p2pkh signature script.
+	case lnwallet.PublicKeyHash:
+		return lnwallet.P2PKHSigScriptSize, nil
+
 	}
 
 	return 0, fmt.Errorf("unexpected witness type: %v", input.WitnessType())
