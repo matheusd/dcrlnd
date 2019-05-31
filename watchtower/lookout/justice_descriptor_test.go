@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/lookout"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
 
 const csvDelay uint32 = 144
@@ -164,8 +165,10 @@ func TestJusticeDescriptor(t *testing.T) {
 	// parameters that should be used in constructing the justice
 	// transaction.
 	sessionInfo := &wtdb.SessionInfo{
-		SweepFeeRate:  2000,
-		RewardRate:    900000,
+		Policy: wtpolicy.Policy{
+			SweepFeeRate: 2000,
+			RewardRate:   900000,
+		},
 		RewardAddress: makeRandomP2PKHPkScript(),
 	}
 

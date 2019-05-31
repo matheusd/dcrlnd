@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtserver"
 	"github.com/decred/dcrlnd/watchtower/wtwire"
@@ -152,7 +153,7 @@ var createSessionTests = []createSessionTestCase{
 			lnwire.NewRawFeatureVector(),
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   1000,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -255,7 +256,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -284,7 +285,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -307,7 +308,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -334,7 +335,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -361,7 +362,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -390,7 +391,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   4,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -418,7 +419,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
 			RewardRate:   0,
 			SweepFeeRate: 1,
@@ -447,7 +448,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			GlobalFeatures: lnwire.NewRawFeatureVector(),
 		}},
 		createMsg: &wtwire.CreateSession{
-			BlobVersion:  0,
+			BlobType:     blob.TypeDefault,
 			MaxUpdates:   3,
 			RewardRate:   0,
 			SweepFeeRate: 1,
