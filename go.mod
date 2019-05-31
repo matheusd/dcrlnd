@@ -30,6 +30,8 @@ require (
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/golang/protobuf v1.3.1
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
 	github.com/jackpal/gateway v1.0.5
 	github.com/jackpal/go-nat-pmp v0.0.0-20170405195558-28a68d0c24ad
@@ -44,6 +46,7 @@ require (
 	github.com/juju/version v0.0.0-20180108022336-b64dbd566305 // indirect
 	github.com/kkdai/bstream v0.0.0-20181106074824-b3251f7901ec
 	github.com/miekg/dns v1.1.3
+	github.com/prometheus/client_golang v0.9.3
 	github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af // indirect
 	github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02
 	github.com/urfave/cli v1.20.0
