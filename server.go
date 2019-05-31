@@ -1773,6 +1773,15 @@ func (s *server) establishPersistentConnections() error {
 			s.persistentPeersBackoff[pubStr] = cfg.MinBackoff
 		}
 
+		// We might have been contacted by this peer at this point, so
+		// check that and ignore if we already have a connection.
+		peer, err := s.findPeerByPubStr(pubStr)
+		if err == nil {
+			srvrLog.Debugf("Skipping already connected persistent "+
+				"peer %x@%s", pubStr, peer)
+			continue
+		}
+
 		for _, address := range nodeAddr.addresses {
 			// Create a wrapper address which couples the IP and
 			// the pubkey so the brontide authenticated connection
