@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/monitoring"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/signal"
@@ -87,6 +88,7 @@ var (
 	irpcLog = build.NewSubLogger("IRPC", backendLog.Logger)
 	chnfLog = build.NewSubLogger("CHNF", backendLog.Logger)
 	chbuLog = build.NewSubLogger("CHBU", backendLog.Logger)
+	promLog = build.NewSubLogger("PROM", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -115,6 +117,7 @@ func init() {
 	invoicesrpc.UseLogger(irpcLog)
 	channelnotifier.UseLogger(chnfLog)
 	chanbackup.UseLogger(chbuLog)
+	monitoring.UseLogger(promLog)
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 }
@@ -159,6 +162,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"IRPC": irpcLog,
 	"CHNF": chnfLog,
 	"CHBU": chbuLog,
+	"PROM": promLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and
