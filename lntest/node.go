@@ -15,11 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	macaroon "gopkg.in/macaroon.v2"
-
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
@@ -28,8 +23,13 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
+	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/go-errors/errors"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	macaroon "gopkg.in/macaroon.v2"
 )
 
 var (
@@ -247,9 +247,10 @@ type HarnessNode struct {
 
 	invoicesrpc.InvoicesClient
 
-	// RouterClient cannot be embedded, because a name collision would occur
-	// on the main rpc SendPayment.
-	RouterClient routerrpc.RouterClient
+	// RouterClient and WalletKitClient cannot be embedded, because a name
+	// collision would occur with LightningClient.
+	RouterClient    routerrpc.RouterClient
+	WalletKitClient walletrpc.WalletKitClient
 }
 
 // Assert *HarnessNode implements the lnrpc.LightningClient interface.
@@ -500,6 +501,7 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 	hn.LightningClient = lnrpc.NewLightningClient(conn)
 	hn.InvoicesClient = invoicesrpc.NewInvoicesClient(conn)
 	hn.RouterClient = routerrpc.NewRouterClient(conn)
+	hn.WalletKitClient = walletrpc.NewWalletKitClient(conn)
 
 	// Set the harness node's pubkey to what the node claims in GetInfo.
 	err := hn.FetchNodeInfo()
