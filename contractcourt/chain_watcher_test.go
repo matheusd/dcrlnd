@@ -12,10 +12,17 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 )
 
+type spendNtnfRequest struct {
+	outpoint wire.OutPoint
+	pkScript []byte
+}
+
 type mockNotifier struct {
 	spendChan chan *chainntnfs.SpendDetail
 	epochChan chan *chainntnfs.BlockEpoch
 	confChan  chan *chainntnfs.TxConfirmation
+
+	spendNtnfs []spendNtnfRequest
 }
 
 func (m *mockNotifier) RegisterConfirmationsNtfn(txid *chainhash.Hash, _ []byte, numConfs,
@@ -41,8 +48,13 @@ func (m *mockNotifier) Start() error {
 func (m *mockNotifier) Stop() error {
 	return nil
 }
-func (m *mockNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint, _ []byte,
+func (m *mockNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint, pkScript []byte,
 	heightHint uint32) (*chainntnfs.SpendEvent, error) {
+
+	m.spendNtnfs = append(m.spendNtnfs, spendNtnfRequest{
+		outpoint: *outpoint,
+		pkScript: pkScript,
+	})
 
 	return &chainntnfs.SpendEvent{
 		Spend:  m.spendChan,
@@ -210,5 +222,57 @@ func TestChainWatcherRemoteUnilateralClosePendingCommit(t *testing.T) {
 	// the commitment transaction.
 	if uniClose.CommitResolution == nil {
 		t.Fatalf("unable to find alice's commit resolution")
+	}
+}
+
+// TestChainWatcherCorrectSpendNtn tests whether the chainWatcher is deriving
+// the correct info for watching the chain for a given channel.
+func TestChainWatcherCorrectSpendNtnf(t *testing.T) {
+	t.Parallel()
+
+	// First, we'll create two channels which already have established a
+	// commitment contract between themselves.
+	aliceChannel, _, cleanUp, err := lnwallet.CreateTestChannels()
+	if err != nil {
+		t.Fatalf("unable to create test channels: %v", err)
+	}
+	defer cleanUp()
+
+	// With the channels created, we'll now create a chain watcher instance
+	// which will be watching for any closes of Alice's channel.
+	aliceNotifier := &mockNotifier{
+		spendChan: make(chan *chainntnfs.SpendDetail),
+	}
+	aliceChainWatcher, err := newChainWatcher(chainWatcherConfig{
+		chanState: aliceChannel.State(),
+		notifier:  aliceNotifier,
+		signer:    aliceChannel.Signer,
+	})
+	if err != nil {
+		t.Fatalf("unable to create chain watcher: %v", err)
+	}
+	if err := aliceChainWatcher.Start(); err != nil {
+		t.Fatalf("unable to start chain watcher: %v", err)
+	}
+	defer aliceChainWatcher.Stop()
+
+	// The mock chain notifier should have registered a watch for the given
+	// channel.
+	if len(aliceNotifier.spendNtnfs) != 1 {
+		t.Fatalf("expected 1 spend notification watchers by found %d",
+			len(aliceNotifier.spendNtnfs))
+	}
+
+	aliceChanPoint := aliceChannel.ChanPoint
+	ntnfReq := aliceNotifier.spendNtnfs[0]
+	if ntnfReq.outpoint != *aliceChanPoint {
+		t.Fatalf("expected spend ntnf to be watching channel outpoint "+
+			"%s, instead watching %s", aliceChanPoint,
+			ntnfReq.outpoint)
+	}
+
+	_, err = chainntnfs.ParsePkScript(0, ntnfReq.pkScript)
+	if err != nil {
+		t.Fatalf("unable to parse watched pkscript: %v", err)
 	}
 }
