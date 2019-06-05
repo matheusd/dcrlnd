@@ -450,7 +450,7 @@ func createUpdateAnnouncement(blockHeight uint32,
 
 	var err error
 
-	htlcMinMsat := lnwire.MilliAtom(prand.Int63())
+	htlcMinMatoms := lnwire.MilliAtom(prand.Int63())
 	a := &lnwire.ChannelUpdate{
 		ShortChannelID: lnwire.ShortChannelID{
 			BlockHeight: blockHeight,
@@ -459,11 +459,11 @@ func createUpdateAnnouncement(blockHeight uint32,
 		TimeLockDelta:     uint16(prand.Int63()),
 		MessageFlags:      lnwire.ChanUpdateOptionMaxHtlc,
 		ChannelFlags:      flags,
-		HtlcMinimumMAtoms: lnwire.MilliAtom(prand.Int63()),
+		HtlcMinimumMAtoms: htlcMinMatoms,
 
 		// Since the max HTLC must be greater than the min HTLC to pass
 		// channel update validation, set it to double the min htlc.
-		HtlcMaximumMAtoms: 2 * htlcMinMsat,
+		HtlcMaximumMAtoms: 2 * htlcMinMatoms,
 		FeeRate:           uint32(prand.Int31()),
 		BaseFee:           uint32(prand.Int31()),
 	}
