@@ -1843,7 +1843,7 @@ func makeFundingScript(channel *channeldb.OpenChannel) ([]byte, error) {
 		return nil, err
 	}
 
-	return lnwallet.WitnessScriptHash(multiSigScript)
+	return lnwallet.ScriptHashPkScript(multiSigScript)
 }
 
 // waitForFundingConfirmation handles the final stages of the channel funding

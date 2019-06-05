@@ -197,7 +197,7 @@ func (c *chainWatcher) Start() error {
 	if err != nil {
 		return err
 	}
-	pkScript, err := lnwallet.WitnessScriptHash(multiSigScript)
+	pkScript, err := lnwallet.ScriptHashPkScript(multiSigScript)
 	if err != nil {
 		return err
 	}

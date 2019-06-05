@@ -49,18 +49,6 @@ const (
 	maxStateHint uint64 = (1 << 48) - 1
 )
 
-// WitnessScriptHash generates a pay-to-witness-script-hash public key script
-// paying to a version 0 witness program paying to the passed redeem script.
-// TODO(decred) convert all calls to ScriptHashPkScript
-func WitnessScriptHash(witnessScript []byte) ([]byte, error) {
-	bldr := txscript.NewScriptBuilder()
-
-	bldr.AddOp(txscript.OP_0)
-	scriptHash := sha256.Sum256(witnessScript)
-	bldr.AddData(scriptHash[:])
-	return bldr.Script()
-}
-
 // ScriptHashPkScript returns the p2sh pkscript for a given redeem script. This
 // is ready to be included in a transaction output.
 func ScriptHashPkScript(redeemScript []byte) ([]byte, error) {
