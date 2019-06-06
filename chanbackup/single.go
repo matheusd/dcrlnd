@@ -6,12 +6,12 @@ import (
 	"io"
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/channeldb"
-	"github.com/lightningnetwork/lnd/keychain"
-	"github.com/lightningnetwork/lnd/lnwire"
+	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // SingleBackupVersion denotes the version of the single static channel backup.
@@ -59,7 +59,7 @@ type Single struct {
 
 	// RemoteNodePub is the identity public key of the remote node this
 	// channel has been established with.
-	RemoteNodePub *btcec.PublicKey
+	RemoteNodePub *secp256k1.PublicKey
 
 	// Addresses is a list of IP address in which either we were able to
 	// reach the node over in the past, OR we received an incoming
@@ -102,7 +102,7 @@ func NewSingle(channel *channeldb.OpenChannel,
 	// the backups plaintext don't carry any private information. When we
 	// go to recover, we'll present this in order to derive the private
 	// key.
-	_, shaChainPoint := btcec.PrivKeyFromBytes(btcec.S256(), b.Bytes())
+	_, shaChainPoint := secp256k1.PrivKeyFromBytes(b.Bytes())
 
 	return Single{
 		ChainHash:        channel.ChainHash,
@@ -258,8 +258,8 @@ func (s *Single) Deserialize(r io.Reader) error {
 	// Since this field is optional, we'll check to see if the pubkey has
 	// ben specified or not.
 	if !bytes.Equal(shaChainPub[:], zeroPub[:]) {
-		s.ShaChainRootDesc.PubKey, err = btcec.ParsePubKey(
-			shaChainPub[:], btcec.S256(),
+		s.ShaChainRootDesc.PubKey, err = secp256k1.ParsePubKey(
+			shaChainPub[:],
 		)
 		if err != nil {
 			return err

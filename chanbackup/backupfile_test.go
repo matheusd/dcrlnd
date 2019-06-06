@@ -125,7 +125,7 @@ func TestUpdateAndSwap(t *testing.T) {
 
 		// With our backup created, we'll now attempt to swap out this
 		// backup, for the old one.
-		err = backupFile.UpdateAndSwap(PackedMulti(newPackedMulti))
+		err = backupFile.UpdateAndSwap(newPackedMulti)
 		switch {
 		// If this is a valid test case, and we failed, then we'll
 		// return an error.
@@ -156,7 +156,7 @@ func TestUpdateAndSwap(t *testing.T) {
 		}
 
 		// We'll then attempt to swap the old version for this new one.
-		err = backupFile.UpdateAndSwap(PackedMulti(newPackedMulti2))
+		err = backupFile.UpdateAndSwap(newPackedMulti2)
 		if err != nil {
 			t.Fatalf("unable to swap file: %v", err)
 		}
