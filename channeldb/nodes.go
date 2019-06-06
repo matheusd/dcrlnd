@@ -64,11 +64,19 @@ type LinkNode struct {
 func (db *DB) NewLinkNode(bitNet wire.CurrencyNet, pub *secp256k1.PublicKey,
 	addrs ...net.Addr) *LinkNode {
 
+	filledAddrs := make([]net.Addr, 0, len(addrs))
+	for _, addr := range addrs {
+		if addr == nil {
+			continue
+		}
+		filledAddrs = append(filledAddrs, addr)
+	}
+
 	return &LinkNode{
 		Network:     bitNet,
 		IdentityPub: pub,
 		LastSeen:    time.Now(),
-		Addresses:   addrs,
+		Addresses:   filledAddrs,
 		db:          db,
 	}
 }
