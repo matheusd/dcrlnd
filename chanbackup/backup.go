@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 )
 
 // LiveChannelSource is an interface that allows us to query for the set of
@@ -22,7 +22,7 @@ type LiveChannelSource interface {
 
 	// AddrsForNode returns all known addresses for the target node public
 	// key.
-	AddrsForNode(nodePub *btcec.PublicKey) ([]net.Addr, error)
+	AddrsForNode(nodePub *secp256k1.PublicKey) ([]net.Addr, error)
 }
 
 // assembleChanBackup attempts to assemble a static channel backup for the

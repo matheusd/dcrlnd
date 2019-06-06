@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/lightningnetwork/lnd/keychain"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/keychain"
 )
 
 var (
@@ -30,7 +30,7 @@ func (m *mockKeyRing) DeriveKey(keyLoc keychain.KeyLocator) (keychain.KeyDescrip
 		return keychain.KeyDescriptor{}, fmt.Errorf("fail")
 	}
 
-	_, pub := btcec.PrivKeyFromBytes(btcec.S256(), testWalletPrivKey)
+	_, pub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
 	return keychain.KeyDescriptor{
 		PubKey: pub,
 	}, nil

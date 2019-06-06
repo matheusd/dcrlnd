@@ -3,9 +3,9 @@ package chanbackup
 import (
 	"net"
 
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/lightningnetwork/lnd/keychain"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/keychain"
 )
 
 // ChannelRestorer is an interface that allows the Recover method to map the
@@ -28,7 +28,7 @@ type PeerConnector interface {
 	// available addresses. Once this method returns with a non-nil error,
 	// the connector should attempt to persistently connect to the target
 	// peer in the background as a persistent attempt.
-	ConnectPeer(node *btcec.PublicKey, addrs []net.Addr) error
+	ConnectPeer(node *secp256k1.PublicKey, addrs []net.Addr) error
 }
 
 // Recover attempts to recover the static channel state from a set of static

@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
 type mockChannelRestorer struct {
@@ -31,7 +31,7 @@ type mockPeerConnector struct {
 	callCount int
 }
 
-func (m *mockPeerConnector) ConnectPeer(node *btcec.PublicKey,
+func (m *mockPeerConnector) ConnectPeer(node *secp256k1.PublicKey,
 	addrs []net.Addr) error {
 
 	if m.fail {

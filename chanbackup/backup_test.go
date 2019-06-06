@@ -5,9 +5,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/lightningnetwork/lnd/channeldb"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 )
 
 type mockChannelSource struct {
@@ -51,14 +51,14 @@ func (m *mockChannelSource) FetchChannel(chanPoint wire.OutPoint) (*channeldb.Op
 	return channel, nil
 }
 
-func (m *mockChannelSource) addAddrsForNode(nodePub *btcec.PublicKey, addrs []net.Addr) {
+func (m *mockChannelSource) addAddrsForNode(nodePub *secp256k1.PublicKey, addrs []net.Addr) {
 	var nodeKey [33]byte
 	copy(nodeKey[:], nodePub.SerializeCompressed())
 
 	m.addrs[nodeKey] = addrs
 }
 
-func (m *mockChannelSource) AddrsForNode(nodePub *btcec.PublicKey) ([]net.Addr, error) {
+func (m *mockChannelSource) AddrsForNode(nodePub *secp256k1.PublicKey) ([]net.Addr, error) {
 	if m.failQuery {
 		return nil, fmt.Errorf("fail")
 	}
