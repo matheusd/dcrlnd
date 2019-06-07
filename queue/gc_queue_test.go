@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lightningnetwork/lnd/queue"
+	"github.com/decred/dcrlnd/queue"
 )
 
 // mockRecycler implements the queue.Recycler interface using a NOP.
