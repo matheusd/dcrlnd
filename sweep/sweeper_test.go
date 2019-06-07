@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 )
@@ -40,7 +41,7 @@ type sweeperTestContext struct {
 }
 
 var (
-	spendableInputs []*BaseInput
+	spendableInputs []*input.BaseInput
 	testInputCount  int
 
 	testPubKey, _ = secp256k1.ParsePubKey([]byte{
@@ -55,17 +56,17 @@ var (
 	})
 )
 
-func createTestInput(value int64, witnessType lnwallet.WitnessType) BaseInput {
+func createTestInput(value int64, witnessType input.WitnessType) input.BaseInput {
 	hash := chainhash.Hash{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		byte(testInputCount)}
 
-	input := MakeBaseInput(
+	input := input.MakeBaseInput(
 		&wire.OutPoint{
 			Hash: hash,
 		},
 		witnessType,
-		&lnwallet.SignDescriptor{
+		&input.SignDescriptor{
 			Output: &wire.TxOut{
 				Value: value,
 			},
@@ -85,7 +86,7 @@ func init() {
 	// Create a set of test spendable inputs.
 	for i := 0; i < 5; i++ {
 		input := createTestInput(int64(10000+i*500),
-			lnwallet.CommitmentTimeLock)
+			input.CommitmentTimeLock)
 
 		spendableInputs = append(spendableInputs, &input)
 	}
@@ -308,9 +309,9 @@ func TestDust(t *testing.T) {
 
 	// Estimate the size of a transaction that will sweep a
 	// CommitmentTimeLock output and pay to a P2PKH output.
-	var se lnwallet.TxSizeEstimator
+	var se input.TxSizeEstimator
 	se.AddP2PKHOutput()
-	se.AddCustomInput(lnwallet.ToLocalTimeoutSigScriptSize)
+	se.AddCustomInput(input.ToLocalTimeoutSigScriptSize)
 	txSize := se.Size()
 
 	// Calculate the fee to relay this tx, given the test relay fee of
@@ -324,7 +325,7 @@ func TestDust(t *testing.T) {
 	// Now create an input exactly at this dust limit. While positive, this
 	// won't be swept immediately due to the resulting tx having an output
 	// value lower than the dust limit.
-	dustInput := createTestInput(maxDustOutputValue, lnwallet.CommitmentTimeLock)
+	dustInput := createTestInput(maxDustOutputValue, input.CommitmentTimeLock)
 	_, err := ctx.sweeper.SweepInput(&dustInput)
 	if err != nil {
 		t.Fatal(err)
@@ -339,7 +340,7 @@ func TestDust(t *testing.T) {
 	// more than enough to sweep both the earlier dust input and this new
 	// one.
 	largeInput := createTestInput(maxDustOutputValue*10,
-		lnwallet.CommitmentTimeLock)
+		input.CommitmentTimeLock)
 
 	_, err = ctx.sweeper.SweepInput(&largeInput)
 	if err != nil {
@@ -369,7 +370,7 @@ func TestNegativeInput(t *testing.T) {
 
 	// Sweep an input large enough to cover fees, so in any case the tx
 	// output will be above the dust limit.
-	largeInput := createTestInput(100000, lnwallet.CommitmentNoDelay)
+	largeInput := createTestInput(100000, input.CommitmentNoDelay)
 	largeInputResult, err := ctx.sweeper.SweepInput(&largeInput)
 	if err != nil {
 		t.Fatal(err)
@@ -378,7 +379,7 @@ func TestNegativeInput(t *testing.T) {
 	// Sweep an additional input with a negative net yield. The size of the
 	// HtlcOfferedRemoteTimeout input type adds more in fees than its value
 	// at the current fee level.
-	negInput := createTestInput(2500, lnwallet.HtlcOfferedRemoteTimeout)
+	negInput := createTestInput(2500, input.HtlcOfferedRemoteTimeout)
 	negInputResult, err := ctx.sweeper.SweepInput(&negInput)
 	if err != nil {
 		t.Fatal(err)
@@ -386,7 +387,7 @@ func TestNegativeInput(t *testing.T) {
 
 	// Sweep a third input that has a smaller output than the previous one,
 	// but yields positively because of its lower size.
-	positiveInput := createTestInput(2200, lnwallet.CommitmentNoDelay)
+	positiveInput := createTestInput(2200, input.CommitmentNoDelay)
 	positiveInputResult, err := ctx.sweeper.SweepInput(&positiveInput)
 	if err != nil {
 		t.Fatal(err)
@@ -414,7 +415,7 @@ func TestNegativeInput(t *testing.T) {
 	ctx.estimator.updateFees(1000, 1000)
 
 	// Create another large input
-	secondLargeInput := createTestInput(100000, lnwallet.CommitmentNoDelay)
+	secondLargeInput := createTestInput(100000, input.CommitmentNoDelay)
 	secondLargeInputResult, err := ctx.sweeper.SweepInput(&secondLargeInput)
 	if err != nil {
 		t.Fatal(err)

@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 )
 
 // TestTxSizeEstimator tests that transaction size estimates are calculated
@@ -83,7 +83,7 @@ func TestTxSizeEstimator(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		var sizeEstimate lnwallet.TxSizeEstimator
+		var sizeEstimate input.TxSizeEstimator
 		tx := wire.NewMsgTx()
 
 		// Inputs.

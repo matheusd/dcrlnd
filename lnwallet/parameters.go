@@ -2,12 +2,9 @@ package lnwallet
 
 import (
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrwallet/wallet/v2/txrules"
 )
-
-// lnTxVersion is the version that transactions need to be defined to use so
-// that they are usable as ln transactions.
-const lnTxVersion uint16 = 2
 
 // DefaultDustLimit is used to calculate the default dust threshold limit,
 // assuming the network uses the defaultRelayFeePerKb of the wallet.
@@ -24,15 +21,15 @@ func DustThresholdForRelayFee(relayFeeRate AtomPerKByte) dcrutil.Amount {
 	// Size to redeem a p2pkh script is the size of an input + size of a
 	// serialized p2pkh signature script (varint length + OP_DATA_73 + 73 +
 	// OP_DATA_33 + 33)
-	inputRedeemSize := inputSize + P2PKHSigScriptSize
+	inputRedeemSize := input.InputSize + input.P2PKHSigScriptSize
 
 	// Calculate the total (estimated) cost to the network.  This is
 	// calculated using the serialize size of the output plus the serial
 	// size of a transaction input which redeems it.  The output is assumed
 	// to be compressed P2PKH as this is the most common script type. The serialized
 	// varint size of a P2PKH script is 1.
-	scriptSize := P2PKHPkScriptSize
-	totalSize := outputSize + 1 + scriptSize + inputRedeemSize
+	scriptSize := input.P2PKHPkScriptSize
+	totalSize := input.OutputSize + 1 + scriptSize + inputRedeemSize
 
 	// Calculate the relay fee for this test tx in atoms, given its
 	// estimated totalSize and the provided relayFeeRate in atoms/kB.

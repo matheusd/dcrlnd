@@ -10,7 +10,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 )
@@ -356,7 +356,7 @@ func TestJusticeKitToLocalWitnessConstruction(t *testing.T) {
 
 	// Compute the expected to-local script, which is a function of the CSV
 	// delay, revocation pubkey and delay pubkey.
-	expToLocalScript, err := lnwallet.CommitScriptToSelf(
+	expToLocalScript, err := input.CommitScriptToSelf(
 		csvDelay, delayPrivKey.PubKey(), revPrivKey.PubKey(),
 	)
 	if err != nil {

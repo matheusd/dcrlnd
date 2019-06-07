@@ -9,7 +9,7 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
@@ -65,7 +65,7 @@ func (p *JusticeDescriptor) commitToLocalInput() (*breachedInput, error) {
 
 	// Compute the witness script hash, which will be used to locate the
 	// input on the breaching commitment transaction.
-	toLocalWitnessHash, err := lnwallet.ScriptHashPkScript(toLocalScript)
+	toLocalWitnessHash, err := input.ScriptHashPkScript(toLocalScript)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (p *JusticeDescriptor) commitToRemoteInput() (*breachedInput, error) {
 
 	// Compute the witness script hash from the to-remote pubkey, which will
 	// be used to locate the input on the breach commitment transaction.
-	toRemotePkScript, err := lnwallet.CommitScriptUnencumbered(
+	toRemotePkScript, err := input.CommitScriptUnencumbered(
 		toRemotePubKey,
 	)
 	if err != nil {
@@ -213,9 +213,9 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 		txscript.ScriptVerifySHA256
 
 	// Attach each of the provided witnesses to the transaction.
-	for i, input := range inputs {
-		justiceTxn.TxIn[i].SignatureScript, err = lnwallet.WitnessStackToSigScript(
-			input.witness,
+	for i, inp := range inputs {
+		justiceTxn.TxIn[i].SignatureScript, err = input.WitnessStackToSigScript(
+			inp.witness,
 		)
 		if err != nil {
 			return nil, err
@@ -224,9 +224,9 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 		// Validate the reconstructed witnesses to ensure they are valid
 		// for the breached inputs.
 		vm, err := txscript.NewEngine(
-			input.txOut.PkScript, justiceTxn, i,
+			inp.txOut.PkScript, justiceTxn, i,
 			scriptVerifyFlags,
-			input.txOut.Version, nil,
+			inp.txOut.Version, nil,
 		)
 		if err != nil {
 			return nil, err
@@ -245,7 +245,7 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 	var (
 		sweepInputs  = make([]*breachedInput, 0, 2)
-		sizeEstimate lnwallet.TxSizeEstimator
+		sizeEstimate input.TxSizeEstimator
 	)
 
 	// Add our reward address to the size estimate.
@@ -254,10 +254,10 @@ func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 	// Add the sweep address's contribution, depending on whether it is a
 	// p2pkh or p2sh output.
 	switch int64(len(p.JusticeKit.SweepAddress)) {
-	case lnwallet.P2PKHPkScriptSize:
+	case input.P2PKHPkScriptSize:
 		sizeEstimate.AddP2PKHOutput()
 
-	case lnwallet.P2SHPkScriptSize:
+	case input.P2SHPkScriptSize:
 		sizeEstimate.AddP2SHOutput()
 
 	default:
@@ -270,7 +270,7 @@ func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 	if err != nil {
 		return nil, err
 	}
-	sizeEstimate.AddCustomInput(lnwallet.ToLocalPenaltySigScriptSize)
+	sizeEstimate.AddCustomInput(input.ToLocalPenaltySigScriptSize)
 	sweepInputs = append(sweepInputs, toLocalInput)
 
 	// If the justice kit specifies that we have to sweep the to-remote
@@ -300,7 +300,7 @@ func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 func findTxOutByPkScript(txn *wire.MsgTx,
 	pkScript []byte) (uint32, *wire.TxOut, error) {
 
-	found, index := lnwallet.FindScriptOutputIndex(txn, pkScript)
+	found, index := input.FindScriptOutputIndex(txn, pkScript)
 	if !found {
 		return 0, nil, ErrOutputNotFound
 	}

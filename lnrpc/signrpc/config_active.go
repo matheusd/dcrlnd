@@ -29,5 +29,5 @@ type Config struct {
 	// Signer is the signer instance that backs the signer RPC server. The
 	// job of the signer RPC server is simply to proxy valid requests to
 	// the active signer instance.
-	Signer lnwallet.Signer
+	Signer input.Signer
 }

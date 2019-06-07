@@ -1,4 +1,4 @@
-package lnwallet
+package input
 
 import (
 	"github.com/decred/dcrd/wire"
@@ -49,7 +49,7 @@ const (
 	//		- Index                  4 bytes      │
 	//		                                      ┘
 	// Total: 57 bytes
-	inputSize int64 = 32 + 4 + 1 + 4 + 8 + 4 + 4
+	InputSize int64 = 32 + 4 + 1 + 4 + 8 + 4 + 4
 
 	// OutputSize is the size of the fixed (always present) elements serialized,
 	// stored and relayed for each transaction output. When calculating the full
@@ -61,7 +61,7 @@ const (
 	//		- ScriptVersion            2 bytes
 	//
 	// Total: 10 bytes
-	outputSize int64 = 8 + 2
+	OutputSize int64 = 8 + 2
 
 	// The Following P2*PkScriptSize constants record the size of the standard
 	// public key scripts used in decred transactions' outputs.
@@ -401,7 +401,7 @@ const (
 	//		- p2sh pkscript                 23 bytes
 	//
 	// Total: 34 bytes
-	HTLCOutputSize int64 = outputSize + 1 + P2SHPkScriptSize
+	HTLCOutputSize int64 = OutputSize + 1 + P2SHPkScriptSize
 
 	// CommitmentTxSize is the base size of a commitment transaction without any
 	// HTLCs.
@@ -427,14 +427,15 @@ const (
 	//		- funding tx sigscript                    220 bytes
 	//
 	// Total: 364 bytes
-	CommitmentTxSize int64 = baseTxSize + 1 + inputSize + 2 +
-		outputSize + 1 + P2PKHPkScriptSize + outputSize + 1 + P2SHPkScriptSize +
+	CommitmentTxSize int64 = baseTxSize + 1 + InputSize + 2 +
+		OutputSize + 1 + P2PKHPkScriptSize + OutputSize + 1 + P2SHPkScriptSize +
 		1 + 1 + FundingOutputSigScriptSize
 
-	// htlcTimeoutSize is the worst case (largest) size of the HTLC timeout
-	// transaction which will transition an outgoing HTLC to the delay-and-claim
-	// state. The worst case for a timeout transaction is when redeeming an
-	// offered HTCL (which uses a larger sigScript). It is calculated as:
+	// HTLCTimeoutSize is the worst case (largest) size of the HTLC timeout
+	// transaction which will transition an outgoing HTLC to the
+	// delay-and-claim state. The worst case for a timeout transaction is
+	// when redeeming an offered HTCL (which uses a larger sigScript). It
+	// is calculated as:
 	//
 	//		- base tx size                                     12 bytes
 	//		- input count prefix varint                         1 byte
@@ -449,10 +450,10 @@ const (
 	//
 	// Total: 392 bytes
 	// TODO(decred) Double check correctness of selected sigScript alternative
-	htlcTimeoutTxSize int64 = baseTxSize + 1 + inputSize + 1 + outputSize + 1 +
+	HTLCTimeoutTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
 		P2SHPkScriptSize + 1 + 2 + OfferedHtlcTimeoutSigScriptSize
 
-	// htlcSuccessSize is the worst case (largest) size of the HTLC success
+	// HTLCSuccessSize is the worst case (largest) size of the HTLC success
 	// transaction which will transition an HTLC tx to the delay-and-claim
 	// state. The worst case for a success transaction is when redeeming an
 	// accepted HTLC (which has a larger sigScript). It is calculated as:
@@ -470,7 +471,7 @@ const (
 	//
 	// Total: 433 bytes
 	// TODO(decred) Double check correctness of selected sigScript alternative
-	htlcSuccessTxSize int64 = baseTxSize + 1 + inputSize + 1 + outputSize + 1 +
+	HTLCSuccessTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
 		P2PKHPkScriptSize + 1 + 2 + AcceptedHtlcSuccessSigScriptSize
 
 	// MaxHTLCNumber is the maximum number HTLCs which can be included in a
@@ -529,15 +530,15 @@ func EstimateCommitmentTxSize(count int) int64 {
 type TxSizeEstimator struct {
 	inputCount  uint32
 	outputCount uint32
-	inputSize   int64
-	outputSize  int64
+	InputSize   int64
+	OutputSize  int64
 }
 
 // AddP2PKHInput updates the size estimate to account for an additional input
 // spending a P2PKH output.
 func (twe *TxSizeEstimator) AddP2PKHInput() *TxSizeEstimator {
 	scriptLenSerSize := int64(1) // varint for the following sigScript
-	twe.inputSize += inputSize + scriptLenSerSize + P2PKHSigScriptSize
+	twe.InputSize += InputSize + scriptLenSerSize + P2PKHSigScriptSize
 	twe.inputCount++
 
 	return twe
@@ -553,7 +554,7 @@ func (twe *TxSizeEstimator) AddP2PKHInput() *TxSizeEstimator {
 // size.
 func (twe *TxSizeEstimator) AddCustomInput(sigScriptSize int64) *TxSizeEstimator {
 	scriptLenSerSize := int64(wire.VarIntSerializeSize(uint64(sigScriptSize)))
-	twe.inputSize += inputSize + scriptLenSerSize + sigScriptSize
+	twe.InputSize += InputSize + scriptLenSerSize + sigScriptSize
 	twe.inputCount++
 
 	return twe
@@ -563,7 +564,7 @@ func (twe *TxSizeEstimator) AddCustomInput(sigScriptSize int64) *TxSizeEstimator
 // output.
 func (twe *TxSizeEstimator) AddP2PKHOutput() *TxSizeEstimator {
 	scriptLenSerSize := int64(1) // varint for the following pkScript
-	twe.outputSize += outputSize + scriptLenSerSize + P2PKHPkScriptSize
+	twe.OutputSize += OutputSize + scriptLenSerSize + P2PKHPkScriptSize
 	twe.outputCount++
 
 	return twe
@@ -573,7 +574,7 @@ func (twe *TxSizeEstimator) AddP2PKHOutput() *TxSizeEstimator {
 // output.
 func (twe *TxSizeEstimator) AddP2SHOutput() *TxSizeEstimator {
 	scriptLenSerSize := int64(1) // varint for the following pkScript
-	twe.outputSize += outputSize + scriptLenSerSize + P2SHPkScriptSize
+	twe.OutputSize += OutputSize + scriptLenSerSize + P2SHPkScriptSize
 	twe.outputCount++
 
 	return twe
@@ -583,8 +584,8 @@ func (twe *TxSizeEstimator) AddP2SHOutput() *TxSizeEstimator {
 func (twe *TxSizeEstimator) Size() int64 {
 	return baseTxSize +
 		int64(wire.VarIntSerializeSize(uint64(twe.inputCount))) + // prefix len([]TxIn) varint
-		twe.inputSize + // prefix []TxIn + witness []TxIn
+		twe.InputSize + // prefix []TxIn + witness []TxIn
 		int64(wire.VarIntSerializeSize(uint64(twe.outputCount))) + // prefix len([]TxOut) varint
-		twe.outputSize + // []TxOut prefix
+		twe.OutputSize + // []TxOut prefix
 		int64(wire.VarIntSerializeSize(uint64(twe.inputCount))) // witness len([]TxIn) varint
 }

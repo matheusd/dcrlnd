@@ -19,6 +19,7 @@ import (
 
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
@@ -1034,13 +1035,13 @@ func (r *ChannelRouter) processUpdate(msg interface{}) error {
 		// Recreate witness output to be sure that declared in channel
 		// edge bitcoin keys and channel value corresponds to the
 		// reality.
-		witnessScript, err := lnwallet.GenMultiSigScript(
+		witnessScript, err := input.GenMultiSigScript(
 			msg.DecredKey1Bytes[:], msg.DecredKey2Bytes[:],
 		)
 		if err != nil {
 			return err
 		}
-		fundingPkScript, err := lnwallet.ScriptHashPkScript(witnessScript)
+		fundingPkScript, err := input.ScriptHashPkScript(witnessScript)
 		if err != nil {
 			return err
 		}

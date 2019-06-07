@@ -28,6 +28,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -304,7 +305,7 @@ func TestChannelLinkBidirectionalOneHopPayments(t *testing.T) {
 
 	// Send max available payment number in both sides, thereby testing
 	// the property of channel link to cope with overflowing.
-	count := 2 * lnwallet.MaxHTLCNumber
+	count := 2 * input.MaxHTLCNumber
 	resultChan := make(chan *result, count)
 	for i := 0; i < count/2; i++ {
 		go func(i int) {
@@ -1806,7 +1807,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
+		feePerKw.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2246,7 +2247,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	// consistency along the way
 	htlcAmt := lnwire.NewMAtomsFromAtoms(100000)
 	totalHtlcAmt := lnwire.MilliAtom(0)
-	const numHTLCs = lnwallet.MaxHTLCNumber / 2
+	const numHTLCs = input.MaxHTLCNumber / 2
 	var preImages [][32]byte
 	for i := 0; i < numHTLCs; i++ {
 		preImage := addLinkHTLC(htlcID, htlcAmt)
@@ -2284,7 +2285,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 
 	// TODO(roasbeef): increase sleep
 	time.Sleep(time.Second * 1)
-	commitSize := lnwallet.CommitmentTxSize + lnwallet.HTLCOutputSize*numHTLCs
+	commitSize := input.CommitmentTxSize + input.HTLCOutputSize*numHTLCs
 	htlcFee := lnwire.NewMAtomsFromAtoms(
 		feePerKw.FeeForSize(commitSize),
 	)
@@ -2466,7 +2467,7 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
+		feePerKw.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2744,7 +2745,7 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
+		feePerKw.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -3000,7 +3001,7 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(lnwallet.HTLCOutputSize),
+		feePerKw.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount

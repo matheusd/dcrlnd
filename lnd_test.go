@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrd/rpcclient/v2"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -574,7 +575,7 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 		// htlcWeight   = 172
 		feePerKB = dcrutil.Amount(1e4)
 	)
-	commitSize := lnwallet.EstimateCommitmentTxSize(numHTLCs)
+	commitSize := input.EstimateCommitmentTxSize(numHTLCs)
 	return feePerKB * dcrutil.Amount(commitSize) / 1000
 }
 
@@ -898,7 +899,7 @@ func testBasicChannelFunding(net *lntest.NetworkHarness, t *harnessTest) {
 
 	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
 	feePerKB, _ := estimator.EstimateFeePerKB(1)
-	initiatorFee := feePerKB.FeeForSize(lnwallet.EstimateCommitmentTxSize(0))
+	initiatorFee := feePerKB.FeeForSize(input.EstimateCommitmentTxSize(0))
 
 	staticFee := calcStaticFee(0)
 

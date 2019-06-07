@@ -8,6 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -103,7 +104,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 			// need to create an input which contains all the items
 			// required to add this input to a sweeping transaction,
 			// and generate a witness.
-			input := sweep.MakeHtlcSucceedInput(
+			inp := input.MakeHtlcSucceedInput(
 				&h.htlcResolution.ClaimOutpoint,
 				&h.htlcResolution.SweepSignDesc,
 				h.htlcResolution.Preimage[:],
@@ -121,7 +122,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 			// TODO: Use time-based sweeper and result chan.
 			var err error
 			h.sweepTx, err = h.Sweeper.CreateSweepTx(
-				[]sweep.Input{&input},
+				[]input.Input{&inp},
 				sweep.FeePreference{
 					ConfTarget: sweepConfTarget,
 				}, 0,

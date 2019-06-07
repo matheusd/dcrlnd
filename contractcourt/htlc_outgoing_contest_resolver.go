@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 )
 
 // htlcOutgoingContestResolver is a ContractResolver that's able to resolve an
@@ -135,7 +135,7 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 		if err != nil {
 			return nil, err
 		}
-		scriptToWatch, err = lnwallet.ScriptHashPkScript(
+		scriptToWatch, err = input.ScriptHashPkScript(
 			sigScriptPushes[len(sigScriptPushes)-1],
 		)
 		if err != nil {

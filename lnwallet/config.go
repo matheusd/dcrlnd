@@ -4,6 +4,7 @@ import (
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 )
 
@@ -33,11 +34,11 @@ type Config struct {
 	// specific interaction is proxied to the internal wallet.
 	WalletController WalletController
 
-	// Signer is the wallet's current Signer implementation. This Signer is
+	// input.Signer is the wallet's current input.Signer implementation. This input.Signer is
 	// used to generate signature for all inputs to potential funding
 	// transactions, as well as for spends from the funding transaction to
 	// update the commitment state.
-	Signer Signer
+	Signer input.Signer
 
 	// FeeEstimator is the implementation that the wallet will use for the
 	// calculation of on-chain transaction fees.

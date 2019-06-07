@@ -9,6 +9,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/sweep"
 )
@@ -100,9 +101,9 @@ func (c *commitSweepResolver) Resolve() (ContractResolver, error) {
 		// we'll now craft an input with all the information required
 		// to create a fully valid sweeping transaction to recover
 		// these coins.
-		input := sweep.MakeBaseInput(
+		inp := input.MakeBaseInput(
 			&c.commitResolution.SelfOutPoint,
-			lnwallet.CommitmentNoDelay,
+			input.CommitmentNoDelay,
 			&c.commitResolution.SelfOutputSignDesc,
 			c.broadcastHeight,
 		)
@@ -117,7 +118,7 @@ func (c *commitSweepResolver) Resolve() (ContractResolver, error) {
 		//
 		// TODO: Use time-based sweeper and result chan.
 		c.sweepTx, err = c.Sweeper.CreateSweepTx(
-			[]sweep.Input{&input},
+			[]input.Input{&inp},
 			sweep.FeePreference{
 				ConfTarget: sweepConfTarget,
 			}, 0,

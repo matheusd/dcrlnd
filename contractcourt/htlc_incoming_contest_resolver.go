@@ -7,7 +7,7 @@ import (
 	"io"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 )
 
 // htlcIncomingContestResolver is a ContractResolver that's able to resolve an
@@ -91,7 +91,7 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 			// We'll populate it within the witness, as since this
 			// was a "contest" resolver, we didn't yet know of the
 			// preimage.
-			newSigScript, err := lnwallet.ReplaceReceiverHtlcSpendRedeemPreimage(
+			newSigScript, err := input.ReplaceReceiverHtlcSpendRedeemPreimage(
 				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript, preimage,
 			)
 			if err != nil {

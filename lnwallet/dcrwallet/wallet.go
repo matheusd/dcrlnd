@@ -32,7 +32,7 @@ const (
 // this documentation, this implementation requires a full dcrd node to
 // operate.
 //
-// This struct implements the lnwallet.Signer, lnWallet.MessageSigner,
+// This struct implements the input.input.Signer, lnWallet.Messageinput.Signer,
 // keychain.SecretKeyRing and keychain.KeyRing interfaces.
 //
 // Note that most of its functions might produce errors or panics until the

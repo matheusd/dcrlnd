@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -542,7 +543,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 	// our commitment transaction got confirmed.
 	outgoingRes := lnwallet.OutgoingHtlcResolution{
 		Expiry: 10,
-		SweepSignDesc: lnwallet.SignDescriptor{
+		SweepSignDesc: input.SignDescriptor{
 			Output: &wire.TxOut{},
 		},
 		SignedTimeoutTx: &wire.MsgTx{

@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -175,7 +176,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	bobCommitPoint := lnwallet.ComputeCommitmentPoint(bobFirstRevoke[:])
+	bobCommitPoint := input.ComputeCommitmentPoint(bobFirstRevoke[:])
 
 	aliceRoot, err := shachain.NewHash(aliceKeyPriv.Serialize())
 	if err != nil {
@@ -186,7 +187,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	aliceCommitPoint := lnwallet.ComputeCommitmentPoint(aliceFirstRevoke[:])
+	aliceCommitPoint := input.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(channelBal,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
@@ -225,7 +226,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		FeePerKB:      dcrutil.Amount(feePerKB),
-		CommitFee:     feePerKB.FeeForSize(lnwallet.CommitmentTxSize),
+		CommitFee:     feePerKB.FeeForSize(input.CommitmentTxSize),
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -234,7 +235,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		FeePerKB:      dcrutil.Amount(feePerKB),
-		CommitFee:     feePerKB.FeeForSize(lnwallet.CommitmentTxSize),
+		CommitFee:     feePerKB.FeeForSize(input.CommitmentTxSize),
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}

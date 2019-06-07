@@ -7,6 +7,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -69,14 +70,14 @@ type HtlcIndexErr struct {
 }
 
 // SignJob is a job sent to the sigPool sig pool to generate a valid
-// signature according to the passed SignDescriptor for the passed transaction.
+// signature according to the passed input.SignDescriptor for the passed transaction.
 // Jobs are intended to be sent in batches in order to parallelize the job of
 // generating signatures for a new commitment transaction.
 type SignJob struct {
-	// SignDesc is intended to be a full populated SignDescriptor which
+	// SignDesc is intended to be a full populated input.SignDescriptor which
 	// encodes the necessary material (keys, witness script, etc) required
 	// to generate a valid signature for the specified input.
-	SignDesc SignDescriptor
+	SignDesc input.SignDescriptor
 
 	// Tx is the transaction to be signed. This is required to generate the
 	// proper sighash for the input to be signed.
@@ -127,7 +128,7 @@ type SigPool struct {
 	started uint32 // To be used atomically.
 	stopped uint32 // To be used atomically.
 
-	signer Signer
+	signer input.Signer
 
 	verifyJobs chan VerifyJob
 	signJobs   chan SignJob
@@ -141,7 +142,7 @@ type SigPool struct {
 // NewSigPool creates a new signature pool with the specified number of
 // workers. The recommended parameter for the number of works is the number of
 // physical CPU cores available on the target machine.
-func NewSigPool(numWorkers int, signer Signer) *SigPool {
+func NewSigPool(numWorkers int, signer input.Signer) *SigPool {
 	return &SigPool{
 		signer:     signer,
 		numWorkers: numWorkers,
