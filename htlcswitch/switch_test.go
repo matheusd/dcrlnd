@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
 )
@@ -1742,7 +1743,7 @@ func TestSwitchSendPayment(t *testing.T) {
 	// First check that the switch will correctly respond that this payment
 	// ID is unknown.
 	_, err = s.GetPaymentResult(
-		paymentID, rhash, newMockDeobfuscator(),
+		paymentID, lntypes.Hash(rhash), newMockDeobfuscator(),
 	)
 	if err != ErrPaymentIDNotFound {
 		t.Fatalf("expected ErrPaymentIDNotFound, got %v", err)
@@ -1760,7 +1761,7 @@ func TestSwitchSendPayment(t *testing.T) {
 		}
 
 		resultChan, err := s.GetPaymentResult(
-			paymentID, rhash, newMockDeobfuscator(),
+			paymentID, lntypes.Hash(rhash), newMockDeobfuscator(),
 		)
 		if err != nil {
 			errChan <- err
