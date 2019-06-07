@@ -495,9 +495,8 @@ func minedTransactionsToDetails(
 
 		var destAddresses []dcrutil.Address
 		for _, txOut := range wireTx.TxOut {
-			_, outAddresses, _, err :=
-				txscript.ExtractPkScriptAddrs(txOut.Version, txOut.PkScript,
-					chainParams)
+			_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
+				txOut.Version, txOut.PkScript, chainParams)
 			if err != nil {
 				return nil, err
 			}
@@ -514,6 +513,7 @@ func minedTransactionsToDetails(
 			Timestamp:        block.Header.Timestamp.Unix(),
 			TotalFees:        int64(tx.Fee),
 			DestAddresses:    destAddresses,
+			RawTx:            tx.Transaction,
 		}
 
 		balanceDelta, err := extractBalanceDelta(tx, wireTx)
