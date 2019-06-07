@@ -14,8 +14,8 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
-	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/lookout"
@@ -60,7 +60,7 @@ func newMockSigner() *mockSigner {
 }
 
 func (s *mockSigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *lnwallet.SignDescriptor) ([]byte, error) {
+	signDesc *input.SignDescriptor) ([]byte, error) {
 
 	witnessScript := signDesc.WitnessScript
 	privKey, ok := s.keys[signDesc.KeyDesc.KeyLocator]
@@ -80,7 +80,7 @@ func (s *mockSigner) SignOutputRaw(tx *wire.MsgTx,
 }
 
 func (s *mockSigner) ComputeInputScript(tx *wire.MsgTx,
-	signDesc *lnwallet.SignDescriptor) (*lnwallet.InputScript, error) {
+	signDesc *input.SignDescriptor) (*input.Script, error) {
 	return nil, nil
 }
 
@@ -116,7 +116,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	)
 
 	// Construct the to-local witness script.
-	toLocalScript, err := lnwallet.CommitScriptToSelf(
+	toLocalScript, err := input.CommitScriptToSelf(
 		csvDelay, toLocalPK, revPK,
 	)
 	if err != nil {
@@ -124,13 +124,13 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 
 	// Compute the to-local witness script hash.
-	toLocalScriptHash, err := lnwallet.ScriptHashPkScript(toLocalScript)
+	toLocalScriptHash, err := input.ScriptHashPkScript(toLocalScript)
 	if err != nil {
 		t.Fatalf("unable to create to-local witness script hash: %v", err)
 	}
 
 	// Compute the to-remote witness script hash.
-	toRemoteScriptHash, err := lnwallet.CommitScriptUnencumbered(toRemotePK)
+	toRemoteScriptHash, err := input.CommitScriptUnencumbered(toRemotePK)
 	if err != nil {
 		t.Fatalf("unable to create to-remote script: %v", err)
 	}
@@ -154,10 +154,10 @@ func TestJusticeDescriptor(t *testing.T) {
 	breachTxID := breachTxn.TxHash()
 
 	// Compute the size estimate for our justice transaction.
-	var sizeEstimate lnwallet.TxSizeEstimator
+	var sizeEstimate input.TxSizeEstimator
 	sizeEstimate.AddP2PKHOutput()
 	sizeEstimate.AddP2PKHOutput()
-	sizeEstimate.AddCustomInput(lnwallet.ToLocalPenaltySigScriptSize)
+	sizeEstimate.AddCustomInput(input.ToLocalPenaltySigScriptSize)
 	sizeEstimate.AddP2PKHInput()
 	txSize := sizeEstimate.Size()
 
@@ -229,7 +229,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 
 	// Create the sign descriptor used to sign for the to-local input.
-	toLocalSignDesc := &lnwallet.SignDescriptor{
+	toLocalSignDesc := &input.SignDescriptor{
 		KeyDesc: keychain.KeyDescriptor{
 			KeyLocator: revKeyLoc,
 		},
@@ -240,7 +240,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 
 	// Create the sign descriptor used to sign for the to-remote input.
-	toRemoteSignDesc := &lnwallet.SignDescriptor{
+	toRemoteSignDesc := &input.SignDescriptor{
 		KeyDesc: keychain.KeyDescriptor{
 			KeyLocator: toRemoteKeyLoc,
 			PubKey:     toRemotePK,
@@ -265,7 +265,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	// Compute the witness for the to-remote input. The first element is a
 	// DER-encoded signature under the to-remote pubkey. The sighash flag is
 	// also present, so we trim it.
-	toRemoteWitness, err := lnwallet.CommitSpendNoDelay(
+	toRemoteWitness, err := input.CommitSpendNoDelay(
 		signer, toRemoteSignDesc, justiceTxn,
 	)
 	if err != nil {
@@ -326,7 +326,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	wstack0[0] = append(toLocalSigRaw, byte(txscript.SigHashAll))
 	wstack0[1] = []byte{1}
 	wstack0[2] = toLocalScript
-	justiceTxn.TxIn[0].SignatureScript, err = lnwallet.WitnessStackToSigScript(wstack0)
+	justiceTxn.TxIn[0].SignatureScript, err = input.WitnessStackToSigScript(wstack0)
 	if err != nil {
 		t.Fatalf("error assembling wstack0: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestJusticeDescriptor(t *testing.T) {
 	wstack1 := make([][]byte, 2)
 	wstack1[0] = append(toRemoteSigRaw, byte(txscript.SigHashAll))
 	wstack1[1] = toRemotePK.SerializeCompressed()
-	justiceTxn.TxIn[1].SignatureScript, err = lnwallet.WitnessStackToSigScript(wstack1)
+	justiceTxn.TxIn[1].SignatureScript, err = input.WitnessStackToSigScript(wstack1)
 	if err != nil {
 		t.Fatalf("error assembling wstack1: %v", err)
 	}

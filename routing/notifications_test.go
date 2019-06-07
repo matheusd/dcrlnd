@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
@@ -89,7 +90,7 @@ func createChannelEdge(ctx *testCtx, bitcoinKey1, bitcoinKey2 []byte,
 
 	fundingTx := wire.NewMsgTx()
 	fundingTx.Version = 2
-	_, tx, err := lnwallet.GenFundingPkScript(
+	_, tx, err := input.GenFundingPkScript(
 		bitcoinKey1,
 		bitcoinKey2,
 		int64(chanValue),

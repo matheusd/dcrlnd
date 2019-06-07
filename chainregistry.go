@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
@@ -42,7 +43,7 @@ const (
 // TODO(halseth): make configurable at startup?
 var defaultDcrChannelConstraints = channeldb.ChannelConstraints{
 	DustLimit:        lnwallet.DefaultDustLimit(),
-	MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
+	MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 }
 
 // chainCode is an enum-like structure for keeping track of the chains
@@ -116,7 +117,7 @@ type chainControl struct {
 
 	feeEstimator lnwallet.FeeEstimator
 
-	signer lnwallet.Signer
+	signer input.Signer
 
 	keyRing keychain.KeyRing
 

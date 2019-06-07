@@ -12,7 +12,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/txscript"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -173,7 +173,7 @@ func (b *JusticeKit) CommitToLocalWitnessScript() ([]byte, error) {
 		return nil, err
 	}
 
-	return lnwallet.CommitScriptToSelf(
+	return input.CommitScriptToSelf(
 		b.CSVDelay, localDelayedPubKey, revocationPubKey,
 	)
 }

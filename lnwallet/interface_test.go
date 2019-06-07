@@ -34,6 +34,7 @@ import (
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -330,7 +331,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 func createTestWallet(cdb *channeldb.DB, miningNode *rpctest.Harness,
 	netParams *chaincfg.Params, notifier chainntnfs.ChainNotifier,
 	wc lnwallet.WalletController, keyRing keychain.SecretKeyRing,
-	signer lnwallet.Signer, bio lnwallet.BlockChainIO,
+	signer input.Signer, bio lnwallet.BlockChainIO,
 	vw *rpctest.VotingWallet) (*lnwallet.LightningWallet, error) {
 
 	cfg := lnwallet.Config{
@@ -403,7 +404,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 		ChanReserve:      fundingAmount / 100,
 		MaxPendingAmount: lnwire.NewMAtomsFromAtoms(fundingAmount),
 		MinHTLC:          1,
-		MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
+		MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 		CsvDelay:         csvDelay,
 	}
 	err = aliceChanReservation.CommitConstraints(channelConstraints)
@@ -843,7 +844,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		ChanReserve:      fundingAmt / 100,
 		MaxPendingAmount: lnwire.NewMAtomsFromAtoms(fundingAmt),
 		MinHTLC:          1,
-		MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
+		MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 		CsvDelay:         csvDelay,
 	}
 	err = aliceChanReservation.CommitConstraints(channelConstraints)
@@ -1537,7 +1538,7 @@ func testPublishTransaction(r *rpctest.Harness,
 
 		// Now we can populate the sign descriptor which we'll use to
 		// generate the signature.
-		signDesc := &lnwallet.SignDescriptor{
+		signDesc := &input.SignDescriptor{
 			KeyDesc: keychain.KeyDescriptor{
 				PubKey: pubKey.PubKey,
 			},
@@ -1557,7 +1558,7 @@ func testPublishTransaction(r *rpctest.Harness,
 		witness := make([][]byte, 2)
 		witness[0] = append(spendSig, byte(txscript.SigHashAll))
 		witness[1] = pubKey.PubKey.SerializeCompressed()
-		tx1.TxIn[0].SignatureScript, err = lnwallet.WitnessStackToSigScript(witness)
+		tx1.TxIn[0].SignatureScript, err = input.WitnessStackToSigScript(witness)
 		if err != nil {
 			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 		}
@@ -1773,7 +1774,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 	avw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
 	t *testing.T) {
 
-	// We'd like to test the ability of the wallet's Signer implementation
+	// We'd like to test the ability of the wallet's input.Signer implementation
 	// to be able to sign with a private key derived from tweaking the
 	// specific public key. This scenario exercises the case when the
 	// wallet needs to sign for a sweep of a revoked output, or just claim
@@ -1794,10 +1795,10 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 	commitPreimage := bytes.Repeat([]byte{2}, 32)
 	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(commitPreimage)
 
-	revocationKey := lnwallet.DeriveRevocationPubkey(pubKey.PubKey, commitPoint)
-	commitTweak := lnwallet.SingleTweakBytes(commitPoint, pubKey.PubKey)
+	revocationKey := input.DeriveRevocationPubkey(pubKey.PubKey, commitPoint)
+	commitTweak := input.SingleTweakBytes(commitPoint, pubKey.PubKey)
 
-	tweakedPub := lnwallet.TweakPubKey(pubKey.PubKey, commitPoint)
+	tweakedPub := input.TweakPubKey(pubKey.PubKey, commitPoint)
 
 	// As we'd like to test both single and double tweaks, we'll repeat
 	// the same set up twice. The first will use a regular single tweak,
@@ -1870,7 +1871,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// private tweak value as the key in the script is derived
 		// based on this tweak value and the key we originally
 		// generated above.
-		signDesc := &lnwallet.SignDescriptor{
+		signDesc := &input.SignDescriptor{
 			KeyDesc: keychain.KeyDescriptor{
 				PubKey: baseKey.PubKey,
 			},
@@ -1898,7 +1899,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		witness := make([][]byte, 2)
 		witness[0] = append(spendSig, byte(txscript.SigHashAll))
 		witness[1] = tweakedKey.SerializeCompressed()
-		sweepTx.TxIn[0].SignatureScript, err = lnwallet.WitnessStackToSigScript(witness)
+		sweepTx.TxIn[0].SignatureScript, err = input.WitnessStackToSigScript(witness)
 		if err != nil {
 			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 		}
@@ -2439,8 +2440,8 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		aliceBio lnwallet.BlockChainIO
 		bobBio   lnwallet.BlockChainIO
 
-		aliceSigner lnwallet.Signer
-		bobSigner   lnwallet.Signer
+		aliceSigner input.Signer
+		bobSigner   input.Signer
 
 		aliceKeyRing keychain.SecretKeyRing
 		bobKeyRing   keychain.SecretKeyRing

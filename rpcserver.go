@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -2004,7 +2005,7 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 		localCommitment := pendingChan.LocalCommitment
 		utx := localCommitment.CommitTx
 		commitBaseSize := int64(utx.SerializeSize())
-		commitSize := commitBaseSize + 1 + lnwallet.FundingOutputSigScriptSize
+		commitSize := commitBaseSize + 1 + input.FundingOutputSigScriptSize
 
 		resp.PendingOpenChannels[i] = &lnrpc.PendingChannelsResponse_PendingOpenChannel{
 			Channel: &lnrpc.PendingChannelsResponse_PendingChannel{
@@ -2333,7 +2334,7 @@ func (r *rpcServer) ListChannels(ctx context.Context,
 		localCommit := dbChannel.LocalCommitment
 		utx := localCommit.CommitTx
 		commitBaseSize := int64(utx.SerializeSize())
-		commitSize := commitBaseSize + 1 + lnwallet.FundingOutputSigScriptSize
+		commitSize := commitBaseSize + 1 + input.FundingOutputSigScriptSize
 
 		localBalance := localCommit.LocalBalance
 		remoteBalance := localCommit.RemoteBalance
@@ -2750,7 +2751,7 @@ func (r *rpcServer) checkCanSendPayment(payIntent *rpcPaymentIntent) error {
 	// htlc. We use the minimum relay fee since this is just a quick
 	// estimate on whether we'll be able to fulfill the payment.
 	relayFee := r.server.cc.feeEstimator.RelayFeePerKB()
-	htlcFee := relayFee.FeeForSize(lnwallet.HTLCOutputSize)
+	htlcFee := relayFee.FeeForSize(input.HTLCOutputSize)
 
 	// Convert the payment amount to atoms, since we can't have an open
 	// channel with less than 1 atom and milliatom payments might not alter

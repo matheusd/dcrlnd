@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
@@ -120,7 +121,7 @@ type ChainArbitratorConfig struct {
 	// Signer is a signer backed by the active lnd node. This should be
 	// capable of producing a signature as specified by a valid
 	// SignDescriptor.
-	Signer lnwallet.Signer
+	Signer input.Signer
 
 	// FeeEstimator will be used to return fee estimates.
 	FeeEstimator lnwallet.FeeEstimator

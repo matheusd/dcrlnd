@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/sweep"
 )
@@ -194,7 +195,7 @@ type NurseryConfig struct {
 	Store NurseryStore
 
 	// Sweep sweeps an input back to the wallet.
-	SweepInput func(input sweep.Input) (chan sweep.Result, error)
+	SweepInput func(input input.Input) (chan sweep.Result, error)
 }
 
 // utxoNursery is a system dedicated to incubating time-locked outputs created
@@ -366,7 +367,7 @@ func (u *utxoNursery) IncubateOutputs(chanPoint wire.OutPoint,
 			&commitResolution.SelfOutPoint,
 			&chanPoint,
 			commitResolution.MaturityDelay,
-			lnwallet.CommitmentTimeLock,
+			input.CommitmentTimeLock,
 			&commitResolution.SelfOutputSignDesc,
 			0,
 		)
@@ -387,7 +388,7 @@ func (u *utxoNursery) IncubateOutputs(chanPoint wire.OutPoint,
 	for _, htlcRes := range incomingHtlcs {
 		htlcOutput := makeKidOutput(
 			&htlcRes.ClaimOutpoint, &chanPoint, htlcRes.CsvDelay,
-			lnwallet.HtlcAcceptedSuccessSecondLevel,
+			input.HtlcAcceptedSuccessSecondLevel,
 			&htlcRes.SweepSignDesc, 0,
 		)
 
@@ -419,7 +420,7 @@ func (u *utxoNursery) IncubateOutputs(chanPoint wire.OutPoint,
 		// indicate this is actually a CLTV output.
 		htlcOutput := makeKidOutput(
 			&htlcRes.ClaimOutpoint, &chanPoint, 0,
-			lnwallet.HtlcOfferedRemoteTimeout,
+			input.HtlcOfferedRemoteTimeout,
 			&htlcRes.SweepSignDesc, htlcRes.Expiry,
 		)
 		kidOutputs = append(kidOutputs, htlcOutput)
@@ -531,13 +532,13 @@ func (u *utxoNursery) NurseryReport(
 				// Preschool outputs are awaiting the
 				// confirmation of the commitment transaction.
 				switch kid.WitnessType() {
-				case lnwallet.CommitmentTimeLock:
+				case input.CommitmentTimeLock:
 					report.AddLimboCommitment(&kid)
 
 				// An HTLC output on our commitment transaction
 				// where the second-layer transaction hasn't
 				// yet confirmed.
-				case lnwallet.HtlcAcceptedSuccessSecondLevel:
+				case input.HtlcAcceptedSuccessSecondLevel:
 					report.AddLimboStage1SuccessHtlc(&kid)
 				}
 
@@ -547,13 +548,13 @@ func (u *utxoNursery) NurseryReport(
 				// We can distinguish them via their witness
 				// types.
 				switch kid.WitnessType() {
-				case lnwallet.CommitmentTimeLock:
+				case input.CommitmentTimeLock:
 					// The commitment transaction has been
 					// confirmed, and we are waiting the CSV
 					// delay to expire.
 					report.AddLimboCommitment(&kid)
 
-				case lnwallet.HtlcOfferedRemoteTimeout:
+				case input.HtlcOfferedRemoteTimeout:
 					// This is an HTLC output on the
 					// commitment transaction of the remote
 					// party. The CLTV timelock has
@@ -561,9 +562,9 @@ func (u *utxoNursery) NurseryReport(
 					// it.
 					report.AddLimboDirectHtlc(&kid)
 
-				case lnwallet.HtlcAcceptedSuccessSecondLevel:
+				case input.HtlcAcceptedSuccessSecondLevel:
 					fallthrough
-				case lnwallet.HtlcOfferedTimeoutSecondLevel:
+				case input.HtlcOfferedTimeoutSecondLevel:
 					// The htlc timeout or success
 					// transaction has confirmed, and the
 					// CSV delay has begun ticking.
@@ -576,17 +577,17 @@ func (u *utxoNursery) NurseryReport(
 				// will contribute towards the recovered
 				// balance.
 				switch kid.WitnessType() {
-				case lnwallet.CommitmentTimeLock:
+				case input.CommitmentTimeLock:
 					// The commitment output was
 					// successfully swept back into a
 					// regular p2wkh output.
 					report.AddRecoveredCommitment(&kid)
 
-				case lnwallet.HtlcAcceptedSuccessSecondLevel:
+				case input.HtlcAcceptedSuccessSecondLevel:
 					fallthrough
-				case lnwallet.HtlcOfferedTimeoutSecondLevel:
+				case input.HtlcOfferedTimeoutSecondLevel:
 					fallthrough
-				case lnwallet.HtlcOfferedRemoteTimeout:
+				case input.HtlcOfferedRemoteTimeout:
 					// This htlc output successfully
 					// resides in a p2wkh output belonging
 					// to the user.
@@ -1298,7 +1299,7 @@ func makeBabyOutput(chanPoint *wire.OutPoint,
 
 	htlcOutpoint := htlcResolution.ClaimOutpoint
 	blocksToMaturity := htlcResolution.CsvDelay
-	witnessType := lnwallet.HtlcOfferedTimeoutSecondLevel
+	witnessType := input.HtlcOfferedTimeoutSecondLevel
 
 	kid := makeKidOutput(
 		&htlcOutpoint, chanPoint, blocksToMaturity, witnessType,
@@ -1377,15 +1378,15 @@ type kidOutput struct {
 }
 
 func makeKidOutput(outpoint, originChanPoint *wire.OutPoint,
-	blocksToMaturity uint32, witnessType lnwallet.WitnessType,
-	signDescriptor *lnwallet.SignDescriptor,
+	blocksToMaturity uint32, witnessType input.WitnessType,
+	signDescriptor *input.SignDescriptor,
 	absoluteMaturity uint32) kidOutput {
 
 	// This is an HTLC either if it's an incoming HTLC on our commitment
 	// transaction, or is an outgoing HTLC on the commitment transaction of
 	// the remote peer.
-	isHtlc := (witnessType == lnwallet.HtlcAcceptedSuccessSecondLevel ||
-		witnessType == lnwallet.HtlcOfferedRemoteTimeout)
+	isHtlc := (witnessType == input.HtlcAcceptedSuccessSecondLevel ||
+		witnessType == input.HtlcOfferedRemoteTimeout)
 
 	// heightHint can be safely set to zero here, because after this
 	// function returns, nursery will set a proper confirmation height in
@@ -1461,7 +1462,7 @@ func (k *kidOutput) Encode(w io.Writer) error {
 		return err
 	}
 
-	return lnwallet.WriteSignDescriptor(w, k.SignDesc())
+	return input.WriteSignDescriptor(w, k.SignDesc())
 }
 
 // Decode takes a byte array representation of a kidOutput and converts it to an
@@ -1506,9 +1507,9 @@ func (k *kidOutput) Decode(r io.Reader) error {
 	if _, err := r.Read(scratch[:2]); err != nil {
 		return err
 	}
-	k.witnessType = lnwallet.WitnessType(byteOrder.Uint16(scratch[:2]))
+	k.witnessType = input.WitnessType(byteOrder.Uint16(scratch[:2]))
 
-	return lnwallet.ReadSignDescriptor(r, &k.signDesc)
+	return input.ReadSignDescriptor(r, &k.signDesc)
 }
 
 // TODO(bvu): copied from channeldb, remove repetition
@@ -1548,4 +1549,4 @@ func readOutpoint(r io.Reader, o *wire.OutPoint) error {
 // Compile-time constraint to ensure kidOutput implements the
 // Input interface.
 
-var _ sweep.Input = (*kidOutput)(nil)
+var _ input.Input = (*kidOutput)(nil)

@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 )
 
 const (
@@ -50,7 +51,7 @@ func createHtlcSuccessTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	// Create a version two transaction (as the success version of this
 	// spends an output with a CSV timeout).
 	successTx := wire.NewMsgTx()
-	successTx.Version = lnTxVersion
+	successTx.Version = input.LNTxVersion
 
 	// The input to the transaction is the outpoint that creates the
 	// original HTLC on the sender's commitment transaction.
@@ -61,12 +62,12 @@ func createHtlcSuccessTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	// Next, we'll generate the script used as the output for all second
 	// level HTLC which forces a covenant w.r.t what can be done with all
 	// HTLC outputs.
-	witnessScript, err := secondLevelHtlcScript(revocationKey, delayKey,
+	witnessScript, err := input.SecondLevelHtlcScript(revocationKey, delayKey,
 		csvDelay)
 	if err != nil {
 		return nil, err
 	}
-	pkScript, err := ScriptHashPkScript(witnessScript)
+	pkScript, err := input.ScriptHashPkScript(witnessScript)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func createHtlcTimeoutTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	// spends an output with a CSV timeout), and set the lock-time to the
 	// specified absolute lock-time in blocks.
 	timeoutTx := wire.NewMsgTx()
-	timeoutTx.Version = lnTxVersion
+	timeoutTx.Version = input.LNTxVersion
 	timeoutTx.LockTime = cltvExpiry
 
 	// The input to the transaction is the outpoint that creates the
@@ -117,12 +118,12 @@ func createHtlcTimeoutTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	// Next, we'll generate the script used as the output for all second
 	// level HTLC which forces a covenant w.r.t what can be done with all
 	// HTLC outputs.
-	witnessScript, err := secondLevelHtlcScript(revocationKey, delayKey,
+	witnessScript, err := input.SecondLevelHtlcScript(revocationKey, delayKey,
 		csvDelay)
 	if err != nil {
 		return nil, err
 	}
-	pkScript, err := ScriptHashPkScript(witnessScript)
+	pkScript, err := input.ScriptHashPkScript(witnessScript)
 	if err != nil {
 		return nil, err
 	}

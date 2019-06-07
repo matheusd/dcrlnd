@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
@@ -148,7 +149,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 			MaxPendingAmount: lnwire.NewMAtomsFromAtoms(channelCapacity),
 			ChanReserve:      channelCapacity / 100,
 			MinHTLC:          0,
-			MaxAcceptedHtlcs: MaxHTLCNumber / 2,
+			MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 			CsvDelay:         uint16(csvTimeoutAlice),
 		},
 		MultiSigKey: keychain.KeyDescriptor{
@@ -173,7 +174,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 			MaxPendingAmount: lnwire.NewMAtomsFromAtoms(channelCapacity),
 			ChanReserve:      channelCapacity / 100,
 			MinHTLC:          0,
-			MaxAcceptedHtlcs: MaxHTLCNumber / 2,
+			MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 			CsvDelay:         uint16(csvTimeoutBob),
 		},
 		MultiSigKey: keychain.KeyDescriptor{
@@ -202,7 +203,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	bobCommitPoint := ComputeCommitmentPoint(bobFirstRevoke[:])
+	bobCommitPoint := input.ComputeCommitmentPoint(bobFirstRevoke[:])
 
 	aliceRoot, err := shachain.NewHash(aliceKeys[0].Serialize())
 	if err != nil {
@@ -213,7 +214,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	aliceCommitPoint := ComputeCommitmentPoint(aliceFirstRevoke[:])
+	aliceCommitPoint := input.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
 	aliceCommitTx, bobCommitTx, err := CreateCommitmentTxns(channelBal,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
@@ -313,8 +314,8 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 		Packager:                channeldb.NewChannelPackager(shortChanID),
 	}
 
-	aliceSigner := &mockSigner{privkeys: aliceKeys}
-	bobSigner := &mockSigner{privkeys: bobKeys}
+	aliceSigner := &input.MockSigner{Privkeys: aliceKeys}
+	bobSigner := &input.MockSigner{Privkeys: bobKeys}
 
 	pCache := &mockPreimageCache{
 		// hash -> preimage
@@ -401,100 +402,6 @@ func initRevocationWindows(chanA, chanB *LightningChannel) error {
 		return err
 	}
 
-	return nil
-}
-
-// mockSigner is a simple implementation of the Signer interface. Each one has
-// a set of private keys in a slice and can sign messages using the appropriate
-// one.
-type mockSigner struct {
-	privkeys  []*secp256k1.PrivateKey
-	netParams *chaincfg.Params
-}
-
-func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]byte, error) {
-	pubkey := signDesc.KeyDesc.PubKey
-	switch {
-	case signDesc.SingleTweak != nil:
-		pubkey = TweakPubKeyWithTweak(pubkey, signDesc.SingleTweak)
-	case signDesc.DoubleTweak != nil:
-		pubkey = DeriveRevocationPubkey(pubkey, signDesc.DoubleTweak.PubKey())
-	}
-
-	hash160 := dcrutil.Hash160(pubkey.SerializeCompressed())
-	privKey := m.findKey(hash160, signDesc.SingleTweak, signDesc.DoubleTweak)
-	if privKey == nil {
-		return nil, fmt.Errorf("mock signer does not have key")
-	}
-
-	sig, err := txscript.RawTxInSignature(tx, signDesc.InputIndex,
-		signDesc.WitnessScript, txscript.SigHashAll, privKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return sig[:len(sig)-1], nil
-}
-
-func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor) (*InputScript, error) {
-	scriptType, addresses, _, err := txscript.ExtractPkScriptAddrs(
-		signDesc.Output.Version, signDesc.Output.PkScript, m.netParams)
-	if err != nil {
-		return nil, err
-	}
-
-	switch scriptType {
-	case txscript.PubKeyHashTy:
-		privKey := m.findKey(addresses[0].ScriptAddress(), signDesc.SingleTweak,
-			signDesc.DoubleTweak)
-		if privKey == nil {
-			return nil, fmt.Errorf("mock signer does not have key for "+
-				"address %v", addresses[0])
-		}
-
-		sigScript, err := txscript.SignatureScript(
-			tx, signDesc.InputIndex, signDesc.Output.PkScript,
-			txscript.SigHashAll, privKey, true,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return &InputScript{SigScript: sigScript}, nil
-
-	default:
-		return nil, fmt.Errorf("unexpected script type: %v", scriptType)
-	}
-}
-
-// findKey searches through all stored private keys and returns one
-// corresponding to the hashed pubkey if it can be found. The public key may
-// either correspond directly to the private key or to the private key with a
-// tweak applied.
-func (m *mockSigner) findKey(needleHash160 []byte, singleTweak []byte,
-	doubleTweak *secp256k1.PrivateKey) *secp256k1.PrivateKey {
-
-	for _, privkey := range m.privkeys {
-		// First check whether public key is directly derived from private key.
-		hash160 := dcrutil.Hash160(privkey.PubKey().SerializeCompressed())
-		if bytes.Equal(hash160, needleHash160) {
-			return privkey
-		}
-
-		// Otherwise check if public key is derived from tweaked private key.
-		switch {
-		case singleTweak != nil:
-			privkey = TweakPrivKey(privkey, singleTweak)
-		case doubleTweak != nil:
-			privkey = DeriveRevocationPrivKey(privkey, doubleTweak)
-		default:
-			continue
-		}
-		hash160 = dcrutil.Hash160(privkey.PubKey().SerializeCompressed())
-		if bytes.Equal(hash160, needleHash160) {
-			return privkey
-		}
-	}
 	return nil
 }
 
@@ -586,7 +493,7 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 		// htlcWeight   = 172
 		feePerKB = dcrutil.Amount(6000)
 	)
-	commitSize := EstimateCommitmentTxSize(numHTLCs)
+	commitSize := input.EstimateCommitmentTxSize(numHTLCs)
 	return feePerKB * dcrutil.Amount(commitSize) / 1000
 }
 
@@ -615,9 +522,9 @@ func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOu
 	if tx.Expiry != wire.NoExpiryValue {
 		return fmt.Errorf("expiry for the tx is not %d", wire.NoExpiryValue)
 	}
-	if tx.Version != lnTxVersion {
+	if tx.Version != input.LNTxVersion {
 		return fmt.Errorf("tx version (%d) different than expected (%d)",
-			tx.Version, lnTxVersion)
+			tx.Version, input.LNTxVersion)
 	}
 	for i, out := range tx.TxOut {
 		if out.Version != txscript.DefaultScriptVersion {

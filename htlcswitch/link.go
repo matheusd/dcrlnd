@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -349,7 +350,7 @@ func NewChannelLink(cfg ChannelLinkConfig,
 		shortChanID: channel.ShortChanID(),
 		// TODO(roasbeef): just do reserve here?
 		logCommitTimer: time.NewTimer(300 * time.Millisecond),
-		overflowQueue:  newPacketQueue(lnwallet.MaxHTLCNumber / 2),
+		overflowQueue:  newPacketQueue(input.MaxHTLCNumber / 2),
 		htlcUpdates:    make(chan []channeldb.HTLC),
 		quit:           make(chan struct{}),
 	}

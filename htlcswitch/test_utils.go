@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -161,7 +162,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 			channelCapacity),
 		ChanReserve:      aliceReserve,
 		MinHTLC:          0,
-		MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
+		MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 		CsvDelay:         uint16(csvTimeoutAlice),
 	}
 
@@ -171,7 +172,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 			channelCapacity),
 		ChanReserve:      bobReserve,
 		MinHTLC:          0,
-		MaxAcceptedHtlcs: lnwallet.MaxHTLCNumber / 2,
+		MaxAcceptedHtlcs: input.MaxHTLCNumber / 2,
 		CsvDelay:         uint16(csvTimeoutBob),
 	}
 
@@ -234,7 +235,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	bobCommitPoint := lnwallet.ComputeCommitmentPoint(bobFirstRevoke[:])
+	bobCommitPoint := input.ComputeCommitmentPoint(bobFirstRevoke[:])
 
 	aliceRoot, err := chainhash.NewHash(aliceKeyPriv.Serialize())
 	if err != nil {
@@ -245,7 +246,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	aliceCommitPoint := lnwallet.ComputeCommitmentPoint(aliceFirstRevoke[:])
+	aliceCommitPoint := input.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(aliceAmount,
 		bobAmount, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
@@ -277,7 +278,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	commitFee := feePerKB.FeeForSize(lnwallet.CommitmentTxSize)
+	commitFee := feePerKB.FeeForSize(input.CommitmentTxSize)
 
 	const broadcastHeight = 1
 	bobAddr := &net.TCPAddr{

@@ -8,6 +8,7 @@ import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrwallet/errors"
@@ -90,18 +91,18 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 // maybeTweakPrivKey examines the single and double tweak parameters on the
 // passed sign descriptor and may perform a mapping on the passed private key
 // in order to utilize the tweaks, if populated.
-func maybeTweakPrivKey(signDesc *lnwallet.SignDescriptor,
+func maybeTweakPrivKey(signDesc *input.SignDescriptor,
 	privKey *secp256k1.PrivateKey) (*secp256k1.PrivateKey, error) {
 
 	var retPriv *secp256k1.PrivateKey
 	switch {
 
 	case signDesc.SingleTweak != nil:
-		retPriv = lnwallet.TweakPrivKey(privKey,
+		retPriv = input.TweakPrivKey(privKey,
 			signDesc.SingleTweak)
 
 	case signDesc.DoubleTweak != nil:
-		retPriv = lnwallet.DeriveRevocationPrivKey(privKey,
+		retPriv = input.DeriveRevocationPrivKey(privKey,
 			signDesc.DoubleTweak)
 
 	default:
@@ -112,11 +113,11 @@ func maybeTweakPrivKey(signDesc *lnwallet.SignDescriptor,
 }
 
 // SignOutputRaw generates a signature for the passed transaction according to
-// the data within the passed SignDescriptor.
+// the data within the passed input.SignDescriptor.
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *lnwallet.SignDescriptor) ([]byte, error) {
+	signDesc *input.SignDescriptor) ([]byte, error) {
 
 	witnessScript := signDesc.WitnessScript
 
@@ -175,13 +176,13 @@ func p2pkhSigScriptToWitness(scriptVersion uint16, sigScript []byte) ([][]byte, 
 }
 
 // ComputeInputScript generates a complete InputScript for the passed
-// transaction with the signature as defined within the passed SignDescriptor.
+// transaction with the signature as defined within the passed input.SignDescriptor.
 // This method is capable of generating the proper input script only for
 // regular p2pkh outputs.
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
-	signDesc *lnwallet.SignDescriptor) (*lnwallet.InputScript, error) {
+	signDesc *input.SignDescriptor) (*input.Script, error) {
 
 	outputScript := signDesc.Output.PkScript
 	outputScriptVer := signDesc.Output.Version
@@ -225,19 +226,19 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 		return nil, err
 	}
 
-	return &lnwallet.InputScript{Witness: witness}, nil
+	return &input.Script{Witness: witness}, nil
 }
 
-// A compile time check to ensure that DcrWallet implements the Signer
+// A compile time check to ensure that DcrWallet implements the input.Signer
 // interface.
-var _ lnwallet.Signer = (*DcrWallet)(nil)
+var _ input.Signer = (*DcrWallet)(nil)
 
 // SignMessage attempts to sign a target message with the private key that
 // corresponds to the passed public key. If the target private key is unable to
 // be found, then an error will be returned. The actual digest signed is the
 // chainhash (blake256r14) of the passed message.
 //
-// NOTE: This is a part of the MessageSigner interface.
+// NOTE: This is a part of the Messageinput.Signer interface.
 func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 	msg []byte) (*secp256k1.Signature, error) {
 
@@ -262,6 +263,6 @@ func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 	return sign, nil
 }
 
-// A compile time check to ensure that DcrWallet implements the MessageSigner
+// A compile time check to ensure that DcrWallet implements the Messageinput.Signer
 // interface.
 var _ lnwallet.MessageSigner = (*DcrWallet)(nil)

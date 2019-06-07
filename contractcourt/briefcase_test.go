@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	bolt "go.etcd.io/bbolt"
@@ -63,7 +64,7 @@ var (
 		0xb4, 0x12, 0xa3,
 	}
 
-	testSignDesc = lnwallet.SignDescriptor{
+	testSignDesc = input.SignDescriptor{
 		SingleTweak: []byte{
 			0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 			0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,

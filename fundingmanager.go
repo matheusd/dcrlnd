@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -1838,12 +1839,12 @@ func makeFundingScript(channel *channeldb.OpenChannel) ([]byte, error) {
 	localKey := channel.LocalChanCfg.MultiSigKey.PubKey.SerializeCompressed()
 	remoteKey := channel.RemoteChanCfg.MultiSigKey.PubKey.SerializeCompressed()
 
-	multiSigScript, err := lnwallet.GenMultiSigScript(localKey, remoteKey)
+	multiSigScript, err := input.GenMultiSigScript(localKey, remoteKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return lnwallet.ScriptHashPkScript(multiSigScript)
+	return input.ScriptHashPkScript(multiSigScript)
 }
 
 // waitForFundingConfirmation handles the final stages of the channel funding
