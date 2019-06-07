@@ -3,8 +3,8 @@ package lnpeer
 import (
 	"time"
 
-	"github.com/lightningnetwork/lnd/lnwire"
-	"github.com/lightningnetwork/lnd/queue"
+	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/queue"
 )
 
 const (
