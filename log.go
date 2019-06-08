@@ -24,6 +24,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
+	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/monitoring"
@@ -123,6 +124,7 @@ func init() {
 	wtclient.UseLogger(wtclLog)
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
+	addSubLogger(wtclientrpc.Subsystem, wtclientrpc.UseLogger)
 }
 
 // addSubLogger is a helper method to conveniently register the logger of a sub

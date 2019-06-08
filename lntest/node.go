@@ -27,12 +27,13 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
+	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	macaroon "gopkg.in/macaroon.v2"
+	"gopkg.in/macaroon.v2"
 )
 
 const (
@@ -264,7 +265,8 @@ type HarnessNode struct {
 	// because a name collision would occur with LightningClient.
 	RouterClient     routerrpc.RouterClient
 	WalletKitClient  walletrpc.WalletKitClient
-	WatchtowerClient watchtowerrpc.WatchtowerClient
+	Watchtower       watchtowerrpc.WatchtowerClient
+	WatchtowerClient wtclientrpc.WatchtowerClientClient
 }
 
 // Assert *HarnessNode implements the lnrpc.LightningClient interface.
@@ -525,7 +527,8 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 	hn.InvoicesClient = invoicesrpc.NewInvoicesClient(conn)
 	hn.RouterClient = routerrpc.NewRouterClient(conn)
 	hn.WalletKitClient = walletrpc.NewWalletKitClient(conn)
-	hn.WatchtowerClient = watchtowerrpc.NewWatchtowerClient(conn)
+	hn.Watchtower = watchtowerrpc.NewWatchtowerClient(conn)
+	hn.WatchtowerClient = wtclientrpc.NewWatchtowerClientClient(conn)
 
 	// Set the harness node's pubkey to what the node claims in GetInfo.
 	err := hn.FetchNodeInfo()
@@ -760,6 +763,7 @@ func (hn *HarnessNode) stop() error {
 	hn.processExit = nil
 	hn.LightningClient = nil
 	hn.WalletUnlockerClient = nil
+	hn.Watchtower = nil
 	hn.WatchtowerClient = nil
 	return nil
 }
