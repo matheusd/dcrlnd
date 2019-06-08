@@ -170,7 +170,7 @@ func initClientDBBuckets(tx *bolt.Tx) error {
 	return nil
 }
 
-// bdb returns the backing bbolt.DB instance.
+// bdb returns the backing bolt.DB instance.
 //
 // NOTE: Part of the versionedDB interface.
 func (c *ClientDB) bdb() *bolt.DB {
@@ -385,28 +385,52 @@ func (c *ClientDB) CreateClientSession(session *ClientSession) error {
 }
 
 // ListClientSessions returns the set of all client sessions known to the db.
-func (c *ClientDB) ListClientSessions() (map[SessionID]*ClientSession, error) {
-	clientSessions := make(map[SessionID]*ClientSession)
+// An optional tower ID can be used to filter out any client sessions in the
+// response that do not correspond to this tower.
+func (c *ClientDB) ListClientSessions(id *TowerID) (map[SessionID]*ClientSession, error) {
+	var clientSessions map[SessionID]*ClientSession
 	err := c.db.View(func(tx *bolt.Tx) error {
 		sessions := tx.Bucket(cSessionBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
 		}
+		var err error
+		clientSessions, err = listClientSessions(sessions, id)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
 
-		return sessions.ForEach(func(k, _ []byte) error {
-			// We'll load the full client session since the client
-			// will need the CommittedUpdates and AckedUpdates on
-			// startup to resume committed updates and compute the
-			// highest known commit height for each channel.
-			session, err := getClientSession(sessions, k)
-			if err != nil {
-				return err
-			}
+	return clientSessions, nil
+}
 
-			clientSessions[session.ID] = session
+// listClientSessions returns the set of all client sessions known to the db. An
+// optional tower ID can be used to filter out any client sessions in the
+// response that do not correspond to this tower.
+func listClientSessions(sessions *bolt.Bucket,
+	id *TowerID) (map[SessionID]*ClientSession, error) {
 
+	clientSessions := make(map[SessionID]*ClientSession)
+	err := sessions.ForEach(func(k, _ []byte) error {
+		// We'll load the full client session since the client will need
+		// the CommittedUpdates and AckedUpdates on startup to resume
+		// committed updates and compute the highest known commit height
+		// for each channel.
+		session, err := getClientSession(sessions, k)
+		if err != nil {
+			return err
+		}
+
+		// Filter out any sessions that don't correspond to the given
+		// tower if one was set.
+		if id != nil && session.TowerID != *id {
 			return nil
-		})
+		}
+
+		clientSessions[session.ID] = session
+
+		return nil
 	})
 	if err != nil {
 		return nil, err
