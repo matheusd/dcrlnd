@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/invoices"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc/autopilotrpc"
 	"github.com/decred/dcrlnd/lnrpc/chainrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
@@ -16,11 +17,13 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
+	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
+	"github.com/decred/dcrlnd/watchtower/wtclient"
 )
 
 // subRPCServerConfigs is special sub-config in the main configuration that
@@ -62,6 +65,12 @@ type subRPCServerConfigs struct {
 	// WatchtowerRPC is a sub-RPC server that exposes functionality allowing
 	// clients to monitor and control their embedded watchtower.
 	WatchtowerRPC *watchtowerrpc.Config `group:"watchtowerrpc" namespace:"watchtowerrpc"`
+
+	// WatchtowerClientRPC is a sub-RPC server that exposes functionality
+	// that allows clients to interact with the active watchtower client
+	// instance within lnd in order to add, remove, list registered client
+	// towers, etc.
+	WatchtowerClientRPC *wtclientrpc.Config `group:"wtclientrpc" namespace:"wtclientrpc"`
 }
 
 // PopulateDependencies attempts to iterate through all the sub-server configs
@@ -81,7 +90,9 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 	nodeSigner *netann.NodeSigner,
 	chanDB *channeldb.DB,
 	sweeper *sweep.UtxoSweeper,
-	tower *watchtower.Standalone) error {
+	tower *watchtower.Standalone,
+	towerClient wtclient.Client,
+	tcpResolver lncfg.TCPResolver) error {
 
 	// First, we'll use reflect to obtain a version of the config struct
 	// that allows us to programmatically inspect its fields.
@@ -218,6 +229,21 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			)
 			subCfgValue.FieldByName("Tower").Set(
 				reflect.ValueOf(tower),
+			)
+
+		case *wtclientrpc.Config:
+			subCfgValue := extractReflectValue(subCfg)
+
+			if towerClient != nil {
+				subCfgValue.FieldByName("Active").Set(
+					reflect.ValueOf(towerClient != nil),
+				)
+				subCfgValue.FieldByName("Client").Set(
+					reflect.ValueOf(towerClient),
+				)
+			}
+			subCfgValue.FieldByName("Resolver").Set(
+				reflect.ValueOf(tcpResolver),
 			)
 
 		default:
