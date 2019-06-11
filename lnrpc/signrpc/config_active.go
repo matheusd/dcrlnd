@@ -3,7 +3,7 @@
 package signrpc
 
 import (
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/macaroons"
 )
 
