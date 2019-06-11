@@ -10,12 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
-	"github.com/decred/dcrlnd/lnwallet"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 )
@@ -190,8 +190,6 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 		return nil, fmt.Errorf("unable to decode tx: %v", err)
 	}
 
-	sigHashCache := txscript.NewTxSigHashes(&txToSign)
-
 	log.Debugf("Generating sigs for %v inputs: ", len(in.SignDescs))
 
 	// With the transaction deserialized, we'll now convert sign descs so
@@ -204,7 +202,7 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 		// or the description of the key. Below we'll feel out the
 		// oneof field to decide which one we will attempt to parse.
 		var (
-			targetPubKey *btcec.PublicKey
+			targetPubKey *secp256k1.PublicKey
 			keyLoc       keychain.KeyLocator
 		)
 		switch {
@@ -226,8 +224,8 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 			// If a proper raw key was provided, then we'll attempt
 			// to decode and parse it.
 			case len(rawKeyBytes) != 0 && len(rawKeyBytes) == 33:
-				targetPubKey, err = btcec.ParsePubKey(
-					rawKeyBytes, btcec.S256(),
+				targetPubKey, err = secp256k1.ParsePubKey(
+					rawKeyBytes,
 				)
 				if err != nil {
 					return nil, fmt.Errorf("unable to "+
@@ -258,10 +256,10 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 
 		// If the users provided a double tweak, then we'll need to
 		// parse that out now to ensure their input is properly signed.
-		var tweakPrivKey *btcec.PrivateKey
+		var tweakPrivKey *secp256k1.PrivateKey
 		if len(signDesc.DoubleTweak) != 0 {
-			tweakPrivKey, _ = btcec.PrivKeyFromBytes(
-				btcec.S256(), signDesc.DoubleTweak,
+			tweakPrivKey, _ = secp256k1.PrivKeyFromBytes(
+				signDesc.DoubleTweak,
 			)
 		}
 
@@ -281,7 +279,6 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 				PkScript: signDesc.Output.PkScript,
 			},
 			HashType:   txscript.SigHashType(signDesc.Sighash),
-			SigHashes:  sigHashCache,
 			InputIndex: int(signDesc.InputIndex),
 		})
 	}
@@ -341,8 +338,6 @@ func (s *Server) ComputeInputScript(ctx context.Context,
 		return nil, fmt.Errorf("unable to decode tx: %v", err)
 	}
 
-	sigHashCache := txscript.NewTxSigHashes(&txToSign)
-
 	signDescs := make([]*input.SignDescriptor, 0, len(in.SignDescs))
 	for _, signDesc := range in.SignDescs {
 		// For this method, the only fields that we care about are the
@@ -354,8 +349,7 @@ func (s *Server) ComputeInputScript(ctx context.Context,
 				Value:    signDesc.Output.Value,
 				PkScript: signDesc.Output.PkScript,
 			},
-			HashType:  txscript.SigHashType(signDesc.Sighash),
-			SigHashes: sigHashCache,
+			HashType: txscript.SigHashType(signDesc.Sighash),
 		})
 	}
 
