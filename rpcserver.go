@@ -2100,7 +2100,7 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 				return nil, err
 			}
 
-			resp.TotalLimboBalance += int64(forceClose.LimboBalance)
+			resp.TotalLimboBalance += forceClose.LimboBalance
 
 			resp.PendingForceClosingChannels = append(
 				resp.PendingForceClosingChannels,
