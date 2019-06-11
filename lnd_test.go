@@ -2935,7 +2935,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 		predErr = checkPendingHtlcStageAndMaturity(
 			forceClose, 1, htlcExpiryHeight,
-			int32(htlcExpiryHeight)-curHeight,
+			int32(htlcExpiryHeight-uint32(curHeight)),
 		)
 		if predErr != nil {
 			return false
