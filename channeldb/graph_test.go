@@ -618,33 +618,8 @@ func assertEdgeInfoEqual(t *testing.T, e1 *ChannelEdgeInfo,
 	}
 }
 
-func TestEdgeInfoUpdates(t *testing.T) {
-	t.Parallel()
-
-	db, cleanUp, err := makeTestDB()
-	defer cleanUp()
-	if err != nil {
-		t.Fatalf("unable to make test database: %v", err)
-	}
-
-	graph := db.ChannelGraph()
-
-	// We'd like to test the update of edges inserted into the database, so
-	// we create two vertexes to connect.
-	node1, err := createTestVertex(db)
-	if err != nil {
-		t.Fatalf("unable to create test node: %v", err)
-	}
-	if err := graph.AddLightningNode(node1); err != nil {
-		t.Fatalf("unable to add node: %v", err)
-	}
-	node2, err := createTestVertex(db)
-	if err != nil {
-		t.Fatalf("unable to create test node: %v", err)
-	}
-	if err := graph.AddLightningNode(node2); err != nil {
-		t.Fatalf("unable to add node: %v", err)
-	}
+func createChannelEdge(db *DB, node1, node2 *LightningNode) (*ChannelEdgeInfo,
+	*ChannelEdgePolicy, *ChannelEdgePolicy) {
 
 	var (
 		firstNode  *LightningNode
@@ -653,9 +628,11 @@ func TestEdgeInfoUpdates(t *testing.T) {
 	if bytes.Compare(node1.PubKeyBytes[:], node2.PubKeyBytes[:]) == -1 {
 		firstNode = node1
 		secondNode = node2
+
 	} else {
 		firstNode = node2
 		secondNode = node1
+
 	}
 
 	// In addition to the fake vertexes we create some fake channel
@@ -685,12 +662,7 @@ func TestEdgeInfoUpdates(t *testing.T) {
 	copy(edgeInfo.NodeKey2Bytes[:], secondNode.PubKeyBytes[:])
 	copy(edgeInfo.DecredKey1Bytes[:], firstNode.PubKeyBytes[:])
 	copy(edgeInfo.DecredKey2Bytes[:], secondNode.PubKeyBytes[:])
-	if err := graph.AddChannelEdge(edgeInfo); err != nil {
-		t.Fatalf("unable to create channel edge: %v", err)
-	}
 
-	// With the edge added, we can now create some fake edge information to
-	// update for both edges.
 	edge1 := &ChannelEdgePolicy{
 		SigBytes:                  testSig.Serialize(),
 		ChannelID:                 chanID,
@@ -722,13 +694,65 @@ func TestEdgeInfoUpdates(t *testing.T) {
 		db:                        db,
 	}
 
-	// Next, insert both nodes into the database, they should both be
-	// inserted without any issues.
+	return edgeInfo, edge1, edge2
+}
+
+func TestEdgeInfoUpdates(t *testing.T) {
+	t.Parallel()
+
+	db, cleanUp, err := makeTestDB()
+	defer cleanUp()
+	if err != nil {
+		t.Fatalf("unable to make test database: %v", err)
+	}
+
+	graph := db.ChannelGraph()
+
+	// We'd like to test the update of edges inserted into the database, so
+	// we create two vertexes to connect.
+	node1, err := createTestVertex(db)
+	if err != nil {
+		t.Fatalf("unable to create test node: %v", err)
+	}
+	if err := graph.AddLightningNode(node1); err != nil {
+		t.Fatalf("unable to add node: %v", err)
+	}
+	node2, err := createTestVertex(db)
+	if err != nil {
+		t.Fatalf("unable to create test node: %v", err)
+	}
+	if err := graph.AddLightningNode(node2); err != nil {
+		t.Fatalf("unable to add node: %v", err)
+	}
+
+	// Create an edge and add it to the db.
+	edgeInfo, edge1, edge2 := createChannelEdge(db, node1, node2)
+
+	// Make sure inserting the policy at this point, before
+	// the edge info is added, will fail.
+	if err := graph.UpdateEdgePolicy(edge1); err != ErrEdgeNotFound {
+		t.Fatalf("expected ErrEdgeNotFound, got: %v", err)
+
+	}
+
+	// Add the edge info.
+	if err := graph.AddChannelEdge(edgeInfo); err != nil {
+		t.Fatalf("unable to create channel edge: %v", err)
+
+	}
+
+	chanID := edgeInfo.ChannelID
+	outpoint := edgeInfo.ChannelPoint
+
+	// Next, insert both edge policies into the database, they should both
+	// be inserted without any issues.
 	if err := graph.UpdateEdgePolicy(edge1); err != nil {
 		t.Fatalf("unable to update edge: %v", err)
+
 	}
 	if err := graph.UpdateEdgePolicy(edge2); err != nil {
 		t.Fatalf("unable to update edge: %v", err)
+
 	}
 
 	// Check for existence of the edge within the database, it should be
@@ -736,8 +760,10 @@ func TestEdgeInfoUpdates(t *testing.T) {
 	_, _, found, err := graph.HasChannelEdge(chanID)
 	if err != nil {
 		t.Fatalf("unable to query for edge: %v", err)
+
 	} else if !found {
 		t.Fatalf("graph should have of inserted edge")
+
 	}
 
 	// We should also be able to retrieve the channelID only knowing the
@@ -745,10 +771,12 @@ func TestEdgeInfoUpdates(t *testing.T) {
 	dbChanID, err := graph.ChannelID(&outpoint)
 	if err != nil {
 		t.Fatalf("unable to retrieve channel ID: %v", err)
+
 	}
 	if dbChanID != chanID {
 		t.Fatalf("chan ID's mismatch, expected %v got %v", dbChanID,
 			chanID)
+
 	}
 
 	// With the edges inserted, perform some queries to ensure that they've
@@ -756,28 +784,35 @@ func TestEdgeInfoUpdates(t *testing.T) {
 	dbEdgeInfo, dbEdge1, dbEdge2, err := graph.FetchChannelEdgesByID(chanID)
 	if err != nil {
 		t.Fatalf("unable to fetch channel by ID: %v", err)
+
 	}
 	if err := compareEdgePolicies(dbEdge1, edge1); err != nil {
 		t.Fatalf("edge doesn't match: %v", err)
+
 	}
 	if err := compareEdgePolicies(dbEdge2, edge2); err != nil {
 		t.Fatalf("edge doesn't match: %v", err)
+
 	}
 	assertEdgeInfoEqual(t, dbEdgeInfo, edgeInfo)
 
-	// Next, attempt to query the channel edges according to the outpoint
-	// of the channel.
+	// Next, attempt to query the channel edges
+	// according to the outpoint of the channel.
 	dbEdgeInfo, dbEdge1, dbEdge2, err = graph.FetchChannelEdgesByOutpoint(&outpoint)
 	if err != nil {
 		t.Fatalf("unable to fetch channel by ID: %v", err)
+
 	}
 	if err := compareEdgePolicies(dbEdge1, edge1); err != nil {
 		t.Fatalf("edge doesn't match: %v", err)
+
 	}
 	if err := compareEdgePolicies(dbEdge2, edge2); err != nil {
 		t.Fatalf("edge doesn't match: %v", err)
+
 	}
 	assertEdgeInfoEqual(t, dbEdgeInfo, edgeInfo)
+
 }
 
 func randEdgePolicy(chanID uint64, op wire.OutPoint, db *DB) *ChannelEdgePolicy {
