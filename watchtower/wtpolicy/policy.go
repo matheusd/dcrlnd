@@ -125,9 +125,9 @@ func (p *Policy) ComputeAltruistOutput(totalAmt dcrutil.Amount,
 // and reward rate. The reward to he tower is substracted first, before
 // splitting the remaining balance amongst the victim and fees.
 func (p *Policy) ComputeRewardOutputs(totalAmt dcrutil.Amount,
-	txWeight int64) (dcrutil.Amount, dcrutil.Amount, error) {
+	txSize int64) (dcrutil.Amount, dcrutil.Amount, error) {
 
-	txFee := p.SweepFeeRate.FeeForWeight(txWeight)
+	txFee := p.SweepFeeRate.FeeForSize(txSize)
 	if txFee > totalAmt {
 		return 0, 0, ErrFeeExceedsInputs
 	}
