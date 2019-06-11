@@ -5,10 +5,9 @@ package autopilotrpc
 import (
 	"context"
 	"encoding/hex"
-	"os"
 	"sync/atomic"
 
-	"github.com/decred/dcrd/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/lnrpc"
 
