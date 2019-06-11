@@ -100,9 +100,9 @@ func (p Policy) String() string {
 // of the justice transaction and subtracting an amount that satisfies the
 // policy's fee rate.
 func (p *Policy) ComputeAltruistOutput(totalAmt dcrutil.Amount,
-	txWeight int64) (dcrutil.Amount, error) {
+	txSize int64) (dcrutil.Amount, error) {
 
-	txFee := p.SweepFeeRate.FeeForWeight(txWeight)
+	txFee := p.SweepFeeRate.FeeForSize(txSize)
 	if txFee > totalAmt {
 		return 0, ErrFeeExceedsInputs
 	}
