@@ -328,4 +328,14 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 		t.Fatalf("expected invoice to be settled with %d sat, got "+
 			"%d sat", invoiceAmt, invoice.AmtPaidAtoms)
 	}
+
+	// Finally, check that the Alice's payment is correctly marked
+	// succeeded.
+	ctxt, _ = context.WithTimeout(ctxt, defaultTimeout)
+	err = checkPaymentStatus(
+		ctxt, net.Alice, preimage, lnrpc.Payment_SUCCEEDED,
+	)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 }

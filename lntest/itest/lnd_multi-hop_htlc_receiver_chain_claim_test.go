@@ -293,6 +293,16 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 			"%d sat", invoiceAmt, invoice.AmtPaidAtoms)
 	}
 
+	// Finally, check that the Alice's payment is correctly marked
+	// succeeded.
+	ctxt, _ = context.WithTimeout(ctxt, defaultTimeout)
+	err = checkPaymentStatus(
+		ctxt, net.Alice, preimage, lnrpc.Payment_SUCCEEDED,
+	)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
 	// We'll close out the channel between Alice and Bob, then shutdown
 	// carol to conclude the test.
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
