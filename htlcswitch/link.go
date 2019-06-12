@@ -1207,7 +1207,7 @@ func (l *channelLink) processHodlEvent(hodlEvent invoices.HodlEvent,
 	// In case of a cancel, always return
 	// incorrect_or_unknown_payment_details in order to avoid leaking info.
 	failure := lnwire.NewFailIncorrectDetails(
-		htlc.pd.Amount,
+		htlc.pd.Amount, uint32(hodlEvent.AcceptHeight),
 	)
 
 	l.sendHTLCError(
@@ -2868,7 +2868,7 @@ func (l *channelLink) processExitHop(pd *lnwallet.PaymentDescriptor,
 
 	// Cancel htlc if we don't have an invoice for it.
 	case channeldb.ErrInvoiceNotFound:
-		failure := lnwire.NewFailIncorrectDetails(pd.Amount)
+		failure := lnwire.NewFailIncorrectDetails(pd.Amount, heightNow)
 		l.sendHTLCError(pd.HtlcIndex, failure, obfuscator, pd.SourceRef)
 
 		return true, nil

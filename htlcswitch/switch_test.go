@@ -1802,7 +1802,7 @@ func TestSwitchSendPayment(t *testing.T) {
 	// the add htlc request with error and sent the htlc fail request
 	// back. This request should be forwarded back to alice channel link.
 	obfuscator := NewMockObfuscator()
-	failure := lnwire.NewFailIncorrectDetails(update.Amount)
+	failure := lnwire.NewFailIncorrectDetails(update.Amount, 100)
 	reason, err := obfuscator.EncryptFirstHop(failure)
 	if err != nil {
 		t.Fatalf("unable obfuscate failure: %v", err)
