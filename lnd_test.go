@@ -777,11 +777,7 @@ func testOnchainFundRecovery(net *lntest.NetworkHarness, t *harnessTest) {
 			}
 
 			currNumUTXOs := len(utxoResp.Utxos)
-			if currNumUTXOs != expectedNumUTXOs {
-				return false
-			}
-
-			return true
+			return currNumUTXOs == expectedNumUTXOs
 		}, 15*time.Second)
 		if err != nil {
 			t.Fatalf("expected restored node to have %d atoms, "+
