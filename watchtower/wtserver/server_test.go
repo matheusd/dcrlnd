@@ -25,8 +25,6 @@ var (
 	addrScript, _ = txscript.PayToAddrScript(addr)
 
 	testnetChainHash = *chaincfg.TestNet3Params.GenesisHash
-
-	rewardType = (blob.FlagCommitOutputs | blob.FlagReward).Type()
 )
 
 // randPubKey generates a new secp keypair, and returns the public key.
@@ -166,7 +164,7 @@ var createSessionTests = []createSessionTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -188,7 +186,7 @@ var createSessionTests = []createSessionTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -212,7 +210,7 @@ var createSessionTests = []createSessionTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     rewardType,
+			BlobType:     blob.TypeRewardCommit,
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -348,7 +346,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   3,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -378,7 +376,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -402,7 +400,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -430,7 +428,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -458,7 +456,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -488,7 +486,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -518,7 +516,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -549,7 +547,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   3,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -579,7 +577,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			testnetChainHash,
 		),
 		createMsg: &wtwire.CreateSession{
-			BlobType:     blob.TypeDefault,
+			BlobType:     blob.TypeAltruistCommit,
 			MaxUpdates:   3,
 			RewardBase:   0,
 			RewardRate:   0,
@@ -716,7 +714,7 @@ func TestServerDeleteSession(t *testing.T) {
 	)
 
 	createSession := &wtwire.CreateSession{
-		BlobType:     blob.TypeDefault,
+		BlobType:     blob.TypeAltruistCommit,
 		MaxUpdates:   1000,
 		RewardBase:   0,
 		RewardRate:   0,
