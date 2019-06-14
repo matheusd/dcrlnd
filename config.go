@@ -39,6 +39,7 @@ const (
 	defaultDataDirname        = "data"
 	defaultChainSubDirname    = "chain"
 	defaultGraphSubDirname    = "graph"
+	defaultTowerSubDirname    = "watchtower"
 	defaultTLSCertFilename    = "tls.cert"
 	defaultTLSKeyFilename     = "tls.key"
 	defaultAdminMacFilename   = "admin.macaroon"
@@ -130,6 +131,8 @@ var (
 	defaultConfigFile = filepath.Join(defaultLndDir, defaultConfigFilename)
 	defaultDataDir    = filepath.Join(defaultLndDir, defaultDataDirname)
 	defaultLogDir     = filepath.Join(defaultLndDir, defaultLogDirname)
+
+	defaultTowerDir = filepath.Join(defaultDataDir, defaultTowerSubDirname)
 
 	defaultTLSCertPath = filepath.Join(defaultLndDir, defaultTLSCertFilename)
 	defaultTLSKeyPath  = filepath.Join(defaultLndDir, defaultTLSKeyFilename)
@@ -284,6 +287,8 @@ type config struct {
 	Prometheus lncfg.Prometheus `group:"prometheus" namespace:"prometheus"`
 
 	WtClient *lncfg.WtClient `group:"wtclient" namespace:"wtclient"`
+
+	Watchtower *lncfg.Watchtower `group:"watchtower" namespace:"watchtower"`
 }
 
 // loadConfig initializes and parses the config using a config file and command
@@ -359,6 +364,9 @@ func loadConfig() (*config, error) {
 			ChannelCacheSize: channeldb.DefaultChannelCacheSize,
 		},
 		Prometheus: lncfg.DefaultPrometheus(),
+		Watchtower: &lncfg.Watchtower{
+			TowerDir: defaultTowerDir,
+		},
 	}
 
 	// Pre-parse the command line options to pick up an alternative config
@@ -419,6 +427,14 @@ func loadConfig() (*config, error) {
 		cfg.TLSCertPath = filepath.Join(lndDir, defaultTLSCertFilename)
 		cfg.TLSKeyPath = filepath.Join(lndDir, defaultTLSKeyFilename)
 		cfg.LogDir = filepath.Join(lndDir, defaultLogDirname)
+
+		// If the watchtower's directory is set to the default, i.e. the
+		// user has not requested a different location, we'll move the
+		// location to be relative to the specified lnd directory.
+		if cfg.Watchtower.TowerDir == defaultTowerDir {
+			cfg.Watchtower.TowerDir =
+				filepath.Join(cfg.DataDir, defaultTowerSubDirname)
+		}
 	}
 
 	// Create the lnd directory if it doesn't already exist.
@@ -452,6 +468,7 @@ func loadConfig() (*config, error) {
 	cfg.LogDir = cleanAndExpandPath(cfg.LogDir)
 	cfg.DcrdMode.Dir = cleanAndExpandPath(cfg.DcrdMode.Dir)
 	cfg.Tor.PrivateKeyPath = cleanAndExpandPath(cfg.Tor.PrivateKeyPath)
+	cfg.Watchtower.TowerDir = cleanAndExpandPath(cfg.Watchtower.TowerDir)
 
 	// Ensure that the user didn't attempt to specify negative values for
 	// any of the autopilot params.
