@@ -8,7 +8,6 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/watchtower/blob"
-	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
 
 // Config houses the Lookout's required resources to properly fulfill it's duty,
@@ -164,11 +163,11 @@ func (l *Lookout) processEpoch(epoch *chainntnfs.BlockEpoch,
 	// Iterate over the transactions contained in the block, deriving a
 	// breach hint for each transaction and constructing an index mapping
 	// the hint back to it's original transaction.
-	hintToTx := make(map[wtdb.BreachHint]*wire.MsgTx, numTxnsInBlock)
-	txHints := make([]wtdb.BreachHint, 0, numTxnsInBlock)
+	hintToTx := make(map[blob.BreachHint]*wire.MsgTx, numTxnsInBlock)
+	txHints := make([]blob.BreachHint, 0, numTxnsInBlock)
 	for _, tx := range block.Transactions {
 		hash := tx.TxHash()
-		hint := wtdb.NewBreachHintFromHash(&hash)
+		hint := blob.NewBreachHintFromHash(&hash)
 
 		txHints = append(txHints, hint)
 		hintToTx[hint] = tx

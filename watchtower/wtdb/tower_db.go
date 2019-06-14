@@ -6,6 +6,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/watchtower/blob"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -112,7 +113,7 @@ func initTowerDBBuckets(tx *bolt.Tx) error {
 	return nil
 }
 
-// bdb returns the backing bbolt.DB instance.
+// bdb returns the backing bolt.DB instance.
 //
 // NOTE: Part of the versionedDB interface.
 func (t *TowerDB) bdb() *bolt.DB {
@@ -369,7 +370,7 @@ func (t *TowerDB) DeleteSession(target SessionID) error {
 // QueryMatches searches against all known state updates for any that match the
 // passed breachHints. More than one Match will be returned for a given hint if
 // they exist in the database.
-func (t *TowerDB) QueryMatches(breachHints []BreachHint) ([]Match, error) {
+func (t *TowerDB) QueryMatches(breachHints []blob.BreachHint) ([]Match, error) {
 	var matches []Match
 	err := t.db.View(func(tx *bolt.Tx) error {
 		sessions := tx.Bucket(sessionsBkt)
@@ -534,20 +535,20 @@ func removeSessionHintBkt(updateIndex *bolt.Bucket, id *SessionID) error {
 // If the index for the session has not been initialized, this method returns
 // ErrNoSessionHintIndex.
 func getHintsForSession(updateIndex *bolt.Bucket,
-	id *SessionID) ([]BreachHint, error) {
+	id *SessionID) ([]blob.BreachHint, error) {
 
 	sessionHints := updateIndex.Bucket(id[:])
 	if sessionHints == nil {
 		return nil, ErrNoSessionHintIndex
 	}
 
-	var hints []BreachHint
+	var hints []blob.BreachHint
 	err := sessionHints.ForEach(func(k, _ []byte) error {
-		if len(k) != BreachHintSize {
+		if len(k) != blob.BreachHintSize {
 			return nil
 		}
 
-		var hint BreachHint
+		var hint blob.BreachHint
 		copy(hint[:], k)
 		hints = append(hints, hint)
 		return nil
@@ -565,7 +566,7 @@ func getHintsForSession(updateIndex *bolt.Bucket,
 // for the session has not been initialized, this method returns
 // ErrNoSessionHintIndex.
 func putHintForSession(updateIndex *bolt.Bucket, id *SessionID,
-	hint BreachHint) error {
+	hint blob.BreachHint) error {
 
 	sessionHints := updateIndex.Bucket(id[:])
 	if sessionHints == nil {
