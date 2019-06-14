@@ -6,18 +6,19 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
-// BreachHintSize is the length of the txid prefix used to identify remote
+// BreachHintSize is the length of the identifier used to detect remote
 // commitment broadcasts.
 const BreachHintSize = 16
 
-// BreachHint is the first 16-bytes of the txid belonging to a revoked
-// commitment transaction.
+// BreachHint is the first 16-bytes of chainhash(txid), which is used to
+// identify the breach transaction.
 type BreachHint [BreachHintSize]byte
 
 // NewBreachHintFromHash creates a breach hint from a transaction ID.
 func NewBreachHintFromHash(hash *chainhash.Hash) BreachHint {
+	h := chainhash.HashB(hash[:])
 	var hint BreachHint
-	copy(hint[:], hash[:BreachHintSize])
+	copy(hint[:], h)
 	return hint
 }
 
