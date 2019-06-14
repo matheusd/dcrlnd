@@ -5,6 +5,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
 
@@ -178,7 +179,7 @@ type CommittedUpdateBody struct {
 	BackupID BackupID
 
 	// Hint is the 16-byte prefix of the revoked commitment transaction ID.
-	Hint BreachHint
+	Hint blob.BreachHint
 
 	// EncryptedBlob is a ciphertext containing the sweep information for
 	// exacting justice if the commitment transaction matching the breach

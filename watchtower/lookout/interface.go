@@ -4,6 +4,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
 
@@ -37,7 +38,7 @@ type DB interface {
 	// QueryMatches searches its database for any state updates matching the
 	// provided breach hints. If any matches are found, they will be
 	// returned along with encrypted blobs so that justice can be exacted.
-	QueryMatches([]wtdb.BreachHint) ([]wtdb.Match, error)
+	QueryMatches([]blob.BreachHint) ([]wtdb.Match, error)
 
 	// SetLookoutTip writes the best epoch for which the watchtower has
 	// queried for breach hints.
