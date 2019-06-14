@@ -47,6 +47,9 @@ import (
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/dcrlnd/tor"
 	"github.com/decred/dcrlnd/walletunlocker"
+	"github.com/decred/dcrlnd/watchtower/wtclient"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
+	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 	"github.com/decred/dcrlnd/zpay32"
 	sphinx "github.com/decred/lightning-onion"
 	"github.com/go-errors/errors"
@@ -204,6 +207,8 @@ type server struct {
 
 	sphinx *htlcswitch.OnionProcessor
 
+	towerClient wtclient.Client
+
 	connMgr *connmgr.ConnManager
 
 	sigPool *lnwallet.SigPool
@@ -282,7 +287,8 @@ func noiseDial(idPriv *secp256k1.PrivateKey) func(net.Addr) (net.Conn, error) {
 
 // newServer creates a new instance of the server which is to listen using the
 // passed listener address.
-func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
+func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
+	towerClientDB *wtdb.ClientDB, cc *chainControl,
 	privKey *secp256k1.PrivateKey,
 	chansToRestore walletunlocker.ChannelsToRecover) (*server, error) {
 
@@ -1047,6 +1053,39 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB, cc *chainControl,
 		return nil, err
 	}
 
+	if cfg.WtClient.IsActive() {
+		policy := wtpolicy.DefaultPolicy()
+
+		if cfg.WtClient.SweepFeeRate != 0 {
+			// We expose the sweep fee rate in atom/byte, but the
+			// tower protocol operations on atom/KB.
+			sweepRateAtomPerByte := lnwallet.AtomPerKByte(
+				1000 * cfg.WtClient.SweepFeeRate,
+			)
+			policy.SweepFeeRate = sweepRateAtomPerByte
+		}
+
+		s.towerClient, err = wtclient.New(&wtclient.Config{
+			Signer: cc.wallet.Cfg.Signer,
+			NewAddress: func() ([]byte, error) {
+				return newSweepPkScript(cc.wallet)
+			},
+			SecretKeyRing:  s.cc.keyRing,
+			Dial:           cfg.net.Dial,
+			AuthDial:       wtclient.AuthDial,
+			DB:             towerClientDB,
+			Policy:         wtpolicy.DefaultPolicy(),
+			PrivateTower:   cfg.WtClient.PrivateTowers[0],
+			ChainHash:      *activeNetParams.GenesisHash,
+			MinBackoff:     10 * time.Second,
+			MaxBackoff:     5 * time.Minute,
+			ForceQuitDelay: wtclient.DefaultForceQuitDelay,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Create the connection manager which will be responsible for
 	// maintaining persistent outbound connections and also accepting new
 	// incoming connections
@@ -1118,6 +1157,12 @@ func (s *server) Start() error {
 		if err := s.sphinx.Start(); err != nil {
 			startErr = err
 			return
+		}
+		if s.towerClient != nil {
+			if err := s.towerClient.Start(); err != nil {
+				startErr = err
+				return
+			}
 		}
 		if err := s.htlcSwitch.Start(); err != nil {
 			startErr = err
@@ -1276,6 +1321,14 @@ func (s *server) Stop() error {
 		// peerTerminationWatchers signal completion to each peer.
 		for _, peer := range s.Peers() {
 			s.DisconnectPeer(peer.addr.IdentityKey)
+		}
+
+		// Now that all connections have been torn down, stop the tower
+		// client which will reliably flush all queued states to the
+		// tower. If this is halted for any reason, the force quit timer
+		// will kick in and abort to allow this method to return.
+		if s.towerClient != nil {
+			s.towerClient.Stop()
 		}
 
 		// Wait for all lingering goroutines to quit.
