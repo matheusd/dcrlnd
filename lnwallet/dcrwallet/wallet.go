@@ -379,6 +379,10 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 	if err != nil {
 		// TODO(decred): review if the string messages are correct. Possible
 		// convert from checking the message to checking the op.
+		//
+		// NOTE(decred): These checks were removed upstream due to
+		// changing the underlying btcwallet semantics on
+		// PublishTransaction().
 		if strings.Contains(err.Error(), "already have") {
 			// Transaction was already in the mempool, do
 			// not treat as an error. We do this to mimic
