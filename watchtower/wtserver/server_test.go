@@ -170,7 +170,7 @@ var createSessionTests = []createSessionTestCase{
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		expReply: &wtwire.CreateSessionReply{
 			Code: wtwire.CodeOK,
@@ -192,7 +192,7 @@ var createSessionTests = []createSessionTestCase{
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		expReply: &wtwire.CreateSessionReply{
 			Code: wtwire.CodeOK,
@@ -216,7 +216,7 @@ var createSessionTests = []createSessionTestCase{
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		expReply: &wtwire.CreateSessionReply{
 			Code: wtwire.CodeOK,
@@ -238,7 +238,7 @@ var createSessionTests = []createSessionTestCase{
 			MaxUpdates:   1000,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		expReply: &wtwire.CreateSessionReply{
 			Code: wtwire.CreateSessionCodeRejectBlobType,
@@ -353,7 +353,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   3,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -383,7 +383,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 2, LastApplied: 0, EncryptedBlob: testBlob},
@@ -407,7 +407,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -435,7 +435,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -463,7 +463,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -493,7 +493,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -523,7 +523,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   4,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -554,7 +554,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   3,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 1, LastApplied: 0, EncryptedBlob: testBlob},
@@ -584,7 +584,7 @@ var stateUpdateTests = []stateUpdateTestCase{
 			MaxUpdates:   3,
 			RewardBase:   0,
 			RewardRate:   0,
-			SweepFeeRate: 1,
+			SweepFeeRate: 10000,
 		},
 		updates: []*wtwire.StateUpdate{
 			{SeqNum: 0, LastApplied: 0, EncryptedBlob: testBlob},
@@ -721,7 +721,7 @@ func TestServerDeleteSession(t *testing.T) {
 		MaxUpdates:   1000,
 		RewardBase:   0,
 		RewardRate:   0,
-		SweepFeeRate: 1,
+		SweepFeeRate: 10000,
 	}
 
 	const timeoutDuration = 100 * time.Millisecond
