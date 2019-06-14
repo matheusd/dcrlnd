@@ -30,6 +30,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/tor"
+	"github.com/decred/dcrlnd/watchtower"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -281,6 +282,8 @@ type config struct {
 	Caches *lncfg.Caches `group:"caches" namespace:"caches"`
 
 	Prometheus lncfg.Prometheus `group:"prometheus" namespace:"prometheus"`
+
+	WtClient *lncfg.WtClient `group:"wtclient" namespace:"wtclient"`
 }
 
 // loadConfig initializes and parses the config using a config file and command
@@ -860,13 +863,25 @@ func loadConfig() (*config, error) {
 		return nil, fmt.Errorf("maxbackoff must be greater than minbackoff")
 	}
 
-	// Validate the subconfigs for workers and caches.
+	// Validate the subconfigs for workers, caches, and the tower client.
 	err = lncfg.Validate(
 		cfg.Workers,
 		cfg.Caches,
+		cfg.WtClient,
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	// If the user provided private watchtower addresses, parse them to
+	// obtain the LN addresses.
+	if cfg.WtClient.IsActive() {
+		err := cfg.WtClient.ParsePrivateTowers(
+			watchtower.DefaultPeerPort, cfg.net.ResolveTCPAddr,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Finally, ensure that the user's color is correctly formatted,
