@@ -106,7 +106,8 @@ func TestLookoutBreachMatching(t *testing.T) {
 		ID: makeArray33(1),
 		Policy: wtpolicy.Policy{
 			TxPolicy: wtpolicy.TxPolicy{
-				BlobType: rewardAndCommitType,
+				BlobType:     rewardAndCommitType,
+				SweepFeeRate: wtpolicy.DefaultSweepFeeRate,
 			},
 			MaxUpdates: 10,
 		},
@@ -116,7 +117,8 @@ func TestLookoutBreachMatching(t *testing.T) {
 		ID: makeArray33(2),
 		Policy: wtpolicy.Policy{
 			TxPolicy: wtpolicy.TxPolicy{
-				BlobType: rewardAndCommitType,
+				BlobType:     rewardAndCommitType,
+				SweepFeeRate: wtpolicy.DefaultSweepFeeRate,
 			},
 			MaxUpdates: 10,
 		},
