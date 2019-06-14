@@ -52,6 +52,7 @@ import (
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/walletunlocker"
+	"github.com/decred/dcrlnd/watchtower/wtdb"
 )
 
 const (
@@ -327,11 +328,23 @@ func Main() error {
 			"is proxying over Tor as well", cfg.Tor.StreamIsolation)
 	}
 
+	// If the watchtower client should be active, open the client database.
+	// This is done here so that Close always executes when lndMain returns.
+	var towerClientDB *wtdb.ClientDB
+	if cfg.WtClient.IsActive() {
+		var err error
+		towerClientDB, err = wtdb.OpenClientDB(graphDir)
+		if err != nil {
+			ltndLog.Errorf("Unable to open watchtower client db: %v", err)
+		}
+		defer towerClientDB.Close()
+	}
+
 	// Set up the core server which will listen for incoming peer
 	// connections.
 	server, err := newServer(
-		cfg.Listeners, chanDB, activeChainControl, idPrivKey,
-		walletInitParams.ChansToRestore,
+		cfg.Listeners, chanDB, towerClientDB, activeChainControl,
+		idPrivKey, walletInitParams.ChansToRestore,
 	)
 	if err != nil {
 		srvrLog.Errorf("unable to create server: %v\n", err)
@@ -478,7 +491,7 @@ func getTLSConfig(cfg *config) (*tls.Config, *credentials.TransportCredentials,
 }
 
 // fileExists reports whether the named file or directory exists.
-// This function is taken from https://github.com/btcsuite/btcd
+// This function is taken from https://github.com/decred/dcrd
 func fileExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {
@@ -494,8 +507,8 @@ func fileExists(name string) bool {
 // desired hostnames for the service. For production/public use, consider a
 // real PKI.
 //
-// This function is adapted from https://github.com/btcsuite/btcd and
-// https://github.com/btcsuite/btcutil
+// This function is adapted from https://github.com/decred/dcrd and
+// https://github.com/decred/dcrd/dcrutil
 func genCertPair(certFile, keyFile string) error {
 	rpcsLog.Infof("Generating TLS certificates...")
 
