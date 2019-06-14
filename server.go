@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/brontide"
@@ -728,10 +729,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	}
 
 	s.sweeper = sweep.New(&sweep.UtxoSweeperConfig{
-		FeeEstimator: cc.feeEstimator,
-		GenSweepScript: func() ([]byte, error) {
-			return newSweepPkScript(cc.wallet)
-		},
+		FeeEstimator:       cc.feeEstimator,
+		GenSweepScript:     newSweepPkScriptGen(cc.wallet),
 		Signer:             cc.wallet.Cfg.Signer,
 		PublishTransaction: cc.wallet.PublishTransaction,
 		NewBatchTimer: func() <-chan time.Time {
@@ -775,10 +774,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		ChainHash:              *activeNetParams.GenesisHash,
 		IncomingBroadcastDelta: DefaultIncomingBroadcastDelta,
 		OutgoingBroadcastDelta: DefaultOutgoingBroadcastDelta,
-		NewSweepAddr: func() ([]byte, error) {
-			return newSweepPkScript(cc.wallet)
-		},
-		PublishTx: cc.wallet.PublishTransaction,
+		NewSweepAddr:           newSweepPkScriptGen(cc.wallet),
+		PublishTx:              cc.wallet.PublishTransaction,
 		DeliverResolutionMsg: func(msgs ...contractcourt.ResolutionMsg) error {
 			for _, msg := range msgs {
 				err := s.htlcSwitch.ProcessContractResolution(msg)
@@ -851,12 +848,10 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	}, chanDB)
 
 	s.breachArbiter = newBreachArbiter(&BreachConfig{
-		CloseLink: closeLink,
-		DB:        chanDB,
-		Estimator: s.cc.feeEstimator,
-		GenSweepScript: func() ([]byte, error) {
-			return newSweepPkScript(cc.wallet)
-		},
+		CloseLink:          closeLink,
+		DB:                 chanDB,
+		Estimator:          s.cc.feeEstimator,
+		GenSweepScript:     newSweepPkScriptGen(cc.wallet),
 		Notifier:           cc.chainNotifier,
 		PublishTransaction: cc.wallet.PublishTransaction,
 		ContractBreaches:   contractBreaches,
@@ -1066,10 +1061,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		}
 
 		s.towerClient, err = wtclient.New(&wtclient.Config{
-			Signer: cc.wallet.Cfg.Signer,
-			NewAddress: func() ([]byte, error) {
-				return newSweepPkScript(cc.wallet)
-			},
+			Signer:         cc.wallet.Cfg.Signer,
+			NewAddress:     newSweepPkScriptGen(cc.wallet),
 			SecretKeyRing:  s.cc.keyRing,
 			Dial:           cfg.net.Dial,
 			AuthDial:       wtclient.AuthDial,
@@ -3257,5 +3250,22 @@ func (s *server) applyChannelUpdate(update *lnwire.ChannelUpdate) error {
 		return err
 	case <-s.quit:
 		return ErrServerShuttingDown
+	}
+}
+
+// newSweepPkScriptGen creates closure that generates a new public key script
+// which should be used to sweep any funds into the on-chain wallet.
+// Specifically, the script generated is a version 0, pay-to-witness-pubkey-hash
+// (p2wkh) output.
+func newSweepPkScriptGen(
+	wallet lnwallet.WalletController) func() ([]byte, error) {
+
+	return func() ([]byte, error) {
+		sweepAddr, err := wallet.NewAddress(lnwallet.PubKeyHash, false)
+		if err != nil {
+			return nil, err
+		}
+
+		return txscript.PayToAddrScript(sweepAddr)
 	}
 }
