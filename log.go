@@ -32,6 +32,7 @@ import (
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
+	"github.com/decred/dcrlnd/watchtower/wtclient"
 	sphinx "github.com/decred/lightning-onion"
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
@@ -89,6 +90,7 @@ var (
 	chnfLog = build.NewSubLogger("CHNF", backendLog.Logger)
 	chbuLog = build.NewSubLogger("CHBU", backendLog.Logger)
 	promLog = build.NewSubLogger("PROM", backendLog.Logger)
+	wtclLog = build.NewSubLogger("WTCL", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -118,6 +120,7 @@ func init() {
 	channelnotifier.UseLogger(chnfLog)
 	chanbackup.UseLogger(chbuLog)
 	monitoring.UseLogger(promLog)
+	wtclient.UseLogger(wtclLog)
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 }
@@ -163,6 +166,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"CHNF": chnfLog,
 	"CHBU": chbuLog,
 	"PROM": promLog,
+	"WTCL": wtclLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and
