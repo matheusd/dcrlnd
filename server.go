@@ -1060,6 +1060,10 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 			policy.SweepFeeRate = sweepRateAtomPerByte
 		}
 
+		if err := policy.Validate(); err != nil {
+			return nil, err
+		}
+
 		s.towerClient, err = wtclient.New(&wtclient.Config{
 			ChainParams:    activeNetParams.Params,
 			Signer:         cc.wallet.Cfg.Signer,
