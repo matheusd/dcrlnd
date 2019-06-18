@@ -93,6 +93,23 @@ func (m *mockPaymentSessionSource) NewPaymentSessionEmpty() PaymentSession {
 	return &mockPaymentSession{}
 }
 
+type mockMissionControl struct {
+}
+
+var _ MissionController = (*mockMissionControl)(nil)
+
+func (m *mockMissionControl) ReportEdgeFailure(failedEdge edge,
+	minPenalizeAmt lnwire.MilliAtom) {
+}
+
+func (m *mockMissionControl) ReportVertexFailure(v route.Vertex) {}
+
+func (m *mockMissionControl) GetEdgeProbability(fromNode route.Vertex, edge EdgeLocator,
+	amt lnwire.MilliAtom) float64 {
+
+	return 0
+}
+
 type mockPaymentSession struct {
 	routes []*route.Route
 }
