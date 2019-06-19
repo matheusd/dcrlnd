@@ -235,6 +235,28 @@ func (c *ChannelGraph) ForEachChannel(cb func(*ChannelEdgeInfo, *ChannelEdgePoli
 	})
 }
 
+// ForEachNodeChannel iterates through all channels of a given node, executing the
+// passed callback with an edge info structure and the policies of each end
+// of the channel. The first edge policy is the outgoing edge *to* the
+// the connecting node, while the second is the incoming edge *from* the
+// connecting node. If the callback returns an error, then the iteration is
+// halted with the error propagated back up to the caller.
+//
+// Unknown policies are passed into the callback as nil values.
+//
+// If the caller wishes to re-use an existing boltdb transaction, then it
+// should be passed as the first argument.  Otherwise the first argument should
+// be nil and a fresh transaction will be created to execute the graph
+// traversal.
+func (c *ChannelGraph) ForEachNodeChannel(tx *bolt.Tx, nodePub []byte,
+	cb func(*bolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy,
+		*ChannelEdgePolicy) error) error {
+
+	db := c.db
+
+	return nodeTraversal(tx, nodePub, db, cb)
+}
+
 // ForEachNode iterates through all the stored vertices/nodes in the graph,
 // executing the passed callback with each node encountered. If the callback
 // returns an error, then the transaction is aborted and the iteration stops
@@ -2182,23 +2204,10 @@ func (c *ChannelGraph) HasLightningNode(nodePub [33]byte) (time.Time, bool, erro
 	return updateTime, exists, nil
 }
 
-// ForEachChannel iterates through all channels of this node, executing the
-// passed callback with an edge info structure and the policies of each end
-// of the channel. The first edge policy is the outgoing edge *to* the
-// the connecting node, while the second is the incoming edge *from* the
-// connecting node. If the callback returns an error, then the iteration is
-// halted with the error propagated back up to the caller.
-//
-// Unknown policies are passed into the callback as nil values.
-//
-// If the caller wishes to re-use an existing boltdb transaction, then it
-// should be passed as the first argument.  Otherwise the first argument should
-// be nil and a fresh transaction will be created to execute the graph
-// traversal.
-func (l *LightningNode) ForEachChannel(tx *bolt.Tx,
+// nodeTraversal is used to traverse all channels of a node given by its public
+// key and passes channel information into the specified callback.
+func nodeTraversal(tx *bolt.Tx, nodePub []byte, db *DB,
 	cb func(*bolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
-
-	nodePub := l.PubKeyBytes[:]
 
 	traversal := func(tx *bolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
@@ -2240,7 +2249,7 @@ func (l *LightningNode) ForEachChannel(tx *bolt.Tx,
 			if err != nil {
 				return err
 			}
-			edgeInfo.db = l.db
+			edgeInfo.db = db
 
 			outgoingPolicy, err := fetchChanEdgePolicy(
 				edges, chanID, nodePub, nodes,
@@ -2255,7 +2264,7 @@ func (l *LightningNode) ForEachChannel(tx *bolt.Tx,
 			}
 
 			incomingPolicy, err := fetchChanEdgePolicy(
-				edges, chanID, otherNode, nodes,
+				edges, chanID, otherNode[:], nodes,
 			)
 			if err != nil {
 				return err
@@ -2274,12 +2283,34 @@ func (l *LightningNode) ForEachChannel(tx *bolt.Tx,
 	// If no transaction was provided, then we'll create a new transaction
 	// to execute the transaction within.
 	if tx == nil {
-		return l.db.View(traversal)
+		return db.View(traversal)
 	}
 
 	// Otherwise, we re-use the existing transaction to execute the graph
 	// traversal.
 	return traversal(tx)
+}
+
+// ForEachChannel iterates through all channels of this node, executing the
+// passed callback with an edge info structure and the policies of each end
+// of the channel. The first edge policy is the outgoing edge *to* the
+// the connecting node, while the second is the incoming edge *from* the
+// connecting node. If the callback returns an error, then the iteration is
+// halted with the error propagated back up to the caller.
+//
+// Unknown policies are passed into the callback as nil values.
+//
+// If the caller wishes to re-use an existing boltdb transaction, then it
+// should be passed as the first argument.  Otherwise the first argument should
+// be nil and a fresh transaction will be created to execute the graph
+// traversal.
+func (l *LightningNode) ForEachChannel(tx *bolt.Tx,
+	cb func(*bolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
+
+	nodePub := l.PubKeyBytes[:]
+	db := l.db
+
+	return nodeTraversal(tx, nodePub, db, cb)
 }
 
 // ChannelEdgeInfo represents a fully authenticated channel along with all its
@@ -2449,15 +2480,15 @@ func (c *ChannelEdgeInfo) DecredKey2() (*secp256k1.PublicKey, error) {
 // OtherNodeKeyBytes returns the node key bytes of the other end of
 // the channel.
 func (c *ChannelEdgeInfo) OtherNodeKeyBytes(thisNodeKey []byte) (
-	[]byte, error) {
+	[33]byte, error) {
 
 	switch {
 	case bytes.Equal(c.NodeKey1Bytes[:], thisNodeKey):
-		return c.NodeKey2Bytes[:], nil
+		return c.NodeKey2Bytes, nil
 	case bytes.Equal(c.NodeKey2Bytes[:], thisNodeKey):
-		return c.NodeKey1Bytes[:], nil
+		return c.NodeKey1Bytes, nil
 	default:
-		return nil, fmt.Errorf("node not participating in this channel")
+		return [33]byte{}, fmt.Errorf("node not participating in this channel")
 	}
 }
 
