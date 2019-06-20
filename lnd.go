@@ -421,7 +421,7 @@ func Main() error {
 	rpcServer, err := newRPCServer(
 		server, macaroonService, cfg.SubRPCServers, serverOpts,
 		restDialOpts, restProxyDest, atplManager, server.invoices,
-		tlsCfg,
+		tower, tlsCfg,
 	)
 	if err != nil {
 		srvrLog.Errorf("unable to start RPC server: %v", err)
