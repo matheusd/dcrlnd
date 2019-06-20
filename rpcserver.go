@@ -43,6 +43,7 @@ import (
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
+	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
 	"github.com/decred/dcrwallet/wallet/v2/txauthor"
 	"github.com/decred/dcrwallet/wallet/v2/udb"
@@ -435,7 +436,7 @@ func newRPCServer(s *server, macService *macaroons.Service,
 	subServerCgs *subRPCServerConfigs, serverOpts []grpc.ServerOption,
 	restDialOpts []grpc.DialOption, restProxyDest string,
 	atpl *autopilot.Manager, invoiceRegistry *invoices.InvoiceRegistry,
-	tlsCfg *tls.Config) (*rpcServer, error) {
+	tower *watchtower.Standalone, tlsCfg *tls.Config) (*rpcServer, error) {
 
 	// Set up router rpc backend.
 	channelGraph := s.chanDB.ChannelGraph()
@@ -489,6 +490,7 @@ func newRPCServer(s *server, macService *macaroons.Service,
 		s.cc, networkDir, macService, atpl, invoiceRegistry,
 		s.htlcSwitch, activeNetParams.Params, s.chanRouter,
 		routerBackend, s.nodeSigner, s.chanDB, s.sweeper,
+		tower,
 	)
 	if err != nil {
 		return nil, err

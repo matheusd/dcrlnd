@@ -15,10 +15,12 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
+	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/sweep"
+	"github.com/decred/dcrlnd/watchtower"
 )
 
 // subRPCServerConfigs is special sub-config in the main configuration that
@@ -56,6 +58,10 @@ type subRPCServerConfigs struct {
 	// payment related queries such as requests for estimates of off-chain
 	// fees.
 	RouterRPC *routerrpc.Config `group:"routerrpc" namespace:"routerrpc"`
+
+	// WatchtowerRPC is a sub-RPC server that exposes functionality allowing
+	// clients to monitor and control their embedded watchtower.
+	WatchtowerRPC *watchtowerrpc.Config `group:"watchtowerrpc" namespace:"watchtowerrpc"`
 }
 
 // PopulateDependencies attempts to iterate through all the sub-server configs
@@ -74,7 +80,8 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 	routerBackend *routerrpc.RouterBackend,
 	nodeSigner *netann.NodeSigner,
 	chanDB *channeldb.DB,
-	sweeper *sweep.UtxoSweeper) error {
+	sweeper *sweep.UtxoSweeper,
+	tower *watchtower.Standalone) error {
 
 	// First, we'll use reflect to obtain a version of the config struct
 	// that allows us to programmatically inspect its fields.
@@ -201,6 +208,13 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			)
 			subCfgValue.FieldByName("RouterBackend").Set(
 				reflect.ValueOf(routerBackend),
+			)
+
+		case *watchtowerrpc.Config:
+			subCfgValue := extractReflectValue(subCfg)
+
+			subCfgValue.FieldByName("Tower").Set(
+				reflect.ValueOf(tower),
 			)
 
 		default:
