@@ -358,6 +358,18 @@ func Main() error {
 		}
 		defer towerDB.Close()
 
+		towerPrivKey, err := activeChainControl.wallet.DerivePrivKey(
+			keychain.KeyDescriptor{
+				KeyLocator: keychain.KeyLocator{
+					Family: keychain.KeyFamilyTowerID,
+					Index:  0,
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
+
 		wtConfig, err := cfg.Watchtower.Apply(&watchtower.Config{
 			NetParams:      activeNetParams.Params,
 			BlockFetcher:   activeChainControl.chainIO,
@@ -369,7 +381,7 @@ func Main() error {
 					lnwallet.WitnessPubKey, false,
 				)
 			},
-			NodePrivKey: idPrivKey,
+			NodePrivKey: towerPrivKey,
 			PublishTx:   activeChainControl.wallet.PublishTransaction,
 			ChainHash:   *activeNetParams.GenesisHash,
 		}, lncfg.NormalizeAddresses)
