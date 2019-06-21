@@ -156,6 +156,7 @@ type TowerClient struct {
 	negotiator        SessionNegotiator
 	candidateSessions map[wtdb.SessionID]*wtdb.ClientSession
 	activeSessions    sessionQueueSet
+	targetTowerIDs    map[wtdb.TowerID]struct{}
 
 	sessionQueue *sessionQueue
 	prevTask     *backupTask
@@ -203,10 +204,14 @@ func New(config *Config) (*TowerClient, error) {
 	log.Infof("Using private watchtower %s, offering policy %s",
 		cfg.PrivateTower, cfg.Policy)
 
+	candidates := newTowerListIterator(tower)
+	targetTowerIDs := candidates.TowerIDs()
+
 	c := &TowerClient{
 		cfg:            cfg,
 		pipeline:       newTaskPipeline(),
 		activeSessions: make(sessionQueueSet),
+		targetTowerIDs: targetTowerIDs,
 		statTicker:     time.NewTicker(DefaultStatInterval),
 		forceQuit:      make(chan struct{}),
 	}
@@ -218,7 +223,7 @@ func New(config *Config) (*TowerClient, error) {
 		SendMessage:   c.sendMessage,
 		ReadMessage:   c.readMessage,
 		Dial:          c.dial,
-		Candidates:    newTowerListIterator(tower),
+		Candidates:    candidates,
 		MinBackoff:    cfg.MinBackoff,
 		MaxBackoff:    cfg.MaxBackoff,
 	})
@@ -528,6 +533,12 @@ func (c *TowerClient) nextSessionQueue() *sessionQueue {
 		// transactions from what is requested. These can be used again
 		// if the client changes their configuration and restarting.
 		if sessionInfo.Policy.TxPolicy != c.cfg.Policy.TxPolicy {
+			continue
+		}
+
+		// Skip any sessions that are still active, but are not for the
+		// users currently configured tower.
+		if _, ok := c.targetTowerIDs[sessionInfo.TowerID]; !ok {
 			continue
 		}
 
