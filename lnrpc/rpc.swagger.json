@@ -1408,6 +1408,16 @@
         "remote_balance": {
           "type": "string",
           "format": "int64"
+        },
+        "local_chan_reserve_atoms": {
+          "type": "string",
+          "format": "int64",
+          "description": "/ The minimum atoms this node is required to reserve in its balance."
+        },
+        "remote_chan_reserve_atoms": {
+          "type": "string",
+          "format": "int64",
+          "description": "*\nThe minimum atoms the other node is required to reserve in its\nbalance."
         }
       }
     },
@@ -1620,16 +1630,6 @@
           "format": "boolean",
           "description": "/ Whether this channel is advertised to the network or not."
         },
-        "local_channel_reserve": {
-          "type": "string",
-          "format": "int64",
-          "description": "*\nThe minimum amount of local_balance we need to keep at all times. This\nis required by the _remote_ host, so that he's sure we have skin in the\ngame during the channel's lifetime."
-        },
-        "remote_channel_reserve": {
-          "type": "string",
-          "format": "int64",
-          "description": "*\nThe minimum amount of remote_balance we require remote nodes to maintain.\nThis is amount is specified by the _local_ node, so that we're sure they\nhave skin in the game during the channel's lifetime."
-        },
         "initiator": {
           "type": "boolean",
           "format": "boolean",
@@ -1637,7 +1637,17 @@
         },
         "chan_status_flags": {
           "type": "string",
-          "description": "/ A set of flags showing the current state of the cahnnel."
+          "description": "/ A set of flags showing the current state of the channel."
+        },
+        "local_chan_reserve_atoms": {
+          "type": "string",
+          "format": "int64",
+          "description": "/ The minimum atoms this node is required to reserve in its balance."
+        },
+        "remote_chan_reserve_atoms": {
+          "type": "string",
+          "format": "int64",
+          "description": "*\nThe minimum atoms the other node is required to reserve in its balance."
         }
       }
     },

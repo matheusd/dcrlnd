@@ -1172,25 +1172,19 @@ message Channel {
     /// Whether this channel is advertised to the network or not.
     bool private = 17 [json_name = "private"];
     
-    /**
-    The minimum amount of local_balance we need to keep at all times. This
-    is required by the _remote_ host, so that he's sure we have skin in the
-    game during the channel's lifetime.
-    */
-    int64 local_channel_reserve = 18 [json_name = "local_channel_reserve"];
-
-    /**
-    The minimum amount of remote_balance we require remote nodes to maintain.
-    This is amount is specified by the _local_ node, so that we're sure they
-    have skin in the game during the channel's lifetime.
-    */
-    int64 remote_channel_reserve = 19 [json_name = "remote_channel_reserve"];
-
     /// True if we were the ones that created the channel.
-    bool initiator = 20 [json_name = "initiator"];
+    bool initiator = 18 [json_name = "initiator"];
 
-    /// A set of flags showing the current state of the cahnnel.
-    string chan_status_flags = 21 [json_name = "chan_status_flags"];
+    /// A set of flags showing the current state of the channel.
+    string chan_status_flags = 19 [json_name = "chan_status_flags"];
+
+    /// The minimum atoms this node is required to reserve in its balance.
+    int64 local_chan_reserve_atoms = 20 [json_name = "local_chan_reserve_atoms"];
+
+    /**
+    The minimum atoms the other node is required to reserve in its balance.
+    */
+    int64 remote_chan_reserve_atoms = 21 [json_name = "remote_chan_reserve_atoms"];
 }
 
 
@@ -1498,6 +1492,15 @@ message PendingChannelsResponse {
 
         int64 local_balance = 4 [ json_name = "local_balance" ];
         int64 remote_balance = 5 [ json_name = "remote_balance" ];
+       
+        /// The minimum atoms this node is required to reserve in its balance.
+        int64 local_chan_reserve_atoms = 6 [json_name = "local_chan_reserve_atoms"];
+
+        /**
+        The minimum atoms the other node is required to reserve in its
+        balance.
+        */
+        int64 remote_chan_reserve_atoms = 7 [json_name = "remote_chan_reserve_atoms"];
     }
 
     message PendingOpenChannel {
