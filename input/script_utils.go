@@ -75,6 +75,36 @@ func WitnessStackToSigScript(witness [][]byte) ([]byte, error) {
 	return bldr.Script()
 }
 
+// SigScriptToWitnessStack converts a signatureScript to a slice of data pushes
+// (a witness stack). This is the inverse of the WitnessStackToSigScript
+// operation.
+//
+// This is currently restricted to a version 0 signature script.
+func SigScriptToWitnessStack(sigScript []byte) ([][]byte, error) {
+	const scriptVersion = 0
+
+	var data [][]byte
+	tokenizer := txscript.MakeScriptTokenizer(scriptVersion, sigScript)
+	for tokenizer.Next() {
+		op := tokenizer.Opcode()
+
+		if tokenizer.Data() != nil {
+			data = append(data, tokenizer.Data())
+		} else if op == txscript.OP_0 {
+			data = append(data, nil)
+		} else if op >= txscript.OP_1 && op <= txscript.OP_16 {
+			data = append(data, []byte{op - txscript.OP_1 + 1})
+		} else if op == txscript.OP_1NEGATE {
+			data = append(data, []byte{txscript.OP_1NEGATE})
+		}
+	}
+	if err := tokenizer.Err(); err != nil {
+		return nil, err
+	}
+	return data, nil
+
+}
+
 // GenFundingPkScript creates a redeem script, and its matching p2sh
 // output for the funding transaction.
 func GenFundingPkScript(aPub, bPub []byte, amt int64) ([]byte, *wire.TxOut, error) {
@@ -615,7 +645,7 @@ func ReceiverHtlcSpendTimeout(signer Signer, signDesc *SignDescriptor,
 //
 // This function returns the new sigScript to replace the older sigScript.
 func ReplaceReceiverHtlcSpendRedeemPreimage(sigScript, preimage []byte) ([]byte, error) {
-	sigScriptPushes, err := txscript.PushedData(sigScript)
+	sigScriptPushes, err := SigScriptToWitnessStack(sigScript)
 	if err != nil {
 		return nil, err
 	}
