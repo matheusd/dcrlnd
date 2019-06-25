@@ -2857,9 +2857,7 @@ func (l *channelLink) processExitHop(pd *lnwallet.PaymentDescriptor,
 			"time-lock: expected %v, got %v",
 			pd.RHash[:], pd.Timeout, fwdInfo.OutgoingCTLV)
 
-		failure := lnwire.NewFinalIncorrectCltvExpiry(
-			fwdInfo.OutgoingCTLV,
-		)
+		failure := lnwire.NewFinalIncorrectCltvExpiry(pd.Timeout)
 		l.sendHTLCError(pd.HtlcIndex, failure, obfuscator, pd.SourceRef)
 
 		return true, nil
