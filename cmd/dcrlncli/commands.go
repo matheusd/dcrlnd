@@ -3001,6 +3001,10 @@ var queryRoutesCommand = cli.Command{
 			Usage: "(optional) number of blocks the last hop has to reveal " +
 				"the preimage",
 		},
+		cli.BoolFlag{
+			Name:  "use_mc",
+			Usage: "use mission control probabilities",
+		},
 	},
 	Action: actionDecorator(queryRoutes),
 }
@@ -3046,10 +3050,11 @@ func queryRoutes(ctx *cli.Context) error {
 	}
 
 	req := &lnrpc.QueryRoutesRequest{
-		PubKey:         dest,
-		Amt:            amt,
-		FeeLimit:       feeLimit,
-		FinalCltvDelta: int32(ctx.Int("final_cltv_delta")),
+		PubKey:            dest,
+		Amt:               amt,
+		FeeLimit:          feeLimit,
+		FinalCltvDelta:    int32(ctx.Int("final_cltv_delta")),
+		UseMissionControl: ctx.Bool("use_mc"),
 	}
 
 	route, err := client.QueryRoutes(ctxb, req)
