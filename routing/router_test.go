@@ -89,7 +89,7 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 		return nil, nil, err
 	}
 
-	pathFindingConfig := &PathFindingConfig{
+	pathFindingConfig := PathFindingConfig{
 		MinProbability:        0.01,
 		PaymentAttemptPenalty: 100,
 	}
@@ -99,9 +99,13 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 		AprioriHopProbability: 0.9,
 	}
 
-	mc := NewMissionControl(
+	mc, err := NewMissionControl(
+		graphInstance.graph.Database().DB,
 		mcConfig,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	sessionSource := &SessionSource{
 		Graph:    graphInstance.graph,
@@ -109,11 +113,8 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 		QueryBandwidth: func(e *channeldb.ChannelEdgeInfo) lnwire.MilliAtom {
 			return lnwire.NewMAtomsFromAtoms(e.Capacity)
 		},
-		PathFindingConfig: PathFindingConfig{
-			MinProbability:        0.01,
-			PaymentAttemptPenalty: 100,
-		},
-		MissionControl: mc,
+		PathFindingConfig: pathFindingConfig,
+		MissionControl:    mc,
 	}
 
 	router, err := New(Config{
@@ -133,7 +134,7 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 			next := atomic.AddUint64(&uniquePaymentID, 1)
 			return next, nil
 		},
-		PathFindingConfig: *pathFindingConfig,
+		PathFindingConfig: pathFindingConfig,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create router %v", err)

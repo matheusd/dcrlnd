@@ -65,7 +65,7 @@ type MissionControl interface {
 
 	// ResetHistory resets the history of MissionControl returning it to a state as
 	// if no payment attempts have been made.
-	ResetHistory()
+	ResetHistory() error
 
 	// GetHistorySnapshot takes a snapshot from the current mission control state
 	// and actual probability estimates.
