@@ -3981,6 +3981,7 @@ func marshalDbEdge(edgeInfo *channeldb.ChannelEdgeInfo,
 			FeeBaseMAtoms:      int64(c1.FeeBaseMAtoms),
 			FeeRateMilliMAtoms: int64(c1.FeeProportionalMillionths),
 			Disabled:           c1.ChannelFlags&lnwire.ChanUpdateDisabled != 0,
+			LastUpdate:         uint32(c1.LastUpdate.Unix()),
 		}
 	}
 
@@ -3992,6 +3993,7 @@ func marshalDbEdge(edgeInfo *channeldb.ChannelEdgeInfo,
 			FeeBaseMAtoms:      int64(c2.FeeBaseMAtoms),
 			FeeRateMilliMAtoms: int64(c2.FeeProportionalMillionths),
 			Disabled:           c2.ChannelFlags&lnwire.ChanUpdateDisabled != 0,
+			LastUpdate:         uint32(c2.LastUpdate.Unix()),
 		}
 	}
 

@@ -3183,6 +3183,10 @@
         "max_htlc_m_atoms": {
           "type": "string",
           "format": "uint64"
+        },
+        "last_update": {
+          "type": "integer",
+          "format": "int64"
         }
       }
     },
