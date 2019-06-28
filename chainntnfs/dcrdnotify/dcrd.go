@@ -467,7 +467,7 @@ func (n *DcrdNotifier) historicalConfDetails(confRequest chainntnfs.ConfRequest,
 	// txindex.
 	txNotFoundErr := "No information available about transaction"
 	txConf, txStatus, err := chainntnfs.ConfDetailsFromTxIndex(
-		n.chainConn, &confRequest.TxID, txNotFoundErr,
+		n.chainConn, confRequest, txNotFoundErr,
 	)
 
 	// We'll then check the status of the transaction lookup returned to
