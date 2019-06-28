@@ -1603,7 +1603,6 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 	//
 	// We'll use a 15 second backoff, and double the time every time an
 	// epoch fails up to a ceiling.
-	const backOffCeiling = time.Minute * 5
 	backOff := time.Second * 15
 
 	// We'll create a new ticker to wake us up every 15 seconds so we can
@@ -1646,8 +1645,8 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 				sampleTicker.Stop()
 
 				backOff *= 2
-				if backOff > backOffCeiling {
-					backOff = backOffCeiling
+				if backOff > bootstrapBackOffCeiling {
+					backOff = bootstrapBackOffCeiling
 				}
 
 				// Reset the counters for the next epoch bump.
@@ -1726,6 +1725,11 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 		}
 	}
 }
+
+// bootstrapBackOffCeiling is the maximum amount of time we'll wait between
+// failed attempts to locate a set of bootstrap peers. We'll slowly double our
+// query back off each time we encounter a failure.
+const bootstrapBackOffCeiling = time.Minute * 5
 
 // initialPeerBootstrap attempts to continuously connect to peers on startup
 // until the target number of peers has been reached. This ensures that nodes
