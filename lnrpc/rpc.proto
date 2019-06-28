@@ -1822,6 +1822,7 @@ message RoutingPolicy {
     int64 fee_rate_milli_m_atoms = 4 [json_name = "fee_rate_milli_m_atoms"];
     bool disabled = 5 [json_name = "disabled"];
     uint64 max_htlc_m_atoms = 6 [json_name = "max_htlc_m_atoms"];
+    uint32 last_update = 7 [json_name = "last_update"];
 }
 
 /**
@@ -1841,7 +1842,7 @@ message ChannelEdge {
     uint64 channel_id = 1 [json_name = "channel_id"];
     string chan_point = 2 [json_name = "chan_point"];
 
-    uint32 last_update = 3 [json_name = "last_update"];
+    uint32 last_update = 3 [json_name = "last_update", deprecated = true];
 
     string node1_pub = 4 [json_name = "node1_pub"];
     string node2_pub = 5 [json_name = "node2_pub"];
