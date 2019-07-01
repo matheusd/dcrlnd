@@ -260,7 +260,7 @@ func lndMain() error {
 	// With the information parsed from the configuration, create valid
 	// instances of the pertinent interfaces required to operate the
 	// Lightning Network Daemon.
-	activeChainControl, chainCleanUp, err := newChainControlFromConfig(
+	activeChainControl, err := newChainControlFromConfig(
 		cfg, chanDB, privateWalletPw, publicWalletPw,
 		walletInitParams.Birthday, walletInitParams.RecoveryWindow,
 		walletInitParams.Wallet, walletInitParams.Loader,
@@ -268,9 +268,6 @@ func lndMain() error {
 	if err != nil {
 		fmt.Printf("unable to create chain control: %v\n", err)
 		return err
-	}
-	if chainCleanUp != nil {
-		defer chainCleanUp()
 	}
 
 	// Wait until we're fully synced to continue the start up of the remainder

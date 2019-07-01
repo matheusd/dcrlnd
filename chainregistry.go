@@ -140,7 +140,7 @@ type chainControl struct {
 func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	privateWalletPw, publicWalletPw []byte, birthday time.Time,
 	recoveryWindow uint32, wallet *wallet.Wallet,
-	loader *walletloader.Loader) (*chainControl, func(), error) {
+	loader *walletloader.Loader) (*chainControl, error) {
 
 	// Set the RPC config from the "home" chain. Multi-chain isn't yet
 	// active, so we'll restrict usage to a particular chain for now.
@@ -162,7 +162,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			defaultDecredStaticFeePerKB, 0,
 		)
 	default:
-		return nil, nil, fmt.Errorf("default routing policy for "+
+		return nil, fmt.Errorf("default routing policy for "+
 			"chain %v is unknown", registeredChains.PrimaryChain())
 	}
 
@@ -182,14 +182,13 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	}
 
 	var (
-		err     error
-		cleanUp func()
+		err error
 	)
 
 	// Initialize the height hint cache within the chain directory.
 	hintCache, err := chainntnfs.NewHeightHintCache(chanDB)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to initialize height hint "+
+		return nil, fmt.Errorf("unable to initialize height hint "+
 			"cache: %v", err)
 	}
 
@@ -206,19 +205,19 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		if dcrdMode.RawRPCCert != "" {
 			rpcCert, err = hex.DecodeString(dcrdMode.RawRPCCert)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		} else {
 			certFile, err := os.Open(dcrdMode.RPCCert)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			rpcCert, err = ioutil.ReadAll(certFile)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			if err := certFile.Close(); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 
@@ -250,7 +249,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			rpcConfig, activeNetParams.Params, hintCache, hintCache,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// Finally, we'll create an instance of the default chain view to be
@@ -258,7 +257,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		cc.chainView, err = chainview.NewDcrdFilteredChainView(*rpcConfig)
 		if err != nil {
 			srvrLog.Errorf("unable to create chain view: %v", err)
-			return nil, nil, err
+			return nil, err
 		}
 
 		// Verify that the provided dcrd instance exists, is reachable,
@@ -267,7 +266,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		if err = checkDcrdNode(*rpcConfig); err != nil {
 			srvrLog.Errorf("unable to use specified dcrd node: %v",
 				err)
-			return nil, nil, err
+			return nil, err
 		}
 
 		// Initialize an RPC syncer for this wallet and use it as
@@ -275,7 +274,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		syncer, err := dcrwallet.NewRPCSyncer(*rpcConfig,
 			activeNetParams.Params)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		walletConfig.Syncer = syncer
 		chainIO = syncer
@@ -296,21 +295,21 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 				*rpcConfig, fallBackFeeRate,
 			)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			if err := cc.feeEstimator.Start(); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	default:
-		return nil, nil, fmt.Errorf("unknown node type: %s",
+		return nil, fmt.Errorf("unknown node type: %s",
 			homeChainConfig.Node)
 	}
 
 	wc, err := dcrwallet.New(*walletConfig)
 	if err != nil {
 		fmt.Printf("unable to create wallet controller: %v\n", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	cc.msgSigner = wc
@@ -338,18 +337,18 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	lnWallet, err := lnwallet.NewLightningWallet(walletCfg)
 	if err != nil {
 		fmt.Printf("unable to create wallet: %v\n", err)
-		return nil, nil, err
+		return nil, err
 	}
 	if err := lnWallet.Startup(); err != nil {
 		fmt.Printf("unable to start wallet: %v\n", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	ltndLog.Info("LightningWallet opened")
 
 	cc.wallet = lnWallet
 
-	return cc, cleanUp, nil
+	return cc, nil
 }
 
 var (
