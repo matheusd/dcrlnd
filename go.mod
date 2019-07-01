@@ -75,5 +75,5 @@ replace (
 	github.com/decred/dcrwallet => github.com/decred/dcrwallet v0.0.0-20190322135901-7e0e5a4227d7
 	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.0-20190322135901-7e0e5a4227d7
 
-	github.com/decred/lightning-onion => github.com/decred/lightning-onion v0.0.0-20190321210301-95556fb4cc37
+	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190110184837-9f376511f944
 )
