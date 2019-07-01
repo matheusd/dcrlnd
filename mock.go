@@ -1,4 +1,4 @@
-package main
+package dcrlnd
 
 import (
 	"fmt"

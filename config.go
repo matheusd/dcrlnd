@@ -2,7 +2,7 @@
 // Copyright (c) 2015-2019 The Decred developers
 // Copyright (C) 2015-2017 The Lightning Network Developers
 
-package main
+package dcrlnd
 
 import (
 	"errors"
