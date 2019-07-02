@@ -1355,6 +1355,9 @@ func (r *ChannelRouter) FindRoute(source, target route.Vertex,
 		},
 		restrictions, source, target, amt,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// We'll fetch the current block height so we can properly calculate the
 	// required HTLC time locks within the route.
