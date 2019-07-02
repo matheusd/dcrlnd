@@ -1204,11 +1204,6 @@ func (s *Switch) handlePacketForward(packet *htlcPacket) error {
 				fail.Reason = circuit.ErrorEncrypter.EncryptMalformedError(
 					fail.Reason,
 				)
-				if err != nil {
-					err = fmt.Errorf("unable to obfuscate "+
-						"error: %v", err)
-					log.Error(err)
-				}
 			default:
 				// Otherwise, it's a forwarded error, so we'll perform a
 				// wrapper encryption as normal.
