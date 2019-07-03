@@ -14757,15 +14757,20 @@ var testsCases = []*testCase{
 func TestLightningNetworkDaemon(t *testing.T) {
 	ht := newHarnessTest(t)
 
+	// Declare the network harness here to gain access to its
+	// 'OnTxAccepted' call back.
 	var lndHarness *lntest.NetworkHarness
 
-	// First create an instance of the dcrd's rpctest.Harness. This will be
-	// used to fund the wallets of the nodes within the test network and to
-	// drive blockchain related events within the network. Revert the default
-	// setting of accepting non-standard transactions on simnet to reject them.
-	// Transactions on the lightning network should always be standard to get
-	// better guarantees of getting included in to blocks.
-	logDir := "./.backendlogs"
+	// Create an instance of dcrd's rpctest.Harness that will act as the
+	// miner for all tests. This will be used to fund the wallets of the
+	// nodes within the test network and to drive blockchain related events
+	// within the network. Revert the default setting of accepting
+	// non-standard transactions on simnet to reject them. Transactions on
+	// the lightning network should always be standard to get better
+	// guarantees of getting included in to blocks.
+	//
+	// We will also connect it to our chain backend.
+	minerLogDir := "./.minerlogs"
 	args := []string{
 		// rejectnonstd cannot be used in decred due to votes in simnet
 		// using a non-standard signature script.
@@ -14773,41 +14778,53 @@ func TestLightningNetworkDaemon(t *testing.T) {
 
 		"--txindex",
 		"--debuglevel=debug",
-		"--logdir=" + logDir,
+		"--logdir=" + minerLogDir,
+		// "--connect=" + chainBackend.P2PAddr(),
 	}
 	handlers := &rpcclient.NotificationHandlers{
 		OnTxAccepted: func(hash *chainhash.Hash, amt dcrutil.Amount) {
 			lndHarness.OnTxAccepted(hash)
 		},
 	}
-	dcrdHarness, err := rpctest.New(harnessNetParams, handlers, args)
+	miner, err := rpctest.New(harnessNetParams, handlers, args)
 	if err != nil {
 		ht.Fatalf("unable to create mining node: %v", err)
 	}
 	defer func() {
-		dcrdHarness.TearDown()
+		miner.TearDown()
 
-		// After shutting down the chain backend, we'll make a copy of
-		// the log file before deleting the temporary log dir.
-		logFile := logDir + "/" + harnessNetParams.Name + "/dcrd.log"
-		err := lntest.CopyFile("./output_dcrd_chainbackend.log",
-			logFile)
+		// After shutting down the miner, we'll make a copy of the log
+		// file before deleting the temporary log dir.
+		logFile := fmt.Sprintf(
+			"%s/%s/dcrd.log", minerLogDir, harnessNetParams.Name,
+		)
+		err := lntest.CopyFile("./output_dcrd_miner.log", logFile)
 		if err != nil {
 			fmt.Printf("unable to copy file: %v\n", err)
 		}
-		if err = os.RemoveAll(logDir); err != nil {
-			fmt.Printf("Cannot remove dir %s: %v\n", logDir, err)
+		if err = os.RemoveAll(minerLogDir); err != nil {
+			fmt.Printf("Cannot remove dir %s: %v\n",
+				minerLogDir, err)
 		}
 	}()
 
-	chainBackend := lntest.DcrdBackendConfig{
-		RPCConfig: dcrdHarness.RPCConfig(),
-		// P2PAddress: dcrdHarness.P2PAddress(),
+	if err := miner.SetUp(false, 0); err != nil {
+		ht.Fatalf("unable to set up mining node: %v", err)
+	}
+	if err := miner.Node.NotifyNewTransactions(false); err != nil {
+		ht.Fatalf("unable to request transaction notifications: %v", err)
 	}
 
-	// First create the network harness to gain access to its
-	// 'OnTxAccepted' call back.
-	lndHarness, err = lntest.NewNetworkHarness(dcrdHarness, chainBackend)
+	// Start a dcrd chain backend.
+	chainBackend, cleanUp, err := lntest.NewDcrdBackend(miner)
+	if err != nil {
+		ht.Fatalf("unable to start dcrd: %v", err)
+	}
+	defer cleanUp()
+
+	// Now we can set up our test harness (LND instance), with the chain
+	// backend we just created.
+	lndHarness, err = lntest.NewNetworkHarness(miner, chainBackend)
 	if err != nil {
 		ht.Fatalf("unable to create lightning network harness: %v", err)
 	}
@@ -14823,24 +14840,10 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		}
 	}()
 
-	if err := dcrdHarness.SetUp(false, 0); err != nil {
-		ht.Fatalf("unable to set up mining node: %v", err)
-	}
-	if err := dcrdHarness.Node.NotifyNewTransactions(false); err != nil {
-		ht.Fatalf("unable to request transaction notifications: %v", err)
-	}
-
-	// Next mine enough blocks in order for segwit and the CSV package
-	// soft-fork to activate on SimNet.
-	// numBlocks := uint32(chaincfg.SimNetParams.CoinbaseMaturity * 2)
-	// if _, err := dcrdHarness.Node.Generate(numBlocks); err != nil {
-	// 	ht.Fatalf("unable to generate blocks: %v", err)
-	// }
-
 	// With the dcrd harness created, we can now complete the
 	// initialization of the network. args - list of lnd arguments,
-	// example: "--debuglevel=debug"
-	// TODO(roasbeef): create master balanced channel with all the monies?
+	// example: "--debuglevel=debug" TODO(roasbeef): create master balanced
+	// channel with all the monies?
 	if err = lndHarness.SetUp(nil); err != nil {
 		ht.Fatalf("unable to set up test lightning network: %v", err)
 	}

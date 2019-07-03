@@ -16,21 +16,22 @@ const logDir = "./.backendlogs"
 // DcrdBackendConfig is an implementation of the BackendConfig interface
 // backed by a btcd node.
 type DcrdBackendConfig struct {
-	// RPCConfig houses the connection config to the backing btcd instance.
-	RPCConfig rpcclient.ConnConfig
+	// rpcConfig  houses the connection config to the backing dcrd
+	// instance.
+	rpcConfig rpcclient.ConnConfig
 
-	// P2PAddress is the p2p address of the btcd instance.
-	P2PAddress string
+	// p2pAddress is the p2p address of the btcd instance.
+	p2pAddress string
 }
 
 // GenArgs returns the arguments needed to be passed to LND at startup for
 // using this node as a chain backend.
 func (b DcrdBackendConfig) GenArgs() []string {
 	var args []string
-	encodedCert := hex.EncodeToString(b.RPCConfig.Certificates)
-	args = append(args, fmt.Sprintf("--dcrd.rpchost=%v", b.RPCConfig.Host))
-	args = append(args, fmt.Sprintf("--dcrd.rpcuser=%v", b.RPCConfig.User))
-	args = append(args, fmt.Sprintf("--dcrd.rpcpass=%v", b.RPCConfig.Pass))
+	encodedCert := hex.EncodeToString(b.rpcConfig.Certificates)
+	args = append(args, fmt.Sprintf("--dcrd.rpchost=%v", b.rpcConfig.Host))
+	args = append(args, fmt.Sprintf("--dcrd.rpcuser=%v", b.rpcConfig.User))
+	args = append(args, fmt.Sprintf("--dcrd.rpcpass=%v", b.rpcConfig.Pass))
 	args = append(args, fmt.Sprintf("--dcrd.rawrpccert=%v", encodedCert))
 
 	return args
@@ -39,16 +40,18 @@ func (b DcrdBackendConfig) GenArgs() []string {
 // P2PAddr returns the address of this node to be used when connection over the
 // Bitcoin P2P network.
 func (b DcrdBackendConfig) P2PAddr() string {
-	return b.P2PAddress
+	return b.p2pAddress
 }
 
 // NewDcrdBackend starts a new rpctest.Harness and returns a DcrdBackendConfig
 // for that node.
-func NewDcrdBackend() (*DcrdBackendConfig, func(), error) {
+func NewDcrdBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
 	args := []string{
-		"--rejectnonstd",
+		// rejectnonstd cannot be used in decred due to votes in simnet
+		// using a non-standard signature script.
+		//
+		// "--rejectnonstd",
 		"--txindex",
-		"--trickleinterval=100ms",
 		"--debuglevel=debug",
 		"--logdir=" + logDir,
 	}
@@ -63,9 +66,12 @@ func NewDcrdBackend() (*DcrdBackendConfig, func(), error) {
 	}
 
 	bd := &DcrdBackendConfig{
-		RPCConfig: chainBackend.RPCConfig(),
-		// P2PAddress: chainBackend.P2PAddress(),
+		rpcConfig: chainBackend.RPCConfig(),
+		// p2pAddress: chainBackend.P2PAddress(),
 	}
+
+	// Connect this newly created node to the miner.
+	rpctest.ConnectNode(chainBackend, miner)
 
 	cleanUp := func() {
 		chainBackend.TearDown()
