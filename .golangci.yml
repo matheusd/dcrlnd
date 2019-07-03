@@ -1,0 +1,10 @@
+issues:
+        exclude-rules:
+                # Ignore govet.lostcancel in integration test files. The
+                # integration tests make substantial use of context.WithTimeout()
+                # without corresponding cancel() calls, which trigger this. So
+                # disable these warnings for now until this is fixed upstream
+                # (otherwise merging upstream itest changes will become 
+                # significantly harder)
+                - path: lnd.*_test\.go
+                  text: lostcancel
