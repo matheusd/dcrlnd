@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 
-	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 
 	"github.com/urfave/cli"
 )
