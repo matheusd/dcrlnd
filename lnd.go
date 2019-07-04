@@ -351,7 +351,7 @@ func Main() error {
 	// If the watchtower client should be active, open the client database.
 	// This is done here so that Close always executes when lndMain returns.
 	var towerClientDB *wtdb.ClientDB
-	if cfg.WtClient.IsActive() {
+	if cfg.WtClient.Active {
 		var err error
 		towerClientDB, err = wtdb.OpenClientDB(graphDir)
 		if err != nil {
@@ -609,8 +609,8 @@ func fileExists(name string) bool {
 // desired hostnames for the service. For production/public use, consider a
 // real PKI.
 //
-// This function is adapted from https://github.com/btcsuite/btcd and
-// https://github.com/btcsuite/btcutil
+// This function is adapted from https://github.com/decred/dcrd and
+// https://github.com/decred/dcrd/dcrutil
 func genCertPair(certFile, keyFile string, tlsExtraIPs,
 	tlsExtraDomains []string) error {
 

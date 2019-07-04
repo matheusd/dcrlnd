@@ -1072,7 +1072,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		return nil, err
 	}
 
-	if cfg.WtClient.IsActive() {
+	if cfg.WtClient.Active {
 		policy := wtpolicy.DefaultPolicy()
 
 		if cfg.WtClient.SweepFeeRate != 0 {
@@ -1096,7 +1096,6 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 			Dial:           cfg.net.Dial,
 			AuthDial:       wtclient.AuthDial,
 			DB:             towerClientDB,
-			PrivateTower:   cfg.WtClient.PrivateTowers[0],
 			Policy:         policy,
 			ChainHash:      *activeNetParams.GenesisHash,
 			MinBackoff:     10 * time.Second,
