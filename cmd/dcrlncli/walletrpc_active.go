@@ -60,8 +60,8 @@ func pendingSweeps(ctx *cli.Context) error {
 
 	// Sort them in ascending fee rate order for display purposes.
 	sort.Slice(resp.PendingSweeps, func(i, j int) bool {
-		return resp.PendingSweeps[i].SatPerByte <
-			resp.PendingSweeps[j].SatPerByte
+		return resp.PendingSweeps[i].AtomsPerByte <
+			resp.PendingSweeps[j].AtomsPerByte
 	})
 
 	var pendingSweepsResp = struct {

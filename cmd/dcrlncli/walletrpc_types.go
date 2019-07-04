@@ -7,8 +7,8 @@ import "github.com/decred/dcrlnd/lnrpc/walletrpc"
 type PendingSweep struct {
 	OutPoint            OutPoint `json:"outpoint"`
 	WitnessType         string   `json:"witness_type"`
-	AmountSat           uint32   `json:"amount_sat"`
-	SatPerByte          uint32   `json:"sat_per_byte"`
+	AmountAtoms         uint32   `json:"amount_atoms"`
+	AtomsPerByte        uint32   `json:"atoms_per_byte"`
 	BroadcastAttempts   uint32   `json:"broadcast_attempts"`
 	NextBroadcastHeight uint32   `json:"next_broadcast_height"`
 }
@@ -19,8 +19,8 @@ func NewPendingSweepFromProto(pendingSweep *walletrpc.PendingSweep) *PendingSwee
 	return &PendingSweep{
 		OutPoint:            NewOutPointFromProto(pendingSweep.Outpoint),
 		WitnessType:         pendingSweep.WitnessType.String(),
-		AmountSat:           pendingSweep.AmountSat,
-		SatPerByte:          pendingSweep.SatPerByte,
+		AmountAtoms:         pendingSweep.AmountAtoms,
+		AtomsPerByte:        pendingSweep.AtomsPerByte,
 		BroadcastAttempts:   pendingSweep.BroadcastAttempts,
 		NextBroadcastHeight: pendingSweep.NextBroadcastHeight,
 	}
