@@ -142,10 +142,6 @@ type Config struct {
 	// new sessions will be requested immediately.
 	Policy wtpolicy.Policy
 
-	// PrivateTower is the net address of a private tower. The client will
-	// try to create all sessions with this tower.
-	PrivateTower *lnwire.NetAddress
-
 	// ChainHash identifies the chain that the client is on and for which
 	// the tower must be watching to monitor for breaches.
 	ChainHash chainhash.Hash
@@ -270,14 +266,6 @@ func New(config *Config) (*TowerClient, error) {
 	if cfg.WriteTimeout <= 0 {
 		cfg.WriteTimeout = DefaultWriteTimeout
 	}
-
-	// Record the tower in our database, also loading any addresses
-	// previously associated with its public key.
-	tower, err := cfg.DB.CreateTower(cfg.PrivateTower)
-	if err != nil {
-		return nil, err
-	}
-	_ = tower // TODO(decred) remove
 
 	// Next, load all candidate sessions and towers from the database into
 	// the client. We will use any of these session if their policies match

@@ -31,7 +31,6 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/tor"
-	"github.com/decred/dcrlnd/watchtower"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -898,17 +897,6 @@ func loadConfig() (*config, error) {
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	// If the user provided private watchtower addresses, parse them to
-	// obtain the LN addresses.
-	if cfg.WtClient.IsActive() {
-		err := cfg.WtClient.ParsePrivateTowers(
-			watchtower.DefaultPeerPort, cfg.net.ResolveTCPAddr,
-		)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	// Finally, ensure that the user's color is correctly formatted,
