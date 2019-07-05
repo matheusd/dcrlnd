@@ -1061,6 +1061,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		}
 
 		s.towerClient, err = wtclient.New(&wtclient.Config{
+			ChainParams:    activeNetParams.Params,
 			Signer:         cc.wallet.Cfg.Signer,
 			NewAddress:     newSweepPkScriptGen(cc.wallet),
 			SecretKeyRing:  s.cc.keyRing,

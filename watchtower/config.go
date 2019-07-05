@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
@@ -36,6 +37,10 @@ var (
 // All nil-able elements with the Config must be set in order for the Watchtower
 // to function properly.
 type Config struct {
+	// NetParams are the network paramters for the chain this watchtower is
+	// monitoring.
+	NetParams *chaincfg.Params
+
 	// ChainHash identifies the chain that the watchtower will be monitoring
 	// for breaches and that will be advertised in the server's Init message
 	// to inbound clients.
