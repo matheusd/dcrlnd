@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 
-	"github.com/lightningnetwork/lnd/lnrpc/watchtowerrpc"
+	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
 	"github.com/urfave/cli"
 )
 
