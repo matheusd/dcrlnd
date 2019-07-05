@@ -55,6 +55,7 @@ func New(cfg *Config) (*Standalone, error) {
 
 	// Initialize the lookout service with its required resources.
 	lookout := lookout.New(&lookout.Config{
+		NetParams:      cfg.NetParams,
 		BlockFetcher:   cfg.BlockFetcher,
 		DB:             cfg.DB,
 		EpochRegistrar: cfg.EpochRegistrar,

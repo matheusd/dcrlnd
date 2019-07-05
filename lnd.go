@@ -359,6 +359,7 @@ func Main() error {
 		defer towerDB.Close()
 
 		wtConfig, err := cfg.Watchtower.Apply(&watchtower.Config{
+			NetParams:      activeNetParams.Params,
 			BlockFetcher:   activeChainControl.chainIO,
 			DB:             towerDB,
 			EpochRegistrar: activeChainControl.chainNotifier,
