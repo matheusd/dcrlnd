@@ -474,9 +474,27 @@ func cleanupForceClose(t *harnessTest, net *lntest.NetworkHarness,
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
-	// The node should now sweep the funds, clean up by mining the sweeping
-	// tx.
-	mineBlocks(t, net, 1, 1)
+	// We might find either 1 or 2 sweep txs in the mempool, depending on
+	// which nodes were online at the time of the cleanup. If we detect 2
+	// txs within three seconds, we can proceed directly. Otherwise we'll
+	// wait for one tx and then proceed.
+	_, err = waitForNTxsInMempool(
+		net.Miner.Node, 2, time.Second*3,
+	)
+	if err != nil {
+		_, err = waitForNTxsInMempool(
+			net.Miner.Node, 1, minerMempoolTimeout,
+		)
+		if err != nil {
+			t.Fatalf("unable to find a single sweep tx: %v", err)
+		}
+	}
+
+	// Mine the sweep tx(s)
+	_, err = net.Generate(1)
+	if err != nil {
+		t.Fatalf("unable to generate blocks: %v", err)
+	}
 }
 
 // waitForPendingHtlcs waits for up to 15 seconds for the given channel in the
@@ -13578,7 +13596,7 @@ func testAddInvoiceMaxInboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Create a Carol node to use in tests. All invoices will be created on
 	// her node.
-	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect"})
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect", "--nolisten"})
 	if err != nil {
 		t.Fatalf("unable to create carol's node: %v", err)
 	}
