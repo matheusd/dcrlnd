@@ -52,7 +52,7 @@ func newWalletKeyRing(w *wallet.Wallet, db *channeldb.DB) (*walletKeyRing, error
 
 	// This assumes that there are no discontinuities within the KeyFamily
 	// constants.
-	lastKeyFam := uint32(keychain.KeyFamilyTowerSession)
+	lastKeyFam := uint32(keychain.KeyFamilyLastKF)
 	masterPubs := make(map[keychain.KeyFamily]*hdkeychain.ExtendedKey,
 		lastKeyFam+1)
 

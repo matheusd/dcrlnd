@@ -113,6 +113,9 @@ const (
 	// preventing others from having full access to the tower just as a
 	// result of knowing the node key.
 	KeyFamilyTowerID KeyFamily = 9
+
+	// KeyFamilyLastKF holds the last defined key family.
+	KeyFamilyLastKF = KeyFamilyTowerID
 )
 
 // KeyLocator is a two-tuple that can be used to derive *any* key that has ever
