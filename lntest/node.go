@@ -2,6 +2,8 @@ package lntest
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -423,8 +425,8 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 		return err
 	}
 
-	// Since Stop uses the LightningClient to stop the node, if we fail to get a
-	// connected client, we have to kill the process.
+	// Since Stop uses the LightningClient to stop the node, if we fail to
+	// get a connected client, we have to kill the process.
 	useMacaroons := !hn.cfg.HasSeed
 	conn, err := hn.ConnectRPC(useMacaroons)
 	if err != nil {
@@ -627,10 +629,33 @@ func (hn *HarnessNode) writePidFile() error {
 // ConnectRPC uses the TLS certificate and admin macaroon files written by the
 // lnd node to create a gRPC client connection.
 func (hn *HarnessNode) ConnectRPC(useMacs bool) (*grpc.ClientConn, error) {
+
+	// Create an aux closure to check whether the TLS file exists and is
+	// valid for use. This is needed because one of the integration tests
+	// generates an expired cert and we need to ensure the certificate we
+	// use to connect is valid.
+	validTLSFile := func() bool {
+		if !fileExists(hn.cfg.TLSCertPath) {
+			return false
+		}
+
+		certData, err := tls.LoadX509KeyPair(hn.cfg.TLSCertPath, hn.cfg.TLSKeyPath)
+		if err != nil {
+			return false
+		}
+
+		cert, err := x509.ParseCertificate(certData.Certificate[0])
+		if err != nil {
+			return false
+		}
+
+		return !time.Now().After(cert.NotAfter)
+	}
+
 	// Wait until TLS certificate and admin macaroon are created before
 	// using them, up to 20 sec.
 	tlsTimeout := time.After(30 * time.Second)
-	for !fileExists(hn.cfg.TLSCertPath) {
+	for !validTLSFile() {
 		select {
 		case <-tlsTimeout:
 			return nil, fmt.Errorf("timeout waiting for TLS cert " +
