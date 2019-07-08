@@ -2871,7 +2871,7 @@
         "fee": {
           "type": "string",
           "format": "int64",
-          "title": "/ The fee paid for this payment in atoms"
+          "description": "/ Deprecated, use fee_atoms or fee_m_atoms."
         },
         "payment_preimage": {
           "type": "string",
@@ -2894,6 +2894,16 @@
         "status": {
           "$ref": "#/definitions/PaymentPaymentStatus",
           "description": "The status of the payment."
+        },
+        "fee_atoms": {
+          "type": "string",
+          "format": "int64",
+          "title": "/  The fee paid for this payment in atoms"
+        },
+        "fee_m_atoms": {
+          "type": "string",
+          "format": "int64",
+          "title": "/  The fee paid for this payment in milli-atoms"
         }
       }
     },

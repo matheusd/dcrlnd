@@ -2201,8 +2201,8 @@ message Payment {
     /// The path this payment took
     repeated string path = 4 [ json_name = "path" ];
 
-    /// The fee paid for this payment in atoms
-    int64 fee = 5 [json_name = "fee"];
+    /// Deprecated, use fee_atoms or fee_m_atoms.
+    int64 fee = 5 [json_name = "fee", deprecated = true];
 
     /// The payment preimage
     string payment_preimage = 6 [json_name = "payment_preimage"];
@@ -2225,6 +2225,12 @@ message Payment {
 
     // The status of the payment.
     PaymentStatus status = 10 [json_name = "status"];
+
+    ///  The fee paid for this payment in atoms
+    int64 fee_atoms = 11 [json_name = "fee_atoms"];
+
+    ///  The fee paid for this payment in milli-atoms
+    int64 fee_m_atoms = 12 [json_name = "fee_m_atoms"];
 }
 
 message ListPaymentsRequest {
