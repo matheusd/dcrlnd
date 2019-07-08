@@ -135,7 +135,14 @@ func Open(dbPath string, modifiers ...OptionModifier) (*DB, error) {
 		modifier(&opts)
 	}
 
-	bdb, err := bolt.Open(path, dbFilePermission, nil)
+	// Specify bbolt freelist options to reduce heap pressure in case the
+	// freelist grows to be very large.
+	options := &bolt.Options{
+		NoFreelistSync: true,
+		FreelistType:   bolt.FreelistMapType,
+	}
+
+	bdb, err := bolt.Open(path, dbFilePermission, options)
 	if err != nil {
 		return nil, err
 	}
