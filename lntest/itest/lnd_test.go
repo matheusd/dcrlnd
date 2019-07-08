@@ -8072,10 +8072,33 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		numInvoices    = 6
 	)
 
+	// In order to make the test non-flaky and easier to reason about,
+	// we'll redefine the CSV and CLTV limits for Carol and Dave. We'll
+	// define these limits such that, after force-closing the channel (with
+	// carol's older, revoked state) we can mine a few blocks before she'll
+	// attempt to sweep the HTLCs.
+
+	var (
+		// The new CLTV delta will be the minimum the node will accept
+		// + 4 so that it doesn't immediately close the channel after
+		// restarting.
+		cltvDelta = dcrlnd.DefaultIncomingBroadcastDelta + 4
+
+		// The new CSV delay will be the previous delta + 2 so that
+		// Carol doesn't attempt to redeem the CSV-encumbered
+		// commitment output before Dave can send the justice tx.
+		csvDelay = cltvDelta + 2
+	)
+
 	// Since this test will result in the counterparty being left in a
 	// weird state, we will introduce another node into our test network:
 	// Carol.
-	carol, err := net.NewNode("Carol", []string{"--debughtlc", "--hodl.exit-settle"})
+	carol, err := net.NewNode("Carol", []string{
+		"--debughtlc",
+		"--hodl.exit-settle",
+		fmt.Sprintf("--decred.timelockdelta=%d", cltvDelta),
+		fmt.Sprintf("--decred.defaultremotedelay=%d", csvDelay),
+	})
 	if err != nil {
 		t.Fatalf("unable to create new nodes: %v", err)
 	}
@@ -8086,10 +8109,14 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	// with active HTLCs. Dave will be the breached party. We set
 	// --nolisten to ensure Carol won't be able to connect to him and
 	// trigger the channel data protection logic automatically.
-	dave, err := net.NewNode(
-		"Dave",
-		[]string{"--debughtlc", "--hodl.exit-settle", "--nolisten", "--unsafe-disconnect"},
-	)
+	dave, err := net.NewNode("Dave", []string{
+		"--debughtlc",
+		"--hodl.exit-settle",
+		"--nolisten",
+		"--unsafe-disconnect",
+		fmt.Sprintf("--decred.timelockdelta=%d", cltvDelta),
+		fmt.Sprintf("--decred.defaultremotedelay=%d", csvDelay),
+	})
 	if err != nil {
 		t.Fatalf("unable to create new dave node: %v", err)
 	}
@@ -8359,7 +8386,10 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	if err != nil {
 		t.Fatalf("unable to query for funding tx: %v", err)
 	}
-	_ = fundingTx
+
+	// Mine enough blocks for Carol to attempt to redeem the timed-out
+	// htlcs via second-level txs.
+	mineBlocks(t, net, uint32(cltvDelta), 0)
 
 	// isSecondLevelSpend checks that the passed secondLevelTxid is a
 	// potential second level spend spending from the commit tx.
@@ -8392,7 +8422,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	// Wait for Carol to send the second-level txs, then ensure they can be
 	// found on the mempool, that they redeem from the breach tx and that
 	// they are in fact second-level HTLC txs.
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Second * 3)
 	mempool, err := net.Miner.Node.GetRawMempool(dcrjson.GRMRegular)
 	if err != nil {
 		t.Fatalf("unable to get mempool from miner: %v", err)
