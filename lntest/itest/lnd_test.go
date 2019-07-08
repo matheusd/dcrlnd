@@ -15734,18 +15734,14 @@ var testsCases = []*testCase{
 		name: "revoked uncooperative close retribution zero value remote output",
 		test: testRevokedCloseRetributionZeroValueRemoteOutput,
 	},
-	// TODO(decred) re-enable. This is broken as of the below commit due to
-	// changes in how hodl invoices behave.
-	// upstream: 064e8492 cnct+htlcswitch+invoices: move invoice parameter check out..
-	// cherry-picked as: 9aaaf8fe cnct+htlcswitch+invoices: move invoice parameter check out..
-	// {
-	// 	name: "revoked uncooperative close retribution remote hodl",
-	// 	test: testRevokedCloseRetributionRemoteHodl,
-	// },
-	// {
-	// 	name: "revoked uncooperative close retribution remote hodl second level",
-	// 	test: testRevokedCloseRetributionRemoteHodlSecondLevel,
-	// },
+	{
+		name: "revoked uncooperative close retribution remote hodl",
+		test: testRevokedCloseRetributionRemoteHodl,
+	},
+	{
+		name: "revoked uncooperative close retribution remote hodl second level",
+		test: testRevokedCloseRetributionRemoteHodlSecondLevel,
+	},
 	{
 		name: "revoked uncooperative close retribution altruist watchtower",
 		test: testRevokedCloseRetributionAltruistWatchtower,
