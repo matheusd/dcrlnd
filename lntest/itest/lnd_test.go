@@ -422,36 +422,30 @@ func waitForChannelPendingForceClose(ctx context.Context,
 		Index: fundingChanPoint.OutputIndex,
 	}
 
-	var predErr error
-	err = lntest.WaitPredicate(func() bool {
+	return lntest.WaitNoError(func() error {
 		pendingChansRequest := &lnrpc.PendingChannelsRequest{}
 		pendingChanResp, err := node.PendingChannels(
 			ctx, pendingChansRequest,
 		)
 		if err != nil {
-			predErr = fmt.Errorf("unable to get pending "+
+			return fmt.Errorf("unable to get pending "+
 				"channels: %v", err)
-			return false
 		}
 
 		forceClose, err := findForceClosedChannel(pendingChanResp, &op)
 		if err != nil {
-			predErr = err
-			return false
+			return fmt.Errorf("unable to find force-closed "+
+				"channel: %v", err)
 		}
 
 		// We must wait until the UTXO nursery has received the channel
 		// and is aware of its maturity height.
 		if forceClose.MaturityHeight == 0 {
-			predErr = fmt.Errorf("channel had maturity height of 0")
-			return false
+			return fmt.Errorf("channel had maturity height of 0")
 		}
-		return true
-	}, time.Second*15)
-	if err != nil {
-		return err
-	}
-	return predErr
+
+		return nil
+	}, 15*time.Second)
 }
 
 // cleanupForceClose mines a force close commitment found in the mempool and
