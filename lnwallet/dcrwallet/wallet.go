@@ -532,6 +532,7 @@ func minedTransactionsToDetails(
 // for an unconfirmed transaction to a transaction detail.
 func unminedTransactionsToDetail(
 	summary base.TransactionSummary,
+	chainParams *chaincfg.Params,
 ) (*lnwallet.TransactionDetail, error) {
 
 	wireTx := &wire.MsgTx{}
@@ -541,11 +542,24 @@ func unminedTransactionsToDetail(
 		return nil, err
 	}
 
+	var destAddresses []dcrutil.Address
+	for _, txOut := range wireTx.TxOut {
+		_, outAddresses, _, err :=
+			txscript.ExtractPkScriptAddrs(txOut.Version,
+				txOut.PkScript, chainParams)
+		if err != nil {
+			return nil, err
+		}
+
+		destAddresses = append(destAddresses, outAddresses...)
+	}
+
 	txDetail := &lnwallet.TransactionDetail{
-		Hash:      *summary.Hash,
-		TotalFees: int64(summary.Fee),
-		Timestamp: summary.Timestamp,
-		RawTx:     summary.Transaction,
+		Hash:          *summary.Hash,
+		TotalFees:     int64(summary.Fee),
+		Timestamp:     summary.Timestamp,
+		DestAddresses: destAddresses,
+		RawTx:         summary.Transaction,
 	}
 
 	balanceDelta, err := extractBalanceDelta(summary, wireTx)
@@ -585,7 +599,8 @@ func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, err
 
 				txDetails = append(txDetails, details...)
 			} else {
-				detail, err := unminedTransactionsToDetail(tx)
+				detail, err := unminedTransactionsToDetail(tx,
+					b.netParams)
 				if err != nil {
 					return true, err
 				}
@@ -681,7 +696,9 @@ out:
 			// notifications for any newly unconfirmed transactions.
 			go func() {
 				for _, tx := range txNtfn.UnminedTransactions {
-					detail, err := unminedTransactionsToDetail(tx)
+					detail, err := unminedTransactionsToDetail(
+						tx, t.w.ChainParams(),
+					)
 					if err != nil {
 						continue
 					}
