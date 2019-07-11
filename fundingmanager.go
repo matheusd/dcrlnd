@@ -1074,16 +1074,16 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	// funds to the channel ourselves.
 	chainHash := msg.ChainHash
 	req := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       &chainHash,
-		NodeID:          fmsg.peer.IdentityKey(),
-		NodeAddr:        peerAddr,
-		FundingAmount:   0,
-		Capacity:        amt,
-		CommitFeePerKB:  lnwallet.AtomPerKByte(msg.FeePerKiloByte),
-		FundingFeePerKB: 0,
-		PushMAtoms:      msg.PushAmount,
-		Flags:           msg.ChannelFlags,
-		MinConfs:        1,
+		ChainHash:        &chainHash,
+		NodeID:           fmsg.peer.IdentityKey(),
+		NodeAddr:         peerAddr,
+		LocalFundingAmt:  0,
+		RemoteFundingAmt: amt,
+		CommitFeePerKB:   lnwallet.AtomPerKByte(msg.FeePerKiloByte),
+		FundingFeePerKB:  0,
+		PushMAtoms:       msg.PushAmount,
+		Flags:            msg.ChannelFlags,
+		MinConfs:         1,
 	}
 
 	reservation, err := f.cfg.Wallet.InitChannelReservation(req)
@@ -2770,16 +2770,16 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// wallet doesn't have enough funds to commit to this channel, then the
 	// request will fail, and be aborted.
 	req := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       &msg.chainHash,
-		NodeID:          peerKey,
-		NodeAddr:        peerAddr,
-		FundingAmount:   localAmt,
-		Capacity:        capacity,
-		CommitFeePerKB:  commitFeePerKB,
-		FundingFeePerKB: msg.fundingFeePerKB,
-		PushMAtoms:      msg.pushAmt,
-		Flags:           channelFlags,
-		MinConfs:        msg.minConfs,
+		ChainHash:        &msg.chainHash,
+		NodeID:           peerKey,
+		NodeAddr:         peerAddr,
+		LocalFundingAmt:  localAmt,
+		RemoteFundingAmt: 0,
+		CommitFeePerKB:   commitFeePerKB,
+		FundingFeePerKB:  msg.fundingFeePerKB,
+		PushMAtoms:       msg.pushAmt,
+		Flags:            channelFlags,
+		MinConfs:         msg.minConfs,
 	}
 
 	reservation, err := f.cfg.Wallet.InitChannelReservation(req)
