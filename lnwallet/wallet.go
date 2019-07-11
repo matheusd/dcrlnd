@@ -1407,6 +1407,11 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 		sizeEstimate.AddP2SHOutput()
 
 		// Assume that change output is a P2KH output.
+		//
+		// TODO: Handle wallets that generate non-witness change
+		// addresses.
+		// TODO(halseth): make coinSelect not estimate change output
+		// for dust change.
 		sizeEstimate.AddP2PKHOutput()
 
 		// The difference between the selected amount and the amount
