@@ -729,9 +729,9 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 	vw *rpctest.VotingWallet, alice, _ *lnwallet.LightningWallet,
 	t *testing.T) {
 
-	// We'll attempt to create a new reservation with an extremely high fee
-	// rate. This should push our balance into the negative and result in a
-	// failure to create the reservation.
+	// We'll attempt to create a new reservation with an extremely high
+	// commitment fee rate. This should push our balance into the negative
+	// and result in a failure to create the reservation.
 	const numDCR = 4
 	fundingAmount, err := dcrutil.NewAmount(numDCR)
 	if err != nil {
@@ -748,7 +748,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		LocalFundingAmt:  fundingAmount,
 		RemoteFundingAmt: 0,
 		CommitFeePerKB:   FeePerKB,
-		FundingFeePerKB:  FeePerKB,
+		FundingFeePerKB:  1000,
 		PushMAtoms:       0,
 		Flags:            lnwire.FFAnnounceChannel,
 	}
