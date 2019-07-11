@@ -127,7 +127,7 @@ type ChannelReservation struct {
 // used only internally by lnwallet. In order to concurrent safety, the
 // creation of all channel reservations should be carried out via the
 // lnwallet.InitChannelReservation interface.
-func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
+func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 	commitFeePerKB AtomPerKByte, wallet *LightningWallet,
 	id uint64, pushMAtoms lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag) (*ChannelReservation, error) {
@@ -139,15 +139,16 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 	)
 
 	commitFee := commitFeePerKB.FeeForSize(input.CommitmentTxSize)
-
-	fundingMAtoms := lnwire.NewMAtomsFromAtoms(fundingAmt)
+	localFundingMAtoms := lnwire.NewMAtomsFromAtoms(localFundingAmt)
+	// TODO(halseth): make method take remote funding amount direcly
+	// instead of inferring it from capacity and local amt.
 	capacityMAtoms := lnwire.NewMAtomsFromAtoms(capacity)
 	feeMAtoms := lnwire.NewMAtomsFromAtoms(commitFee)
 
 	// If we're the responder to a single-funder reservation, then we have
 	// no initial balance in the channel unless the remote party is pushing
 	// some funds to us within the first commitment state.
-	if fundingAmt == 0 {
+	if localFundingAmt == 0 {
 		ourBalance = pushMAtoms
 		theirBalance = capacityMAtoms - feeMAtoms - pushMAtoms
 		initiator = false
@@ -164,7 +165,7 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 		// TODO(roasbeef): need to rework fee structure in general and
 		// also when we "unlock" dual funder within the daemon
 
-		if capacity == fundingAmt {
+		if capacity == localFundingAmt {
 			// If we're initiating a single funder workflow, then
 			// we pay all the initial fees within the commitment
 			// transaction. We also deduct our balance by the
@@ -175,8 +176,8 @@ func NewChannelReservation(capacity, fundingAmt dcrutil.Amount,
 			// Otherwise, this is a dual funder workflow where both
 			// slides split the amount funded and the commitment
 			// fee.
-			ourBalance = fundingMAtoms - (feeMAtoms / 2)
-			theirBalance = capacityMAtoms - fundingMAtoms - (feeMAtoms / 2) + pushMAtoms
+			ourBalance = localFundingMAtoms - (feeMAtoms / 2)
+			theirBalance = capacityMAtoms - localFundingMAtoms - (feeMAtoms / 2) + pushMAtoms
 		}
 
 		initiator = true

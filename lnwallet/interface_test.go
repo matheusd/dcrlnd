@@ -384,15 +384,15 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	}
 
 	aliceReq := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          bobPub,
-		NodeAddr:        bobAddr,
-		FundingAmount:   fundingAmount,
-		Capacity:        fundingAmount * 2,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      0,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           bobPub,
+		NodeAddr:         bobAddr,
+		LocalFundingAmt:  fundingAmount,
+		RemoteFundingAmt: fundingAmount,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       0,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
 	if err != nil {
@@ -427,15 +427,15 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	// receives' Alice's contribution, and consumes that so we can continue
 	// the funding process.
 	bobReq := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          alicePub,
-		NodeAddr:        aliceAddr,
-		FundingAmount:   fundingAmount,
-		Capacity:        fundingAmount * 2,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      0,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           alicePub,
+		NodeAddr:         aliceAddr,
+		LocalFundingAmt:  fundingAmount,
+		RemoteFundingAmt: fundingAmount,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       0,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)
 	if err != nil {
@@ -586,15 +586,15 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	req := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          bobPub,
-		NodeAddr:        bobAddr,
-		FundingAmount:   fundingAmount,
-		Capacity:        fundingAmount,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      0,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           bobPub,
+		NodeAddr:         bobAddr,
+		LocalFundingAmt:  fundingAmount,
+		RemoteFundingAmt: 0,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       0,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	if _, err := alice.InitChannelReservation(req); err != nil {
 		t.Fatalf("unable to initialize funding reservation 1: %v", err)
@@ -608,15 +608,15 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		t.Fatalf("unable to create amt: %v", err)
 	}
 	failedReq := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          bobPub,
-		NodeAddr:        bobAddr,
-		FundingAmount:   amt,
-		Capacity:        amt,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      0,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           bobPub,
+		NodeAddr:         bobAddr,
+		LocalFundingAmt:  amt,
+		RemoteFundingAmt: 0,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       0,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	failedReservation, err := alice.InitChannelReservation(failedReq)
 	if err == nil {
@@ -647,15 +647,15 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 	// Create a reservation for almost the entire wallet amount.
 	fundingAmount := totalBalance - dcrutil.AtomsPerCoin
 	req := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          bobPub,
-		NodeAddr:        bobAddr,
-		FundingAmount:   fundingAmount,
-		Capacity:        fundingAmount,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      0,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           bobPub,
+		NodeAddr:         bobAddr,
+		LocalFundingAmt:  fundingAmount,
+		RemoteFundingAmt: 0,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       0,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	chanReservation, err := alice.InitChannelReservation(req)
 	if err != nil {
@@ -742,15 +742,15 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		numDCR * numDCR * dcrutil.AtomsPerCoin,
 	)
 	req := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          bobPub,
-		NodeAddr:        bobAddr,
-		FundingAmount:   fundingAmount,
-		Capacity:        fundingAmount,
-		CommitFeePerKB:  FeePerKB,
-		FundingFeePerKB: FeePerKB,
-		PushMAtoms:      0,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           bobPub,
+		NodeAddr:         bobAddr,
+		LocalFundingAmt:  fundingAmount,
+		RemoteFundingAmt: 0,
+		CommitFeePerKB:   FeePerKB,
+		FundingFeePerKB:  FeePerKB,
+		PushMAtoms:       0,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	_, err = alice.InitChannelReservation(req)
 	switch {
@@ -824,15 +824,15 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	aliceReq := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          bobPub,
-		NodeAddr:        bobAddr,
-		FundingAmount:   fundingAmt,
-		Capacity:        fundingAmt,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      pushAmt,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           bobPub,
+		NodeAddr:         bobAddr,
+		LocalFundingAmt:  fundingAmt,
+		RemoteFundingAmt: 0,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       pushAmt,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
 	if err != nil {
@@ -867,15 +867,15 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	// Next, Bob receives the initial request, generates a corresponding
 	// reservation initiation, then consume Alice's contribution.
 	bobReq := &lnwallet.InitFundingReserveMsg{
-		ChainHash:       chainHash,
-		NodeID:          alicePub,
-		NodeAddr:        aliceAddr,
-		FundingAmount:   0,
-		Capacity:        fundingAmt,
-		CommitFeePerKB:  feePerKB,
-		FundingFeePerKB: feePerKB,
-		PushMAtoms:      pushAmt,
-		Flags:           lnwire.FFAnnounceChannel,
+		ChainHash:        chainHash,
+		NodeID:           alicePub,
+		NodeAddr:         aliceAddr,
+		LocalFundingAmt:  0,
+		RemoteFundingAmt: fundingAmt,
+		CommitFeePerKB:   feePerKB,
+		FundingFeePerKB:  feePerKB,
+		PushMAtoms:       pushAmt,
+		Flags:            lnwire.FFAnnounceChannel,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)
 	if err != nil {
