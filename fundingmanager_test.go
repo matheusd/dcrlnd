@@ -559,7 +559,26 @@ func tearDownFundingManagers(t *testing.T, a, b *testNode) {
 // transaction is confirmed on-chain. Returns the funding out point.
 func openChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
 	pushAmt dcrutil.Amount, numConfs uint32,
-	updateChan chan *lnrpc.OpenStatusUpdate, announceChan bool) *wire.OutPoint {
+	updateChan chan *lnrpc.OpenStatusUpdate, announceChan bool) (
+	*wire.OutPoint, *wire.MsgTx) {
+
+	publ := fundChannel(
+		t, alice, bob, localFundingAmt, pushAmt, numConfs, updateChan,
+		announceChan,
+	)
+	fundingOutPoint := &wire.OutPoint{
+		Hash:  publ.TxHash(),
+		Index: 0,
+	}
+	return fundingOutPoint, publ
+}
+
+// fundChannel takes the funding process to the point where the funding
+// transaction is confirmed on-chain. Returns the funding tx.
+func fundChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
+	pushAmt dcrutil.Amount, numConfs uint32,
+	updateChan chan *lnrpc.OpenStatusUpdate, announceChan bool) *wire.MsgTx {
+
 	// Create a funding request and start the workflow.
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
@@ -567,6 +586,7 @@ func openChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
 		chainHash:       *activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(pushAmt),
+		fundingFeePerKB: 1000,
 		private:         !announceChan,
 		updates:         updateChan,
 		err:             errChan,
@@ -651,17 +671,12 @@ func openChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
 		t.Fatalf("alice did not publish funding tx")
 	}
 
-	fundingOutPoint := &wire.OutPoint{
-		Hash:  publ.TxHash(),
-		Index: 0,
-	}
-
 	// Finally, make sure neither have active reservation for the channel
 	// now pending open in the database.
 	assertNumPendingReservations(t, alice, bobPubKey, 0)
 	assertNumPendingReservations(t, bob, alicePubKey, 0)
 
-	return fundingOutPoint
+	return publ
 }
 
 func assertErrorNotSent(t *testing.T, msgChan chan lnwire.Message) {
@@ -1059,16 +1074,21 @@ func TestFundingManagerNormalWorkflow(t *testing.T) {
 	localAmt := dcrutil.Amount(500000)
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, true)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, true,
+	)
 
 	// Check that neither Alice nor Bob sent an error message.
 	assertErrorNotSent(t, alice.msgChan)
 	assertErrorNotSent(t, bob.msgChan)
 
 	// Notify that transaction was mined.
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -1109,8 +1129,12 @@ func TestFundingManagerNormalWorkflow(t *testing.T) {
 	assertHandleFundingLocked(t, alice, bob)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Make sure the fundingManagers exchange announcement signatures.
 	assertAnnouncementSignatures(t, alice, bob)
@@ -1132,8 +1156,9 @@ func TestFundingManagerRestartBehavior(t *testing.T) {
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
 	updateChan := make(chan *lnrpc.OpenStatusUpdate)
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, true)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, true,
+	)
 
 	// After the funding transaction gets mined, both nodes will send the
 	// fundingLocked message to the other peer. If the funding node fails
@@ -1154,8 +1179,12 @@ func TestFundingManagerRestartBehavior(t *testing.T) {
 	}
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -1246,8 +1275,12 @@ func TestFundingManagerRestartBehavior(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Make sure the fundingManagers exchange announcement signatures.
 	assertAnnouncementSignatures(t, alice, bob)
@@ -1272,8 +1305,9 @@ func TestFundingManagerOfflinePeer(t *testing.T) {
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
 	updateChan := make(chan *lnrpc.OpenStatusUpdate)
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, true)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, true,
+	)
 
 	// After the funding transaction gets mined, both nodes will send the
 	// fundingLocked message to the other peer. If the funding node fails
@@ -1295,8 +1329,12 @@ func TestFundingManagerOfflinePeer(t *testing.T) {
 	}
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -1381,8 +1419,12 @@ func TestFundingManagerOfflinePeer(t *testing.T) {
 	assertHandleFundingLocked(t, alice, bob)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Make sure both fundingManagers send the expected announcement
 	// signatures.
@@ -1616,7 +1658,7 @@ func TestFundingManagerFundingTimeout(t *testing.T) {
 
 	// Run through the process of opening the channel, up until the funding
 	// transaction is broadcasted.
-	_ = openChannel(t, alice, bob, 500000, 0, 1, updateChan, true)
+	_, _ = openChannel(t, alice, bob, 500000, 0, 1, updateChan, true)
 
 	// Bob will at this point be waiting for the funding transaction to be
 	// confirmed, so the channel should be considered pending.
@@ -1662,7 +1704,7 @@ func TestFundingManagerFundingNotTimeoutInitiator(t *testing.T) {
 
 	// Run through the process of opening the channel, up until the funding
 	// transaction is broadcasted.
-	_ = openChannel(t, alice, bob, 500000, 0, 1, updateChan, true)
+	_, _ = openChannel(t, alice, bob, 500000, 0, 1, updateChan, true)
 
 	// Alice will at this point be waiting for the funding transaction to be
 	// confirmed, so the channel should be considered pending.
@@ -1734,12 +1776,17 @@ func TestFundingManagerReceiveFundingLockedTwice(t *testing.T) {
 	localAmt := dcrutil.Amount(500000)
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, true)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, true,
+	)
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -1800,8 +1847,12 @@ func TestFundingManagerReceiveFundingLockedTwice(t *testing.T) {
 	}
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Make sure the fundingManagers exchange announcement signatures.
 	assertAnnouncementSignatures(t, alice, bob)
@@ -1828,12 +1879,17 @@ func TestFundingManagerRestartAfterChanAnn(t *testing.T) {
 	localAmt := dcrutil.Amount(500000)
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, true)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, true,
+	)
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -1879,8 +1935,12 @@ func TestFundingManagerRestartAfterChanAnn(t *testing.T) {
 	assertHandleFundingLocked(t, alice, bob)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Make sure both fundingManagers send the expected channel announcements.
 	assertAnnouncementSignatures(t, alice, bob)
@@ -1907,12 +1967,17 @@ func TestFundingManagerRestartAfterReceivingFundingLocked(t *testing.T) {
 	localAmt := dcrutil.Amount(500000)
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, true)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, true,
+	)
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -1954,8 +2019,12 @@ func TestFundingManagerRestartAfterReceivingFundingLocked(t *testing.T) {
 	assertAddedToRouterGraph(t, alice, bob, fundingOutPoint)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Make sure both fundingManagers send the expected channel announcements.
 	assertAnnouncementSignatures(t, alice, bob)
@@ -1982,12 +2051,17 @@ func TestFundingManagerPrivateChannel(t *testing.T) {
 	localAmt := dcrutil.Amount(500000)
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, false)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, false,
+	)
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -2025,8 +2099,12 @@ func TestFundingManagerPrivateChannel(t *testing.T) {
 	assertHandleFundingLocked(t, alice, bob)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Since this is a private channel, we shouldn't receive the
 	// announcement signatures.
@@ -2086,12 +2164,17 @@ func TestFundingManagerPrivateRestart(t *testing.T) {
 	localAmt := dcrutil.Amount(500000)
 	pushAmt := dcrutil.Amount(0)
 	capacity := localAmt + pushAmt
-	fundingOutPoint := openChannel(t, alice, bob, localAmt, pushAmt, 1,
-		updateChan, false)
+	fundingOutPoint, fundingTx := openChannel(
+		t, alice, bob, localAmt, pushAmt, 1, updateChan, false,
+	)
 
 	// Notify that transaction was mined
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// The funding transaction was mined, so assert that both funding
 	// managers now have the state of this channel 'markedOpen' in their
@@ -2134,8 +2217,12 @@ func TestFundingManagerPrivateRestart(t *testing.T) {
 	assertHandleFundingLocked(t, alice, bob)
 
 	// Notify that six confirmations has been reached on funding transaction.
-	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.sixConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// Since this is a private channel, we shouldn't receive the public
 	// channel announcement messages.
@@ -2392,15 +2479,20 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	}
 
 	// Wait for Alice to published the funding tx to the network.
+	var fundingTx *wire.MsgTx
 	select {
-	case <-alice.publTxChan:
+	case fundingTx = <-alice.publTxChan:
 	case <-time.After(time.Second * 5):
 		t.Fatalf("alice did not publish funding tx")
 	}
 
 	// Notify that transaction was mined.
-	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+	alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
+	bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+		Tx: fundingTx,
+	}
 
 	// After the funding transaction is mined, Alice will send
 	// fundingLocked to Bob.
@@ -2533,6 +2625,7 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 	).(*lnwire.Error)
 
 	// Give the FundingSigned messages to Alice.
+	var txs []*wire.MsgTx
 	for i, sign := range signs {
 		alice.fundingMgr.processFundingSigned(sign, bob)
 
@@ -2551,7 +2644,8 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 		}
 
 		select {
-		case <-alice.publTxChan:
+		case tx := <-alice.publTxChan:
+			txs = append(txs, tx)
 		case <-time.After(time.Second * 5):
 			t.Fatalf("alice did not publish funding tx")
 		}
@@ -2568,8 +2662,12 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 
 	// Notify that the transactions were mined.
 	for i := 0; i < maxPending; i++ {
-		alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
-		bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{}
+		alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+			Tx: txs[i],
+		}
+		bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
+			Tx: txs[i],
+		}
 
 		// Expect both to be sending FundingLocked.
 		_ = assertFundingMsgSent(
