@@ -100,6 +100,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 	req := &openChanReq{
 		targetPubkey:    target,
 		chainHash:       *activeNetParams.GenesisHash,
+		subtractFees:    true,
 		localFundingAmt: amt,
 		pushAmt:         0,
 		minHtlc:         minHtlc,
