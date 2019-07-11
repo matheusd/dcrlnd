@@ -3011,8 +3011,7 @@ type openChanReq struct {
 
 	chainHash chainhash.Hash
 
-	localFundingAmt  dcrutil.Amount
-	remoteFundingAmt dcrutil.Amount
+	localFundingAmt dcrutil.Amount
 
 	pushAmt lnwire.MilliAtom
 
