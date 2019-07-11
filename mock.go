@@ -239,6 +239,7 @@ type mockWalletController struct {
 	prevAddres            dcrutil.Address
 	publishedTransactions chan *wire.MsgTx
 	index                 uint32
+	utxos                 []*lnwallet.Utxo
 }
 
 // BackEnd returns "mock" to signify a mock wallet controller.
@@ -293,6 +294,13 @@ func (*mockWalletController) CreateSimpleTx(outputs []*wire.TxOut,
 // need one unspent for the funding transaction.
 func (m *mockWalletController) ListUnspentWitness(minconfirms,
 	maxconfirms int32) ([]*lnwallet.Utxo, error) {
+
+	// If the mock already has a list of utxos, return it.
+	if m.utxos != nil {
+		return m.utxos, nil
+	}
+
+	// Otherwise create one to return.
 	utxo := &lnwallet.Utxo{
 		AddressType: lnwallet.PubKeyHash,
 		Value:       dcrutil.Amount(10 * dcrutil.AtomsPerCoin),
