@@ -1197,7 +1197,7 @@ func TestAgentChannelSizeAllocation(t *testing.T) {
 	t.Parallel()
 
 	// Total number of nodes in our mock graph.
-	const numNodes = 10
+	const numNodes = 20
 
 	testCtx, cleanup := setup(t, nil)
 	defer cleanup()
@@ -1241,6 +1241,8 @@ func TestAgentChannelSizeAllocation(t *testing.T) {
 		numNewChannels, nodeScores,
 	)
 
+	// We expect the autopilot to have allocated all funds towards
+	// channels.
 	expectedAllocation := testCtx.constraints.MaxChanSize() * dcrutil.Amount(numNewChannels)
 	nodes := checkChannelOpens(
 		t, testCtx, expectedAllocation, numNewChannels,
@@ -1315,5 +1317,30 @@ func TestAgentChannelSizeAllocation(t *testing.T) {
 
 	// To stay within the budget, we expect the autopilot to open 2
 	// channels.
-	checkChannelOpens(t, testCtx, channelBudget, 2)
+	expectedAllocation = channelBudget
+	nodes = checkChannelOpens(t, testCtx, expectedAllocation, 2)
+	numExistingChannels = 7
+
+	for _, node := range nodes {
+		delete(nodeScores, node)
+	}
+
+	waitForNumChans(numExistingChannels)
+
+	// Finally check that we make maximum channels if we are well within
+	// our budget.
+	channelBudget = dcrutil.AtomsPerCoin * 5
+	numNewChannels = 2
+	respondWithScores(
+		t, testCtx, channelBudget, numExistingChannels,
+		numNewChannels, nodeScores,
+	)
+
+	// We now expect the autopilot to open 2 channels, and since it has
+	// more than enough balance within the budget, they should both be of
+	// maximum size.
+	expectedAllocation = testCtx.constraints.MaxChanSize() *
+		dcrutil.Amount(numNewChannels)
+
+	checkChannelOpens(t, testCtx, expectedAllocation, numNewChannels)
 }
