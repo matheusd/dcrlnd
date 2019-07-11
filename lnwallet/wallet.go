@@ -1476,3 +1476,93 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 		return selectedUtxos, changeAmt, nil
 	}
 }
+
+// coinSelectSubtractFees attempts to select coins such that we'll spend up to
+// amt in total after fees, adhering to the specified fee rate. The selected
+// coins, the final output and change values are returned.
+func coinSelectSubtractFees(feeRate AtomPerKByte, amt,
+	dustLimit dcrutil.Amount, coins []*Utxo) ([]*Utxo, dcrutil.Amount,
+	dcrutil.Amount, error) {
+
+	// First perform an initial round of coin selection to estimate
+	// the required fee.
+	totalAtoms, selectedUtxos, err := selectInputs(amt, coins)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	var sizeEstimate input.TxSizeEstimator
+	for _, utxo := range selectedUtxos {
+		switch utxo.AddressType {
+		case PubKeyHash:
+			sizeEstimate.AddP2PKHInput()
+		default:
+			return nil, 0, 0, fmt.Errorf("unsupported "+
+				"address type: %v", utxo.AddressType)
+		}
+	}
+
+	// Channel funding multisig output is P2WSH.
+	sizeEstimate.AddP2SHOutput()
+
+	// At this point we've got two possibilities, either create a
+	// change output, or not. We'll first try without creating a
+	// change output.
+	//
+	// Estimate the fee required for a transaction without a change
+	// output.
+	totalSize := sizeEstimate.Size()
+	requiredFee := feeRate.FeeForSize(totalSize)
+
+	// For a transaction without a change output, we'll let everything go
+	// to our multi-sig output after subtracting fees.
+	outputAmt := totalAtoms - requiredFee
+	changeAmt := dcrutil.Amount(0)
+
+	// If the the output is too small after subtracting the fee, the coin
+	// selection cannot be performed with an amount this small.
+	if outputAmt <= dustLimit {
+		return nil, 0, 0, fmt.Errorf("output amount(%v) after "+
+			"subtracting fees(%v) below dust limit(%v)", outputAmt,
+			requiredFee, dustLimit)
+	}
+
+	// We were able to create a transaction with no change from the
+	// selected inputs. We'll remember the resulting values for
+	// now, while we try to add a change output. Assume that change output
+	// is a P2WKH output.
+	sizeEstimate.AddP2PKHOutput()
+
+	// Now that we have added the change output, redo the fee
+	// estimate.
+	totalSize = sizeEstimate.Size()
+	requiredFee = feeRate.FeeForSize(totalSize)
+
+	// For a transaction with a change output, everything we don't spend
+	// will go to change.
+	newChange := totalAtoms - amt
+	newOutput := amt - requiredFee
+
+	// If adding a change output leads to both outputs being above
+	// the dust limit, we'll add the change output. Otherwise we'll
+	// go with the no change tx we originally found.
+	if newChange > dustLimit && newOutput > dustLimit {
+		outputAmt = newOutput
+		changeAmt = newChange
+	}
+
+	// Sanity check the resulting output values to make sure we
+	// don't burn a great part to fees.
+	totalOut := outputAmt + changeAmt
+	fee := totalAtoms - totalOut
+
+	// Fail if more than 20% goes to fees.
+	// TODO(halseth): smarter fee limit. Make configurable or dynamic wrt
+	// total funding size?
+	if fee > totalOut/5 {
+		return nil, 0, 0, fmt.Errorf("fee %v on total output"+
+			"value %v", fee, totalOut)
+	}
+
+	return selectedUtxos, outputAmt, changeAmt, nil
+}
