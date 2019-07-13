@@ -661,12 +661,14 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 
 	srvrLog.Debugf("Instantiating payment session source with config: "+
 		"PaymentAttemptPenalty=%v, MinRouteProbability=%v",
-		int64(routingConfig.PaymentAttemptPenalty.ToAtoms()),
+		int64(routingConfig.AttemptCost),
 		routingConfig.MinRouteProbability)
 
 	pathFindingConfig := routing.PathFindingConfig{
-		PaymentAttemptPenalty: routingConfig.PaymentAttemptPenalty,
-		MinProbability:        routingConfig.MinRouteProbability,
+		PaymentAttemptPenalty: lnwire.NewMAtomsFromAtoms(
+			routingConfig.AttemptCost,
+		),
+		MinProbability: routingConfig.MinRouteProbability,
 	}
 
 	paymentSessionSource := &routing.SessionSource{
