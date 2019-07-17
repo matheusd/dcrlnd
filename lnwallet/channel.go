@@ -24,6 +24,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
@@ -233,7 +234,7 @@ type PaymentDescriptor struct {
 
 	// RPreimage is the preimage that settles the HTLC pointed to within the
 	// log by the ParentIndex.
-	RPreimage PaymentHash
+	RPreimage lntypes.Preimage
 
 	// Timeout is the absolute timeout in blocks, after which this HTLC
 	// expires.
@@ -4600,7 +4601,7 @@ func (lc *LightningChannel) ReceiveHTLC(htlc *lnwire.UpdateAddHTLC) (uint64, err
 //
 // NOTE: It is okay for sourceRef, destRef, and closeKey to be nil when unit
 // testing the wallet.
-func (lc *LightningChannel) SettleHTLC(preimage [32]byte,
+func (lc *LightningChannel) SettleHTLC(preimage lntypes.Preimage,
 	htlcIndex uint64, sourceRef *channeldb.AddRef,
 	destRef *channeldb.SettleFailRef, closeKey *channeldb.CircuitKey) error {
 
@@ -4619,7 +4620,7 @@ func (lc *LightningChannel) SettleHTLC(preimage [32]byte,
 		return ErrHtlcIndexAlreadySettled(htlcIndex)
 	}
 
-	if htlc.RHash != PaymentHash(chainhash.HashH(preimage[:])) {
+	if htlc.RHash != PaymentHash(preimage.Hash()) {
 		return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
 	}
 
@@ -4648,7 +4649,7 @@ func (lc *LightningChannel) SettleHTLC(preimage [32]byte,
 // index into the local log. If the specified index doesn't exist within the
 // log, and error is returned. Similarly if the preimage is invalid w.r.t to
 // the referenced of then a distinct error is returned.
-func (lc *LightningChannel) ReceiveHTLCSettle(preimage [32]byte, htlcIndex uint64) error {
+func (lc *LightningChannel) ReceiveHTLCSettle(preimage lntypes.Preimage, htlcIndex uint64) error {
 	lc.Lock()
 	defer lc.Unlock()
 
@@ -4664,7 +4665,7 @@ func (lc *LightningChannel) ReceiveHTLCSettle(preimage [32]byte, htlcIndex uint6
 		return ErrHtlcIndexAlreadySettled(htlcIndex)
 	}
 
-	if htlc.RHash != PaymentHash(chainhash.HashH(preimage[:])) {
+	if htlc.RHash != PaymentHash(preimage.Hash()) {
 		return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
 	}
 

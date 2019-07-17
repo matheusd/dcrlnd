@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -209,7 +208,7 @@ func (l *linkTestContext) sendSettleBobToAlice(htlcID uint64,
 	err := l.bobChannel.SettleHTLC(preimage, htlcID, nil, nil, nil)
 	if err != nil {
 		l.t.Fatalf("alice failed settling htlc id=%d hash=%x",
-			htlcID, chainhash.HashB(preimage[:]))
+			htlcID, preimage.Hash())
 	}
 
 	settle := &lnwire.UpdateFulfillHTLC{

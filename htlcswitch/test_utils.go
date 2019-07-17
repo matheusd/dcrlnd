@@ -584,14 +584,14 @@ func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
 	blob [lnwire.OnionPacketSize]byte) (*channeldb.Invoice,
 	*lnwire.UpdateAddHTLC, uint64, error) {
 
-	var preimage [lntypes.PreimageSize]byte
+	var preimage lntypes.Preimage
 	r, err := generateRandomBytes(lntypes.HashSize)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 	copy(preimage[:], r)
 
-	rhash := chainhash.HashH(preimage[:])
+	rhash := preimage.Hash()
 	return generatePaymentWithPreimage(
 		invoiceAmt, htlcAmt, timelock, blob, preimage, rhash,
 	)
