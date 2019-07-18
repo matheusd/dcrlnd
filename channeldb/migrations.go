@@ -2,10 +2,10 @@ package channeldb
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 
 	"github.com/decred/dcrlnd/lntypes"
@@ -478,12 +478,12 @@ func paymentStatusesMigration(tx *bolt.Tx) error {
 		}
 
 		// Calculate payment hash for current payment.
-		paymentHash := chainhash.HashB(payment.PaymentPreimage[:])
+		paymentHash := sha256.Sum256(payment.PaymentPreimage[:])
 
 		// Update status for current payment to completed. If it fails,
 		// the migration is aborted and the payment bucket is returned
 		// to its previous state.
-		return paymentStatuses.Put(paymentHash, StatusSucceeded.Bytes())
+		return paymentStatuses.Put(paymentHash[:], StatusSucceeded.Bytes())
 	})
 	if err != nil {
 		return err

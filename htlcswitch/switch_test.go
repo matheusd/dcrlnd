@@ -2,6 +2,7 @@ package htlcswitch
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -188,7 +189,7 @@ func TestSwitchSendPending(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	packet := &htlcPacket{
 		incomingChanID: bobChanID,
 		incomingHTLCID: 0,
@@ -291,7 +292,7 @@ func TestSwitchForward(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	packet := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -405,7 +406,7 @@ func TestSwitchForwardFailAfterFullAdd(t *testing.T) {
 	// Create request which should be forwarded from Alice channel link to
 	// bob channel link.
 	preimage := [chainhash.HashSize]byte{1}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	ogPacket := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -596,7 +597,7 @@ func TestSwitchForwardSettleAfterFullAdd(t *testing.T) {
 	// Create request which should be forwarded from Alice channel link to
 	// bob channel link.
 	preimage := [chainhash.HashSize]byte{1}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	ogPacket := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -790,7 +791,7 @@ func TestSwitchForwardDropAfterFullAdd(t *testing.T) {
 	// Create request which should be forwarded from Alice channel link to
 	// bob channel link.
 	preimage := [chainhash.HashSize]byte{1}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	ogPacket := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -953,7 +954,7 @@ func TestSwitchForwardFailAfterHalfAdd(t *testing.T) {
 	// Create request which should be forwarded from Alice channel link to
 	// bob channel link.
 	preimage := [chainhash.HashSize]byte{1}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	ogPacket := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -1111,7 +1112,7 @@ func TestSwitchForwardCircuitPersistence(t *testing.T) {
 	// Create request which should be forwarded from Alice channel link to
 	// bob channel link.
 	preimage := [chainhash.HashSize]byte{1}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	ogPacket := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -1334,7 +1335,7 @@ func TestSkipIneligibleLinksMultiHopForward(t *testing.T) {
 	// Create a new packet that's destined for Bob as an incoming HTLC from
 	// Alice.
 	preimage := [chainhash.HashSize]byte{1}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	packet = &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -1407,7 +1408,7 @@ func testSkipLinkLocalForward(t *testing.T, eligible bool,
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	addMsg := &lnwire.UpdateAddHTLC{
 		PaymentHash: rhash,
 		Amount:      1,
@@ -1470,7 +1471,7 @@ func TestSwitchCancel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	request := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -1581,7 +1582,7 @@ func TestSwitchAddSamePayment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	request := &htlcPacket{
 		incomingChanID: aliceChannelLink.ShortChanID(),
 		incomingHTLCID: 0,
@@ -1732,7 +1733,7 @@ func TestSwitchSendPayment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := chainhash.HashH(preimage[:])
+	rhash := sha256.Sum256(preimage[:])
 	update := &lnwire.UpdateAddHTLC{
 		PaymentHash: rhash,
 		Amount:      1,
@@ -2270,7 +2271,7 @@ func TestInvalidFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to generate preimage: %v", err)
 	}
-	rhash := lntypes.Hash(chainhash.HashH(preimage[:]))
+	rhash := lntypes.Hash(sha256.Sum256(preimage[:]))
 	update := &lnwire.UpdateAddHTLC{
 		PaymentHash: rhash,
 		Amount:      1,

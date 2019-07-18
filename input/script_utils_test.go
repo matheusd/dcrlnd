@@ -2,6 +2,7 @@ package input
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"testing"
@@ -126,7 +127,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	// Generate a payment preimage to be used below.
 	paymentPreimage := revokePreimage
 	paymentPreimage[0] ^= 1
-	paymentHash := chainhash.HashB(paymentPreimage)
+	paymentHash := sha256.Sum256(paymentPreimage)
 
 	// We'll also need some tests keys for alice and bob, and metadata of
 	// the HTLC output.
@@ -143,7 +144,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 
 	// Generate the raw HTLC redemption scripts, and its p2wsh counterpart.
 	htlcWitnessScript, err := SenderHTLCScript(aliceLocalKey, bobLocalKey,
-		revocationKey, paymentHash)
+		revocationKey, paymentHash[:])
 	if err != nil {
 		t.Fatalf("unable to create htlc sender script: %v", err)
 	}
@@ -381,7 +382,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	// Generate a payment preimage to be used below.
 	paymentPreimage := revokePreimage
 	paymentPreimage[0] ^= 1
-	paymentHash := chainhash.HashB(paymentPreimage)
+	paymentHash := sha256.Sum256(paymentPreimage)
 
 	// We'll also need some tests keys for alice and bob, and metadata of
 	// the HTLC output.
@@ -400,7 +401,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 
 	// Generate the raw HTLC redemption scripts, and its p2wsh counterpart.
 	htlcWitnessScript, err := ReceiverHTLCScript(cltvTimeout, aliceLocalKey,
-		bobLocalKey, revocationKey, paymentHash)
+		bobLocalKey, revocationKey, paymentHash[:])
 	if err != nil {
 		t.Fatalf("unable to create htlc sender script: %v", err)
 	}

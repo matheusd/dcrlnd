@@ -172,7 +172,8 @@ const (
 	//              - OP_DATA_32                             1 byte
 	//              - OP_EQUAL                               1 byte
 	//              - OP_IF                                  1 byte
-	//                      - OP_HASH160                     1 byte
+	//                      - OP_SHA256	                 1 byte
+	//                      - OP_RIPEMD160                   1 byte
 	//                      - OP_DATA_20                     1 byte
 	//                      - RIPEMD160(payment_hash)       20 bytes
 	//                      - OP_EQUALVERIFY                 1 byte
@@ -196,7 +197,7 @@ const (
 	//
 	// TODO(decred) verify whether the maximum cltv_expirt can actually occupy
 	// the full 5 bytes (which is the maximum used by OP_CHECKLOCKTIMEVERIFY).
-	acceptedHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 7*1 + 20 + 4*1 +
+	acceptedHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 8*1 + 20 + 4*1 +
 		33 + 5*1 + 5 + 5*1
 
 	// offeredHtlcRedeemScriptSize is the worst (largest) size of a redeemScript used
@@ -230,7 +231,8 @@ const (
 	//		                - OP_DATA_2                  1 byte
 	//		                - OP_CHECKMULTISIG           1 byte
 	//		        - OP_ELSE                            1 byte
-	//		                - OP_HASH160                 1 byte
+	//		                - OP_SHA256                  1 byte
+	//				- OP_RIPEMD160		     1 byte
 	//		                - OP_DATA_20                 1 byte
 	//		                - RIPEMD160(payment_hash)   20 bytes
 	//		                - OP_EQUALVERIFY             1 byte
@@ -239,7 +241,7 @@ const (
 	//		- OP_ENDIF                                   1 byte
 	//
 	// Total: 133 bytes
-	offeredHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 10*1 + 33 + 5*1 + 20 + 4*1
+	offeredHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 10*1 + 33 + 6*1 + 20 + 4*1
 
 	// The following *SigScript constants record sizes for various types of
 	// LN-specific sigScripts, spending outputs that use one of the custom

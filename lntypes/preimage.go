@@ -1,10 +1,9 @@
 package lntypes
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-
-	"github.com/decred/dcrd/chaincfg/chainhash"
 )
 
 // PreimageSize of array used to store preimagees.
@@ -52,7 +51,7 @@ func MakePreimageFromStr(newPreimage string) (Preimage, error) {
 
 // Hash returns the sha256 hash of the preimage.
 func (p *Preimage) Hash() Hash {
-	return Hash(chainhash.HashH(p[:]))
+	return Hash(sha256.Sum256(p[:]))
 }
 
 // Matches returns whether this preimage is the preimage of the given hash.

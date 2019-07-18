@@ -275,7 +275,8 @@ func SenderHTLCScript(senderHtlcKey, receiverHtlcKey,
 	// the payment hash, which is already the sha256 of the payment
 	// pre-image. By using this little trick we're able save space on-chain
 	// as the witness includes a 20-byte hash rather than a 32-byte hash.
-	builder.AddOp(txscript.OP_HASH160)
+	builder.AddOp(txscript.OP_SHA256)
+	builder.AddOp(txscript.OP_RIPEMD160)
 	builder.AddData(Ripemd160H(paymentHash))
 	builder.AddOp(txscript.OP_EQUALVERIFY)
 
@@ -473,7 +474,8 @@ func ReceiverHTLCScript(cltvExpiry uint32, senderHtlcKey,
 	// Next we'll hash the item on the top of the stack, if it matches the
 	// payment pre-image, then we'll continue. Otherwise, we'll end the
 	// script here as this is the invalid payment pre-image.
-	builder.AddOp(txscript.OP_HASH160)
+	builder.AddOp(txscript.OP_SHA256)
+	builder.AddOp(txscript.OP_RIPEMD160)
 	builder.AddData(Ripemd160H(paymentHash))
 	builder.AddOp(txscript.OP_EQUALVERIFY)
 

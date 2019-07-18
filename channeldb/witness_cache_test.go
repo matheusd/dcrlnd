@@ -1,9 +1,9 @@
 package channeldb
 
 import (
+	"crypto/sha256"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/lntypes"
 )
 
@@ -224,7 +224,7 @@ func (w *WitnessCache) legacyAddWitnesses(wType WitnessType,
 		// transformation for the given witness type.
 		switch wType {
 		case Sha256HashWitness:
-			key := chainhash.HashB(witness)
+			key := sha256.Sum256(witness)
 			entries = append(entries, witnessEntry{
 				key:     key[:],
 				witness: witness,

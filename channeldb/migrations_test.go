@@ -2,6 +2,7 @@ package channeldb
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"math/rand"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
@@ -25,7 +25,7 @@ func TestPaymentStatusesMigration(t *testing.T) {
 	t.Parallel()
 
 	fakePayment := makeFakePayment()
-	paymentHash := chainhash.HashH(fakePayment.PaymentPreimage[:])
+	paymentHash := sha256.Sum256(fakePayment.PaymentPreimage[:])
 
 	// Add fake payment to test database, verifying that it was created,
 	// that we have only one payment, and its status is not "Completed".

@@ -5,6 +5,7 @@ package dcrlnd
 import (
 	"bytes"
 	crand "crypto/rand"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -1987,7 +1988,7 @@ func initRevocationWindows(chanA, chanB *lnwallet.LightningChannel, windowSize i
 // TODO(conner) remove code duplication
 func createHTLC(data int, amount lnwire.MilliAtom) (*lnwire.UpdateAddHTLC, [32]byte) {
 	preimage := bytes.Repeat([]byte{byte(data)}, 32)
-	paymentHash := chainhash.HashH(preimage)
+	paymentHash := sha256.Sum256(preimage)
 
 	var returnPreimage [32]byte
 	copy(returnPreimage[:], preimage)
