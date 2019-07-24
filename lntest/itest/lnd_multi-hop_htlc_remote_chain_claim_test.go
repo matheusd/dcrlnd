@@ -135,8 +135,8 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// We'll now mine enough blocks so Carol decides that she needs to go
 	// on-chain to claim the HTLC as Bob has been inactive. We mine up to
 	// just before the deadline to check the transaction is in the mempool.
-	numBlocks := uint32(invoiceReq.CltvExpiry-
-		dcrlnd.DefaultIncomingBroadcastDelta) - defaultCSV - 1
+	numBlocks := padCLTV(uint32(invoiceReq.CltvExpiry-
+		dcrlnd.DefaultIncomingBroadcastDelta) - defaultCSV - 1)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}
