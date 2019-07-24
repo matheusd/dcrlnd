@@ -38,6 +38,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
 
 	"golang.org/x/net/context"
@@ -2789,6 +2790,12 @@ func checkPendingHtlcStageAndMaturity(
 	return nil
 }
 
+// padCLTV is a small helper function that pads a cltv value with a block
+// padding.
+func padCLTV(cltv uint32) uint32 {
+	return cltv + uint32(routing.BlockPadding)
+}
+
 // testChannelForceClosure performs a test to exercise the behavior of "force"
 // closing a channel or unilaterally broadcasting the latest local commitment
 // state on-chain. The test creates a new channel between Alice and Carol, then
@@ -2914,8 +2921,8 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	var (
 		startHeight           = uint32(curHeight)
 		commCsvMaturityHeight = startHeight + 1 + defaultCSV
-		htlcExpiryHeight      = startHeight + defaultCLTV
-		htlcCsvMaturityHeight = startHeight + defaultCLTV + 1 + defaultCSV
+		htlcExpiryHeight      = padCLTV(startHeight + defaultCLTV)
+		htlcCsvMaturityHeight = padCLTV(startHeight + defaultCLTV + 1 + defaultCSV)
 	)
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -3237,8 +3244,8 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	// output spending from the commitment txn, so we must deduct the number
 	// of blocks we have generated since adding it to the nursery, and take
 	// an additional block off so that we end up one block shy of the expiry
-	// height.
-	cltvHeightDelta := defaultCLTV - defaultCSV - 2 - 1
+	// height, and add the block padding.
+	cltvHeightDelta := padCLTV(defaultCLTV - defaultCSV - 2 - 1)
 
 	// Advance the blockchain until just before the CLTV expires, nothing
 	// exciting should have happened during this time.
@@ -8104,7 +8111,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		// The new CSV delay will be the previous delta + 2 so that
 		// Carol doesn't attempt to redeem the CSV-encumbered
 		// commitment output before Dave can send the justice tx.
-		csvDelay = cltvDelta + 2
+		csvDelay = cltvDelta + 2 + int(routing.BlockPadding)
 	)
 
 	// Since this test will result in the counterparty being left in a
@@ -8406,7 +8413,8 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 
 	// Mine enough blocks for Carol to attempt to redeem the timed-out
 	// htlcs via second-level txs.
-	mineBlocks(t, net, uint32(cltvDelta), 0)
+	numBlocks := padCLTV(uint32(cltvDelta))
+	mineBlocks(t, net, numBlocks, 0)
 
 	// isSecondLevelSpend checks that the passed secondLevelTxid is a
 	// potential second level spend spending from the commit tx.
@@ -10969,7 +10977,9 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// commitment transaction due to the fact that the HTLC is about to
 	// timeout. With the default outgoing broadcast delta of zero, this will
 	// be the same height as the htlc expiry height.
-	numBlocks := uint32(finalCltvDelta - dcrlnd.DefaultOutgoingBroadcastDelta)
+	numBlocks := padCLTV(
+		uint32(finalCltvDelta - dcrlnd.DefaultOutgoingBroadcastDelta),
+	)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -11224,7 +11234,10 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 
 	// We'll now mine enough blocks for the HTLC to expire. After this, Bob
 	// should hand off the now expired HTLC output to the utxo nursery.
-	if _, err := net.Generate(finalCltvDelta - defaultCSV - 1); err != nil {
+	numBlocks := padCLTV(
+		finalCltvDelta - defaultCSV - 1,
+	)
+	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -11470,7 +11483,8 @@ func testMultiHopRemoteForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// Next, we'll mine enough blocks for the HTLC to expire. At this
 	// point, Bob should hand off the output to his internal utxo nursery,
 	// which will broadcast a sweep transaction.
-	if _, err := net.Generate(finalCltvDelta - 1); err != nil {
+	numBlocks := padCLTV(finalCltvDelta - 1)
+	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 

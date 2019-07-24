@@ -1,0 +1,3435 @@
+\033[0;32m Installing dcrd v1.3.0.\033[0m
+GO111MODULE=on go get -v github.com/decred/dcrd/@v1.3.0
+\033[0;32m Running unit tests.\033[0m
+go list ./... | grep -v '/vendor/' | xargs -L 1 env GO111MODULE=on go test -v -tags="dev nolog"  -test.timeout=60m
+=== RUN   TestBreachedOutputSerialization
+--- PASS: TestBreachedOutputSerialization (0.00s)
+=== RUN   TestRetributionSerialization
+--- PASS: TestRetributionSerialization (0.00s)
+=== RUN   TestMockRetributionStore
+=== RUN   TestMockRetributionStore/mockRetributionStore.Initialization
+=== RUN   TestMockRetributionStore/mockRetributionStore.Add/Remove
+=== RUN   TestMockRetributionStore/mockRetributionStore.Persistence
+=== RUN   TestMockRetributionStore/mockRetributionStore.Overwrite
+=== RUN   TestMockRetributionStore/mockRetributionStore.RemoveEmpty
+--- PASS: TestMockRetributionStore (0.00s)
+    --- PASS: TestMockRetributionStore/mockRetributionStore.Initialization (0.00s)
+    --- PASS: TestMockRetributionStore/mockRetributionStore.Add/Remove (0.00s)
+    --- PASS: TestMockRetributionStore/mockRetributionStore.Persistence (0.00s)
+    --- PASS: TestMockRetributionStore/mockRetributionStore.Overwrite (0.00s)
+    --- PASS: TestMockRetributionStore/mockRetributionStore.RemoveEmpty (0.00s)
+=== RUN   TestChannelDBRetributionStore
+=== RUN   TestChannelDBRetributionStore/channeldbDBRetributionStore.Initialization
+=== RUN   TestChannelDBRetributionStore/channeldbDBRetributionStore.Add/Remove
+=== RUN   TestChannelDBRetributionStore/channeldbDBRetributionStore.Persistence
+=== RUN   TestChannelDBRetributionStore/channeldbDBRetributionStore.Overwrite
+=== RUN   TestChannelDBRetributionStore/channeldbDBRetributionStore.RemoveEmpty
+--- PASS: TestChannelDBRetributionStore (0.01s)
+    --- PASS: TestChannelDBRetributionStore/channeldbDBRetributionStore.Initialization (0.00s)
+    --- PASS: TestChannelDBRetributionStore/channeldbDBRetributionStore.Add/Remove (0.00s)
+    --- PASS: TestChannelDBRetributionStore/channeldbDBRetributionStore.Persistence (0.01s)
+    --- PASS: TestChannelDBRetributionStore/channeldbDBRetributionStore.Overwrite (0.00s)
+    --- PASS: TestChannelDBRetributionStore/channeldbDBRetributionStore.RemoveEmpty (0.00s)
+=== RUN   TestBreachHandoffSuccess
+--- PASS: TestBreachHandoffSuccess (0.04s)
+=== RUN   TestBreachHandoffFail
+--- PASS: TestBreachHandoffFail (0.04s)
+=== RUN   TestBreachSpends
+=== RUN   TestBreachSpends/all_spends
+=== RUN   TestBreachSpends/commit_spends,_second_level_sweep
+--- PASS: TestBreachSpends (0.15s)
+    --- PASS: TestBreachSpends/all_spends (0.10s)
+    --- PASS: TestBreachSpends/commit_spends,_second_level_sweep (0.05s)
+=== RUN   TestFundingManagerNormalWorkflow
+=== PAUSE TestFundingManagerNormalWorkflow
+=== RUN   TestFundingManagerRestartBehavior
+=== PAUSE TestFundingManagerRestartBehavior
+=== RUN   TestFundingManagerOfflinePeer
+=== PAUSE TestFundingManagerOfflinePeer
+=== RUN   TestFundingManagerPeerTimeoutAfterInitFunding
+=== PAUSE TestFundingManagerPeerTimeoutAfterInitFunding
+=== RUN   TestFundingManagerPeerTimeoutAfterFundingOpen
+=== PAUSE TestFundingManagerPeerTimeoutAfterFundingOpen
+=== RUN   TestFundingManagerPeerTimeoutAfterFundingAccept
+=== PAUSE TestFundingManagerPeerTimeoutAfterFundingAccept
+=== RUN   TestFundingManagerFundingTimeout
+=== PAUSE TestFundingManagerFundingTimeout
+=== RUN   TestFundingManagerFundingNotTimeoutInitiator
+=== PAUSE TestFundingManagerFundingNotTimeoutInitiator
+=== RUN   TestFundingManagerReceiveFundingLockedTwice
+=== PAUSE TestFundingManagerReceiveFundingLockedTwice
+=== RUN   TestFundingManagerRestartAfterChanAnn
+=== PAUSE TestFundingManagerRestartAfterChanAnn
+=== RUN   TestFundingManagerRestartAfterReceivingFundingLocked
+=== PAUSE TestFundingManagerRestartAfterReceivingFundingLocked
+=== RUN   TestFundingManagerPrivateChannel
+=== PAUSE TestFundingManagerPrivateChannel
+=== RUN   TestFundingManagerPrivateRestart
+=== PAUSE TestFundingManagerPrivateRestart
+=== RUN   TestFundingManagerCustomChannelParameters
+=== PAUSE TestFundingManagerCustomChannelParameters
+=== RUN   TestFundingManagerMaxPendingChannels
+=== PAUSE TestFundingManagerMaxPendingChannels
+=== RUN   TestFundingManagerRejectPush
+=== PAUSE TestFundingManagerRejectPush
+=== RUN   TestFundingManagerMaxConfs
+=== PAUSE TestFundingManagerMaxConfs
+=== RUN   TestFundingManagerFundAll
+=== PAUSE TestFundingManagerFundAll
+=== RUN   TestNurseryStoreInit
+--- PASS: TestNurseryStoreInit (0.00s)
+=== RUN   TestNurseryStoreIncubate
+--- PASS: TestNurseryStoreIncubate (0.01s)
+=== RUN   TestNurseryStoreGraduate
+--- PASS: TestNurseryStoreGraduate (0.00s)
+=== RUN   TestPeerChannelClosureAcceptFeeResponder
+=== PAUSE TestPeerChannelClosureAcceptFeeResponder
+=== RUN   TestPeerChannelClosureAcceptFeeInitiator
+=== PAUSE TestPeerChannelClosureAcceptFeeInitiator
+=== RUN   TestPeerChannelClosureFeeNegotiationsResponder
+=== PAUSE TestPeerChannelClosureFeeNegotiationsResponder
+=== RUN   TestPeerChannelClosureFeeNegotiationsInitiator
+=== PAUSE TestPeerChannelClosureFeeNegotiationsInitiator
+=== RUN   TestParseHexColor
+--- PASS: TestParseHexColor (0.00s)
+=== RUN   TestTLSAutoRegeneration
+--- PASS: TestTLSAutoRegeneration (0.01s)
+=== RUN   TestKidOutputSerialization
+=== PAUSE TestKidOutputSerialization
+=== RUN   TestBabyOutputSerialization
+=== PAUSE TestBabyOutputSerialization
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/no_restart
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_1
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_2
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_3
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_4
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_5
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_6
+=== RUN   TestNurseryOutgoingHtlcSuccessOnLocal/restart_7
+--- PASS: TestNurseryOutgoingHtlcSuccessOnLocal (0.01s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/no_restart (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_1 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_2 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_3 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_4 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_5 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_6 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnLocal/restart_7 (0.00s)
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/no_restart
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/restart_1
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/restart_2
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/restart_3
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/restart_4
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/restart_5
+=== RUN   TestNurseryOutgoingHtlcSuccessOnRemote/restart_6
+--- PASS: TestNurseryOutgoingHtlcSuccessOnRemote (0.01s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/no_restart (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/restart_1 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/restart_2 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/restart_3 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/restart_4 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/restart_5 (0.00s)
+    --- PASS: TestNurseryOutgoingHtlcSuccessOnRemote/restart_6 (0.00s)
+=== RUN   TestNurseryCommitSuccessOnLocal
+=== RUN   TestNurseryCommitSuccessOnLocal/no_restart
+=== RUN   TestNurseryCommitSuccessOnLocal/restart_1
+=== RUN   TestNurseryCommitSuccessOnLocal/restart_2
+=== RUN   TestNurseryCommitSuccessOnLocal/restart_3
+=== RUN   TestNurseryCommitSuccessOnLocal/restart_4
+=== RUN   TestNurseryCommitSuccessOnLocal/restart_5
+=== RUN   TestNurseryCommitSuccessOnLocal/restart_6
+--- PASS: TestNurseryCommitSuccessOnLocal (0.01s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/no_restart (0.00s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/restart_1 (0.00s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/restart_2 (0.00s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/restart_3 (0.00s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/restart_4 (0.00s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/restart_5 (0.00s)
+    --- PASS: TestNurseryCommitSuccessOnLocal/restart_6 (0.00s)
+=== CONT  TestFundingManagerNormalWorkflow
+=== CONT  TestBabyOutputSerialization
+=== CONT  TestKidOutputSerialization
+--- PASS: TestBabyOutputSerialization (0.00s)
+=== CONT  TestFundingManagerPrivateChannel
+--- PASS: TestKidOutputSerialization (0.00s)
+=== CONT  TestFundingManagerRestartAfterReceivingFundingLocked
+=== CONT  TestFundingManagerPeerTimeoutAfterFundingAccept
+--- PASS: TestFundingManagerPeerTimeoutAfterFundingAccept (0.01s)
+=== CONT  TestPeerChannelClosureFeeNegotiationsInitiator
+--- PASS: TestPeerChannelClosureFeeNegotiationsInitiator (0.01s)
+=== CONT  TestPeerChannelClosureFeeNegotiationsResponder
+--- PASS: TestPeerChannelClosureFeeNegotiationsResponder (0.01s)
+=== CONT  TestPeerChannelClosureAcceptFeeInitiator
+--- PASS: TestPeerChannelClosureAcceptFeeInitiator (0.01s)
+=== CONT  TestPeerChannelClosureAcceptFeeResponder
+--- PASS: TestPeerChannelClosureAcceptFeeResponder (0.01s)
+=== CONT  TestFundingManagerFundAll
+--- PASS: TestFundingManagerFundAll (0.01s)
+=== CONT  TestFundingManagerMaxConfs
+--- PASS: TestFundingManagerMaxConfs (0.00s)
+=== CONT  TestFundingManagerRejectPush
+--- PASS: TestFundingManagerRejectPush (0.00s)
+=== CONT  TestFundingManagerMaxPendingChannels
+--- PASS: TestFundingManagerMaxPendingChannels (0.04s)
+=== CONT  TestFundingManagerCustomChannelParameters
+--- PASS: TestFundingManagerCustomChannelParameters (0.61s)
+=== CONT  TestFundingManagerPrivateRestart
+=== CONT  TestFundingManagerReceiveFundingLockedTwice
+--- PASS: TestFundingManagerRestartAfterReceivingFundingLocked (2.12s)
+--- PASS: TestFundingManagerNormalWorkflow (2.31s)
+=== CONT  TestFundingManagerRestartAfterChanAnn
+--- PASS: TestFundingManagerPrivateChannel (2.71s)
+=== CONT  TestFundingManagerFundingNotTimeoutInitiator
+--- PASS: TestFundingManagerPrivateRestart (2.81s)
+=== CONT  TestFundingManagerPeerTimeoutAfterInitFunding
+--- PASS: TestFundingManagerPeerTimeoutAfterInitFunding (0.00s)
+=== CONT  TestFundingManagerPeerTimeoutAfterFundingOpen
+--- PASS: TestFundingManagerPeerTimeoutAfterFundingOpen (0.00s)
+=== CONT  TestFundingManagerFundingTimeout
+--- PASS: TestFundingManagerFundingTimeout (0.81s)
+=== CONT  TestFundingManagerOfflinePeer
+--- PASS: TestFundingManagerRestartAfterChanAnn (2.11s)
+=== CONT  TestFundingManagerRestartBehavior
+--- PASS: TestFundingManagerReceiveFundingLockedTwice (2.71s)
+--- PASS: TestFundingManagerFundingNotTimeoutInitiator (2.92s)
+--- PASS: TestFundingManagerOfflinePeer (2.11s)
+--- PASS: TestFundingManagerRestartBehavior (2.22s)
+PASS
+ok  	github.com/decred/dcrlnd	7.001s
+=== RUN   TestAezeedVersion0TestVectors
+=== PAUSE TestAezeedVersion0TestVectors
+=== RUN   TestEmptyPassphraseDerivation
+=== PAUSE TestEmptyPassphraseDerivation
+=== RUN   TestManualEntropyGeneration
+=== PAUSE TestManualEntropyGeneration
+=== RUN   TestInvalidPassphraseRejection
+=== PAUSE TestInvalidPassphraseRejection
+=== RUN   TestRawEncipherDecipher
+=== PAUSE TestRawEncipherDecipher
+=== RUN   TestInvalidExternalVersion
+=== PAUSE TestInvalidExternalVersion
+=== RUN   TestChangePassphrase
+=== PAUSE TestChangePassphrase
+=== RUN   TestChangePassphraseWrongPass
+=== PAUSE TestChangePassphraseWrongPass
+=== RUN   TestMnemonicEncoding
+=== PAUSE TestMnemonicEncoding
+=== RUN   TestEncipherDecipher
+=== PAUSE TestEncipherDecipher
+=== RUN   TestSeedEncodeDecode
+--- PASS: TestSeedEncodeDecode (0.00s)
+=== RUN   TestDecipherUnknownMnenomicWord
+=== PAUSE TestDecipherUnknownMnenomicWord
+=== RUN   TestDecipherIncorrectMnemonic
+--- PASS: TestDecipherIncorrectMnemonic (0.00s)
+=== CONT  TestAezeedVersion0TestVectors
+=== CONT  TestChangePassphrase
+=== CONT  TestEncipherDecipher
+--- PASS: TestAezeedVersion0TestVectors (0.00s)
+=== CONT  TestInvalidExternalVersion
+=== CONT  TestInvalidPassphraseRejection
+--- PASS: TestInvalidExternalVersion (0.00s)
+=== CONT  TestRawEncipherDecipher
+--- PASS: TestInvalidPassphraseRejection (0.00s)
+=== CONT  TestMnemonicEncoding
+--- PASS: TestRawEncipherDecipher (0.00s)
+=== CONT  TestManualEntropyGeneration
+--- PASS: TestManualEntropyGeneration (0.00s)
+=== CONT  TestChangePassphraseWrongPass
+--- PASS: TestMnemonicEncoding (0.00s)
+=== CONT  TestDecipherUnknownMnenomicWord
+--- PASS: TestChangePassphraseWrongPass (0.00s)
+=== CONT  TestEmptyPassphraseDerivation
+--- PASS: TestDecipherUnknownMnenomicWord (0.00s)
+--- PASS: TestEmptyPassphraseDerivation (0.00s)
+--- PASS: TestChangePassphrase (0.00s)
+--- PASS: TestEncipherDecipher (0.03s)
+PASS
+ok  	github.com/decred/dcrlnd/aezeed	(cached)
+=== RUN   TestConstraintsChannelBudget
+=== PAUSE TestConstraintsChannelBudget
+=== RUN   TestAgentChannelOpenSignal
+=== PAUSE TestAgentChannelOpenSignal
+=== RUN   TestAgentChannelFailureSignal
+=== PAUSE TestAgentChannelFailureSignal
+=== RUN   TestAgentChannelCloseSignal
+=== PAUSE TestAgentChannelCloseSignal
+=== RUN   TestAgentBalanceUpdate
+=== PAUSE TestAgentBalanceUpdate
+=== RUN   TestAgentImmediateAttach
+=== PAUSE TestAgentImmediateAttach
+=== RUN   TestAgentPrivateChannels
+=== PAUSE TestAgentPrivateChannels
+=== RUN   TestAgentPendingChannelState
+=== PAUSE TestAgentPendingChannelState
+=== RUN   TestAgentPendingOpenChannel
+=== PAUSE TestAgentPendingOpenChannel
+=== RUN   TestAgentOnNodeUpdates
+=== PAUSE TestAgentOnNodeUpdates
+=== RUN   TestAgentSkipPendingConns
+=== PAUSE TestAgentSkipPendingConns
+=== RUN   TestAgentQuitWhenPendingConns
+=== PAUSE TestAgentQuitWhenPendingConns
+=== RUN   TestAgentChannelSizeAllocation
+=== PAUSE TestAgentChannelSizeAllocation
+=== RUN   TestWeightedChoiceEmptyMap
+=== PAUSE TestWeightedChoiceEmptyMap
+=== RUN   TestWeightedChoiceSingleIndex
+=== PAUSE TestWeightedChoiceSingleIndex
+=== RUN   TestWeightedChoiceDistribution
+--- PASS: TestWeightedChoiceDistribution (1.16s)
+=== RUN   TestChooseNEmptyMap
+=== PAUSE TestChooseNEmptyMap
+=== RUN   TestChooseNMinimum
+=== PAUSE TestChooseNMinimum
+=== RUN   TestChooseNSample
+=== PAUSE TestChooseNSample
+=== RUN   TestPrefAttachmentSelectEmptyGraph
+=== RUN   TestPrefAttachmentSelectEmptyGraph/disk_graph
+=== RUN   TestPrefAttachmentSelectEmptyGraph/mem_graph
+--- PASS: TestPrefAttachmentSelectEmptyGraph (0.00s)
+    --- PASS: TestPrefAttachmentSelectEmptyGraph/disk_graph (0.00s)
+    --- PASS: TestPrefAttachmentSelectEmptyGraph/mem_graph (0.00s)
+=== RUN   TestPrefAttachmentSelectTwoVertexes
+=== PAUSE TestPrefAttachmentSelectTwoVertexes
+=== RUN   TestPrefAttachmentSelectGreedyAllocation
+=== PAUSE TestPrefAttachmentSelectGreedyAllocation
+=== RUN   TestPrefAttachmentSelectSkipNodes
+=== PAUSE TestPrefAttachmentSelectSkipNodes
+=== RUN   TestSetNodeScores
+=== PAUSE TestSetNodeScores
+=== RUN   TestMedian
+=== PAUSE TestMedian
+=== CONT  TestConstraintsChannelBudget
+=== CONT  TestAgentChannelSizeAllocation
+--- PASS: TestConstraintsChannelBudget (0.00s)
+=== CONT  TestAgentQuitWhenPendingConns
+=== CONT  TestAgentImmediateAttach
+--- PASS: TestAgentQuitWhenPendingConns (0.00s)
+=== CONT  TestMedian
+--- PASS: TestMedian (0.00s)
+=== CONT  TestSetNodeScores
+=== CONT  TestAgentPrivateChannels
+--- PASS: TestAgentImmediateAttach (0.00s)
+--- PASS: TestAgentPrivateChannels (0.00s)
+=== CONT  TestAgentChannelCloseSignal
+=== CONT  TestAgentBalanceUpdate
+--- PASS: TestAgentBalanceUpdate (0.00s)
+--- PASS: TestAgentChannelCloseSignal (0.00s)
+=== CONT  TestAgentChannelFailureSignal
+=== CONT  TestPrefAttachmentSelectSkipNodes
+=== RUN   TestPrefAttachmentSelectSkipNodes/disk_graph
+--- PASS: TestAgentChannelFailureSignal (0.00s)
+=== CONT  TestAgentChannelOpenSignal
+--- PASS: TestSetNodeScores (0.00s)
+=== CONT  TestPrefAttachmentSelectGreedyAllocation
+=== RUN   TestPrefAttachmentSelectGreedyAllocation/disk_graph
+--- PASS: TestAgentChannelOpenSignal (0.00s)
+=== CONT  TestAgentSkipPendingConns
+=== RUN   TestPrefAttachmentSelectSkipNodes/mem_graph
+--- PASS: TestPrefAttachmentSelectSkipNodes (0.00s)
+    --- PASS: TestPrefAttachmentSelectSkipNodes/disk_graph (0.00s)
+    --- PASS: TestPrefAttachmentSelectSkipNodes/mem_graph (0.00s)
+=== CONT  TestAgentPendingOpenChannel
+--- PASS: TestAgentPendingOpenChannel (0.00s)
+=== CONT  TestPrefAttachmentSelectTwoVertexes
+=== RUN   TestPrefAttachmentSelectTwoVertexes/disk_graph
+=== RUN   TestPrefAttachmentSelectGreedyAllocation/mem_graph
+--- PASS: TestPrefAttachmentSelectGreedyAllocation (0.00s)
+    --- PASS: TestPrefAttachmentSelectGreedyAllocation/disk_graph (0.00s)
+    --- PASS: TestPrefAttachmentSelectGreedyAllocation/mem_graph (0.00s)
+=== CONT  TestAgentOnNodeUpdates
+--- PASS: TestAgentOnNodeUpdates (0.00s)
+=== CONT  TestAgentPendingChannelState
+=== RUN   TestPrefAttachmentSelectTwoVertexes/mem_graph
+--- PASS: TestAgentPendingChannelState (0.00s)
+=== CONT  TestChooseNEmptyMap
+--- PASS: TestChooseNEmptyMap (0.00s)
+=== CONT  TestChooseNSample
+--- PASS: TestPrefAttachmentSelectTwoVertexes (0.00s)
+    --- PASS: TestPrefAttachmentSelectTwoVertexes/disk_graph (0.00s)
+    --- PASS: TestPrefAttachmentSelectTwoVertexes/mem_graph (0.00s)
+=== CONT  TestWeightedChoiceSingleIndex
+--- PASS: TestWeightedChoiceSingleIndex (0.00s)
+=== CONT  TestWeightedChoiceEmptyMap
+--- PASS: TestWeightedChoiceEmptyMap (0.00s)
+=== CONT  TestChooseNMinimum
+--- PASS: TestChooseNMinimum (0.01s)
+--- PASS: TestAgentChannelSizeAllocation (0.15s)
+--- PASS: TestAgentSkipPendingConns (3.01s)
+--- PASS: TestChooseNSample (3.61s)
+PASS
+ok  	github.com/decred/dcrlnd/autopilot	4.804s
+=== RUN   TestConnectionCorrectness
+--- PASS: TestConnectionCorrectness (0.02s)
+=== RUN   TestConcurrentHandshakes
+--- PASS: TestConcurrentHandshakes (0.00s)
+=== RUN   TestMaxPayloadLength
+=== PAUSE TestMaxPayloadLength
+=== RUN   TestWriteMessageChunking
+--- PASS: TestWriteMessageChunking (0.00s)
+=== RUN   TestBolt0008TestVectors
+=== PAUSE TestBolt0008TestVectors
+=== RUN   TestFlush
+=== RUN   TestFlush/partial_header_write
+=== RUN   TestFlush/full_payload_then_full_mac
+=== RUN   TestFlush/payload-only,_straddle,_mac-only
+=== RUN   TestFlush/flush_serial
+--- PASS: TestFlush (0.00s)
+    --- PASS: TestFlush/partial_header_write (0.00s)
+    --- PASS: TestFlush/full_payload_then_full_mac (0.00s)
+    --- PASS: TestFlush/payload-only,_straddle,_mac-only (0.00s)
+    --- PASS: TestFlush/flush_serial (0.00s)
+=== CONT  TestMaxPayloadLength
+--- PASS: TestMaxPayloadLength (0.00s)
+=== CONT  TestBolt0008TestVectors
+--- PASS: TestBolt0008TestVectors (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/brontide	(cached)
+=== RUN   TestRecycleSlice
+=== RUN   TestRecycleSlice/length_zero
+=== RUN   TestRecycleSlice/length_one
+=== RUN   TestRecycleSlice/length_power_of_two_length
+=== RUN   TestRecycleSlice/length_non_power_of_two
+--- PASS: TestRecycleSlice (0.00s)
+    --- PASS: TestRecycleSlice/length_zero (0.00s)
+    --- PASS: TestRecycleSlice/length_one (0.00s)
+    --- PASS: TestRecycleSlice/length_power_of_two_length (0.00s)
+    --- PASS: TestRecycleSlice/length_non_power_of_two (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/buffer	(cached)
+?   	github.com/decred/dcrlnd/build	[no test files]
+=== RUN   TestHeightHintCacheConfirms
+=== PAUSE TestHeightHintCacheConfirms
+=== RUN   TestHeightHintCacheSpends
+=== PAUSE TestHeightHintCacheSpends
+=== RUN   TestParsePkScript
+=== PAUSE TestParsePkScript
+=== RUN   TestComputePkScript
+=== PAUSE TestComputePkScript
+=== RUN   TestInterfaces
+2019/07/30 10:42:34 Running 11 ChainNotifier interface tests
+=== RUN   TestInterfaces/dcrd_single_conf_ntfn
+=== RUN   TestInterfaces/dcrd_single_conf_ntfn_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_multi_conf_ntfn
+=== RUN   TestInterfaces/dcrd_multi_conf_ntfn_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_batch_conf_ntfn
+=== RUN   TestInterfaces/dcrd_batch_conf_ntfn_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_multi_client_conf
+=== RUN   TestInterfaces/dcrd_multi_client_conf_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_lazy_ntfn_consumer
+=== RUN   TestInterfaces/dcrd_lazy_ntfn_consumer_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_historical_conf_dispatch
+=== RUN   TestInterfaces/dcrd_historical_conf_dispatch_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_reorg_conf
+=== RUN   TestInterfaces/dcrd_reorg_conf_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_spend_ntfn
+=== RUN   TestInterfaces/dcrd_spend_ntfn_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_historical_spend_dispatch
+=== RUN   TestInterfaces/dcrd_historical_spend_dispatch_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_reorg_spend
+=== RUN   TestInterfaces/dcrd_reorg_spend_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_cancel_spend_ntfn
+=== RUN   TestInterfaces/dcrd_cancel_spend_ntfn_with_script_dispatch
+=== RUN   TestInterfaces/dcrd_block_epoch
+=== RUN   TestInterfaces/dcrd_cancel_epoch_ntfn
+=== RUN   TestInterfaces/dcrd:_catch_up_client_on_historical_block_epoch_ntfns
+=== RUN   TestInterfaces/dcrd:_test_catch_up_on_missed_blocks
+=== RUN   TestInterfaces/dcrd:_test_catch_up_on_missed_blocks_w/_reorged_best_block
+--- PASS: TestInterfaces (86.51s)
+    --- PASS: TestInterfaces/dcrd_single_conf_ntfn (0.04s)
+    --- PASS: TestInterfaces/dcrd_single_conf_ntfn_with_script_dispatch (0.05s)
+    --- PASS: TestInterfaces/dcrd_multi_conf_ntfn (0.04s)
+    --- PASS: TestInterfaces/dcrd_multi_conf_ntfn_with_script_dispatch (0.04s)
+    --- PASS: TestInterfaces/dcrd_batch_conf_ntfn (0.31s)
+    --- PASS: TestInterfaces/dcrd_batch_conf_ntfn_with_script_dispatch (0.35s)
+    --- PASS: TestInterfaces/dcrd_multi_client_conf (0.04s)
+    --- PASS: TestInterfaces/dcrd_multi_client_conf_with_script_dispatch (0.04s)
+    --- PASS: TestInterfaces/dcrd_lazy_ntfn_consumer (0.07s)
+    --- PASS: TestInterfaces/dcrd_lazy_ntfn_consumer_with_script_dispatch (0.08s)
+    --- PASS: TestInterfaces/dcrd_historical_conf_dispatch (7.11s)
+    --- PASS: TestInterfaces/dcrd_historical_conf_dispatch_with_script_dispatch (7.11s)
+    --- PASS: TestInterfaces/dcrd_reorg_conf (2.61s)
+    --- PASS: TestInterfaces/dcrd_reorg_conf_with_script_dispatch (2.48s)
+    --- PASS: TestInterfaces/dcrd_spend_ntfn (20.07s)
+    --- PASS: TestInterfaces/dcrd_spend_ntfn_with_script_dispatch (20.06s)
+    --- PASS: TestInterfaces/dcrd_historical_spend_dispatch (0.10s)
+    --- PASS: TestInterfaces/dcrd_historical_spend_dispatch_with_script_dispatch (0.11s)
+    --- PASS: TestInterfaces/dcrd_reorg_spend (0.60s)
+    --- PASS: TestInterfaces/dcrd_reorg_spend_with_script_dispatch (0.53s)
+    --- PASS: TestInterfaces/dcrd_cancel_spend_ntfn (0.06s)
+    --- PASS: TestInterfaces/dcrd_cancel_spend_ntfn_with_script_dispatch (0.06s)
+    --- PASS: TestInterfaces/dcrd_block_epoch (0.03s)
+    --- PASS: TestInterfaces/dcrd_cancel_epoch_ntfn (0.00s)
+    --- PASS: TestInterfaces/dcrd:_catch_up_client_on_historical_block_epoch_ntfns (5.07s)
+    --- PASS: TestInterfaces/dcrd:_test_catch_up_on_missed_blocks (5.13s)
+    --- PASS: TestInterfaces/dcrd:_test_catch_up_on_missed_blocks_w/_reorged_best_block (5.51s)
+=== RUN   TestTxNotifierMaxConfs
+=== PAUSE TestTxNotifierMaxConfs
+=== RUN   TestTxNotifierFutureConfDispatch
+=== PAUSE TestTxNotifierFutureConfDispatch
+=== RUN   TestTxNotifierHistoricalConfDispatch
+=== PAUSE TestTxNotifierHistoricalConfDispatch
+=== RUN   TestTxNotifierFutureSpendDispatch
+=== PAUSE TestTxNotifierFutureSpendDispatch
+=== RUN   TestTxNotifierHistoricalSpendDispatch
+=== PAUSE TestTxNotifierHistoricalSpendDispatch
+=== RUN   TestTxNotifierMultipleHistoricalConfRescans
+=== PAUSE TestTxNotifierMultipleHistoricalConfRescans
+=== RUN   TestTxNotifierMultipleHistoricalSpendRescans
+=== PAUSE TestTxNotifierMultipleHistoricalSpendRescans
+=== RUN   TestTxNotifierMultipleHistoricalNtfns
+=== PAUSE TestTxNotifierMultipleHistoricalNtfns
+=== RUN   TestTxNotifierCancelConf
+=== PAUSE TestTxNotifierCancelConf
+=== RUN   TestTxNotifierCancelSpend
+=== PAUSE TestTxNotifierCancelSpend
+=== RUN   TestTxNotifierConfReorg
+=== PAUSE TestTxNotifierConfReorg
+=== RUN   TestTxNotifierSpendReorg
+=== PAUSE TestTxNotifierSpendReorg
+=== RUN   TestTxNotifierConfirmHintCache
+=== PAUSE TestTxNotifierConfirmHintCache
+=== RUN   TestTxNotifierSpendHintCache
+=== PAUSE TestTxNotifierSpendHintCache
+=== RUN   TestTxNotifierNtfnDone
+=== PAUSE TestTxNotifierNtfnDone
+=== RUN   TestTxNotifierTearDown
+=== PAUSE TestTxNotifierTearDown
+=== CONT  TestHeightHintCacheConfirms
+=== CONT  TestTxNotifierTearDown
+--- PASS: TestTxNotifierTearDown (0.00s)
+=== CONT  TestTxNotifierNtfnDone
+--- PASS: TestTxNotifierNtfnDone (0.00s)
+=== CONT  TestTxNotifierSpendHintCache
+--- PASS: TestTxNotifierSpendHintCache (0.00s)
+=== CONT  TestTxNotifierConfirmHintCache
+--- PASS: TestTxNotifierConfirmHintCache (0.00s)
+=== CONT  TestTxNotifierSpendReorg
+--- PASS: TestTxNotifierSpendReorg (0.00s)
+=== CONT  TestTxNotifierConfReorg
+--- PASS: TestTxNotifierConfReorg (0.00s)
+=== CONT  TestTxNotifierCancelSpend
+--- PASS: TestTxNotifierCancelSpend (0.00s)
+=== CONT  TestTxNotifierCancelConf
+--- PASS: TestTxNotifierCancelConf (0.00s)
+=== CONT  TestTxNotifierMultipleHistoricalNtfns
+--- PASS: TestTxNotifierMultipleHistoricalNtfns (0.00s)
+=== CONT  TestTxNotifierMultipleHistoricalSpendRescans
+--- PASS: TestTxNotifierMultipleHistoricalSpendRescans (0.00s)
+=== CONT  TestTxNotifierMultipleHistoricalConfRescans
+--- PASS: TestTxNotifierMultipleHistoricalConfRescans (0.00s)
+=== CONT  TestTxNotifierHistoricalSpendDispatch
+--- PASS: TestTxNotifierHistoricalSpendDispatch (0.00s)
+=== CONT  TestTxNotifierFutureSpendDispatch
+--- PASS: TestTxNotifierFutureSpendDispatch (0.00s)
+=== CONT  TestTxNotifierHistoricalConfDispatch
+--- PASS: TestTxNotifierHistoricalConfDispatch (0.00s)
+=== CONT  TestTxNotifierFutureConfDispatch
+--- PASS: TestTxNotifierFutureConfDispatch (0.00s)
+=== CONT  TestTxNotifierMaxConfs
+--- PASS: TestTxNotifierMaxConfs (0.00s)
+=== CONT  TestComputePkScript
+=== RUN   TestComputePkScript/empty_sigScript_and_witness
+=== RUN   TestComputePkScript/P2PKH_sigScript
+=== RUN   TestComputePkScript/P2SH_sigScript
+=== RUN   TestComputePkScript/invalid_P2SH_sigScript
+--- PASS: TestComputePkScript (0.00s)
+    --- PASS: TestComputePkScript/empty_sigScript_and_witness (0.00s)
+    --- PASS: TestComputePkScript/P2PKH_sigScript (0.00s)
+    --- PASS: TestComputePkScript/P2SH_sigScript (0.00s)
+    --- PASS: TestComputePkScript/invalid_P2SH_sigScript (0.00s)
+=== CONT  TestParsePkScript
+=== RUN   TestParsePkScript/empty_output_script
+=== RUN   TestParsePkScript/valid_P2PKH
+=== RUN   TestParsePkScript/invalid_P2PKH
+=== RUN   TestParsePkScript/valid_P2SH
+=== RUN   TestParsePkScript/invalid_P2SH
+--- PASS: TestParsePkScript (0.00s)
+    --- PASS: TestParsePkScript/empty_output_script (0.00s)
+    --- PASS: TestParsePkScript/valid_P2PKH (0.00s)
+    --- PASS: TestParsePkScript/invalid_P2PKH (0.00s)
+    --- PASS: TestParsePkScript/valid_P2SH (0.00s)
+    --- PASS: TestParsePkScript/invalid_P2SH (0.00s)
+=== CONT  TestHeightHintCacheSpends
+--- PASS: TestHeightHintCacheConfirms (0.02s)
+--- PASS: TestHeightHintCacheSpends (0.03s)
+PASS
+ok  	github.com/decred/dcrlnd/chainntnfs	86.564s
+=== RUN   TestHistoricalConfDetailsTxIndex
+=== PAUSE TestHistoricalConfDetailsTxIndex
+=== CONT  TestHistoricalConfDetailsTxIndex
+--- PASS: TestHistoricalConfDetailsTxIndex (0.40s)
+PASS
+ok  	github.com/decred/dcrlnd/chainntnfs/dcrdnotify	0.422s
+=== RUN   TestFetchBackupForChan
+=== PAUSE TestFetchBackupForChan
+=== RUN   TestFetchStaticChanBackups
+=== PAUSE TestFetchStaticChanBackups
+=== RUN   TestUpdateAndSwap
+=== PAUSE TestUpdateAndSwap
+=== RUN   TestExtractMulti
+=== PAUSE TestExtractMulti
+=== RUN   TestEncryptDecryptPayload
+=== PAUSE TestEncryptDecryptPayload
+=== RUN   TestInvalidKeyEncryption
+=== PAUSE TestInvalidKeyEncryption
+=== RUN   TestInvalidKeyDecrytion
+=== PAUSE TestInvalidKeyDecrytion
+=== RUN   TestMultiPackUnpack
+=== PAUSE TestMultiPackUnpack
+=== RUN   TestPackedMultiUnpack
+=== PAUSE TestPackedMultiUnpack
+=== RUN   TestNewSubSwapperSubscribeFail
+=== PAUSE TestNewSubSwapperSubscribeFail
+=== RUN   TestSubSwapperIdempotentStartStop
+=== PAUSE TestSubSwapperIdempotentStartStop
+=== RUN   TestSubSwapperUpdater
+=== PAUSE TestSubSwapperUpdater
+=== RUN   TestUnpackAndRecoverSingles
+=== PAUSE TestUnpackAndRecoverSingles
+=== RUN   TestUnpackAndRecoverMulti
+=== PAUSE TestUnpackAndRecoverMulti
+=== RUN   TestSinglePackUnpack
+=== PAUSE TestSinglePackUnpack
+=== RUN   TestPackedSinglesUnpack
+=== PAUSE TestPackedSinglesUnpack
+=== RUN   TestSinglePackStaticChanBackups
+=== PAUSE TestSinglePackStaticChanBackups
+=== CONT  TestFetchBackupForChan
+=== CONT  TestNewSubSwapperSubscribeFail
+--- PASS: TestNewSubSwapperSubscribeFail (0.00s)
+=== CONT  TestSinglePackStaticChanBackups
+--- PASS: TestFetchBackupForChan (0.00s)
+=== CONT  TestPackedMultiUnpack
+--- PASS: TestPackedMultiUnpack (0.00s)
+=== CONT  TestMultiPackUnpack
+=== CONT  TestEncryptDecryptPayload
+--- PASS: TestEncryptDecryptPayload (0.00s)
+=== CONT  TestInvalidKeyDecrytion
+--- PASS: TestInvalidKeyDecrytion (0.00s)
+=== CONT  TestInvalidKeyEncryption
+--- PASS: TestInvalidKeyEncryption (0.00s)
+=== CONT  TestUnpackAndRecoverMulti
+--- PASS: TestMultiPackUnpack (0.00s)
+=== CONT  TestExtractMulti
+=== CONT  TestSubSwapperUpdater
+--- PASS: TestExtractMulti (0.00s)
+=== CONT  TestUpdateAndSwap
+--- PASS: TestUpdateAndSwap (0.00s)
+=== CONT  TestFetchStaticChanBackups
+--- PASS: TestFetchStaticChanBackups (0.00s)
+=== CONT  TestUnpackAndRecoverSingles
+--- PASS: TestSinglePackStaticChanBackups (0.01s)
+=== CONT  TestSubSwapperIdempotentStartStop
+--- PASS: TestUnpackAndRecoverMulti (0.01s)
+=== CONT  TestPackedSinglesUnpack
+--- PASS: TestSubSwapperIdempotentStartStop (0.00s)
+=== CONT  TestSinglePackUnpack
+--- PASS: TestSinglePackUnpack (0.00s)
+--- PASS: TestSubSwapperUpdater (0.01s)
+--- PASS: TestPackedSinglesUnpack (0.01s)
+--- PASS: TestUnpackAndRecoverSingles (0.02s)
+PASS
+ok  	github.com/decred/dcrlnd/chanbackup	(cached)
+=== RUN   TestAddrSerialization
+=== PAUSE TestAddrSerialization
+=== RUN   TestChannelCache
+--- PASS: TestChannelCache (0.01s)
+=== RUN   TestOpenChannelPutGetDelete
+=== PAUSE TestOpenChannelPutGetDelete
+=== RUN   TestChannelStateTransition
+=== PAUSE TestChannelStateTransition
+=== RUN   TestFetchPendingChannels
+=== PAUSE TestFetchPendingChannels
+=== RUN   TestFetchClosedChannels
+=== PAUSE TestFetchClosedChannels
+=== RUN   TestFetchWaitingCloseChannels
+=== PAUSE TestFetchWaitingCloseChannels
+=== RUN   TestRefreshShortChanID
+=== PAUSE TestRefreshShortChanID
+=== RUN   TestOpenWithCreate
+=== PAUSE TestOpenWithCreate
+=== RUN   TestWipe
+=== PAUSE TestWipe
+=== RUN   TestFetchClosedChannelForID
+=== PAUSE TestFetchClosedChannelForID
+=== RUN   TestAddrsForNode
+=== PAUSE TestAddrsForNode
+=== RUN   TestFetchChannel
+=== PAUSE TestFetchChannel
+=== RUN   TestRestoreChannelShells
+=== PAUSE TestRestoreChannelShells
+=== RUN   TestForwardingLogBasicStorageAndQuery
+=== PAUSE TestForwardingLogBasicStorageAndQuery
+=== RUN   TestForwardingLogQueryOptions
+=== PAUSE TestForwardingLogQueryOptions
+=== RUN   TestForwardingLogQueryLimit
+=== PAUSE TestForwardingLogQueryLimit
+=== RUN   TestNodeInsertionAndDeletion
+=== PAUSE TestNodeInsertionAndDeletion
+=== RUN   TestPartialNode
+=== PAUSE TestPartialNode
+=== RUN   TestAliasLookup
+=== PAUSE TestAliasLookup
+=== RUN   TestSourceNode
+=== PAUSE TestSourceNode
+=== RUN   TestEdgeInsertionDeletion
+=== PAUSE TestEdgeInsertionDeletion
+=== RUN   TestDisconnectBlockAtHeight
+=== PAUSE TestDisconnectBlockAtHeight
+=== RUN   TestEdgeInfoUpdates
+=== PAUSE TestEdgeInfoUpdates
+=== RUN   TestGraphTraversal
+=== PAUSE TestGraphTraversal
+=== RUN   TestGraphPruning
+=== PAUSE TestGraphPruning
+=== RUN   TestHighestChanID
+=== PAUSE TestHighestChanID
+=== RUN   TestChanUpdatesInHorizon
+=== PAUSE TestChanUpdatesInHorizon
+=== RUN   TestNodeUpdatesInHorizon
+=== PAUSE TestNodeUpdatesInHorizon
+=== RUN   TestFilterKnownChanIDs
+=== PAUSE TestFilterKnownChanIDs
+=== RUN   TestFilterChannelRange
+=== PAUSE TestFilterChannelRange
+=== RUN   TestFetchChanInfos
+=== PAUSE TestFetchChanInfos
+=== RUN   TestIncompleteChannelPolicies
+=== PAUSE TestIncompleteChannelPolicies
+=== RUN   TestChannelEdgePruningUpdateIndexDeletion
+=== PAUSE TestChannelEdgePruningUpdateIndexDeletion
+=== RUN   TestPruneGraphNodes
+=== PAUSE TestPruneGraphNodes
+=== RUN   TestAddChannelEdgeShellNodes
+=== PAUSE TestAddChannelEdgeShellNodes
+=== RUN   TestNodePruningUpdateIndexDeletion
+=== PAUSE TestNodePruningUpdateIndexDeletion
+=== RUN   TestNodeIsPublic
+=== PAUSE TestNodeIsPublic
+=== RUN   TestDisabledChannelIDs
+=== PAUSE TestDisabledChannelIDs
+=== RUN   TestEdgePolicyMissingMaxHtcl
+=== PAUSE TestEdgePolicyMissingMaxHtcl
+=== RUN   TestGraphZombieIndex
+=== PAUSE TestGraphZombieIndex
+=== RUN   TestLightningNodeSigVerification
+=== PAUSE TestLightningNodeSigVerification
+=== RUN   TestInvoiceWorkflow
+=== PAUSE TestInvoiceWorkflow
+=== RUN   TestInvoiceAddTimeSeries
+=== PAUSE TestInvoiceAddTimeSeries
+=== RUN   TestDuplicateSettleInvoice
+=== PAUSE TestDuplicateSettleInvoice
+=== RUN   TestQueryInvoices
+=== PAUSE TestQueryInvoices
+=== RUN   TestSaneNextKeyFamilyIndex
+=== PAUSE TestSaneNextKeyFamilyIndex
+=== RUN   TestVersionFetchPut
+=== PAUSE TestVersionFetchPut
+=== RUN   TestOrderOfMigrations
+=== PAUSE TestOrderOfMigrations
+=== RUN   TestGlobalVersionList
+=== PAUSE TestGlobalVersionList
+=== RUN   TestMigrationWithPanic
+=== PAUSE TestMigrationWithPanic
+=== RUN   TestMigrationWithFatal
+=== PAUSE TestMigrationWithFatal
+=== RUN   TestMigrationWithoutErrors
+=== PAUSE TestMigrationWithoutErrors
+=== RUN   TestMigrationReversion
+=== PAUSE TestMigrationReversion
+=== RUN   TestPaymentStatusesMigration
+=== PAUSE TestPaymentStatusesMigration
+=== RUN   TestMigrateOptionalChannelCloseSummaryFields
+=== PAUSE TestMigrateOptionalChannelCloseSummaryFields
+=== RUN   TestMigrateGossipMessageStoreKeys
+=== PAUSE TestMigrateGossipMessageStoreKeys
+=== RUN   TestOutgoingPaymentsMigration
+=== PAUSE TestOutgoingPaymentsMigration
+=== RUN   TestLinkNodeEncodeDecode
+=== PAUSE TestLinkNodeEncodeDecode
+=== RUN   TestDeleteLinkNode
+=== PAUSE TestDeleteLinkNode
+=== RUN   TestPaymentControlSwitchFail
+=== PAUSE TestPaymentControlSwitchFail
+=== RUN   TestPaymentControlSwitchDoubleSend
+=== PAUSE TestPaymentControlSwitchDoubleSend
+=== RUN   TestPaymentControlSuccessesWithoutInFlight
+=== PAUSE TestPaymentControlSuccessesWithoutInFlight
+=== RUN   TestPaymentControlFailsWithoutInFlight
+=== PAUSE TestPaymentControlFailsWithoutInFlight
+=== RUN   TestPaymentControlDeleteNonInFligt
+=== PAUSE TestPaymentControlDeleteNonInFligt
+=== RUN   TestSentPaymentSerialization
+=== PAUSE TestSentPaymentSerialization
+=== RUN   TestRouteSerialization
+=== PAUSE TestRouteSerialization
+=== RUN   TestRejectCache
+--- PASS: TestRejectCache (0.00s)
+=== RUN   TestWaitingProofStore
+=== PAUSE TestWaitingProofStore
+=== RUN   TestWitnessCacheSha256Retrieval
+=== PAUSE TestWitnessCacheSha256Retrieval
+=== RUN   TestWitnessCacheSha256Deletion
+=== PAUSE TestWitnessCacheSha256Deletion
+=== RUN   TestWitnessCacheUnknownWitness
+=== PAUSE TestWitnessCacheUnknownWitness
+=== RUN   TestAddSha256Witnesses
+--- PASS: TestAddSha256Witnesses (0.04s)
+=== RUN   TestPkgFilterBruteForce
+=== PAUSE TestPkgFilterBruteForce
+=== RUN   TestPkgFilterRand
+=== PAUSE TestPkgFilterRand
+=== RUN   TestPackagerEmptyFwdPkg
+=== PAUSE TestPackagerEmptyFwdPkg
+=== RUN   TestPackagerOnlyAdds
+=== PAUSE TestPackagerOnlyAdds
+=== RUN   TestPackagerOnlySettleFails
+=== PAUSE TestPackagerOnlySettleFails
+=== RUN   TestPackagerAddsThenSettleFails
+=== PAUSE TestPackagerAddsThenSettleFails
+=== RUN   TestPackagerSettleFailsThenAdds
+=== PAUSE TestPackagerSettleFailsThenAdds
+=== CONT  TestAddrSerialization
+=== CONT  TestGraphZombieIndex
+=== CONT  TestPaymentControlSwitchFail
+=== CONT  TestEdgePolicyMissingMaxHtcl
+=== CONT  TestMigrationWithPanic
+--- PASS: TestAddrSerialization (0.00s)
+--- PASS: TestEdgePolicyMissingMaxHtcl (0.00s)
+=== CONT  TestDeleteLinkNode
+--- PASS: TestGraphZombieIndex (0.00s)
+=== CONT  TestLinkNodeEncodeDecode
+--- PASS: TestDeleteLinkNode (0.00s)
+=== CONT  TestOutgoingPaymentsMigration
+--- PASS: TestLinkNodeEncodeDecode (0.00s)
+=== CONT  TestMigrateGossipMessageStoreKeys
+--- PASS: TestMigrationWithPanic (0.01s)
+=== CONT  TestMigrateOptionalChannelCloseSummaryFields
+--- PASS: TestMigrateGossipMessageStoreKeys (0.00s)
+=== CONT  TestPaymentStatusesMigration
+--- PASS: TestMigrateOptionalChannelCloseSummaryFields (0.01s)
+=== CONT  TestMigrationReversion
+--- PASS: TestMigrationReversion (0.00s)
+=== CONT  TestMigrationWithoutErrors
+--- PASS: TestMigrationWithoutErrors (0.00s)
+=== CONT  TestMigrationWithFatal
+--- PASS: TestMigrationWithFatal (0.00s)
+=== CONT  TestWitnessCacheUnknownWitness
+--- PASS: TestPaymentStatusesMigration (0.01s)
+=== CONT  TestWitnessCacheSha256Deletion
+--- PASS: TestWitnessCacheUnknownWitness (0.00s)
+=== CONT  TestPackagerSettleFailsThenAdds
+--- PASS: TestPackagerSettleFailsThenAdds (0.00s)
+=== CONT  TestPackagerAddsThenSettleFails
+--- PASS: TestPackagerAddsThenSettleFails (0.00s)
+=== CONT  TestWitnessCacheSha256Retrieval
+--- PASS: TestWitnessCacheSha256Retrieval (0.01s)
+=== CONT  TestPackagerOnlySettleFails
+--- PASS: TestPackagerOnlySettleFails (0.00s)
+=== CONT  TestWaitingProofStore
+--- PASS: TestWaitingProofStore (0.00s)
+=== CONT  TestPackagerOnlyAdds
+--- PASS: TestPackagerOnlyAdds (0.00s)
+=== CONT  TestRouteSerialization
+--- PASS: TestRouteSerialization (0.00s)
+=== CONT  TestPackagerEmptyFwdPkg
+--- PASS: TestPackagerEmptyFwdPkg (0.00s)
+=== CONT  TestPkgFilterRand
+--- PASS: TestPkgFilterRand (0.00s)
+=== CONT  TestPkgFilterBruteForce
+--- PASS: TestOutgoingPaymentsMigration (0.04s)
+=== CONT  TestSentPaymentSerialization
+--- PASS: TestSentPaymentSerialization (0.00s)
+=== CONT  TestPaymentControlDeleteNonInFligt
+--- PASS: TestPaymentControlSwitchFail (0.07s)
+=== CONT  TestPaymentControlFailsWithoutInFlight
+--- PASS: TestWitnessCacheSha256Deletion (0.04s)
+=== CONT  TestAliasLookup
+--- PASS: TestAliasLookup (0.00s)
+=== CONT  TestSourceNode
+--- PASS: TestSourceNode (0.00s)
+=== CONT  TestPartialNode
+--- PASS: TestPartialNode (0.00s)
+=== CONT  TestPaymentControlSuccessesWithoutInFlight
+--- PASS: TestPaymentControlFailsWithoutInFlight (0.01s)
+=== CONT  TestDisabledChannelIDs
+--- PASS: TestDisabledChannelIDs (0.00s)
+=== CONT  TestNodeInsertionAndDeletion
+--- PASS: TestNodeInsertionAndDeletion (0.00s)
+=== CONT  TestNodeIsPublic
+--- PASS: TestNodeIsPublic (0.01s)
+=== CONT  TestForwardingLogQueryLimit
+--- PASS: TestPaymentControlSuccessesWithoutInFlight (0.01s)
+=== CONT  TestNodePruningUpdateIndexDeletion
+--- PASS: TestNodePruningUpdateIndexDeletion (0.00s)
+=== CONT  TestPaymentControlSwitchDoubleSend
+--- PASS: TestForwardingLogQueryLimit (0.01s)
+=== CONT  TestForwardingLogQueryOptions
+--- PASS: TestForwardingLogQueryOptions (0.01s)
+=== CONT  TestAddChannelEdgeShellNodes
+--- PASS: TestAddChannelEdgeShellNodes (0.00s)
+=== CONT  TestForwardingLogBasicStorageAndQuery
+--- PASS: TestForwardingLogBasicStorageAndQuery (0.02s)
+=== CONT  TestOpenWithCreate
+--- PASS: TestOpenWithCreate (0.00s)
+=== CONT  TestRefreshShortChanID
+--- PASS: TestPaymentControlDeleteNonInFligt (0.09s)
+=== CONT  TestPruneGraphNodes
+--- PASS: TestPruneGraphNodes (0.01s)
+=== CONT  TestFetchWaitingCloseChannels
+--- PASS: TestRefreshShortChanID (0.01s)
+=== CONT  TestRestoreChannelShells
+--- PASS: TestRestoreChannelShells (0.00s)
+=== CONT  TestFetchClosedChannels
+--- PASS: TestFetchWaitingCloseChannels (0.01s)
+=== CONT  TestFetchChannel
+--- PASS: TestFetchClosedChannels (0.00s)
+=== CONT  TestFetchPendingChannels
+--- PASS: TestPaymentControlSwitchDoubleSend (0.07s)
+=== CONT  TestAddrsForNode
+--- PASS: TestFetchChannel (0.00s)
+=== CONT  TestChannelEdgePruningUpdateIndexDeletion
+--- PASS: TestChannelEdgePruningUpdateIndexDeletion (0.00s)
+=== CONT  TestFetchClosedChannelForID
+--- PASS: TestAddrsForNode (0.00s)
+=== CONT  TestWipe
+--- PASS: TestFetchPendingChannels (0.01s)
+=== CONT  TestChannelStateTransition
+--- PASS: TestWipe (0.01s)
+=== CONT  TestIncompleteChannelPolicies
+--- PASS: TestIncompleteChannelPolicies (0.00s)
+=== CONT  TestQueryInvoices
+--- PASS: TestChannelStateTransition (0.02s)
+=== CONT  TestFetchChanInfos
+--- PASS: TestFetchChanInfos (0.00s)
+=== CONT  TestGlobalVersionList
+=== CONT  TestOpenChannelPutGetDelete
+--- PASS: TestGlobalVersionList (0.00s)
+--- PASS: TestOpenChannelPutGetDelete (0.02s)
+=== CONT  TestFilterChannelRange
+--- PASS: TestFilterChannelRange (0.00s)
+=== CONT  TestGraphPruning
+--- PASS: TestGraphPruning (0.00s)
+=== CONT  TestOrderOfMigrations
+--- PASS: TestOrderOfMigrations (0.00s)
+=== CONT  TestFilterKnownChanIDs
+--- PASS: TestFilterKnownChanIDs (0.01s)
+=== CONT  TestVersionFetchPut
+--- PASS: TestVersionFetchPut (0.00s)
+=== CONT  TestSaneNextKeyFamilyIndex
+--- PASS: TestSaneNextKeyFamilyIndex (0.00s)
+=== CONT  TestGraphTraversal
+--- PASS: TestGraphTraversal (0.02s)
+=== CONT  TestEdgeInsertionDeletion
+--- PASS: TestEdgeInsertionDeletion (0.00s)
+=== CONT  TestNodeUpdatesInHorizon
+--- PASS: TestNodeUpdatesInHorizon (0.00s)
+=== CONT  TestDisconnectBlockAtHeight
+--- PASS: TestDisconnectBlockAtHeight (0.01s)
+=== CONT  TestInvoiceAddTimeSeries
+--- PASS: TestInvoiceAddTimeSeries (0.07s)
+=== CONT  TestEdgeInfoUpdates
+--- PASS: TestEdgeInfoUpdates (0.01s)
+=== CONT  TestChanUpdatesInHorizon
+--- PASS: TestChanUpdatesInHorizon (0.01s)
+=== CONT  TestHighestChanID
+--- PASS: TestHighestChanID (0.00s)
+=== CONT  TestInvoiceWorkflow
+--- PASS: TestFetchClosedChannelForID (0.21s)
+=== CONT  TestLightningNodeSigVerification
+--- PASS: TestLightningNodeSigVerification (0.00s)
+=== CONT  TestDuplicateSettleInvoice
+--- PASS: TestQueryInvoices (0.20s)
+--- PASS: TestDuplicateSettleInvoice (0.00s)
+--- PASS: TestInvoiceWorkflow (0.01s)
+--- PASS: TestPkgFilterBruteForce (0.45s)
+PASS
+ok  	github.com/decred/dcrlnd/channeldb	0.558s
+?   	github.com/decred/dcrlnd/channelnotifier	[no test files]
+?   	github.com/decred/dcrlnd/cmd/dcrlncli	[no test files]
+?   	github.com/decred/dcrlnd/cmd/dcrlnd	[no test files]
+=== RUN   TestContractInsertionRetrieval
+=== PAUSE TestContractInsertionRetrieval
+=== RUN   TestContractResolution
+=== PAUSE TestContractResolution
+=== RUN   TestContractSwapping
+=== PAUSE TestContractSwapping
+=== RUN   TestContractResolutionsStorage
+=== PAUSE TestContractResolutionsStorage
+=== RUN   TestStateMutation
+=== PAUSE TestStateMutation
+=== RUN   TestScopeIsolation
+=== PAUSE TestScopeIsolation
+=== RUN   TestCommitSetStorage
+=== PAUSE TestCommitSetStorage
+=== RUN   TestChainWatcherRemoteUnilateralClose
+=== PAUSE TestChainWatcherRemoteUnilateralClose
+=== RUN   TestChainWatcherRemoteUnilateralClosePendingCommit
+=== PAUSE TestChainWatcherRemoteUnilateralClosePendingCommit
+=== RUN   TestChainWatcherCorrectSpendNtnf
+=== PAUSE TestChainWatcherCorrectSpendNtnf
+=== RUN   TestChainWatcherDataLossProtect
+=== PAUSE TestChainWatcherDataLossProtect
+=== RUN   TestChainWatcherLocalForceCloseDetect
+=== PAUSE TestChainWatcherLocalForceCloseDetect
+=== RUN   TestChannelArbitratorCooperativeClose
+--- PASS: TestChannelArbitratorCooperativeClose (0.00s)
+=== RUN   TestChannelArbitratorRemoteForceClose
+--- PASS: TestChannelArbitratorRemoteForceClose (0.00s)
+=== RUN   TestChannelArbitratorLocalForceClose
+--- PASS: TestChannelArbitratorLocalForceClose (0.00s)
+=== RUN   TestChannelArbitratorLocalForceClosePendingHtlc
+--- PASS: TestChannelArbitratorLocalForceClosePendingHtlc (0.00s)
+=== RUN   TestChannelArbitratorLocalForceCloseRemoteConfirmed
+--- PASS: TestChannelArbitratorLocalForceCloseRemoteConfirmed (0.00s)
+=== RUN   TestChannelArbitratorLocalForceDoubleSpend
+--- PASS: TestChannelArbitratorLocalForceDoubleSpend (0.00s)
+=== RUN   TestChannelArbitratorPersistence
+--- PASS: TestChannelArbitratorPersistence (0.30s)
+=== RUN   TestChannelArbitratorCommitFailure
+--- PASS: TestChannelArbitratorCommitFailure (0.30s)
+=== RUN   TestChannelArbitratorEmptyResolutions
+--- PASS: TestChannelArbitratorEmptyResolutions (0.10s)
+=== RUN   TestChannelArbitratorAlreadyForceClosed
+=== PAUSE TestChannelArbitratorAlreadyForceClosed
+=== RUN   TestChannelArbitratorDanglingCommitForceClose
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose
+=== RUN   TestHtlcIncomingResolverFwdPreimageKnown
+=== PAUSE TestHtlcIncomingResolverFwdPreimageKnown
+=== RUN   TestHtlcIncomingResolverFwdContestedSuccess
+=== PAUSE TestHtlcIncomingResolverFwdContestedSuccess
+=== RUN   TestHtlcIncomingResolverFwdContestedTimeout
+=== PAUSE TestHtlcIncomingResolverFwdContestedTimeout
+=== RUN   TestHtlcIncomingResolverFwdTimeout
+=== PAUSE TestHtlcIncomingResolverFwdTimeout
+=== RUN   TestHtlcIncomingResolverExitSettle
+=== PAUSE TestHtlcIncomingResolverExitSettle
+=== RUN   TestHtlcIncomingResolverExitCancel
+=== PAUSE TestHtlcIncomingResolverExitCancel
+=== RUN   TestHtlcIncomingResolverExitSettleHodl
+=== PAUSE TestHtlcIncomingResolverExitSettleHodl
+=== RUN   TestHtlcIncomingResolverExitTimeoutHodl
+=== PAUSE TestHtlcIncomingResolverExitTimeoutHodl
+=== RUN   TestHtlcIncomingResolverExitCancelHodl
+=== PAUSE TestHtlcIncomingResolverExitCancelHodl
+=== RUN   TestHtlcTimeoutResolver
+=== PAUSE TestHtlcTimeoutResolver
+=== CONT  TestHtlcTimeoutResolver
+=== CONT  TestChannelArbitratorAlreadyForceClosed
+--- PASS: TestChannelArbitratorAlreadyForceClosed (0.00s)
+=== CONT  TestHtlcIncomingResolverExitCancelHodl
+=== CONT  TestContractInsertionRetrieval
+--- PASS: TestHtlcIncomingResolverExitCancelHodl (0.00s)
+=== CONT  TestHtlcIncomingResolverExitTimeoutHodl
+--- PASS: TestHtlcIncomingResolverExitTimeoutHodl (0.00s)
+--- PASS: TestHtlcTimeoutResolver (0.00s)
+    htlc_timeout_resolver_test.go:227: Running test case: timeout remote tx
+    htlc_timeout_resolver_test.go:227: Running test case: timeout local tx
+    htlc_timeout_resolver_test.go:227: Running test case: success remote tx
+    htlc_timeout_resolver_test.go:227: Running test case: success local tx
+=== CONT  TestChainWatcherLocalForceCloseDetect
+=== RUN   TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=true,local_output=false
+=== PAUSE TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=true,local_output=false
+=== RUN   TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=false
+=== PAUSE TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=false
+=== RUN   TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=true
+=== PAUSE TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=true
+=== RUN   TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=false
+=== PAUSE TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=false
+=== RUN   TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=true,local_output=false
+=== CONT  TestChainWatcherDataLossProtect
+=== PAUSE TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=true,local_output=false
+=== RUN   TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=true
+=== PAUSE TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=true
+=== CONT  TestChainWatcherCorrectSpendNtnf
+=== RUN   TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=2
+=== PAUSE TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=2
+=== RUN   TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=6
+=== PAUSE TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=6
+=== RUN   TestChainWatcherDataLossProtect/num_updates=3,broadcast_state_num=6
+=== PAUSE TestChainWatcherDataLossProtect/num_updates=3,broadcast_state_num=6
+=== RUN   TestChainWatcherDataLossProtect/num_updates=0,broadcast_state_num=10
+=== PAUSE TestChainWatcherDataLossProtect/num_updates=0,broadcast_state_num=10
+=== CONT  TestChainWatcherRemoteUnilateralClose
+=== CONT  TestChainWatcherRemoteUnilateralClosePendingCommit
+--- PASS: TestChainWatcherRemoteUnilateralClose (0.02s)
+=== CONT  TestCommitSetStorage
+--- PASS: TestCommitSetStorage (0.00s)
+=== CONT  TestScopeIsolation
+--- PASS: TestChainWatcherCorrectSpendNtnf (0.02s)
+=== CONT  TestStateMutation
+--- PASS: TestChainWatcherRemoteUnilateralClosePendingCommit (0.02s)
+=== CONT  TestContractResolutionsStorage
+--- PASS: TestContractInsertionRetrieval (0.02s)
+=== CONT  TestContractSwapping
+--- PASS: TestStateMutation (0.01s)
+=== CONT  TestContractResolution
+--- PASS: TestContractResolutionsStorage (0.01s)
+=== CONT  TestHtlcIncomingResolverFwdContestedTimeout
+--- PASS: TestHtlcIncomingResolverFwdContestedTimeout (0.00s)
+=== CONT  TestHtlcIncomingResolverExitSettleHodl
+--- PASS: TestHtlcIncomingResolverExitSettleHodl (0.00s)
+=== CONT  TestHtlcIncomingResolverExitCancel
+--- PASS: TestHtlcIncomingResolverExitCancel (0.00s)
+=== CONT  TestHtlcIncomingResolverExitSettle
+--- PASS: TestHtlcIncomingResolverExitSettle (0.00s)
+=== CONT  TestHtlcIncomingResolverFwdTimeout
+--- PASS: TestHtlcIncomingResolverFwdTimeout (0.00s)
+=== CONT  TestChannelArbitratorDanglingCommitForceClose
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet
+=== RUN   TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet
+=== PAUSE TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet
+=== CONT  TestHtlcIncomingResolverFwdContestedSuccess
+--- PASS: TestHtlcIncomingResolverFwdContestedSuccess (0.00s)
+=== CONT  TestHtlcIncomingResolverFwdPreimageKnown
+--- PASS: TestHtlcIncomingResolverFwdPreimageKnown (0.00s)
+=== CONT  TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=true,local_output=false
+=== CONT  TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=2
+--- PASS: TestContractResolution (0.02s)
+=== CONT  TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=true,local_output=false
+--- PASS: TestScopeIsolation (0.03s)
+=== CONT  TestChainWatcherDataLossProtect/num_updates=0,broadcast_state_num=10
+--- PASS: TestContractSwapping (0.03s)
+=== CONT  TestChainWatcherDataLossProtect/num_updates=3,broadcast_state_num=6
+=== CONT  TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=6
+=== CONT  TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=true
+=== CONT  TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=false
+=== CONT  TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=true
+=== CONT  TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=false
+--- PASS: TestChainWatcherDataLossProtect (0.00s)
+    --- PASS: TestChainWatcherDataLossProtect/num_updates=0,broadcast_state_num=10 (0.01s)
+    --- PASS: TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=2 (0.03s)
+    --- PASS: TestChainWatcherDataLossProtect/num_updates=1,broadcast_state_num=6 (0.03s)
+    --- PASS: TestChainWatcherDataLossProtect/num_updates=3,broadcast_state_num=6 (0.06s)
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet
+=== CONT  TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet
+--- PASS: TestChannelArbitratorDanglingCommitForceClose (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=LocalHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=false,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=LocalHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=false,remotePendingCommitConf=RemotePendingHtlcSet (0.00s)
+    --- PASS: TestChannelArbitratorDanglingCommitForceClose/testCase:_htlcExpired=true,remotePendingHTLC=true,remotePendingCommitConf=RemoteHtlcSet (0.00s)
+--- PASS: TestChainWatcherLocalForceCloseDetect (0.00s)
+    --- PASS: TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=true,local_output=false (0.01s)
+    --- PASS: TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=true (0.02s)
+    --- PASS: TestChainWatcherLocalForceCloseDetect/num_updates=0,remote_output=false,local_output=false (0.03s)
+    --- PASS: TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=true,local_output=false (0.29s)
+    --- PASS: TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=false (0.25s)
+    --- PASS: TestChainWatcherLocalForceCloseDetect/num_updates=20,remote_output=false,local_output=true (0.28s)
+PASS
+ok  	github.com/decred/dcrlnd/contractcourt	1.119s
+=== RUN   TestProcessAnnouncement
+=== PAUSE TestProcessAnnouncement
+=== RUN   TestPrematureAnnouncement
+=== PAUSE TestPrematureAnnouncement
+=== RUN   TestSignatureAnnouncementLocalFirst
+=== PAUSE TestSignatureAnnouncementLocalFirst
+=== RUN   TestOrphanSignatureAnnouncement
+=== PAUSE TestOrphanSignatureAnnouncement
+=== RUN   TestSignatureAnnouncementRetryAtStartup
+=== PAUSE TestSignatureAnnouncementRetryAtStartup
+=== RUN   TestSignatureAnnouncementFullProofWhenRemoteProof
+=== PAUSE TestSignatureAnnouncementFullProofWhenRemoteProof
+=== RUN   TestDeDuplicatedAnnouncements
+=== PAUSE TestDeDuplicatedAnnouncements
+=== RUN   TestForwardPrivateNodeAnnouncement
+=== PAUSE TestForwardPrivateNodeAnnouncement
+=== RUN   TestRejectZombieEdge
+=== PAUSE TestRejectZombieEdge
+=== RUN   TestProcessZombieEdgeNowLive
+=== PAUSE TestProcessZombieEdgeNowLive
+=== RUN   TestReceiveRemoteChannelUpdateFirst
+=== PAUSE TestReceiveRemoteChannelUpdateFirst
+=== RUN   TestExtraDataChannelAnnouncementValidation
+=== PAUSE TestExtraDataChannelAnnouncementValidation
+=== RUN   TestExtraDataChannelUpdateValidation
+=== PAUSE TestExtraDataChannelUpdateValidation
+=== RUN   TestExtraDataNodeAnnouncementValidation
+=== PAUSE TestExtraDataNodeAnnouncementValidation
+=== RUN   TestNodeAnnouncementNoChannels
+=== PAUSE TestNodeAnnouncementNoChannels
+=== RUN   TestOptionalFieldsChannelUpdateValidation
+=== PAUSE TestOptionalFieldsChannelUpdateValidation
+=== RUN   TestSendChannelUpdateReliably
+=== PAUSE TestSendChannelUpdateReliably
+=== RUN   TestPropagateChanPolicyUpdate
+=== PAUSE TestPropagateChanPolicyUpdate
+=== RUN   TestProcessChannelAnnouncementOptionalMsgFields
+=== PAUSE TestProcessChannelAnnouncementOptionalMsgFields
+=== RUN   TestSplitAnnouncementsCorrectSubBatches
+=== PAUSE TestSplitAnnouncementsCorrectSubBatches
+=== RUN   TestCalculateCorrectSubBatchSizes
+=== PAUSE TestCalculateCorrectSubBatchSizes
+=== RUN   TestCalculateCorrectSubBatchSizesDifferentDelay
+=== PAUSE TestCalculateCorrectSubBatchSizesDifferentDelay
+=== RUN   TestMessageStoreMessages
+=== PAUSE TestMessageStoreMessages
+=== RUN   TestMessageStoreUnsupportedMessage
+=== PAUSE TestMessageStoreUnsupportedMessage
+=== RUN   TestMessageStoreDeleteMessage
+=== PAUSE TestMessageStoreDeleteMessage
+=== RUN   TestReliableSenderFlow
+=== PAUSE TestReliableSenderFlow
+=== RUN   TestReliableSenderStaleMessages
+=== PAUSE TestReliableSenderStaleMessages
+=== RUN   TestSyncManagerNumActiveSyncers
+=== PAUSE TestSyncManagerNumActiveSyncers
+=== RUN   TestSyncManagerNewActiveSyncerAfterDisconnect
+=== PAUSE TestSyncManagerNewActiveSyncerAfterDisconnect
+=== RUN   TestSyncManagerRotateActiveSyncerCandidate
+=== PAUSE TestSyncManagerRotateActiveSyncerCandidate
+=== RUN   TestSyncManagerInitialHistoricalSync
+=== PAUSE TestSyncManagerInitialHistoricalSync
+=== RUN   TestSyncManagerHistoricalSyncOnReconnect
+=== PAUSE TestSyncManagerHistoricalSyncOnReconnect
+=== RUN   TestSyncManagerForceHistoricalSync
+=== PAUSE TestSyncManagerForceHistoricalSync
+=== RUN   TestSyncManagerWaitUntilInitialHistoricalSync
+=== PAUSE TestSyncManagerWaitUntilInitialHistoricalSync
+=== RUN   TestGossipSyncerFilterGossipMsgsNoHorizon
+=== PAUSE TestGossipSyncerFilterGossipMsgsNoHorizon
+=== RUN   TestGossipSyncerFilterGossipMsgsAllInMemory
+=== PAUSE TestGossipSyncerFilterGossipMsgsAllInMemory
+=== RUN   TestGossipSyncerApplyGossipFilter
+=== PAUSE TestGossipSyncerApplyGossipFilter
+=== RUN   TestGossipSyncerReplyShortChanIDsWrongChainHash
+=== PAUSE TestGossipSyncerReplyShortChanIDsWrongChainHash
+=== RUN   TestGossipSyncerReplyShortChanIDs
+=== PAUSE TestGossipSyncerReplyShortChanIDs
+=== RUN   TestGossipSyncerReplyChanRangeQuery
+=== PAUSE TestGossipSyncerReplyChanRangeQuery
+=== RUN   TestGossipSyncerReplyChanRangeQueryNoNewChans
+=== PAUSE TestGossipSyncerReplyChanRangeQueryNoNewChans
+=== RUN   TestGossipSyncerGenChanRangeQuery
+=== PAUSE TestGossipSyncerGenChanRangeQuery
+=== RUN   TestGossipSyncerProcessChanRangeReply
+=== PAUSE TestGossipSyncerProcessChanRangeReply
+=== RUN   TestGossipSyncerSynchronizeChanIDs
+=== PAUSE TestGossipSyncerSynchronizeChanIDs
+=== RUN   TestGossipSyncerDelayDOS
+=== PAUSE TestGossipSyncerDelayDOS
+=== RUN   TestGossipSyncerRoutineSync
+=== PAUSE TestGossipSyncerRoutineSync
+=== RUN   TestGossipSyncerAlreadySynced
+=== PAUSE TestGossipSyncerAlreadySynced
+=== RUN   TestGossipSyncerSyncTransitions
+=== PAUSE TestGossipSyncerSyncTransitions
+=== RUN   TestGossipSyncerHistoricalSync
+=== PAUSE TestGossipSyncerHistoricalSync
+=== RUN   TestGossipSyncerSyncedSignal
+=== PAUSE TestGossipSyncerSyncedSignal
+=== CONT  TestProcessAnnouncement
+=== CONT  TestReliableSenderStaleMessages
+=== CONT  TestGossipSyncerReplyChanRangeQuery
+--- PASS: TestGossipSyncerReplyChanRangeQuery (0.00s)
+=== CONT  TestGossipSyncerHistoricalSync
+--- PASS: TestGossipSyncerHistoricalSync (0.00s)
+=== CONT  TestGossipSyncerSyncTransitions
+=== RUN   TestGossipSyncerSyncTransitions/active_to_passive
+=== PAUSE TestGossipSyncerSyncTransitions/active_to_passive
+=== RUN   TestGossipSyncerSyncTransitions/passive_to_active
+=== PAUSE TestGossipSyncerSyncTransitions/passive_to_active
+=== CONT  TestGossipSyncerAlreadySynced
+=== CONT  TestGossipSyncerSyncedSignal
+--- PASS: TestGossipSyncerSyncedSignal (0.00s)
+=== CONT  TestGossipSyncerRoutineSync
+--- PASS: TestGossipSyncerRoutineSync (0.00s)
+=== CONT  TestGossipSyncerDelayDOS
+--- PASS: TestGossipSyncerAlreadySynced (0.00s)
+=== CONT  TestGossipSyncerSynchronizeChanIDs
+--- PASS: TestGossipSyncerSynchronizeChanIDs (0.00s)
+=== CONT  TestGossipSyncerProcessChanRangeReply
+--- PASS: TestGossipSyncerProcessChanRangeReply (0.00s)
+=== CONT  TestGossipSyncerGenChanRangeQuery
+--- PASS: TestGossipSyncerGenChanRangeQuery (0.00s)
+=== CONT  TestGossipSyncerReplyChanRangeQueryNoNewChans
+--- PASS: TestGossipSyncerReplyChanRangeQueryNoNewChans (0.00s)
+=== CONT  TestExtraDataNodeAnnouncementValidation
+--- PASS: TestExtraDataNodeAnnouncementValidation (0.00s)
+=== CONT  TestReliableSenderFlow
+--- PASS: TestReliableSenderStaleMessages (0.02s)
+=== CONT  TestMessageStoreDeleteMessage
+--- PASS: TestMessageStoreDeleteMessage (0.06s)
+=== CONT  TestMessageStoreUnsupportedMessage
+--- PASS: TestMessageStoreUnsupportedMessage (0.00s)
+=== CONT  TestMessageStoreMessages
+--- PASS: TestMessageStoreMessages (0.03s)
+=== CONT  TestCalculateCorrectSubBatchSizesDifferentDelay
+--- PASS: TestCalculateCorrectSubBatchSizesDifferentDelay (0.00s)
+=== CONT  TestCalculateCorrectSubBatchSizes
+--- PASS: TestCalculateCorrectSubBatchSizes (0.00s)
+=== CONT  TestSplitAnnouncementsCorrectSubBatches
+--- PASS: TestSplitAnnouncementsCorrectSubBatches (0.00s)
+=== CONT  TestProcessChannelAnnouncementOptionalMsgFields
+--- PASS: TestProcessChannelAnnouncementOptionalMsgFields (0.00s)
+=== CONT  TestPropagateChanPolicyUpdate
+--- PASS: TestProcessAnnouncement (0.30s)
+=== CONT  TestSendChannelUpdateReliably
+--- FAIL: TestPropagateChanPolicyUpdate (0.21s)
+    gossiper_test.go:3455: channel update not broadcast, instead *lnwire.AnnounceSignatures was
+=== CONT  TestOptionalFieldsChannelUpdateValidation
+--- PASS: TestOptionalFieldsChannelUpdateValidation (0.00s)
+=== CONT  TestNodeAnnouncementNoChannels
+--- PASS: TestNodeAnnouncementNoChannels (0.50s)
+=== CONT  TestSyncManagerWaitUntilInitialHistoricalSync
+--- PASS: TestReliableSenderFlow (2.00s)
+=== CONT  TestGossipSyncerReplyShortChanIDs
+--- PASS: TestGossipSyncerReplyShortChanIDs (0.00s)
+=== CONT  TestGossipSyncerReplyShortChanIDsWrongChainHash
+--- PASS: TestGossipSyncerReplyShortChanIDsWrongChainHash (0.00s)
+=== CONT  TestGossipSyncerApplyGossipFilter
+--- PASS: TestGossipSyncerApplyGossipFilter (0.00s)
+=== CONT  TestGossipSyncerFilterGossipMsgsAllInMemory
+--- PASS: TestGossipSyncerFilterGossipMsgsAllInMemory (0.00s)
+=== CONT  TestGossipSyncerFilterGossipMsgsNoHorizon
+--- PASS: TestGossipSyncerFilterGossipMsgsNoHorizon (0.01s)
+=== CONT  TestSyncManagerInitialHistoricalSync
+--- PASS: TestSyncManagerWaitUntilInitialHistoricalSync (2.08s)
+=== CONT  TestSyncManagerForceHistoricalSync
+--- PASS: TestSendChannelUpdateReliably (3.02s)
+=== CONT  TestSyncManagerHistoricalSyncOnReconnect
+--- PASS: TestSyncManagerHistoricalSyncOnReconnect (0.08s)
+=== CONT  TestSyncManagerNewActiveSyncerAfterDisconnect
+--- PASS: TestSyncManagerNewActiveSyncerAfterDisconnect (0.12s)
+=== CONT  TestSyncManagerRotateActiveSyncerCandidate
+--- PASS: TestSyncManagerForceHistoricalSync (1.00s)
+=== CONT  TestForwardPrivateNodeAnnouncement
+--- PASS: TestGossipSyncerDelayDOS (4.00s)
+=== CONT  TestExtraDataChannelUpdateValidation
+--- PASS: TestExtraDataChannelUpdateValidation (0.00s)
+=== CONT  TestExtraDataChannelAnnouncementValidation
+--- PASS: TestExtraDataChannelAnnouncementValidation (0.00s)
+=== CONT  TestReceiveRemoteChannelUpdateFirst
+--- PASS: TestForwardPrivateNodeAnnouncement (0.60s)
+=== CONT  TestProcessZombieEdgeNowLive
+--- PASS: TestSyncManagerRotateActiveSyncerCandidate (1.13s)
+=== CONT  TestRejectZombieEdge
+--- PASS: TestSyncManagerInitialHistoricalSync (3.02s)
+=== CONT  TestSyncManagerNumActiveSyncers
+--- PASS: TestSyncManagerNumActiveSyncers (0.10s)
+=== CONT  TestSignatureAnnouncementRetryAtStartup
+--- PASS: TestProcessZombieEdgeNowLive (0.70s)
+=== CONT  TestDeDuplicatedAnnouncements
+--- PASS: TestDeDuplicatedAnnouncements (0.00s)
+=== CONT  TestSignatureAnnouncementFullProofWhenRemoteProof
+--- PASS: TestRejectZombieEdge (0.60s)
+=== CONT  TestSignatureAnnouncementLocalFirst
+--- PASS: TestReceiveRemoteChannelUpdateFirst (1.30s)
+=== CONT  TestOrphanSignatureAnnouncement
+--- PASS: TestSignatureAnnouncementFullProofWhenRemoteProof (1.10s)
+=== CONT  TestPrematureAnnouncement
+--- PASS: TestOrphanSignatureAnnouncement (1.10s)
+=== CONT  TestGossipSyncerSyncTransitions/active_to_passive
+=== CONT  TestGossipSyncerSyncTransitions/passive_to_active
+--- PASS: TestGossipSyncerSyncTransitions (0.00s)
+    --- PASS: TestGossipSyncerSyncTransitions/active_to_passive (0.00s)
+    --- PASS: TestGossipSyncerSyncTransitions/passive_to_active (0.00s)
+--- PASS: TestSignatureAnnouncementLocalFirst (1.30s)
+--- PASS: TestPrematureAnnouncement (0.30s)
+--- PASS: TestSignatureAnnouncementRetryAtStartup (1.50s)
+FAIL
+FAIL	github.com/decred/dcrlnd/discovery	6.689s
+?   	github.com/decred/dcrlnd/docs/go-fuzz	[no test files]
+=== RUN   TestDecayedLogGarbageCollector
+=== PAUSE TestDecayedLogGarbageCollector
+=== RUN   TestDecayedLogPersistentGarbageCollector
+=== PAUSE TestDecayedLogPersistentGarbageCollector
+=== RUN   TestDecayedLogInsertionAndDeletion
+=== PAUSE TestDecayedLogInsertionAndDeletion
+=== RUN   TestDecayedLogStartAndStop
+=== PAUSE TestDecayedLogStartAndStop
+=== RUN   TestDecayedLogStorageAndRetrieval
+=== PAUSE TestDecayedLogStorageAndRetrieval
+=== RUN   TestChannelLinkSingleHopPayment
+=== PAUSE TestChannelLinkSingleHopPayment
+=== RUN   TestChannelLinkBidirectionalOneHopPayments
+=== PAUSE TestChannelLinkBidirectionalOneHopPayments
+=== RUN   TestChannelLinkMultiHopPayment
+=== RUN   TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_3
+=== PAUSE TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_3
+=== RUN   TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_0
+=== PAUSE TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_0
+=== CONT  TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_3
+=== CONT  TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_0
+--- PASS: TestChannelLinkMultiHopPayment (0.00s)
+    --- PASS: TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_0 (2.31s)
+    --- PASS: TestChannelLinkMultiHopPayment/bobOutgoingCltvRejectDelta_3 (2.32s)
+=== RUN   TestExitNodeTimelockPayloadMismatch
+=== PAUSE TestExitNodeTimelockPayloadMismatch
+=== RUN   TestExitNodeAmountPayloadMismatch
+=== PAUSE TestExitNodeAmountPayloadMismatch
+=== RUN   TestLinkForwardTimelockPolicyMismatch
+=== PAUSE TestLinkForwardTimelockPolicyMismatch
+=== RUN   TestLinkForwardFeePolicyMismatch
+=== PAUSE TestLinkForwardFeePolicyMismatch
+=== RUN   TestLinkForwardMinHTLCPolicyMismatch
+=== PAUSE TestLinkForwardMinHTLCPolicyMismatch
+=== RUN   TestLinkForwardMaxHTLCPolicyMismatch
+=== PAUSE TestLinkForwardMaxHTLCPolicyMismatch
+=== RUN   TestUpdateForwardingPolicy
+=== PAUSE TestUpdateForwardingPolicy
+=== RUN   TestChannelLinkMultiHopInsufficientPayment
+=== PAUSE TestChannelLinkMultiHopInsufficientPayment
+=== RUN   TestChannelLinkMultiHopUnknownPaymentHash
+=== PAUSE TestChannelLinkMultiHopUnknownPaymentHash
+=== RUN   TestChannelLinkMultiHopUnknownNextHop
+=== PAUSE TestChannelLinkMultiHopUnknownNextHop
+=== RUN   TestChannelLinkMultiHopDecodeError
+=== PAUSE TestChannelLinkMultiHopDecodeError
+=== RUN   TestChannelLinkExpiryTooSoonExitNode
+=== PAUSE TestChannelLinkExpiryTooSoonExitNode
+=== RUN   TestChannelLinkExpiryTooSoonMidNode
+=== PAUSE TestChannelLinkExpiryTooSoonMidNode
+=== RUN   TestChannelLinkSingleHopMessageOrdering
+=== PAUSE TestChannelLinkSingleHopMessageOrdering
+=== RUN   TestChannelLinkBandwidthConsistency
+=== PAUSE TestChannelLinkBandwidthConsistency
+=== RUN   TestChannelLinkBandwidthConsistencyOverflow
+=== PAUSE TestChannelLinkBandwidthConsistencyOverflow
+=== RUN   TestChannelLinkTrimCircuitsPending
+=== PAUSE TestChannelLinkTrimCircuitsPending
+=== RUN   TestChannelLinkTrimCircuitsNoCommit
+=== PAUSE TestChannelLinkTrimCircuitsNoCommit
+=== RUN   TestChannelLinkBandwidthChanReserve
+=== PAUSE TestChannelLinkBandwidthChanReserve
+=== RUN   TestChannelRetransmission
+=== PAUSE TestChannelRetransmission
+=== RUN   TestShouldAdjustCommitFee
+--- PASS: TestShouldAdjustCommitFee (0.00s)
+=== RUN   TestChannelLinkShutdownDuringForward
+=== PAUSE TestChannelLinkShutdownDuringForward
+=== RUN   TestChannelLinkUpdateCommitFee
+=== PAUSE TestChannelLinkUpdateCommitFee
+=== RUN   TestChannelLinkAcceptDuplicatePayment
+=== PAUSE TestChannelLinkAcceptDuplicatePayment
+=== RUN   TestChannelLinkAcceptOverpay
+=== PAUSE TestChannelLinkAcceptOverpay
+=== RUN   TestChannelLinkNoMoreUpdates
+=== PAUSE TestChannelLinkNoMoreUpdates
+=== RUN   TestChannelLinkWaitForRevocation
+=== PAUSE TestChannelLinkWaitForRevocation
+=== RUN   TestChannelLinkBatchPreimageWrite
+=== PAUSE TestChannelLinkBatchPreimageWrite
+=== RUN   TestChannelLinkCleanupSpuriousResponses
+=== PAUSE TestChannelLinkCleanupSpuriousResponses
+=== RUN   TestChannelLinkFail
+=== PAUSE TestChannelLinkFail
+=== RUN   TestExpectedFee
+--- PASS: TestExpectedFee (0.00s)
+=== RUN   TestForwardingAsymmetricTimeLockPolicies
+=== PAUSE TestForwardingAsymmetricTimeLockPolicies
+=== RUN   TestHtlcSatisfyPolicy
+=== RUN   TestHtlcSatisfyPolicy/satisfied
+=== RUN   TestHtlcSatisfyPolicy/below_minhtlc
+=== RUN   TestHtlcSatisfyPolicy/above_maxhtlc
+=== RUN   TestHtlcSatisfyPolicy/insufficient_fee
+=== RUN   TestHtlcSatisfyPolicy/expiry_too_soon
+=== RUN   TestHtlcSatisfyPolicy/incorrect_cltv_expiry
+=== RUN   TestHtlcSatisfyPolicy/cltv_expiry_too_far_in_the_future
+--- PASS: TestHtlcSatisfyPolicy (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/satisfied (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/below_minhtlc (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/above_maxhtlc (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/insufficient_fee (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/expiry_too_soon (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/incorrect_cltv_expiry (0.00s)
+    --- PASS: TestHtlcSatisfyPolicy/cltv_expiry_too_far_in_the_future (0.00s)
+=== RUN   TestChannelLinkCanceledInvoice
+=== PAUSE TestChannelLinkCanceledInvoice
+=== RUN   TestChannelLinkHoldInvoiceSettle
+=== PAUSE TestChannelLinkHoldInvoiceSettle
+=== RUN   TestChannelLinkHoldInvoiceCancel
+=== PAUSE TestChannelLinkHoldInvoiceCancel
+=== RUN   TestChannelLinkHoldInvoiceRestart
+=== PAUSE TestChannelLinkHoldInvoiceRestart
+=== RUN   TestChannelLinkRevocationWindowHodl
+=== PAUSE TestChannelLinkRevocationWindowHodl
+=== RUN   TestMailBoxCouriers
+=== PAUSE TestMailBoxCouriers
+=== RUN   TestMailOrchestrator
+=== PAUSE TestMailOrchestrator
+=== RUN   TestNetworkResultSerialization
+=== PAUSE TestNetworkResultSerialization
+=== RUN   TestNetworkResultStore
+=== PAUSE TestNetworkResultStore
+=== RUN   TestWaitingQueueThreadSafety
+=== PAUSE TestWaitingQueueThreadSafety
+=== RUN   TestSwitchAddDuplicateLink
+=== PAUSE TestSwitchAddDuplicateLink
+=== RUN   TestSwitchHasActiveLink
+=== PAUSE TestSwitchHasActiveLink
+=== RUN   TestSwitchSendPending
+=== PAUSE TestSwitchSendPending
+=== RUN   TestSwitchForward
+=== PAUSE TestSwitchForward
+=== RUN   TestSwitchForwardFailAfterFullAdd
+=== PAUSE TestSwitchForwardFailAfterFullAdd
+=== RUN   TestSwitchForwardSettleAfterFullAdd
+=== PAUSE TestSwitchForwardSettleAfterFullAdd
+=== RUN   TestSwitchForwardDropAfterFullAdd
+=== PAUSE TestSwitchForwardDropAfterFullAdd
+=== RUN   TestSwitchForwardFailAfterHalfAdd
+=== PAUSE TestSwitchForwardFailAfterHalfAdd
+=== RUN   TestSwitchForwardCircuitPersistence
+=== PAUSE TestSwitchForwardCircuitPersistence
+=== RUN   TestSkipIneligibleLinksMultiHopForward
+=== PAUSE TestSkipIneligibleLinksMultiHopForward
+=== RUN   TestSkipIneligibleLinksLocalForward
+=== PAUSE TestSkipIneligibleLinksLocalForward
+=== RUN   TestSkipPolicyUnsatisfiedLinkLocalForward
+=== PAUSE TestSkipPolicyUnsatisfiedLinkLocalForward
+=== RUN   TestSwitchCancel
+=== PAUSE TestSwitchCancel
+=== RUN   TestSwitchAddSamePayment
+=== PAUSE TestSwitchAddSamePayment
+=== RUN   TestSwitchSendPayment
+=== PAUSE TestSwitchSendPayment
+=== RUN   TestLocalPaymentNoForwardingEvents
+=== PAUSE TestLocalPaymentNoForwardingEvents
+=== RUN   TestMultiHopPaymentForwardingEvents
+=== PAUSE TestMultiHopPaymentForwardingEvents
+=== RUN   TestUpdateFailMalformedHTLCErrorConversion
+=== PAUSE TestUpdateFailMalformedHTLCErrorConversion
+=== RUN   TestSwitchGetPaymentResult
+=== PAUSE TestSwitchGetPaymentResult
+=== RUN   TestInvalidFailure
+=== PAUSE TestInvalidFailure
+=== RUN   TestCircuitMapInit
+=== PAUSE TestCircuitMapInit
+=== RUN   TestHalfCircuitSerialization
+=== PAUSE TestHalfCircuitSerialization
+=== RUN   TestCircuitMapPersistence
+=== PAUSE TestCircuitMapPersistence
+=== RUN   TestCircuitMapCommitCircuits
+=== PAUSE TestCircuitMapCommitCircuits
+=== RUN   TestCircuitMapOpenCircuits
+=== PAUSE TestCircuitMapOpenCircuits
+=== RUN   TestCircuitMapTrimOpenCircuits
+=== PAUSE TestCircuitMapTrimOpenCircuits
+=== RUN   TestCircuitMapCloseOpenCircuits
+=== PAUSE TestCircuitMapCloseOpenCircuits
+=== RUN   TestCircuitMapCloseUnopenedCircuit
+=== PAUSE TestCircuitMapCloseUnopenedCircuit
+=== RUN   TestCircuitMapDeleteUnopenedCircuit
+=== PAUSE TestCircuitMapDeleteUnopenedCircuit
+=== RUN   TestCircuitMapDeleteOpenCircuit
+=== PAUSE TestCircuitMapDeleteOpenCircuit
+=== CONT  TestDecayedLogGarbageCollector
+=== CONT  TestChannelLinkSingleHopMessageOrdering
+=== CONT  TestChannelLinkExpiryTooSoonMidNode
+=== CONT  TestChannelLinkHoldInvoiceCancel
+--- PASS: TestChannelLinkSingleHopMessageOrdering (0.22s)
+=== CONT  TestLinkForwardFeePolicyMismatch
+--- PASS: TestChannelLinkHoldInvoiceCancel (0.23s)
+=== CONT  TestChannelLinkExpiryTooSoonExitNode
+--- PASS: TestChannelLinkExpiryTooSoonMidNode (0.25s)
+=== CONT  TestChannelLinkMultiHopDecodeError
+--- PASS: TestLinkForwardFeePolicyMismatch (0.25s)
+=== CONT  TestChannelLinkMultiHopUnknownNextHop
+--- PASS: TestChannelLinkExpiryTooSoonExitNode (0.23s)
+=== CONT  TestChannelLinkMultiHopUnknownPaymentHash
+--- PASS: TestChannelLinkMultiHopDecodeError (0.43s)
+=== CONT  TestChannelLinkMultiHopInsufficientPayment
+--- PASS: TestChannelLinkMultiHopUnknownPaymentHash (0.43s)
+=== CONT  TestUpdateForwardingPolicy
+--- PASS: TestChannelLinkMultiHopInsufficientPayment (0.23s)
+=== CONT  TestLinkForwardMaxHTLCPolicyMismatch
+--- PASS: TestChannelLinkMultiHopUnknownNextHop (0.46s)
+=== CONT  TestLinkForwardMinHTLCPolicyMismatch
+--- PASS: TestDecayedLogGarbageCollector (1.01s)
+=== CONT  TestChannelLinkSingleHopPayment
+--- PASS: TestLinkForwardMinHTLCPolicyMismatch (0.15s)
+=== CONT  TestLinkForwardTimelockPolicyMismatch
+--- PASS: TestLinkForwardMaxHTLCPolicyMismatch (0.27s)
+=== CONT  TestExitNodeAmountPayloadMismatch
+--- PASS: TestUpdateForwardingPolicy (0.42s)
+=== CONT  TestExitNodeTimelockPayloadMismatch
+--- PASS: TestLinkForwardTimelockPolicyMismatch (0.25s)
+=== CONT  TestChannelLinkBidirectionalOneHopPayments
+--- PASS: TestExitNodeAmountPayloadMismatch (0.25s)
+=== CONT  TestSwitchCancel
+--- PASS: TestSwitchCancel (0.03s)
+=== CONT  TestCircuitMapDeleteOpenCircuit
+--- PASS: TestCircuitMapDeleteOpenCircuit (0.04s)
+=== CONT  TestCircuitMapDeleteUnopenedCircuit
+--- PASS: TestCircuitMapDeleteUnopenedCircuit (0.03s)
+=== CONT  TestCircuitMapCloseUnopenedCircuit
+--- PASS: TestCircuitMapCloseUnopenedCircuit (0.03s)
+=== CONT  TestCircuitMapCloseOpenCircuits
+--- PASS: TestCircuitMapCloseOpenCircuits (0.01s)
+=== CONT  TestDecayedLogStorageAndRetrieval
+--- PASS: TestDecayedLogStorageAndRetrieval (0.02s)
+=== CONT  TestCircuitMapTrimOpenCircuits
+--- PASS: TestCircuitMapTrimOpenCircuits (0.02s)
+=== CONT  TestDecayedLogStartAndStop
+--- PASS: TestDecayedLogStartAndStop (0.02s)
+=== CONT  TestCircuitMapOpenCircuits
+--- PASS: TestExitNodeTimelockPayloadMismatch (0.34s)
+=== CONT  TestCircuitMapCommitCircuits
+--- PASS: TestCircuitMapOpenCircuits (0.03s)
+=== CONT  TestCircuitMapPersistence
+--- PASS: TestCircuitMapCommitCircuits (0.03s)
+=== CONT  TestHalfCircuitSerialization
+--- PASS: TestHalfCircuitSerialization (0.00s)
+=== CONT  TestCircuitMapInit
+--- PASS: TestCircuitMapInit (0.00s)
+=== CONT  TestDecayedLogInsertionAndDeletion
+--- PASS: TestDecayedLogInsertionAndDeletion (0.02s)
+=== CONT  TestDecayedLogPersistentGarbageCollector
+--- PASS: TestCircuitMapPersistence (0.15s)
+=== CONT  TestInvalidFailure
+--- PASS: TestInvalidFailure (0.07s)
+=== CONT  TestMultiHopPaymentForwardingEvents
+--- PASS: TestDecayedLogPersistentGarbageCollector (0.51s)
+=== CONT  TestLocalPaymentNoForwardingEvents
+--- PASS: TestLocalPaymentNoForwardingEvents (0.21s)
+=== CONT  TestSwitchGetPaymentResult
+--- PASS: TestSwitchGetPaymentResult (0.01s)
+=== CONT  TestSwitchSendPayment
+--- PASS: TestSwitchSendPayment (0.03s)
+=== CONT  TestUpdateFailMalformedHTLCErrorConversion
+=== RUN   TestUpdateFailMalformedHTLCErrorConversion/multi-hop_error_conversion
+=== RUN   TestUpdateFailMalformedHTLCErrorConversion/direct_channel_error_conversion
+--- PASS: TestUpdateFailMalformedHTLCErrorConversion (0.34s)
+    --- PASS: TestUpdateFailMalformedHTLCErrorConversion/multi-hop_error_conversion (0.19s)
+    --- PASS: TestUpdateFailMalformedHTLCErrorConversion/direct_channel_error_conversion (0.12s)
+=== CONT  TestSwitchAddSamePayment
+--- PASS: TestSwitchAddSamePayment (0.05s)
+=== CONT  TestSwitchSendPending
+--- PASS: TestChannelLinkSingleHopPayment (2.20s)
+=== CONT  TestSkipPolicyUnsatisfiedLinkLocalForward
+--- PASS: TestSkipPolicyUnsatisfiedLinkLocalForward (0.01s)
+=== CONT  TestChannelLinkAcceptOverpay
+--- PASS: TestMultiHopPaymentForwardingEvents (1.71s)
+=== CONT  TestSkipIneligibleLinksLocalForward
+--- PASS: TestSkipIneligibleLinksLocalForward (0.01s)
+=== CONT  TestChannelLinkHoldInvoiceSettle
+--- PASS: TestSwitchSendPending (1.03s)
+=== CONT  TestSkipIneligibleLinksMultiHopForward
+--- PASS: TestSkipIneligibleLinksMultiHopForward (0.01s)
+=== CONT  TestSwitchForwardCircuitPersistence
+--- PASS: TestSwitchForwardCircuitPersistence (0.04s)
+=== CONT  TestChannelLinkCanceledInvoice
+--- PASS: TestChannelLinkCanceledInvoice (0.23s)
+=== CONT  TestSwitchForwardFailAfterHalfAdd
+--- PASS: TestSwitchForwardFailAfterHalfAdd (0.02s)
+=== CONT  TestForwardingAsymmetricTimeLockPolicies
+--- PASS: TestChannelLinkBidirectionalOneHopPayments (3.00s)
+    link_test.go:393: Max waiting: 859.96668ms
+    link_test.go:394: Min waiting: 161.132366ms
+    link_test.go:395: Average waiting: 564.27958ms
+=== CONT  TestSwitchForwardDropAfterFullAdd
+--- PASS: TestForwardingAsymmetricTimeLockPolicies (0.26s)
+=== CONT  TestChannelLinkFail
+--- PASS: TestChannelLinkFail (0.07s)
+=== CONT  TestSwitchForwardSettleAfterFullAdd
+--- PASS: TestSwitchForwardSettleAfterFullAdd (0.03s)
+=== CONT  TestChannelLinkCleanupSpuriousResponses
+--- PASS: TestSwitchForwardDropAfterFullAdd (1.02s)
+=== CONT  TestSwitchForwardFailAfterFullAdd
+--- PASS: TestSwitchForwardFailAfterFullAdd (0.03s)
+=== CONT  TestSwitchForward
+--- PASS: TestSwitchForward (0.02s)
+=== CONT  TestChannelLinkBatchPreimageWrite
+=== RUN   TestChannelLinkBatchPreimageWrite/flush_on_commit_sig
+--- PASS: TestChannelLinkAcceptOverpay (2.26s)
+=== CONT  TestChannelLinkBandwidthChanReserve
+=== RUN   TestChannelLinkBatchPreimageWrite/flush_on_disconnect
+--- PASS: TestChannelLinkBatchPreimageWrite (0.38s)
+    --- PASS: TestChannelLinkBatchPreimageWrite/flush_on_commit_sig (0.14s)
+    --- PASS: TestChannelLinkBatchPreimageWrite/flush_on_disconnect (0.24s)
+=== CONT  TestChannelLinkWaitForRevocation
+--- PASS: TestChannelLinkHoldInvoiceSettle (2.20s)
+=== CONT  TestChannelLinkAcceptDuplicatePayment
+--- PASS: TestChannelLinkWaitForRevocation (0.19s)
+=== CONT  TestChannelLinkNoMoreUpdates
+--- PASS: TestChannelLinkAcceptDuplicatePayment (0.27s)
+=== CONT  TestChannelLinkUpdateCommitFee
+--- PASS: TestChannelLinkNoMoreUpdates (0.17s)
+=== CONT  TestChannelLinkTrimCircuitsPending
+--- PASS: TestChannelLinkBandwidthChanReserve (1.27s)
+=== CONT  TestChannelLinkShutdownDuringForward
+--- PASS: TestChannelLinkCleanupSpuriousResponses (3.07s)
+=== CONT  TestChannelLinkTrimCircuitsNoCommit
+--- PASS: TestChannelLinkUpdateCommitFee (2.14s)
+=== CONT  TestChannelRetransmission
+=== RUN   TestChannelRetransmission/intercept_last_alice_revoke_and_ack
+--- PASS: TestChannelLinkTrimCircuitsPending (4.16s)
+=== CONT  TestChannelLinkBandwidthConsistencyOverflow
+--- PASS: TestChannelLinkShutdownDuringForward (4.49s)
+=== CONT  TestNetworkResultSerialization
+--- PASS: TestNetworkResultSerialization (0.00s)
+=== CONT  TestSwitchHasActiveLink
+--- PASS: TestSwitchHasActiveLink (0.00s)
+=== CONT  TestMailBoxCouriers
+--- PASS: TestMailBoxCouriers (0.00s)
+=== CONT  TestSwitchAddDuplicateLink
+--- PASS: TestSwitchAddDuplicateLink (0.00s)
+=== CONT  TestWaitingQueueThreadSafety
+--- PASS: TestWaitingQueueThreadSafety (0.38s)
+=== CONT  TestNetworkResultStore
+--- PASS: TestNetworkResultStore (0.04s)
+=== CONT  TestMailOrchestrator
+--- PASS: TestMailOrchestrator (0.25s)
+=== CONT  TestChannelLinkBandwidthConsistency
+--- PASS: TestChannelLinkTrimCircuitsNoCommit (4.55s)
+=== CONT  TestChannelLinkHoldInvoiceRestart
+--- PASS: TestChannelLinkHoldInvoiceRestart (0.24s)
+=== CONT  TestChannelLinkRevocationWindowHodl
+=== RUN   TestChannelRetransmission/intercept_bob_revoke_and_ack_commit_sig_messages
+--- PASS: TestChannelLinkRevocationWindowHodl (2.18s)
+--- PASS: TestChannelLinkBandwidthConsistency (6.18s)
+--- PASS: TestChannelLinkBandwidthConsistencyOverflow (8.19s)
+=== RUN   TestChannelRetransmission/intercept_update_add_htlc_and_commit_sig_messages
+--- PASS: TestChannelRetransmission (16.37s)
+    --- PASS: TestChannelRetransmission/intercept_last_alice_revoke_and_ack (5.46s)
+    --- PASS: TestChannelRetransmission/intercept_bob_revoke_and_ack_commit_sig_messages (5.46s)
+    --- PASS: TestChannelRetransmission/intercept_update_add_htlc_and_commit_sig_messages (5.45s)
+PASS
+ok  	github.com/decred/dcrlnd/htlcswitch	26.972s
+=== RUN   TestMask
+--- PASS: TestMask (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/htlcswitch/hodl	(cached)
+=== RUN   TestRevocationKeyDerivation
+=== PAUSE TestRevocationKeyDerivation
+=== RUN   TestTweakKeyDerivation
+=== PAUSE TestTweakKeyDerivation
+=== RUN   TestHTLCSenderSpendValidation
+=== PAUSE TestHTLCSenderSpendValidation
+=== RUN   TestHTLCReceiverSpendValidation
+=== PAUSE TestHTLCReceiverSpendValidation
+=== RUN   TestSecondLevelHtlcSpends
+=== PAUSE TestSecondLevelHtlcSpends
+=== RUN   TestSpecificationKeyDerivation
+--- PASS: TestSpecificationKeyDerivation (0.00s)
+=== RUN   TestReplaceReceiverHtlcSpendRedeemPreimage
+=== PAUSE TestReplaceReceiverHtlcSpendRedeemPreimage
+=== RUN   TestSignDescriptorSerialization
+--- PASS: TestSignDescriptorSerialization (0.00s)
+=== RUN   TestTxOutSerialization
+--- PASS: TestTxOutSerialization (0.00s)
+=== CONT  TestRevocationKeyDerivation
+=== CONT  TestSecondLevelHtlcSpends
+=== CONT  TestHTLCSenderSpendValidation
+--- PASS: TestRevocationKeyDerivation (0.00s)
+=== CONT  TestTweakKeyDerivation
+--- PASS: TestTweakKeyDerivation (0.00s)
+=== CONT  TestReplaceReceiverHtlcSpendRedeemPreimage
+--- PASS: TestReplaceReceiverHtlcSpendRedeemPreimage (0.00s)
+=== CONT  TestHTLCReceiverSpendValidation
+--- PASS: TestHTLCSenderSpendValidation (0.00s)
+--- PASS: TestSecondLevelHtlcSpends (0.00s)
+--- PASS: TestHTLCReceiverSpendValidation (0.01s)
+PASS
+ok  	github.com/decred/dcrlnd/input	(cached)
+=== RUN   TestNewSecretKey
+--- PASS: TestNewSecretKey (0.05s)
+=== RUN   TestMarshalSecretKey
+--- PASS: TestMarshalSecretKey (0.00s)
+=== RUN   TestUnmarshalSecretKey
+--- PASS: TestUnmarshalSecretKey (0.05s)
+=== RUN   TestUnmarshalSecretKeyInvalid
+--- PASS: TestUnmarshalSecretKeyInvalid (0.05s)
+=== RUN   TestEncrypt
+--- PASS: TestEncrypt (0.00s)
+=== RUN   TestDecrypt
+--- PASS: TestDecrypt (0.00s)
+=== RUN   TestDecryptCorrupt
+--- PASS: TestDecryptCorrupt (0.00s)
+=== RUN   TestZero
+--- PASS: TestZero (0.00s)
+=== RUN   TestDeriveKey
+--- PASS: TestDeriveKey (0.04s)
+=== RUN   TestDeriveKeyInvalid
+--- PASS: TestDeriveKeyInvalid (0.05s)
+PASS
+ok  	github.com/decred/dcrlnd/internal/snacl	(cached)
+=== RUN   TestBytes
+--- PASS: TestBytes (0.00s)
+=== RUN   TestBigInt
+--- PASS: TestBigInt (0.00s)
+=== RUN   TestBytea32
+--- PASS: TestBytea32 (0.00s)
+=== RUN   TestBytea64
+--- PASS: TestBytea64 (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/internal/zero	(cached)
+=== RUN   TestSettleInvoice
+--- PASS: TestSettleInvoice (0.01s)
+=== RUN   TestCancelInvoice
+--- PASS: TestCancelInvoice (0.01s)
+=== RUN   TestHoldInvoice
+--- PASS: TestHoldInvoice (0.01s)
+=== RUN   TestUnknownInvoice
+--- PASS: TestUnknownInvoice (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/invoices	0.046s
+=== RUN   TestHDKeyRingImpl
+=== PAUSE TestHDKeyRingImpl
+=== RUN   TestHDSecretKeyRingImpl
+=== PAUSE TestHDSecretKeyRingImpl
+=== CONT  TestHDKeyRingImpl
+=== CONT  TestHDSecretKeyRingImpl
+--- PASS: TestHDSecretKeyRingImpl (0.01s)
+--- PASS: TestHDKeyRingImpl (0.01s)
+PASS
+ok  	github.com/decred/dcrlnd/keychain	(cached)
+=== RUN   TestAddresses
+=== RUN   TestAddresses/tcp://127.0.0.1:9735
+=== RUN   TestAddresses/tcp:127.0.0.1:9735
+=== RUN   TestAddresses/127.0.0.1:9735
+=== RUN   TestAddresses/:9735
+=== RUN   TestAddresses/#00
+=== RUN   TestAddresses/:
+=== RUN   TestAddresses/tcp4://127.0.0.1:9735
+=== RUN   TestAddresses/tcp4:127.0.0.1:9735
+=== RUN   TestAddresses/127.0.0.1
+=== RUN   TestAddresses/[::1]
+=== RUN   TestAddresses/::1
+=== RUN   TestAddresses/tcp6://::1
+=== RUN   TestAddresses/tcp6:::1
+=== RUN   TestAddresses/localhost:9735
+=== RUN   TestAddresses/localhost
+=== RUN   TestAddresses/unix:///tmp/lnd.sock
+=== RUN   TestAddresses/unix:/tmp/lnd.sock
+=== RUN   TestAddresses/123
+=== RUN   TestAddresses/4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion
+=== RUN   TestAddresses/4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion:9735
+=== RUN   TestAddresses/3g2upl4pq6kufc4m.onion
+=== RUN   TestAddresses/3g2upl4pq6kufc4m.onion:9735
+=== RUN   TestAddresses/some_string
+=== RUN   TestAddresses/://
+=== RUN   TestAddresses/12.12.12.12.12
+--- PASS: TestAddresses (0.03s)
+    --- PASS: TestAddresses/tcp://127.0.0.1:9735 (0.00s)
+    --- PASS: TestAddresses/tcp:127.0.0.1:9735 (0.00s)
+    --- PASS: TestAddresses/127.0.0.1:9735 (0.00s)
+    --- PASS: TestAddresses/:9735 (0.00s)
+    --- PASS: TestAddresses/#00 (0.00s)
+    --- PASS: TestAddresses/: (0.00s)
+    --- PASS: TestAddresses/tcp4://127.0.0.1:9735 (0.00s)
+    --- PASS: TestAddresses/tcp4:127.0.0.1:9735 (0.00s)
+    --- PASS: TestAddresses/127.0.0.1 (0.00s)
+    --- PASS: TestAddresses/[::1] (0.00s)
+    --- PASS: TestAddresses/::1 (0.00s)
+    --- PASS: TestAddresses/tcp6://::1 (0.00s)
+    --- PASS: TestAddresses/tcp6:::1 (0.00s)
+    --- PASS: TestAddresses/localhost:9735 (0.00s)
+    --- PASS: TestAddresses/localhost (0.00s)
+    --- PASS: TestAddresses/unix:///tmp/lnd.sock (0.00s)
+    --- PASS: TestAddresses/unix:/tmp/lnd.sock (0.00s)
+    --- PASS: TestAddresses/123 (0.00s)
+    --- PASS: TestAddresses/4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion (0.00s)
+    --- PASS: TestAddresses/4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion:9735 (0.00s)
+    --- PASS: TestAddresses/3g2upl4pq6kufc4m.onion (0.00s)
+    --- PASS: TestAddresses/3g2upl4pq6kufc4m.onion:9735 (0.00s)
+    --- PASS: TestAddresses/some_string (0.00s)
+    --- PASS: TestAddresses/:// (0.02s)
+    --- PASS: TestAddresses/12.12.12.12.12 (0.00s)
+=== RUN   TestLNAddresses
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp://127.0.0.1:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp:127.0.0.1:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@127.0.0.1:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@:
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp4://127.0.0.1:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp4:127.0.0.1:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@127.0.0.1
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@[::1]
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@::1
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp6://::1
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp6:::1
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@localhost:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@localhost
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@unix:///tmp/lnd.sock
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@unix:/tmp/lnd.sock
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@123
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion:9735
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@3g2upl4pq6kufc4m.onion
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@3g2upl4pq6kufc4m.onion:9735
+=== RUN   TestLNAddresses/#00
+=== RUN   TestLNAddresses/@
+=== RUN   TestLNAddresses/nonhexpubkey@
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625@
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4aa@
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a7@
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@some_string
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@://
+=== RUN   TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@21.21.21.21.21
+--- PASS: TestLNAddresses (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp://127.0.0.1:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp:127.0.0.1:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@127.0.0.1:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@ (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@: (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp4://127.0.0.1:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp4:127.0.0.1:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@127.0.0.1 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@[::1] (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@::1 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp6://::1 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@tcp6:::1 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@localhost:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@localhost (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@unix:///tmp/lnd.sock (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@unix:/tmp/lnd.sock (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@123 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@4acth47i6kxnvkewtm6q7ib2s3ufpo5sqbsnzjpbi7utijcltosqemad.onion:9735 (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@3g2upl4pq6kufc4m.onion (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@3g2upl4pq6kufc4m.onion:9735 (0.00s)
+    --- PASS: TestLNAddresses/#00 (0.00s)
+    --- PASS: TestLNAddresses/@ (0.00s)
+    --- PASS: TestLNAddresses/nonhexpubkey@ (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625@ (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4aa@ (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a7@ (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@some_string (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@:// (0.00s)
+    --- PASS: TestLNAddresses/03c78286d0bfe0b23377e347d7d963943c4f575dddd57e2f1d52a5be1eb7f625a4@21.21.21.21.21 (0.00s)
+=== RUN   TestValidateWorkers
+=== RUN   TestValidateWorkers/min_valid
+=== RUN   TestValidateWorkers/max_valid
+=== RUN   TestValidateWorkers/read_max_invalid
+=== RUN   TestValidateWorkers/write_max_invalid
+=== RUN   TestValidateWorkers/sig_max_invalid
+=== RUN   TestValidateWorkers/read_min_invalid
+=== RUN   TestValidateWorkers/write_min_invalid
+=== RUN   TestValidateWorkers/sig_min_invalid
+--- PASS: TestValidateWorkers (0.00s)
+    --- PASS: TestValidateWorkers/min_valid (0.00s)
+    --- PASS: TestValidateWorkers/max_valid (0.00s)
+    --- PASS: TestValidateWorkers/read_max_invalid (0.00s)
+    --- PASS: TestValidateWorkers/write_max_invalid (0.00s)
+    --- PASS: TestValidateWorkers/sig_max_invalid (0.00s)
+    --- PASS: TestValidateWorkers/read_min_invalid (0.00s)
+    --- PASS: TestValidateWorkers/write_min_invalid (0.00s)
+    --- PASS: TestValidateWorkers/sig_min_invalid (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/lncfg	(cached)
+?   	github.com/decred/dcrlnd/lnpeer	[no test files]
+?   	github.com/decred/dcrlnd/lnrpc	[no test files]
+?   	github.com/decred/dcrlnd/lnrpc/autopilotrpc	[no test files]
+?   	github.com/decred/dcrlnd/lnrpc/chainrpc	[no test files]
+?   	github.com/decred/dcrlnd/lnrpc/invoicesrpc	[no test files]
+=== RUN   TestQueryRoutes
+=== RUN   TestQueryRoutes/no_mission_control
+=== RUN   TestQueryRoutes/with_mission_control
+--- PASS: TestQueryRoutes (0.00s)
+    --- PASS: TestQueryRoutes/no_mission_control (0.00s)
+    --- PASS: TestQueryRoutes/with_mission_control (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/lnrpc/routerrpc	(cached)
+?   	github.com/decred/dcrlnd/lnrpc/signrpc	[no test files]
+?   	github.com/decred/dcrlnd/lnrpc/walletrpc	[no test files]
+?   	github.com/decred/dcrlnd/lnrpc/watchtowerrpc	[no test files]
+?   	github.com/decred/dcrlnd/lntest	[no test files]
+?   	github.com/decred/dcrlnd/lntypes	[no test files]
+=== RUN   TestSimpleAddSettleWorkflow
+=== PAUSE TestSimpleAddSettleWorkflow
+=== RUN   TestCheckCommitTxSize
+=== PAUSE TestCheckCommitTxSize
+=== RUN   TestCooperativeChannelClosure
+=== PAUSE TestCooperativeChannelClosure
+=== RUN   TestForceClose
+=== PAUSE TestForceClose
+=== RUN   TestForceCloseDustOutput
+=== PAUSE TestForceCloseDustOutput
+=== RUN   TestDustHTLCFees
+=== PAUSE TestDustHTLCFees
+=== RUN   TestHTLCDustLimit
+=== PAUSE TestHTLCDustLimit
+=== RUN   TestHTLCSigNumber
+=== PAUSE TestHTLCSigNumber
+=== RUN   TestChannelBalanceDustLimit
+=== PAUSE TestChannelBalanceDustLimit
+=== RUN   TestStateUpdatePersistence
+=== PAUSE TestStateUpdatePersistence
+=== RUN   TestCancelHTLC
+=== PAUSE TestCancelHTLC
+=== RUN   TestCooperativeCloseDustAdherence
+=== PAUSE TestCooperativeCloseDustAdherence
+=== RUN   TestUpdateFeeAdjustments
+=== PAUSE TestUpdateFeeAdjustments
+=== RUN   TestUpdateFeeFail
+=== PAUSE TestUpdateFeeFail
+=== RUN   TestUpdateFeeConcurrentSig
+=== PAUSE TestUpdateFeeConcurrentSig
+=== RUN   TestUpdateFeeSenderCommits
+=== PAUSE TestUpdateFeeSenderCommits
+=== RUN   TestUpdateFeeReceiverCommits
+=== PAUSE TestUpdateFeeReceiverCommits
+=== RUN   TestUpdateFeeReceiverSendsUpdate
+=== PAUSE TestUpdateFeeReceiverSendsUpdate
+=== RUN   TestUpdateFeeMultipleUpdates
+=== PAUSE TestUpdateFeeMultipleUpdates
+=== RUN   TestAddHTLCNegativeBalance
+=== PAUSE TestAddHTLCNegativeBalance
+=== RUN   TestChanSyncFullySynced
+=== PAUSE TestChanSyncFullySynced
+=== RUN   TestChanSyncOweCommitment
+=== PAUSE TestChanSyncOweCommitment
+=== RUN   TestChanSyncOweRevocation
+=== PAUSE TestChanSyncOweRevocation
+=== RUN   TestChanSyncOweRevocationAndCommit
+=== PAUSE TestChanSyncOweRevocationAndCommit
+=== RUN   TestChanSyncOweRevocationAndCommitForceTransition
+=== PAUSE TestChanSyncOweRevocationAndCommitForceTransition
+=== RUN   TestChanSyncFailure
+=== PAUSE TestChanSyncFailure
+=== RUN   TestFeeUpdateRejectInsaneFee
+=== PAUSE TestFeeUpdateRejectInsaneFee
+=== RUN   TestChannelRetransmissionFeeUpdate
+=== PAUSE TestChannelRetransmissionFeeUpdate
+=== RUN   TestFeeUpdateOldDiskFormat
+=== PAUSE TestFeeUpdateOldDiskFormat
+=== RUN   TestChanSyncUnableToSync
+=== PAUSE TestChanSyncUnableToSync
+=== RUN   TestChanSyncInvalidLastSecret
+=== PAUSE TestChanSyncInvalidLastSecret
+=== RUN   TestChanAvailableBandwidth
+=== PAUSE TestChanAvailableBandwidth
+=== RUN   TestSignCommitmentFailNotLockedIn
+=== PAUSE TestSignCommitmentFailNotLockedIn
+=== RUN   TestLockedInHtlcForwardingSkipAfterRestart
+=== PAUSE TestLockedInHtlcForwardingSkipAfterRestart
+=== RUN   TestInvalidCommitSigError
+=== PAUSE TestInvalidCommitSigError
+=== RUN   TestChannelUnilateralCloseHtlcResolution
+=== PAUSE TestChannelUnilateralCloseHtlcResolution
+=== RUN   TestChannelUnilateralClosePendingCommit
+=== PAUSE TestChannelUnilateralClosePendingCommit
+=== RUN   TestDesyncHTLCs
+=== PAUSE TestDesyncHTLCs
+=== RUN   TestMaxAcceptedHTLCs
+=== PAUSE TestMaxAcceptedHTLCs
+=== RUN   TestMaxPendingAmount
+=== PAUSE TestMaxPendingAmount
+=== RUN   TestChanReserve
+=== PAUSE TestChanReserve
+=== RUN   TestMinHTLC
+=== PAUSE TestMinHTLC
+=== RUN   TestNewBreachRetributionSkipsDustHtlcs
+=== PAUSE TestNewBreachRetributionSkipsDustHtlcs
+=== RUN   TestChannelRestoreUpdateLogs
+=== PAUSE TestChannelRestoreUpdateLogs
+=== RUN   TestChannelRestoreUpdateLogsFailedHTLC
+=== PAUSE TestChannelRestoreUpdateLogsFailedHTLC
+=== RUN   TestDuplicateFailRejection
+=== PAUSE TestDuplicateFailRejection
+=== RUN   TestDuplicateSettleRejection
+=== PAUSE TestDuplicateSettleRejection
+=== RUN   TestChannelRestoreCommitHeight
+=== PAUSE TestChannelRestoreCommitHeight
+=== RUN   TestForceCloseFailLocalDataLoss
+=== PAUSE TestForceCloseFailLocalDataLoss
+=== RUN   TestForceCloseBorkedState
+=== PAUSE TestForceCloseBorkedState
+=== RUN   TestCommitmentAndHTLCTransactions
+=== PAUSE TestCommitmentAndHTLCTransactions
+=== RUN   TestCommitTxStateHint
+=== PAUSE TestCommitTxStateHint
+=== RUN   TestCommitmentSpendValidation
+=== PAUSE TestCommitmentSpendValidation
+=== RUN   TestCoinSelect
+=== PAUSE TestCoinSelect
+=== RUN   TestCoinSelectSubtractFees
+=== PAUSE TestCoinSelectSubtractFees
+=== RUN   TestCommitSort
+=== RUN   TestCommitSort/sort_inputs_on_prevoutpoint_txid
+=== RUN   TestCommitSort/sort_inputs_on_prevoutpoint_index
+=== RUN   TestCommitSort/inputs_already_sorted
+=== RUN   TestCommitSort/sort_outputs_on_value
+=== RUN   TestCommitSort/sort_outputs_on_pkscript
+=== RUN   TestCommitSort/sort_outputs_on_cltv
+=== RUN   TestCommitSort/sort_complex_outputs
+=== RUN   TestCommitSort/outputs_already_sorted
+--- PASS: TestCommitSort (0.00s)
+    --- PASS: TestCommitSort/sort_inputs_on_prevoutpoint_txid (0.00s)
+    --- PASS: TestCommitSort/sort_inputs_on_prevoutpoint_index (0.00s)
+    --- PASS: TestCommitSort/inputs_already_sorted (0.00s)
+    --- PASS: TestCommitSort/sort_outputs_on_value (0.00s)
+    --- PASS: TestCommitSort/sort_outputs_on_pkscript (0.00s)
+    --- PASS: TestCommitSort/sort_outputs_on_cltv (0.00s)
+    --- PASS: TestCommitSort/sort_complex_outputs (0.00s)
+    --- PASS: TestCommitSort/outputs_already_sorted (0.00s)
+=== RUN   TestStaticFeeEstimator
+=== PAUSE TestStaticFeeEstimator
+=== RUN   TestSparseConfFeeSource
+=== PAUSE TestSparseConfFeeSource
+=== RUN   TestWebAPIFeeEstimator
+=== PAUSE TestWebAPIFeeEstimator
+=== RUN   TestLightningWallet
+=== PAUSE TestLightningWallet
+=== RUN   TestTxSizeEstimator
+--- PASS: TestTxSizeEstimator (0.00s)
+=== CONT  TestSimpleAddSettleWorkflow
+=== CONT  TestChanSyncInvalidLastSecret
+=== CONT  TestDuplicateFailRejection
+=== CONT  TestMaxAcceptedHTLCs
+--- PASS: TestMaxAcceptedHTLCs (0.06s)
+=== CONT  TestChanSyncUnableToSync
+--- PASS: TestChanSyncInvalidLastSecret (0.07s)
+=== CONT  TestFeeUpdateOldDiskFormat
+--- PASS: TestDuplicateFailRejection (0.07s)
+=== CONT  TestChannelRetransmissionFeeUpdate
+--- PASS: TestChanSyncUnableToSync (0.02s)
+=== CONT  TestFeeUpdateRejectInsaneFee
+--- PASS: TestSimpleAddSettleWorkflow (0.08s)
+=== CONT  TestChanSyncFailure
+--- PASS: TestFeeUpdateRejectInsaneFee (0.03s)
+=== CONT  TestChanSyncOweRevocationAndCommitForceTransition
+--- PASS: TestChannelRetransmissionFeeUpdate (0.10s)
+=== CONT  TestChanSyncOweRevocationAndCommit
+--- PASS: TestChanSyncOweRevocationAndCommitForceTransition (0.10s)
+=== CONT  TestChanSyncOweRevocation
+--- PASS: TestChanSyncOweRevocationAndCommit (0.06s)
+=== CONT  TestChanSyncOweCommitment
+--- PASS: TestChanSyncFailure (0.15s)
+=== CONT  TestChanSyncFullySynced
+--- PASS: TestFeeUpdateOldDiskFormat (0.21s)
+=== CONT  TestAddHTLCNegativeBalance
+--- PASS: TestChanSyncOweRevocation (0.08s)
+=== CONT  TestUpdateFeeMultipleUpdates
+--- PASS: TestAddHTLCNegativeBalance (0.02s)
+=== CONT  TestUpdateFeeReceiverSendsUpdate
+--- PASS: TestChanSyncOweCommitment (0.10s)
+=== CONT  TestUpdateFeeReceiverCommits
+--- PASS: TestUpdateFeeReceiverSendsUpdate (0.03s)
+=== CONT  TestUpdateFeeSenderCommits
+--- PASS: TestChanSyncFullySynced (0.11s)
+=== CONT  TestUpdateFeeConcurrentSig
+--- PASS: TestUpdateFeeConcurrentSig (0.03s)
+=== CONT  TestUpdateFeeFail
+--- PASS: TestUpdateFeeMultipleUpdates (0.07s)
+=== CONT  TestUpdateFeeAdjustments
+--- PASS: TestUpdateFeeReceiverCommits (0.05s)
+=== CONT  TestCooperativeCloseDustAdherence
+--- PASS: TestUpdateFeeSenderCommits (0.05s)
+=== CONT  TestCancelHTLC
+--- PASS: TestUpdateFeeFail (0.02s)
+=== CONT  TestStateUpdatePersistence
+--- PASS: TestCooperativeCloseDustAdherence (0.04s)
+=== CONT  TestChannelBalanceDustLimit
+--- PASS: TestUpdateFeeAdjustments (0.05s)
+=== CONT  TestHTLCSigNumber
+--- PASS: TestCancelHTLC (0.06s)
+=== CONT  TestHTLCDustLimit
+=== CONT  TestDustHTLCFees
+--- PASS: TestChannelBalanceDustLimit (0.05s)
+--- PASS: TestStateUpdatePersistence (0.13s)
+=== CONT  TestForceCloseDustOutput
+--- PASS: TestDustHTLCFees (0.06s)
+=== CONT  TestForceClose
+--- PASS: TestHTLCDustLimit (0.09s)
+=== CONT  TestCooperativeChannelClosure
+--- PASS: TestCooperativeChannelClosure (0.02s)
+=== CONT  TestCheckCommitTxSize
+--- PASS: TestForceCloseDustOutput (0.06s)
+=== CONT  TestChannelRestoreUpdateLogsFailedHTLC
+--- PASS: TestForceClose (0.09s)
+=== CONT  TestChannelRestoreUpdateLogs
+--- PASS: TestHTLCSigNumber (0.20s)
+=== CONT  TestNewBreachRetributionSkipsDustHtlcs
+--- PASS: TestChannelRestoreUpdateLogs (0.03s)
+=== CONT  TestMinHTLC
+--- PASS: TestMinHTLC (0.04s)
+=== CONT  TestChanReserve
+--- PASS: TestChannelRestoreUpdateLogsFailedHTLC (0.11s)
+=== CONT  TestMaxPendingAmount
+--- PASS: TestNewBreachRetributionSkipsDustHtlcs (0.08s)
+=== CONT  TestDesyncHTLCs
+--- PASS: TestMaxPendingAmount (0.05s)
+=== CONT  TestChannelUnilateralClosePendingCommit
+--- PASS: TestChannelUnilateralClosePendingCommit (0.05s)
+=== CONT  TestChannelUnilateralCloseHtlcResolution
+--- PASS: TestDesyncHTLCs (0.09s)
+=== CONT  TestInvalidCommitSigError
+--- PASS: TestInvalidCommitSigError (0.03s)
+=== CONT  TestLockedInHtlcForwardingSkipAfterRestart
+--- PASS: TestChannelUnilateralCloseHtlcResolution (0.13s)
+=== CONT  TestSignCommitmentFailNotLockedIn
+--- PASS: TestSignCommitmentFailNotLockedIn (0.03s)
+=== CONT  TestChanAvailableBandwidth
+--- PASS: TestChanReserve (0.27s)
+=== CONT  TestCoinSelect
+=== RUN   TestCoinSelect/big_change
+=== PAUSE TestCoinSelect/big_change
+=== RUN   TestCoinSelect/nothing_left_for_fees
+=== PAUSE TestCoinSelect/nothing_left_for_fees
+=== RUN   TestCoinSelect/dust_change
+=== PAUSE TestCoinSelect/dust_change
+=== RUN   TestCoinSelect/no_change
+=== PAUSE TestCoinSelect/no_change
+=== CONT  TestLightningWallet
+--- PASS: TestLockedInHtlcForwardingSkipAfterRestart (0.17s)
+=== CONT  TestWebAPIFeeEstimator
+--- PASS: TestChanAvailableBandwidth (0.12s)
+=== CONT  TestSparseConfFeeSource
+--- PASS: TestSparseConfFeeSource (0.00s)
+=== CONT  TestStaticFeeEstimator
+--- PASS: TestStaticFeeEstimator (0.00s)
+=== CONT  TestCoinSelectSubtractFees
+=== RUN   TestCoinSelectSubtractFees/spend_all
+=== RUN   TestCoinSelectSubtractFees/dust_output
+=== RUN   TestCoinSelectSubtractFees/dust_change
+=== RUN   TestCoinSelectSubtractFees/output_right_above_dustlimit
+=== RUN   TestCoinSelectSubtractFees/no_amount_to_pay_fee_for_change
+=== RUN   TestCoinSelectSubtractFees/high_fee
+--- PASS: TestCoinSelectSubtractFees (0.00s)
+    --- PASS: TestCoinSelectSubtractFees/spend_all (0.00s)
+    --- PASS: TestCoinSelectSubtractFees/dust_output (0.00s)
+    --- PASS: TestCoinSelectSubtractFees/dust_change (0.00s)
+    --- PASS: TestCoinSelectSubtractFees/output_right_above_dustlimit (0.00s)
+    --- PASS: TestCoinSelectSubtractFees/no_amount_to_pay_fee_for_change (0.00s)
+    --- PASS: TestCoinSelectSubtractFees/high_fee (0.00s)
+=== CONT  TestForceCloseBorkedState
+--- PASS: TestForceCloseBorkedState (0.03s)
+=== CONT  TestCommitmentSpendValidation
+--- PASS: TestCommitmentSpendValidation (0.00s)
+=== CONT  TestCommitTxStateHint
+--- PASS: TestCommitTxStateHint (0.00s)
+    transactions_test.go:1016: Passed: states 0 to 1000
+    transactions_test.go:1016: Passed: states 'maxStateHint-1000' to 'maxStateHint'
+    transactions_test.go:1016: Passed: state 'maxStateHint+1'
+    transactions_test.go:1016: Passed: commit transaction with two inputs
+=== CONT  TestCommitmentAndHTLCTransactions
+--- PASS: TestCommitmentAndHTLCTransactions (0.05s)
+=== CONT  TestChannelRestoreCommitHeight
+--- PASS: TestChannelRestoreCommitHeight (0.15s)
+=== CONT  TestForceCloseFailLocalDataLoss
+--- PASS: TestForceCloseFailLocalDataLoss (0.02s)
+=== CONT  TestDuplicateSettleRejection
+--- PASS: TestCheckCommitTxSize (0.80s)
+=== CONT  TestCoinSelect/big_change
+=== CONT  TestCoinSelect/no_change
+=== CONT  TestCoinSelect/dust_change
+=== CONT  TestCoinSelect/nothing_left_for_fees
+--- PASS: TestCoinSelect (0.00s)
+    --- PASS: TestCoinSelect/big_change (0.00s)
+    --- PASS: TestCoinSelect/no_change (0.00s)
+    --- PASS: TestCoinSelect/dust_change (0.00s)
+    --- PASS: TestCoinSelect/nothing_left_for_fees (0.00s)
+--- PASS: TestDuplicateSettleRejection (0.04s)
+=== RUN   TestWebAPIFeeEstimator/target_below_min
+=== RUN   TestWebAPIFeeEstimator/target_w_too-low_fee
+=== RUN   TestWebAPIFeeEstimator/API-omitted_target
+=== RUN   TestWebAPIFeeEstimator/valid_target
+=== RUN   TestWebAPIFeeEstimator/valid_target_extrapolated_fee
+--- PASS: TestWebAPIFeeEstimator (1.23s)
+    --- PASS: TestWebAPIFeeEstimator/target_below_min (0.00s)
+    --- PASS: TestWebAPIFeeEstimator/target_w_too-low_fee (0.00s)
+    --- PASS: TestWebAPIFeeEstimator/API-omitted_target (0.00s)
+    --- PASS: TestWebAPIFeeEstimator/valid_target (0.00s)
+    --- PASS: TestWebAPIFeeEstimator/valid_target_extrapolated_fee (0.00s)
+=== RUN   TestLightningWallet/dcrwallet/dcrd:change_output_spend_confirmation
+=== RUN   TestLightningWallet/dcrwallet/dcrd:reorg_wallet_balance
+=== RUN   TestLightningWallet/dcrwallet/dcrd:insane_fee_reject
+=== RUN   TestLightningWallet/dcrwallet/dcrd:single_funding_workflow
+=== RUN   TestLightningWallet/dcrwallet/dcrd:dual_funder_workflow
+=== RUN   TestLightningWallet/dcrwallet/dcrd:output_locking
+=== RUN   TestLightningWallet/dcrwallet/dcrd:reservation_insufficient_funds
+=== RUN   TestLightningWallet/dcrwallet/dcrd:transaction_subscriptions
+=== RUN   TestLightningWallet/dcrwallet/dcrd:transaction_details
+=== RUN   TestLightningWallet/dcrwallet/dcrd:publish_transaction
+=== RUN   TestLightningWallet/dcrwallet/dcrd:signed_with_tweaked_pubkeys
+=== RUN   TestLightningWallet/dcrwallet/dcrd:test_cancel_non-existent_reservation
+=== RUN   TestLightningWallet/dcrwallet/dcrd:last_unused_addr
+--- PASS: TestLightningWallet (23.60s)
+    interface_test.go:2820: Alice synced
+    interface_test.go:2823: Bob synced
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:change_output_spend_confirmation (1.68s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:reorg_wallet_balance (2.52s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:insane_fee_reject (0.00s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:single_funding_workflow (0.12s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:dual_funder_workflow (0.34s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:output_locking (0.00s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:reservation_insufficient_funds (0.01s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:transaction_subscriptions (0.57s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:transaction_details (0.61s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:publish_transaction (6.80s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:signed_with_tweaked_pubkeys (0.22s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:test_cancel_non-existent_reservation (0.00s)
+    --- PASS: TestLightningWallet/dcrwallet/dcrd:last_unused_addr (0.32s)
+PASS
+ok  	github.com/decred/dcrlnd/lnwallet	24.597s
+=== RUN   TestDcrwalletKeyRingImpl
+=== PAUSE TestDcrwalletKeyRingImpl
+=== RUN   TestDcrwalletSecretKeyRingImpl
+=== PAUSE TestDcrwalletSecretKeyRingImpl
+=== CONT  TestDcrwalletKeyRingImpl
+=== CONT  TestDcrwalletSecretKeyRingImpl
+--- PASS: TestDcrwalletSecretKeyRingImpl (3.69s)
+--- PASS: TestDcrwalletKeyRingImpl (3.74s)
+PASS
+ok  	github.com/decred/dcrlnd/lnwallet/dcrwallet	3.775s
+=== RUN   TestChannelIDOutPointConversion
+=== PAUSE TestChannelIDOutPointConversion
+=== RUN   TestGenPossibleOutPoints
+=== PAUSE TestGenPossibleOutPoints
+=== RUN   TestFeatureVectorSetUnset
+=== PAUSE TestFeatureVectorSetUnset
+=== RUN   TestFeatureVectorEncodeDecode
+=== PAUSE TestFeatureVectorEncodeDecode
+=== RUN   TestFeatureVectorUnknownFeatures
+=== PAUSE TestFeatureVectorUnknownFeatures
+=== RUN   TestFeatureNames
+=== PAUSE TestFeatureNames
+=== RUN   TestChanUpdateChanFlags
+=== PAUSE TestChanUpdateChanFlags
+=== RUN   TestMaxOutPointIndex
+=== PAUSE TestMaxOutPointIndex
+=== RUN   TestEmptyMessageUnknownType
+=== PAUSE TestEmptyMessageUnknownType
+=== RUN   TestLightningWireProtocol
+=== PAUSE TestLightningWireProtocol
+=== RUN   TestMilliAtomConversion
+=== PAUSE TestMilliAtomConversion
+=== RUN   TestNetAddressDisplay
+=== PAUSE TestNetAddressDisplay
+=== RUN   TestNodeAliasValidation
+=== PAUSE TestNodeAliasValidation
+=== RUN   TestEncodeDecodeCode
+--- PASS: TestEncodeDecodeCode (0.00s)
+=== RUN   TestChannelUpdateCompatabilityParsing
+=== PAUSE TestChannelUpdateCompatabilityParsing
+=== RUN   TestWriteOnionErrorChanUpdate
+=== PAUSE TestWriteOnionErrorChanUpdate
+=== RUN   TestFailUnknownPaymentHashOptionalAmount
+=== PAUSE TestFailUnknownPaymentHashOptionalAmount
+=== RUN   TestShortChannelIDEncoding
+=== PAUSE TestShortChannelIDEncoding
+=== RUN   TestSignatureSerializeDeserialize
+=== PAUSE TestSignatureSerializeDeserialize
+=== CONT  TestChannelIDOutPointConversion
+=== CONT  TestMilliAtomConversion
+--- PASS: TestMilliAtomConversion (0.00s)
+=== CONT  TestFeatureNames
+--- PASS: TestFeatureNames (0.00s)
+=== CONT  TestMaxOutPointIndex
+--- PASS: TestMaxOutPointIndex (0.00s)
+=== CONT  TestChanUpdateChanFlags
+--- PASS: TestChanUpdateChanFlags (0.00s)
+=== CONT  TestFailUnknownPaymentHashOptionalAmount
+--- PASS: TestFailUnknownPaymentHashOptionalAmount (0.00s)
+=== CONT  TestSignatureSerializeDeserialize
+--- PASS: TestSignatureSerializeDeserialize (0.00s)
+=== CONT  TestShortChannelIDEncoding
+--- PASS: TestShortChannelIDEncoding (0.00s)
+=== CONT  TestWriteOnionErrorChanUpdate
+--- PASS: TestWriteOnionErrorChanUpdate (0.00s)
+=== CONT  TestFeatureVectorEncodeDecode
+--- PASS: TestFeatureVectorEncodeDecode (0.00s)
+=== CONT  TestFeatureVectorUnknownFeatures
+--- PASS: TestFeatureVectorUnknownFeatures (0.00s)
+=== CONT  TestNodeAliasValidation
+--- PASS: TestNodeAliasValidation (0.00s)
+=== CONT  TestFeatureVectorSetUnset
+--- PASS: TestFeatureVectorSetUnset (0.00s)
+=== CONT  TestNetAddressDisplay
+--- PASS: TestChannelIDOutPointConversion (0.00s)
+=== CONT  TestEmptyMessageUnknownType
+--- PASS: TestEmptyMessageUnknownType (0.00s)
+=== CONT  TestChannelUpdateCompatabilityParsing
+--- PASS: TestChannelUpdateCompatabilityParsing (0.00s)
+=== CONT  TestLightningWireProtocol
+--- PASS: TestNetAddressDisplay (0.00s)
+=== CONT  TestGenPossibleOutPoints
+--- PASS: TestGenPossibleOutPoints (0.01s)
+--- PASS: TestLightningWireProtocol (2.42s)
+    lnwire_test.go:1002: Running fuzz tests for msgType=Init
+    lnwire_test.go:1002: Running fuzz tests for msgType=Error
+    lnwire_test.go:1002: Running fuzz tests for msgType=Ping
+    lnwire_test.go:1002: Running fuzz tests for msgType=Pong
+    lnwire_test.go:1002: Running fuzz tests for msgType=MsgOpenChannel
+    lnwire_test.go:1002: Running fuzz tests for msgType=MsgAcceptChannel
+    lnwire_test.go:1002: Running fuzz tests for msgType=MsgFundingCreated
+    lnwire_test.go:1002: Running fuzz tests for msgType=MsgFundingSigned
+    lnwire_test.go:1002: Running fuzz tests for msgType=FundingLocked
+    lnwire_test.go:1002: Running fuzz tests for msgType=Shutdown
+    lnwire_test.go:1002: Running fuzz tests for msgType=ClosingSigned
+    lnwire_test.go:1002: Running fuzz tests for msgType=UpdateAddHTLC
+    lnwire_test.go:1002: Running fuzz tests for msgType=UpdateFulfillHTLC
+    lnwire_test.go:1002: Running fuzz tests for msgType=UpdateFailHTLC
+    lnwire_test.go:1002: Running fuzz tests for msgType=CommitSig
+    lnwire_test.go:1002: Running fuzz tests for msgType=RevokeAndAck
+    lnwire_test.go:1002: Running fuzz tests for msgType=UpdateFee
+    lnwire_test.go:1002: Running fuzz tests for msgType=UpdateFailMalformedHTLC
+    lnwire_test.go:1002: Running fuzz tests for msgType=ChannelReestablish
+    lnwire_test.go:1002: Running fuzz tests for msgType=ChannelAnnouncement
+    lnwire_test.go:1002: Running fuzz tests for msgType=NodeAnnouncement
+    lnwire_test.go:1002: Running fuzz tests for msgType=ChannelUpdate
+    lnwire_test.go:1002: Running fuzz tests for msgType=AnnounceSignatures
+    lnwire_test.go:1002: Running fuzz tests for msgType=GossipTimestampRange
+    lnwire_test.go:1002: Running fuzz tests for msgType=QueryShortChanIDs
+    lnwire_test.go:1002: Running fuzz tests for msgType=ReplyShortChanIDsEnd
+    lnwire_test.go:1002: Running fuzz tests for msgType=QueryChannelRange
+    lnwire_test.go:1002: Running fuzz tests for msgType=ReplyChannelRange
+PASS
+ok  	github.com/decred/dcrlnd/lnwire	(cached)
+=== RUN   TestAddConstraints
+--- PASS: TestAddConstraints (0.00s)
+=== RUN   TestTimeoutConstraint
+--- PASS: TestTimeoutConstraint (0.00s)
+=== RUN   TestIpLockConstraint
+--- PASS: TestIpLockConstraint (0.00s)
+=== RUN   TestIPLockBadIP
+--- PASS: TestIPLockBadIP (0.00s)
+=== RUN   TestNewService
+--- PASS: TestNewService (0.09s)
+=== RUN   TestValidateMacaroon
+--- PASS: TestValidateMacaroon (0.09s)
+=== RUN   TestStore
+--- PASS: TestStore (0.13s)
+PASS
+ok  	github.com/decred/dcrlnd/macaroons	0.308s
+?   	github.com/decred/dcrlnd/monitoring	[no test files]
+?   	github.com/decred/dcrlnd/multimutex	[no test files]
+?   	github.com/decred/dcrlnd/nat	[no test files]
+=== RUN   TestChanStatusManagerStateMachine
+=== PAUSE TestChanStatusManagerStateMachine
+=== RUN   TestUpdateDisableFlag
+=== PAUSE TestUpdateDisableFlag
+=== CONT  TestChanStatusManagerStateMachine
+=== CONT  TestUpdateDisableFlag
+=== RUN   TestUpdateDisableFlag/working_signer_enabled_to_disabled
+=== RUN   TestChanStatusManagerStateMachine/active_and_enabled_is_stable
+=== PAUSE TestChanStatusManagerStateMachine/active_and_enabled_is_stable
+=== RUN   TestChanStatusManagerStateMachine/inactive_and_disabled_is_stable
+=== PAUSE TestChanStatusManagerStateMachine/inactive_and_disabled_is_stable
+=== RUN   TestChanStatusManagerStateMachine/start_disabled_request_enable
+=== PAUSE TestChanStatusManagerStateMachine/start_disabled_request_enable
+=== RUN   TestChanStatusManagerStateMachine/start_enabled_request_disable
+=== PAUSE TestChanStatusManagerStateMachine/start_enabled_request_disable
+=== RUN   TestChanStatusManagerStateMachine/request_enable_already_enabled
+=== PAUSE TestChanStatusManagerStateMachine/request_enable_already_enabled
+=== RUN   TestChanStatusManagerStateMachine/request_disabled_already_disabled
+=== PAUSE TestChanStatusManagerStateMachine/request_disabled_already_disabled
+=== RUN   TestChanStatusManagerStateMachine/detect_and_disable_inactive
+=== PAUSE TestChanStatusManagerStateMachine/detect_and_disable_inactive
+=== RUN   TestChanStatusManagerStateMachine/quick_flap_stays_active
+=== PAUSE TestChanStatusManagerStateMachine/quick_flap_stays_active
+=== RUN   TestChanStatusManagerStateMachine/no_passive_enable_from_becoming_active
+=== PAUSE TestChanStatusManagerStateMachine/no_passive_enable_from_becoming_active
+=== RUN   TestChanStatusManagerStateMachine/enable_inactive_channel_fails
+=== PAUSE TestChanStatusManagerStateMachine/enable_inactive_channel_fails
+=== RUN   TestChanStatusManagerStateMachine/enable_unknown_channel_fails
+=== PAUSE TestChanStatusManagerStateMachine/enable_unknown_channel_fails
+=== RUN   TestChanStatusManagerStateMachine/disable_unknown_channel_fails
+=== PAUSE TestChanStatusManagerStateMachine/disable_unknown_channel_fails
+=== RUN   TestChanStatusManagerStateMachine/add_new_channels
+=== PAUSE TestChanStatusManagerStateMachine/add_new_channels
+=== RUN   TestChanStatusManagerStateMachine/remove_channels_then_disable
+=== PAUSE TestChanStatusManagerStateMachine/remove_channels_then_disable
+=== RUN   TestChanStatusManagerStateMachine/disable_channels_then_remove
+=== PAUSE TestChanStatusManagerStateMachine/disable_channels_then_remove
+=== CONT  TestChanStatusManagerStateMachine/active_and_enabled_is_stable
+=== RUN   TestUpdateDisableFlag/working_signer_enabled_to_enabled
+=== CONT  TestChanStatusManagerStateMachine/disable_channels_then_remove
+=== RUN   TestUpdateDisableFlag/working_signer_disabled_to_enabled
+=== RUN   TestUpdateDisableFlag/working_signer_disabled_to_disabled
+=== RUN   TestUpdateDisableFlag/working_signer_future_monotonicity
+=== RUN   TestUpdateDisableFlag/failing_signer
+=== RUN   TestUpdateDisableFlag/invalid_sig_from_signer
+--- PASS: TestUpdateDisableFlag (0.00s)
+    --- PASS: TestUpdateDisableFlag/working_signer_enabled_to_disabled (0.00s)
+    --- PASS: TestUpdateDisableFlag/working_signer_enabled_to_enabled (0.00s)
+    --- PASS: TestUpdateDisableFlag/working_signer_disabled_to_enabled (0.00s)
+    --- PASS: TestUpdateDisableFlag/working_signer_disabled_to_disabled (0.00s)
+    --- PASS: TestUpdateDisableFlag/working_signer_future_monotonicity (0.00s)
+    --- PASS: TestUpdateDisableFlag/failing_signer (0.00s)
+    --- PASS: TestUpdateDisableFlag/invalid_sig_from_signer (0.00s)
+=== CONT  TestChanStatusManagerStateMachine/no_passive_enable_from_becoming_active
+=== CONT  TestChanStatusManagerStateMachine/quick_flap_stays_active
+=== CONT  TestChanStatusManagerStateMachine/remove_channels_then_disable
+=== CONT  TestChanStatusManagerStateMachine/add_new_channels
+=== CONT  TestChanStatusManagerStateMachine/disable_unknown_channel_fails
+=== CONT  TestChanStatusManagerStateMachine/enable_unknown_channel_fails
+=== CONT  TestChanStatusManagerStateMachine/enable_inactive_channel_fails
+=== CONT  TestChanStatusManagerStateMachine/start_enabled_request_disable
+=== CONT  TestChanStatusManagerStateMachine/detect_and_disable_inactive
+=== CONT  TestChanStatusManagerStateMachine/request_disabled_already_disabled
+=== CONT  TestChanStatusManagerStateMachine/request_enable_already_enabled
+=== CONT  TestChanStatusManagerStateMachine/inactive_and_disabled_is_stable
+=== CONT  TestChanStatusManagerStateMachine/start_disabled_request_enable
+--- PASS: TestChanStatusManagerStateMachine (0.00s)
+    --- PASS: TestChanStatusManagerStateMachine/active_and_enabled_is_stable (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/no_passive_enable_from_becoming_active (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/quick_flap_stays_active (1.60s)
+    --- PASS: TestChanStatusManagerStateMachine/disable_unknown_channel_fails (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/disable_channels_then_remove (4.50s)
+    --- PASS: TestChanStatusManagerStateMachine/remove_channels_then_disable (3.00s)
+    --- PASS: TestChanStatusManagerStateMachine/enable_unknown_channel_fails (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/enable_inactive_channel_fails (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/start_enabled_request_disable (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/add_new_channels (4.50s)
+    --- PASS: TestChanStatusManagerStateMachine/detect_and_disable_inactive (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/request_disabled_already_disabled (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/request_enable_already_enabled (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/inactive_and_disabled_is_stable (1.50s)
+    --- PASS: TestChanStatusManagerStateMachine/start_disabled_request_enable (1.50s)
+PASS
+ok  	github.com/decred/dcrlnd/netann	(cached)
+=== RUN   TestRecyclers
+=== RUN   TestRecyclers/mock_recycler
+=== RUN   TestRecyclers/write_buffer
+=== RUN   TestRecyclers/read_buffer
+--- PASS: TestRecyclers (0.00s)
+    --- PASS: TestRecyclers/mock_recycler (0.00s)
+    --- PASS: TestRecyclers/write_buffer (0.00s)
+    --- PASS: TestRecyclers/read_buffer (0.00s)
+=== RUN   TestConcreteRecyclePoolTests
+=== RUN   TestConcreteRecyclePoolTests/write_buffer_pool
+=== RUN   TestConcreteRecyclePoolTests/read_buffer_pool
+--- PASS: TestConcreteRecyclePoolTests (0.01s)
+    --- PASS: TestConcreteRecyclePoolTests/write_buffer_pool (0.00s)
+    --- PASS: TestConcreteRecyclePoolTests/read_buffer_pool (0.00s)
+=== RUN   TestConcreteWorkerPools
+=== RUN   TestConcreteWorkerPools/write_pool_non_blocking
+=== PAUSE TestConcreteWorkerPools/write_pool_non_blocking
+=== RUN   TestConcreteWorkerPools/write_pool_blocking
+=== PAUSE TestConcreteWorkerPools/write_pool_blocking
+=== RUN   TestConcreteWorkerPools/write_pool_partial_blocking
+=== PAUSE TestConcreteWorkerPools/write_pool_partial_blocking
+=== RUN   TestConcreteWorkerPools/read_pool_non_blocking
+=== PAUSE TestConcreteWorkerPools/read_pool_non_blocking
+=== RUN   TestConcreteWorkerPools/read_pool_blocking
+=== PAUSE TestConcreteWorkerPools/read_pool_blocking
+=== RUN   TestConcreteWorkerPools/read_pool_partial_blocking
+=== PAUSE TestConcreteWorkerPools/read_pool_partial_blocking
+=== CONT  TestConcreteWorkerPools/write_pool_non_blocking
+=== CONT  TestConcreteWorkerPools/read_pool_non_blocking
+=== CONT  TestConcreteWorkerPools/write_pool_partial_blocking
+=== CONT  TestConcreteWorkerPools/write_pool_blocking
+=== CONT  TestConcreteWorkerPools/read_pool_partial_blocking
+=== CONT  TestConcreteWorkerPools/read_pool_blocking
+--- PASS: TestConcreteWorkerPools (0.00s)
+    --- PASS: TestConcreteWorkerPools/write_pool_non_blocking (2.14s)
+    --- PASS: TestConcreteWorkerPools/read_pool_non_blocking (2.15s)
+    --- PASS: TestConcreteWorkerPools/write_pool_blocking (2.15s)
+    --- PASS: TestConcreteWorkerPools/write_pool_partial_blocking (4.05s)
+    --- PASS: TestConcreteWorkerPools/read_pool_blocking (2.08s)
+    --- PASS: TestConcreteWorkerPools/read_pool_partial_blocking (4.07s)
+PASS
+ok  	github.com/decred/dcrlnd/pool	(cached)
+=== RUN   TestGCQueueGCCycle
+=== PAUSE TestGCQueueGCCycle
+=== RUN   TestGCQueuePartialGCCycle
+=== PAUSE TestGCQueuePartialGCCycle
+=== RUN   TestConcurrentQueue
+=== PAUSE TestConcurrentQueue
+=== RUN   TestConcurrentQueueEarlyStop
+=== PAUSE TestConcurrentQueueEarlyStop
+=== RUN   TestConcurrentQueueIdempotentStart
+=== PAUSE TestConcurrentQueueIdempotentStart
+=== RUN   TestConcurrentQueueIdempotentStop
+=== PAUSE TestConcurrentQueueIdempotentStop
+=== CONT  TestGCQueueGCCycle
+=== CONT  TestConcurrentQueueIdempotentStop
+=== CONT  TestConcurrentQueueEarlyStop
+--- PASS: TestConcurrentQueueIdempotentStop (0.00s)
+=== CONT  TestConcurrentQueue
+=== CONT  TestGCQueuePartialGCCycle
+--- PASS: TestConcurrentQueueEarlyStop (0.00s)
+=== CONT  TestConcurrentQueueIdempotentStart
+--- PASS: TestConcurrentQueue (0.00s)
+--- PASS: TestConcurrentQueueIdempotentStart (0.00s)
+--- PASS: TestGCQueuePartialGCCycle (1.02s)
+--- PASS: TestGCQueueGCCycle (1.27s)
+PASS
+ok  	github.com/decred/dcrlnd/queue	(cached)
+=== RUN   TestControlTowerSubscribeUnknown
+=== PAUSE TestControlTowerSubscribeUnknown
+=== RUN   TestControlTowerSubscribeSuccess
+=== PAUSE TestControlTowerSubscribeSuccess
+=== RUN   TestPaymentControlSubscribeFail
+=== PAUSE TestPaymentControlSubscribeFail
+=== RUN   TestHeapOrdering
+=== PAUSE TestHeapOrdering
+=== RUN   TestMissionControl
+--- PASS: TestMissionControl (0.00s)
+=== RUN   TestMissionControlChannelUpdate
+--- PASS: TestMissionControlChannelUpdate (0.00s)
+=== RUN   TestEdgeUpdateNotification
+=== PAUSE TestEdgeUpdateNotification
+=== RUN   TestNodeUpdateNotification
+=== PAUSE TestNodeUpdateNotification
+=== RUN   TestNotificationCancellation
+=== PAUSE TestNotificationCancellation
+=== RUN   TestChannelCloseNotification
+=== PAUSE TestChannelCloseNotification
+=== RUN   TestEncodeHexColor
+--- PASS: TestEncodeHexColor (0.00s)
+=== RUN   TestFindLowestFeePath
+=== PAUSE TestFindLowestFeePath
+=== RUN   TestBasicGraphPathFinding
+=== PAUSE TestBasicGraphPathFinding
+=== RUN   TestPathFindingWithAdditionalEdges
+=== PAUSE TestPathFindingWithAdditionalEdges
+=== RUN   TestNewRoute
+=== RUN   TestNewRoute/single_hop
+=== RUN   TestNewRoute/two_hop
+=== RUN   TestNewRoute/three_hop
+=== RUN   TestNewRoute/three_hop_with_fee_carry_over
+=== RUN   TestNewRoute/three_hop_with_minimal_fees_for_carry_over
+--- PASS: TestNewRoute (0.00s)
+    --- PASS: TestNewRoute/single_hop (0.00s)
+    --- PASS: TestNewRoute/two_hop (0.00s)
+    --- PASS: TestNewRoute/three_hop (0.00s)
+    --- PASS: TestNewRoute/three_hop_with_fee_carry_over (0.00s)
+    --- PASS: TestNewRoute/three_hop_with_minimal_fees_for_carry_over (0.00s)
+=== RUN   TestNewRoutePathTooLong
+--- SKIP: TestNewRoutePathTooLong (0.00s)
+    pathfind_test.go:1200: 
+=== RUN   TestPathNotAvailable
+=== PAUSE TestPathNotAvailable
+=== RUN   TestPathInsufficientCapacity
+=== PAUSE TestPathInsufficientCapacity
+=== RUN   TestRouteFailMinHTLC
+=== PAUSE TestRouteFailMinHTLC
+=== RUN   TestRouteFailMaxHTLC
+=== PAUSE TestRouteFailMaxHTLC
+=== RUN   TestRouteFailDisabledEdge
+=== PAUSE TestRouteFailDisabledEdge
+=== RUN   TestPathSourceEdgesBandwidth
+=== PAUSE TestPathSourceEdgesBandwidth
+=== RUN   TestPathInsufficientCapacityWithFee
+=== PAUSE TestPathInsufficientCapacityWithFee
+=== RUN   TestPathFindSpecExample
+=== PAUSE TestPathFindSpecExample
+=== RUN   TestNewRouteFromEmptyHops
+=== PAUSE TestNewRouteFromEmptyHops
+=== RUN   TestRestrictOutgoingChannel
+=== PAUSE TestRestrictOutgoingChannel
+=== RUN   TestCltvLimit
+=== RUN   TestCltvLimit/no_limit
+=== PAUSE TestCltvLimit/no_limit
+=== RUN   TestCltvLimit/no_path
+=== PAUSE TestCltvLimit/no_path
+=== RUN   TestCltvLimit/force_high_cost
+=== PAUSE TestCltvLimit/force_high_cost
+=== CONT  TestCltvLimit/no_limit
+=== CONT  TestCltvLimit/force_high_cost
+=== CONT  TestCltvLimit/no_path
+--- PASS: TestCltvLimit (0.00s)
+    --- PASS: TestCltvLimit/no_limit (0.01s)
+    --- PASS: TestCltvLimit/force_high_cost (0.00s)
+    --- PASS: TestCltvLimit/no_path (0.01s)
+=== RUN   TestProbabilityRouting
+=== PAUSE TestProbabilityRouting
+=== RUN   TestRequestRoute
+--- PASS: TestRequestRoute (0.00s)
+=== RUN   TestFindRoutesWithFeeLimit
+=== PAUSE TestFindRoutesWithFeeLimit
+=== RUN   TestSendPaymentRouteFailureFallback
+=== PAUSE TestSendPaymentRouteFailureFallback
+=== RUN   TestChannelUpdateValidation
+=== PAUSE TestChannelUpdateValidation
+=== RUN   TestSendPaymentErrorRepeatedFeeInsufficient
+=== PAUSE TestSendPaymentErrorRepeatedFeeInsufficient
+=== RUN   TestSendPaymentErrorNonFinalTimeLockErrors
+=== PAUSE TestSendPaymentErrorNonFinalTimeLockErrors
+=== RUN   TestSendPaymentErrorPathPruning
+=== PAUSE TestSendPaymentErrorPathPruning
+=== RUN   TestAddProof
+=== PAUSE TestAddProof
+=== RUN   TestIgnoreNodeAnnouncement
+=== PAUSE TestIgnoreNodeAnnouncement
+=== RUN   TestIgnoreChannelEdgePolicyForUnknownChannel
+=== PAUSE TestIgnoreChannelEdgePolicyForUnknownChannel
+=== RUN   TestAddEdgeUnknownVertexes
+=== PAUSE TestAddEdgeUnknownVertexes
+=== RUN   TestWakeUpOnStaleBranch
+=== PAUSE TestWakeUpOnStaleBranch
+=== RUN   TestDisconnectedBlocks
+=== PAUSE TestDisconnectedBlocks
+=== RUN   TestRouterChansClosedOfflinePruneGraph
+=== PAUSE TestRouterChansClosedOfflinePruneGraph
+=== RUN   TestPruneChannelGraphStaleEdges
+=== PAUSE TestPruneChannelGraphStaleEdges
+=== RUN   TestPruneChannelGraphDoubleDisabled
+=== PAUSE TestPruneChannelGraphDoubleDisabled
+=== RUN   TestFindPathFeeWeighting
+=== PAUSE TestFindPathFeeWeighting
+=== RUN   TestIsStaleNode
+=== PAUSE TestIsStaleNode
+=== RUN   TestIsKnownEdge
+=== PAUSE TestIsKnownEdge
+=== RUN   TestIsStaleEdgePolicy
+=== PAUSE TestIsStaleEdgePolicy
+=== RUN   TestEmptyRoutesGenerateSphinxPacket
+=== PAUSE TestEmptyRoutesGenerateSphinxPacket
+=== RUN   TestUnknownErrorSource
+=== PAUSE TestUnknownErrorSource
+=== RUN   TestRouterPaymentStateMachine
+=== PAUSE TestRouterPaymentStateMachine
+=== RUN   TestSendToRouteStructuredError
+=== PAUSE TestSendToRouteStructuredError
+=== RUN   TestValidationBarrierSemaphore
+--- PASS: TestValidationBarrierSemaphore (0.05s)
+=== RUN   TestValidationBarrierQuit
+--- PASS: TestValidationBarrierQuit (0.05s)
+=== CONT  TestControlTowerSubscribeUnknown
+=== CONT  TestSendPaymentRouteFailureFallback
+=== CONT  TestPathInsufficientCapacity
+=== CONT  TestFindRoutesWithFeeLimit
+--- PASS: TestPathInsufficientCapacity (0.00s)
+--- PASS: TestControlTowerSubscribeUnknown (0.00s)
+=== CONT  TestRestrictOutgoingChannel
+--- PASS: TestRestrictOutgoingChannel (0.00s)
+=== CONT  TestNewRouteFromEmptyHops
+--- PASS: TestNewRouteFromEmptyHops (0.00s)
+=== CONT  TestPathFindSpecExample
+=== CONT  TestProbabilityRouting
+=== RUN   TestProbabilityRouting/three_hop_1
+=== PAUSE TestProbabilityRouting/three_hop_1
+=== RUN   TestProbabilityRouting/three_hop_2
+=== PAUSE TestProbabilityRouting/three_hop_2
+=== RUN   TestProbabilityRouting/two_hop_higher_cost
+--- PASS: TestPathFindSpecExample (0.01s)
+=== CONT  TestPathInsufficientCapacityWithFee
+--- PASS: TestPathInsufficientCapacityWithFee (0.00s)
+=== CONT  TestRouteFailDisabledEdge
+--- PASS: TestSendPaymentRouteFailureFallback (0.02s)
+=== CONT  TestPathSourceEdgesBandwidth
+=== PAUSE TestProbabilityRouting/two_hop_higher_cost
+=== RUN   TestProbabilityRouting/probability_limit
+=== PAUSE TestProbabilityRouting/probability_limit
+=== RUN   TestProbabilityRouting/probability_limit_no_routes
+=== PAUSE TestProbabilityRouting/probability_limit_no_routes
+=== CONT  TestRouteFailMaxHTLC
+--- PASS: TestPathSourceEdgesBandwidth (0.03s)
+=== CONT  TestRouteFailMinHTLC
+--- PASS: TestRouteFailDisabledEdge (0.04s)
+=== CONT  TestNotificationCancellation
+--- PASS: TestFindRoutesWithFeeLimit (0.06s)
+=== CONT  TestPathNotAvailable
+--- PASS: TestRouteFailMaxHTLC (0.04s)
+=== CONT  TestPathFindingWithAdditionalEdges
+--- PASS: TestPathFindingWithAdditionalEdges (0.01s)
+=== CONT  TestBasicGraphPathFinding
+--- PASS: TestRouteFailMinHTLC (0.02s)
+=== CONT  TestFindLowestFeePath
+--- PASS: TestNotificationCancellation (0.02s)
+=== CONT  TestChannelCloseNotification
+--- PASS: TestPathNotAvailable (0.02s)
+=== CONT  TestPruneChannelGraphStaleEdges
+=== RUN   TestBasicGraphPathFinding/sophon
+=== RUN   TestBasicGraphPathFinding/luoji
+=== RUN   TestBasicGraphPathFinding/elst
+=== RUN   TestBasicGraphPathFinding/elst#01
+=== RUN   TestBasicGraphPathFinding/sophon#01
+--- PASS: TestBasicGraphPathFinding (0.01s)
+    --- PASS: TestBasicGraphPathFinding/sophon (0.00s)
+    --- PASS: TestBasicGraphPathFinding/luoji (0.00s)
+    --- PASS: TestBasicGraphPathFinding/elst (0.00s)
+    --- PASS: TestBasicGraphPathFinding/elst#01 (0.00s)
+    --- PASS: TestBasicGraphPathFinding/sophon#01 (0.00s)
+=== CONT  TestSendToRouteStructuredError
+--- PASS: TestFindLowestFeePath (0.01s)
+=== CONT  TestRouterPaymentStateMachine
+--- PASS: TestSendToRouteStructuredError (0.01s)
+=== CONT  TestUnknownErrorSource
+--- PASS: TestChannelCloseNotification (0.01s)
+=== CONT  TestEmptyRoutesGenerateSphinxPacket
+--- PASS: TestEmptyRoutesGenerateSphinxPacket (0.00s)
+=== CONT  TestIsStaleEdgePolicy
+--- PASS: TestPruneChannelGraphStaleEdges (0.02s)
+=== CONT  TestIsKnownEdge
+--- PASS: TestUnknownErrorSource (0.01s)
+=== CONT  TestIsStaleNode
+--- PASS: TestIsKnownEdge (0.00s)
+=== CONT  TestFindPathFeeWeighting
+--- PASS: TestRouterPaymentStateMachine (0.02s)
+=== CONT  TestPruneChannelGraphDoubleDisabled
+--- PASS: TestIsStaleNode (0.00s)
+=== CONT  TestHeapOrdering
+--- PASS: TestHeapOrdering (0.00s)
+=== CONT  TestNodeUpdateNotification
+--- PASS: TestIsStaleEdgePolicy (0.01s)
+=== CONT  TestEdgeUpdateNotification
+--- PASS: TestNodeUpdateNotification (0.00s)
+--- PASS: TestFindPathFeeWeighting (0.01s)
+=== CONT  TestRouterChansClosedOfflinePruneGraph
+=== CONT  TestIgnoreNodeAnnouncement
+--- PASS: TestEdgeUpdateNotification (0.01s)
+=== CONT  TestDisconnectedBlocks
+--- PASS: TestRouterChansClosedOfflinePruneGraph (0.01s)
+--- PASS: TestPruneChannelGraphDoubleDisabled (0.02s)
+=== CONT  TestAddEdgeUnknownVertexes
+--- PASS: TestIgnoreNodeAnnouncement (0.01s)
+=== CONT  TestIgnoreChannelEdgePolicyForUnknownChannel
+=== CONT  TestWakeUpOnStaleBranch
+--- PASS: TestIgnoreChannelEdgePolicyForUnknownChannel (0.02s)
+=== CONT  TestAddProof
+=== CONT  TestSendPaymentErrorNonFinalTimeLockErrors
+--- PASS: TestAddProof (0.00s)
+=== CONT  TestSendPaymentErrorPathPruning
+--- PASS: TestAddEdgeUnknownVertexes (0.02s)
+--- PASS: TestSendPaymentErrorNonFinalTimeLockErrors (0.01s)
+=== CONT  TestSendPaymentErrorRepeatedFeeInsufficient
+--- PASS: TestSendPaymentErrorPathPruning (0.01s)
+=== CONT  TestPaymentControlSubscribeFail
+--- PASS: TestSendPaymentErrorRepeatedFeeInsufficient (0.00s)
+=== CONT  TestControlTowerSubscribeSuccess
+--- PASS: TestPaymentControlSubscribeFail (0.02s)
+=== CONT  TestChannelUpdateValidation
+--- PASS: TestChannelUpdateValidation (0.00s)
+=== CONT  TestProbabilityRouting/three_hop_1
+=== CONT  TestProbabilityRouting/probability_limit
+=== CONT  TestProbabilityRouting/probability_limit_no_routes
+=== CONT  TestProbabilityRouting/two_hop_higher_cost
+=== CONT  TestProbabilityRouting/three_hop_2
+--- PASS: TestProbabilityRouting (0.01s)
+    --- PASS: TestProbabilityRouting/three_hop_1 (0.00s)
+    --- PASS: TestProbabilityRouting/probability_limit (0.00s)
+    --- PASS: TestProbabilityRouting/probability_limit_no_routes (0.00s)
+    --- PASS: TestProbabilityRouting/two_hop_higher_cost (0.00s)
+    --- PASS: TestProbabilityRouting/three_hop_2 (0.00s)
+--- PASS: TestControlTowerSubscribeSuccess (0.04s)
+--- PASS: TestDisconnectedBlocks (1.52s)
+--- PASS: TestWakeUpOnStaleBranch (1.50s)
+PASS
+ok  	github.com/decred/dcrlnd/routing	1.794s
+=== RUN   TestFilteredChainView
+=== RUN   TestFilteredChainView/dcrd_websockets:_filtered_block_ntfns
+=== RUN   TestFilteredChainView/dcrd_websockets:_update_filter_back_track
+=== RUN   TestFilteredChainView/dcrd_websockets:_filter_single_block
+=== RUN   TestFilteredChainView/dcrd_websockets:_filter_block_disconnected
+--- PASS: TestFilteredChainView (2.15s)
+    interface_test.go:796: Testing 'dcrd_websockets' implementation of FilteredChainView
+    --- PASS: TestFilteredChainView/dcrd_websockets:_filtered_block_ntfns (0.42s)
+    --- PASS: TestFilteredChainView/dcrd_websockets:_update_filter_back_track (0.21s)
+    --- PASS: TestFilteredChainView/dcrd_websockets:_filter_single_block (0.22s)
+    --- PASS: TestFilteredChainView/dcrd_websockets:_filter_block_disconnected (1.04s)
+PASS
+ok  	github.com/decred/dcrlnd/routing/chainview	2.175s
+=== RUN   TestRouteTotalFees
+=== PAUSE TestRouteTotalFees
+=== CONT  TestRouteTotalFees
+--- PASS: TestRouteTotalFees (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/routing/route	(cached)
+=== RUN   TestDeriveIndex
+=== PAUSE TestDeriveIndex
+=== RUN   TestSpecificationDeriveElement
+=== PAUSE TestSpecificationDeriveElement
+=== RUN   TestShaChainProducerRestore
+=== PAUSE TestShaChainProducerRestore
+=== RUN   TestSpecificationShaChainInsert
+=== PAUSE TestSpecificationShaChainInsert
+=== RUN   TestShaChainStore
+=== PAUSE TestShaChainStore
+=== CONT  TestDeriveIndex
+--- PASS: TestDeriveIndex (0.00s)
+    element_test.go:185: Passed: zero 'from' 'to'
+    element_test.go:185: Passed: same indexes #1
+    element_test.go:185: Passed: same indexes #2
+    element_test.go:185: Passed: test seed 'from'
+    element_test.go:185: Passed: not the same indexes
+    element_test.go:185: Passed: 'from' index greater then 'to' index
+    element_test.go:185: Passed: zero number trailing zeros
+=== CONT  TestSpecificationShaChainInsert
+=== CONT  TestShaChainProducerRestore
+--- PASS: TestShaChainProducerRestore (0.00s)
+=== CONT  TestSpecificationDeriveElement
+--- PASS: TestSpecificationDeriveElement (0.00s)
+    element_test.go:274: Passed (generate_from_seed 0 final node)
+    element_test.go:274: Passed (generate_from_seed FF final node)
+    element_test.go:274: Passed (generate_from_seed FF alternate bits 1)
+    element_test.go:274: Passed (generate_from_seed FF alternate bits 2)
+    element_test.go:274: Passed (generate_from_seed 01 last nontrivial node)
+--- PASS: TestSpecificationShaChainInsert (0.00s)
+    store_test.go:432: Passed (insert_secret correct sequence)
+    store_test.go:432: Passed (insert_secret #1 incorrect)
+    store_test.go:432: Passed (insert_secret #2 incorrect (#1 derived from incorrect))
+    store_test.go:432: Passed (insert_secret #3 incorrect)
+    store_test.go:432: Passed (insert_secret #4 incorrect (1,2,3 derived from incorrect))
+    store_test.go:432: Passed (insert_secret #5 incorrect)
+    store_test.go:432: Passed (insert_secret #6 incorrect (5 derived from incorrect))
+    store_test.go:432: Passed (insert_secret #7 incorrect)
+    store_test.go:432: Passed (insert_secret #8 incorrect)
+=== CONT  TestShaChainStore
+--- PASS: TestShaChainStore (0.18s)
+PASS
+ok  	github.com/decred/dcrlnd/shachain	(cached)
+?   	github.com/decred/dcrlnd/signal	[no test files]
+=== RUN   TestSubscribe
+=== PAUSE TestSubscribe
+=== CONT  TestSubscribe
+--- PASS: TestSubscribe (0.37s)
+PASS
+ok  	github.com/decred/dcrlnd/subscribe	(cached)
+=== RUN   TestStore
+=== RUN   TestStore/bolt
+=== RUN   TestStore/mock
+--- PASS: TestStore (0.00s)
+    --- PASS: TestStore/bolt (0.00s)
+    --- PASS: TestStore/mock (0.00s)
+=== RUN   TestSuccess
+--- PASS: TestSuccess (0.00s)
+=== RUN   TestDust
+--- PASS: TestDust (0.00s)
+=== RUN   TestNegativeInput
+--- PASS: TestNegativeInput (0.00s)
+=== RUN   TestChunks
+--- PASS: TestChunks (0.00s)
+=== RUN   TestRemoteSpend
+=== RUN   TestRemoteSpend/pre-sweep
+=== RUN   TestRemoteSpend/post-sweep
+--- PASS: TestRemoteSpend (0.00s)
+    --- PASS: TestRemoteSpend/pre-sweep (0.00s)
+    --- PASS: TestRemoteSpend/post-sweep (0.00s)
+=== RUN   TestIdempotency
+--- PASS: TestIdempotency (0.00s)
+=== RUN   TestNoInputs
+--- PASS: TestNoInputs (0.00s)
+=== RUN   TestRestart
+--- PASS: TestRestart (0.00s)
+=== RUN   TestRestartRemoteSpend
+--- PASS: TestRestartRemoteSpend (0.00s)
+=== RUN   TestRestartConfirmed
+--- PASS: TestRestartConfirmed (0.00s)
+=== RUN   TestRestartRepublish
+--- PASS: TestRestartRepublish (0.00s)
+=== RUN   TestRetry
+--- PASS: TestRetry (0.00s)
+=== RUN   TestGiveUp
+--- PASS: TestGiveUp (0.00s)
+=== RUN   TestDifferentFeePreferences
+--- PASS: TestDifferentFeePreferences (0.00s)
+=== RUN   TestPendingInputs
+--- PASS: TestPendingInputs (0.00s)
+=== RUN   TestBumpFeeRBF
+--- PASS: TestBumpFeeRBF (0.00s)
+=== RUN   TestDetermineFeePerKw
+=== PAUSE TestDetermineFeePerKw
+=== RUN   TestCraftSweepAllTxCoinSelectFail
+=== PAUSE TestCraftSweepAllTxCoinSelectFail
+=== RUN   TestCraftSweepAllTxUnknownWitnessType
+=== PAUSE TestCraftSweepAllTxUnknownWitnessType
+=== RUN   TestCraftSweepAllTx
+=== PAUSE TestCraftSweepAllTx
+=== CONT  TestDetermineFeePerKw
+--- PASS: TestDetermineFeePerKw (0.00s)
+=== CONT  TestCraftSweepAllTx
+--- PASS: TestCraftSweepAllTx (0.00s)
+=== CONT  TestCraftSweepAllTxUnknownWitnessType
+--- PASS: TestCraftSweepAllTxUnknownWitnessType (0.00s)
+=== CONT  TestCraftSweepAllTxCoinSelectFail
+--- PASS: TestCraftSweepAllTxCoinSelectFail (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/sweep	0.027s
+=== RUN   TestInterfaceTickers
+=== RUN   TestInterfaceTickers/default_ticker
+=== RUN   TestInterfaceTickers/mock_ticker
+--- PASS: TestInterfaceTickers (1.40s)
+    --- PASS: TestInterfaceTickers/default_ticker (0.70s)
+    --- PASS: TestInterfaceTickers/mock_ticker (0.70s)
+PASS
+ok  	github.com/decred/dcrlnd/ticker	(cached)
+=== RUN   TestParseTorVersion
+=== PAUSE TestParseTorVersion
+=== CONT  TestParseTorVersion
+--- PASS: TestParseTorVersion (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/tor	(cached)
+=== RUN   TestGenSeed
+=== PAUSE TestGenSeed
+=== RUN   TestGenSeedGenerateEntropy
+=== PAUSE TestGenSeedGenerateEntropy
+=== RUN   TestGenSeedInvalidEntropy
+=== PAUSE TestGenSeedInvalidEntropy
+=== RUN   TestInitWallet
+=== PAUSE TestInitWallet
+=== RUN   TestCreateWalletInvalidEntropy
+=== PAUSE TestCreateWalletInvalidEntropy
+=== RUN   TestUnlockWallet
+=== PAUSE TestUnlockWallet
+=== RUN   TestChangeWalletPassword
+=== PAUSE TestChangeWalletPassword
+=== CONT  TestGenSeed
+=== CONT  TestCreateWalletInvalidEntropy
+--- PASS: TestCreateWalletInvalidEntropy (0.00s)
+=== CONT  TestGenSeedInvalidEntropy
+--- PASS: TestGenSeedInvalidEntropy (0.00s)
+=== CONT  TestChangeWalletPassword
+=== CONT  TestGenSeedGenerateEntropy
+=== CONT  TestInitWallet
+--- PASS: TestGenSeedGenerateEntropy (0.35s)
+=== CONT  TestUnlockWallet
+--- PASS: TestGenSeed (0.36s)
+--- PASS: TestInitWallet (3.68s)
+--- PASS: TestUnlockWallet (5.17s)
+--- PASS: TestChangeWalletPassword (7.68s)
+PASS
+ok  	github.com/decred/dcrlnd/walletunlocker	7.733s
+?   	github.com/decred/dcrlnd/watchtower	[no test files]
+=== RUN   TestBlobJusticeKitEncryptDecrypt
+=== RUN   TestBlobJusticeKitEncryptDecrypt/to-local_only
+=== RUN   TestBlobJusticeKitEncryptDecrypt/to-local_and_p2wkh
+=== RUN   TestBlobJusticeKitEncryptDecrypt/unknown_encrypt_version
+=== RUN   TestBlobJusticeKitEncryptDecrypt/unknown_decrypt_version
+=== RUN   TestBlobJusticeKitEncryptDecrypt/sweep_addr_length_zero
+=== RUN   TestBlobJusticeKitEncryptDecrypt/sweep_addr_max_size
+=== RUN   TestBlobJusticeKitEncryptDecrypt/sweep_addr_too_long
+--- PASS: TestBlobJusticeKitEncryptDecrypt (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/to-local_only (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/to-local_and_p2wkh (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/unknown_encrypt_version (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/unknown_decrypt_version (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/sweep_addr_length_zero (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/sweep_addr_max_size (0.00s)
+    --- PASS: TestBlobJusticeKitEncryptDecrypt/sweep_addr_too_long (0.00s)
+=== RUN   TestJusticeKitRemoteWitnessConstruction
+--- PASS: TestJusticeKitRemoteWitnessConstruction (0.00s)
+=== RUN   TestJusticeKitToLocalWitnessConstruction
+--- PASS: TestJusticeKitToLocalWitnessConstruction (0.00s)
+=== RUN   TestTypeStrings
+=== RUN   TestTypeStrings/commit_no-reward
+=== RUN   TestTypeStrings/commit_reward
+=== RUN   TestTypeStrings/unknown_flag
+--- PASS: TestTypeStrings (0.00s)
+    --- PASS: TestTypeStrings/commit_no-reward (0.00s)
+    --- PASS: TestTypeStrings/commit_reward (0.00s)
+    --- PASS: TestTypeStrings/unknown_flag (0.00s)
+=== RUN   TestUnknownFlagString
+--- PASS: TestUnknownFlagString (0.00s)
+=== RUN   TestTypeFromFlags
+=== RUN   TestTypeFromFlags/no_flags
+=== RUN   TestTypeFromFlags/single_flag
+=== RUN   TestTypeFromFlags/multiple_flags
+=== RUN   TestTypeFromFlags/duplicate_flag
+--- PASS: TestTypeFromFlags (0.00s)
+    --- PASS: TestTypeFromFlags/no_flags (0.00s)
+    --- PASS: TestTypeFromFlags/single_flag (0.00s)
+    --- PASS: TestTypeFromFlags/multiple_flags (0.00s)
+    --- PASS: TestTypeFromFlags/duplicate_flag (0.00s)
+=== RUN   TestSupportedTypes
+--- PASS: TestSupportedTypes (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/blob	(cached)
+=== RUN   TestJusticeDescriptor
+=== RUN   TestJusticeDescriptor/reward_and_commit_type
+=== RUN   TestJusticeDescriptor/altruist_and_commit_type
+--- PASS: TestJusticeDescriptor (0.00s)
+    --- PASS: TestJusticeDescriptor/reward_and_commit_type (0.00s)
+    --- PASS: TestJusticeDescriptor/altruist_and_commit_type (0.00s)
+=== RUN   TestLookoutBreachMatching
+--- PASS: TestLookoutBreachMatching (0.10s)
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/lookout	(cached)
+=== RUN   TestBackupTask
+=== PAUSE TestBackupTask
+=== RUN   TestClient
+=== RUN   TestClient/backup_unregistered_channel
+=== PAUSE TestClient/backup_unregistered_channel
+=== RUN   TestClient/backup_after_stop
+=== PAUSE TestClient/backup_after_stop
+=== RUN   TestClient/backup_reliable_flush
+=== PAUSE TestClient/backup_reliable_flush
+=== RUN   TestClient/backup_dust_ineligible
+=== PAUSE TestClient/backup_dust_ineligible
+=== RUN   TestClient/committed_update_restart
+=== PAUSE TestClient/committed_update_restart
+=== RUN   TestClient/no_ack_from_server
+=== PAUSE TestClient/no_ack_from_server
+=== RUN   TestClient/send_and_recv
+=== PAUSE TestClient/send_and_recv
+=== RUN   TestClient/multiple_link_backup
+=== PAUSE TestClient/multiple_link_backup
+=== RUN   TestClient/create_session_no_ack
+=== PAUSE TestClient/create_session_no_ack
+=== RUN   TestClient/create_session_no_ack_change_policy
+=== PAUSE TestClient/create_session_no_ack_change_policy
+=== RUN   TestClient/create_session_change_policy_same_txpolicy
+=== PAUSE TestClient/create_session_change_policy_same_txpolicy
+=== RUN   TestClient/dedup_backups
+=== PAUSE TestClient/dedup_backups
+=== CONT  TestClient/backup_unregistered_channel
+=== CONT  TestClient/dedup_backups
+=== CONT  TestClient/send_and_recv
+=== CONT  TestClient/create_session_change_policy_same_txpolicy
+=== CONT  TestClient/no_ack_from_server
+=== CONT  TestClient/committed_update_restart
+=== CONT  TestClient/backup_dust_ineligible
+=== CONT  TestClient/backup_reliable_flush
+=== CONT  TestClient/backup_after_stop
+=== CONT  TestClient/create_session_no_ack_change_policy
+=== CONT  TestClient/create_session_no_ack
+=== CONT  TestClient/multiple_link_backup
+--- PASS: TestClient (0.00s)
+    --- PASS: TestClient/backup_unregistered_channel (0.00s)
+    --- PASS: TestClient/send_and_recv (1.01s)
+    --- PASS: TestClient/create_session_change_policy_same_txpolicy (2.01s)
+    --- PASS: TestClient/dedup_backups (2.01s)
+    --- PASS: TestClient/no_ack_from_server (2.00s)
+    --- PASS: TestClient/backup_after_stop (0.00s)
+    --- PASS: TestClient/backup_reliable_flush (1.00s)
+    --- PASS: TestClient/backup_dust_ineligible (1.00s)
+    --- PASS: TestClient/multiple_link_backup (1.00s)
+    --- PASS: TestClient/create_session_no_ack_change_policy (2.00s)
+    --- PASS: TestClient/create_session_no_ack (2.00s)
+    --- PASS: TestClient/committed_update_restart (4.00s)
+=== CONT  TestBackupTask
+=== RUN   TestBackupTask/commit_no-reward,_both_outputs
+=== RUN   TestBackupTask/commit_no-reward,_to-local_output_only
+=== RUN   TestBackupTask/commit_no-reward,_to-remote_output_only
+=== RUN   TestBackupTask/commit_no-reward,_to-remote_output_only,_creates_dust
+=== RUN   TestBackupTask/commit_no-reward,_no_outputs,_fee_rate_exceeds_inputs
+=== RUN   TestBackupTask/commit_no-reward,_no_outputs,_fee_rate_of_0_creates_dust
+=== RUN   TestBackupTask/commit_reward,_both_outputs
+=== RUN   TestBackupTask/commit_reward,_to-local_output_only
+=== RUN   TestBackupTask/commit_reward,_to-remote_output_only
+=== RUN   TestBackupTask/commit_reward,_to-remote_output_only,_creates_dust
+=== RUN   TestBackupTask/commit_reward,_no_outputs,_fee_rate_exceeds_inputs
+=== RUN   TestBackupTask/commit_reward,_no_outputs,_fee_rate_of_0_creates_dust
+--- PASS: TestBackupTask (0.00s)
+    --- PASS: TestBackupTask/commit_no-reward,_both_outputs (0.00s)
+    --- PASS: TestBackupTask/commit_no-reward,_to-local_output_only (0.00s)
+    --- PASS: TestBackupTask/commit_no-reward,_to-remote_output_only (0.00s)
+    --- PASS: TestBackupTask/commit_no-reward,_to-remote_output_only,_creates_dust (0.00s)
+    --- PASS: TestBackupTask/commit_no-reward,_no_outputs,_fee_rate_exceeds_inputs (0.00s)
+    --- PASS: TestBackupTask/commit_no-reward,_no_outputs,_fee_rate_of_0_creates_dust (0.00s)
+    --- PASS: TestBackupTask/commit_reward,_both_outputs (0.00s)
+    --- PASS: TestBackupTask/commit_reward,_to-local_output_only (0.00s)
+    --- PASS: TestBackupTask/commit_reward,_to-remote_output_only (0.00s)
+    --- PASS: TestBackupTask/commit_reward,_to-remote_output_only,_creates_dust (0.00s)
+    --- PASS: TestBackupTask/commit_reward,_no_outputs,_fee_rate_exceeds_inputs (0.00s)
+    --- PASS: TestBackupTask/commit_reward,_no_outputs,_fee_rate_of_0_creates_dust (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/wtclient	(cached)
+=== RUN   TestClientDB
+=== RUN   TestClientDB/fresh_clientdb
+=== PAUSE TestClientDB/fresh_clientdb
+=== RUN   TestClientDB/reopened_clientdb
+=== PAUSE TestClientDB/reopened_clientdb
+=== RUN   TestClientDB/mock
+=== PAUSE TestClientDB/mock
+=== CONT  TestClientDB/fresh_clientdb
+=== RUN   TestClientDB/fresh_clientdb/create_client_session
+=== CONT  TestClientDB/mock
+=== RUN   TestClientDB/mock/create_client_session
+=== CONT  TestClientDB/reopened_clientdb
+=== RUN   TestClientDB/reopened_clientdb/create_client_session
+=== RUN   TestClientDB/mock/create_tower
+=== RUN   TestClientDB/mock/chan_summaries
+=== RUN   TestClientDB/mock/commit_update
+=== RUN   TestClientDB/fresh_clientdb/create_tower
+=== RUN   TestClientDB/reopened_clientdb/create_tower
+=== RUN   TestClientDB/mock/ack_update
+=== RUN   TestClientDB/fresh_clientdb/chan_summaries
+=== RUN   TestClientDB/fresh_clientdb/commit_update
+=== RUN   TestClientDB/reopened_clientdb/chan_summaries
+=== RUN   TestClientDB/reopened_clientdb/commit_update
+=== RUN   TestClientDB/fresh_clientdb/ack_update
+=== RUN   TestClientDB/reopened_clientdb/ack_update
+--- PASS: TestClientDB (0.00s)
+    --- PASS: TestClientDB/mock (0.00s)
+        --- PASS: TestClientDB/mock/create_client_session (0.00s)
+        --- PASS: TestClientDB/mock/create_tower (0.00s)
+        --- PASS: TestClientDB/mock/chan_summaries (0.00s)
+        --- PASS: TestClientDB/mock/commit_update (0.00s)
+        --- PASS: TestClientDB/mock/ack_update (0.00s)
+    --- PASS: TestClientDB/fresh_clientdb (0.00s)
+        --- PASS: TestClientDB/fresh_clientdb/create_client_session (0.00s)
+        --- PASS: TestClientDB/fresh_clientdb/create_tower (0.00s)
+        --- PASS: TestClientDB/fresh_clientdb/chan_summaries (0.00s)
+        --- PASS: TestClientDB/fresh_clientdb/commit_update (0.00s)
+        --- PASS: TestClientDB/fresh_clientdb/ack_update (0.00s)
+    --- PASS: TestClientDB/reopened_clientdb (0.00s)
+        --- PASS: TestClientDB/reopened_clientdb/create_client_session (0.00s)
+        --- PASS: TestClientDB/reopened_clientdb/create_tower (0.00s)
+        --- PASS: TestClientDB/reopened_clientdb/chan_summaries (0.00s)
+        --- PASS: TestClientDB/reopened_clientdb/commit_update (0.00s)
+        --- PASS: TestClientDB/reopened_clientdb/ack_update (0.00s)
+=== RUN   TestCodec
+=== RUN   TestCodec/SessionInfo
+=== RUN   TestCodec/SessionStateUpdate
+=== RUN   TestCodec/ClientSessionBody
+=== RUN   TestCodec/CommittedUpdateBody
+=== RUN   TestCodec/BackupID
+=== RUN   TestCodec/Tower
+=== RUN   TestCodec/ClientChanSummary
+--- PASS: TestCodec (0.02s)
+    --- PASS: TestCodec/SessionInfo (0.00s)
+    --- PASS: TestCodec/SessionStateUpdate (0.00s)
+    --- PASS: TestCodec/ClientSessionBody (0.00s)
+    --- PASS: TestCodec/CommittedUpdateBody (0.00s)
+    --- PASS: TestCodec/BackupID (0.00s)
+    --- PASS: TestCodec/Tower (0.01s)
+    --- PASS: TestCodec/ClientChanSummary (0.00s)
+=== RUN   TestTowerDB
+=== RUN   TestTowerDB/fresh_boltdb
+=== PAUSE TestTowerDB/fresh_boltdb
+=== RUN   TestTowerDB/reopened_boltdb
+=== PAUSE TestTowerDB/reopened_boltdb
+=== RUN   TestTowerDB/mock
+=== PAUSE TestTowerDB/mock
+=== CONT  TestTowerDB/fresh_boltdb
+=== CONT  TestTowerDB/mock
+=== RUN   TestTowerDB/mock/create_session
+=== RUN   TestTowerDB/mock/delete_session
+=== RUN   TestTowerDB/mock/state_update_no_session
+=== RUN   TestTowerDB/mock/state_update_exhaust_session
+=== RUN   TestTowerDB/fresh_boltdb/create_session
+=== RUN   TestTowerDB/mock/state_update_seqnum_equal_last_applied
+=== RUN   TestTowerDB/mock/state_update_seqnum_less_than_last_applied
+=== RUN   TestTowerDB/mock/state_update_seqnum_zero_invalid
+=== RUN   TestTowerDB/mock/state_update_skip_seqnum
+=== RUN   TestTowerDB/mock/state_update_revert_seqnum
+=== RUN   TestTowerDB/mock/state_update_revert_last_applied
+=== RUN   TestTowerDB/mock/invalid_blob_size
+=== RUN   TestTowerDB/mock/multiple_breach_matches
+=== RUN   TestTowerDB/mock/lookout_tip
+=== CONT  TestTowerDB/reopened_boltdb
+=== RUN   TestTowerDB/reopened_boltdb/create_session
+=== RUN   TestTowerDB/fresh_boltdb/delete_session
+=== RUN   TestTowerDB/reopened_boltdb/delete_session
+=== RUN   TestTowerDB/fresh_boltdb/state_update_no_session
+=== RUN   TestTowerDB/fresh_boltdb/state_update_exhaust_session
+=== RUN   TestTowerDB/reopened_boltdb/state_update_no_session
+=== RUN   TestTowerDB/reopened_boltdb/state_update_exhaust_session
+=== RUN   TestTowerDB/fresh_boltdb/state_update_seqnum_equal_last_applied
+=== RUN   TestTowerDB/reopened_boltdb/state_update_seqnum_equal_last_applied
+=== RUN   TestTowerDB/fresh_boltdb/state_update_seqnum_less_than_last_applied
+=== RUN   TestTowerDB/reopened_boltdb/state_update_seqnum_less_than_last_applied
+=== RUN   TestTowerDB/fresh_boltdb/state_update_seqnum_zero_invalid
+=== RUN   TestTowerDB/fresh_boltdb/state_update_skip_seqnum
+=== RUN   TestTowerDB/fresh_boltdb/state_update_revert_seqnum
+=== RUN   TestTowerDB/reopened_boltdb/state_update_seqnum_zero_invalid
+=== RUN   TestTowerDB/reopened_boltdb/state_update_skip_seqnum
+=== RUN   TestTowerDB/fresh_boltdb/state_update_revert_last_applied
+=== RUN   TestTowerDB/reopened_boltdb/state_update_revert_seqnum
+=== RUN   TestTowerDB/reopened_boltdb/state_update_revert_last_applied
+=== RUN   TestTowerDB/fresh_boltdb/invalid_blob_size
+=== RUN   TestTowerDB/fresh_boltdb/multiple_breach_matches
+=== RUN   TestTowerDB/reopened_boltdb/invalid_blob_size
+=== RUN   TestTowerDB/fresh_boltdb/lookout_tip
+=== RUN   TestTowerDB/reopened_boltdb/multiple_breach_matches
+=== RUN   TestTowerDB/reopened_boltdb/lookout_tip
+--- PASS: TestTowerDB (0.00s)
+    --- PASS: TestTowerDB/mock (0.00s)
+        --- PASS: TestTowerDB/mock/create_session (0.00s)
+        --- PASS: TestTowerDB/mock/delete_session (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_no_session (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_exhaust_session (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_seqnum_equal_last_applied (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_seqnum_less_than_last_applied (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_seqnum_zero_invalid (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_skip_seqnum (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_revert_seqnum (0.00s)
+        --- PASS: TestTowerDB/mock/state_update_revert_last_applied (0.00s)
+        --- PASS: TestTowerDB/mock/invalid_blob_size (0.00s)
+        --- PASS: TestTowerDB/mock/multiple_breach_matches (0.00s)
+        --- PASS: TestTowerDB/mock/lookout_tip (0.00s)
+    --- PASS: TestTowerDB/fresh_boltdb (0.01s)
+        --- PASS: TestTowerDB/fresh_boltdb/create_session (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/delete_session (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_no_session (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_exhaust_session (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_seqnum_equal_last_applied (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_seqnum_less_than_last_applied (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_seqnum_zero_invalid (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_skip_seqnum (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_revert_seqnum (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/state_update_revert_last_applied (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/invalid_blob_size (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/multiple_breach_matches (0.00s)
+        --- PASS: TestTowerDB/fresh_boltdb/lookout_tip (0.00s)
+    --- PASS: TestTowerDB/reopened_boltdb (0.01s)
+        --- PASS: TestTowerDB/reopened_boltdb/create_session (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/delete_session (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_no_session (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_exhaust_session (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_seqnum_equal_last_applied (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_seqnum_less_than_last_applied (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_seqnum_zero_invalid (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_skip_seqnum (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_revert_seqnum (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/state_update_revert_last_applied (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/invalid_blob_size (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/multiple_breach_matches (0.00s)
+        --- PASS: TestTowerDB/reopened_boltdb/lookout_tip (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/wtdb	0.054s
+?   	github.com/decred/dcrlnd/watchtower/wtmock	[no test files]
+=== RUN   TestPolicyValidate
+=== RUN   TestPolicyValidate/fail_no_maxupdates
+=== RUN   TestPolicyValidate/fail_altruist_with_reward_base
+=== RUN   TestPolicyValidate/fail_altruist_with_reward_rate
+=== RUN   TestPolicyValidate/fail_sweep_fee_rate_too_low
+=== RUN   TestPolicyValidate/minimal_valid_altruist_policy
+=== RUN   TestPolicyValidate/valid_altruist_policy_with_default_sweep_rate
+=== RUN   TestPolicyValidate/valid_default_policy
+--- PASS: TestPolicyValidate (0.00s)
+    --- PASS: TestPolicyValidate/fail_no_maxupdates (0.00s)
+    --- PASS: TestPolicyValidate/fail_altruist_with_reward_base (0.00s)
+    --- PASS: TestPolicyValidate/fail_altruist_with_reward_rate (0.00s)
+    --- PASS: TestPolicyValidate/fail_sweep_fee_rate_too_low (0.00s)
+    --- PASS: TestPolicyValidate/minimal_valid_altruist_policy (0.00s)
+    --- PASS: TestPolicyValidate/valid_altruist_policy_with_default_sweep_rate (0.00s)
+    --- PASS: TestPolicyValidate/valid_default_policy (0.00s)
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/wtpolicy	(cached)
+=== RUN   TestServerOnlyAcceptOnePeer
+=== PAUSE TestServerOnlyAcceptOnePeer
+=== RUN   TestServerCreateSession
+=== PAUSE TestServerCreateSession
+=== RUN   TestServerStateUpdates
+=== PAUSE TestServerStateUpdates
+=== RUN   TestServerDeleteSession
+--- PASS: TestServerDeleteSession (0.10s)
+=== CONT  TestServerOnlyAcceptOnePeer
+=== CONT  TestServerStateUpdates
+=== RUN   TestServerStateUpdates/perm_fail_after_sending_seqnum_equal_lastapplied
+=== CONT  TestServerCreateSession
+=== RUN   TestServerCreateSession/duplicate_session_create
+=== RUN   TestServerStateUpdates/skip_sequence_number
+=== RUN   TestServerStateUpdates/revert_to_older_seqnum
+=== RUN   TestServerCreateSession/duplicate_session_create_after_use
+=== RUN   TestServerStateUpdates/revert_to_older_lastapplied
+=== RUN   TestServerStateUpdates/resume_after_disconnect
+=== RUN   TestServerStateUpdates/resume_after_disconnect_lagging_lastapplied
+=== RUN   TestServerStateUpdates/resume_after_disconnect_lagging_lastapplied#01
+=== RUN   TestServerCreateSession/duplicate_session_create_reward
+=== RUN   TestServerCreateSession/reject_unsupported_blob_type
+--- PASS: TestServerCreateSession (0.50s)
+    --- PASS: TestServerCreateSession/duplicate_session_create (0.00s)
+    --- PASS: TestServerCreateSession/duplicate_session_create_after_use (0.50s)
+    --- PASS: TestServerCreateSession/duplicate_session_create_reward (0.00s)
+    --- PASS: TestServerCreateSession/reject_unsupported_blob_type (0.00s)
+=== RUN   TestServerStateUpdates/seqnum_exceed_maxupdates
+=== RUN   TestServerStateUpdates/perm_fail_after_seqnum_0
+--- PASS: TestServerStateUpdates (0.61s)
+    --- PASS: TestServerStateUpdates/perm_fail_after_sending_seqnum_equal_lastapplied (0.00s)
+    --- PASS: TestServerStateUpdates/skip_sequence_number (0.00s)
+    --- PASS: TestServerStateUpdates/revert_to_older_seqnum (0.00s)
+    --- PASS: TestServerStateUpdates/revert_to_older_lastapplied (0.00s)
+    --- PASS: TestServerStateUpdates/resume_after_disconnect (0.20s)
+    --- PASS: TestServerStateUpdates/resume_after_disconnect_lagging_lastapplied (0.20s)
+    --- PASS: TestServerStateUpdates/resume_after_disconnect_lagging_lastapplied#01 (0.20s)
+    --- PASS: TestServerStateUpdates/seqnum_exceed_maxupdates (0.00s)
+    --- PASS: TestServerStateUpdates/perm_fail_after_seqnum_0 (0.00s)
+--- PASS: TestServerOnlyAcceptOnePeer (1.00s)
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/wtserver	(cached)
+=== RUN   TestCheckRemoteInit
+=== RUN   TestCheckRemoteInit/same_chain,_local-optional_remote-required
+=== RUN   TestCheckRemoteInit/same_chain,_local-required_remote-optional
+=== RUN   TestCheckRemoteInit/different_chain,_local-optional_remote-required
+=== RUN   TestCheckRemoteInit/different_chain,_local-required_remote-optional
+=== RUN   TestCheckRemoteInit/same_chain,_remote-unknown-required
+--- PASS: TestCheckRemoteInit (0.00s)
+    --- PASS: TestCheckRemoteInit/same_chain,_local-optional_remote-required (0.00s)
+    --- PASS: TestCheckRemoteInit/same_chain,_local-required_remote-optional (0.00s)
+    --- PASS: TestCheckRemoteInit/different_chain,_local-optional_remote-required (0.00s)
+    --- PASS: TestCheckRemoteInit/different_chain,_local-required_remote-optional (0.00s)
+    --- PASS: TestCheckRemoteInit/same_chain,_remote-unknown-required (0.00s)
+=== RUN   TestWatchtowerWireProtocol
+=== PAUSE TestWatchtowerWireProtocol
+=== CONT  TestWatchtowerWireProtocol
+--- PASS: TestWatchtowerWireProtocol (0.54s)
+    wtwire_test.go:160: Running fuzz tests for msgType=Init
+    wtwire_test.go:160: Running fuzz tests for msgType=MsgCreateSession
+    wtwire_test.go:160: Running fuzz tests for msgType=MsgCreateSessionReply
+    wtwire_test.go:160: Running fuzz tests for msgType=MsgStateUpdate
+    wtwire_test.go:160: Running fuzz tests for msgType=MsgStateUpdateReply
+    wtwire_test.go:160: Running fuzz tests for msgType=MsgDeleteSession
+    wtwire_test.go:160: Running fuzz tests for msgType=MsgDeleteSessionReply
+    wtwire_test.go:160: Running fuzz tests for msgType=Error
+PASS
+ok  	github.com/decred/dcrlnd/watchtower/wtwire	(cached)
+=== RUN   TestDecodeAmount
+=== PAUSE TestDecodeAmount
+=== RUN   TestEncodeAmount
+=== PAUSE TestEncodeAmount
+=== RUN   TestParseTimestamp
+=== PAUSE TestParseTimestamp
+=== RUN   TestParseFieldDataLength
+=== PAUSE TestParseFieldDataLength
+=== RUN   TestParsePaymentHash
+=== PAUSE TestParsePaymentHash
+=== RUN   TestParseDescription
+=== PAUSE TestParseDescription
+=== RUN   TestParseDestination
+=== PAUSE TestParseDestination
+=== RUN   TestParseDescriptionHash
+=== PAUSE TestParseDescriptionHash
+=== RUN   TestParseExpiry
+=== PAUSE TestParseExpiry
+=== RUN   TestParseMinFinalCLTVExpiry
+=== PAUSE TestParseMinFinalCLTVExpiry
+=== RUN   TestParseMaxUint64Expiry
+=== PAUSE TestParseMaxUint64Expiry
+=== RUN   TestParseFallbackAddr
+=== PAUSE TestParseFallbackAddr
+=== RUN   TestParseRouteHint
+=== PAUSE TestParseRouteHint
+=== RUN   TestDecodeEncode
+=== PAUSE TestDecodeEncode
+=== RUN   TestNewInvoice
+=== PAUSE TestNewInvoice
+=== CONT  TestDecodeAmount
+--- PASS: TestDecodeAmount (0.00s)
+=== CONT  TestNewInvoice
+=== CONT  TestParseDescriptionHash
+--- PASS: TestParseDescriptionHash (0.00s)
+=== CONT  TestDecodeEncode
+=== CONT  TestParseMaxUint64Expiry
+=== CONT  TestParseDestination
+--- PASS: TestParseDestination (0.00s)
+--- PASS: TestParseMaxUint64Expiry (0.00s)
+=== CONT  TestParseMinFinalCLTVExpiry
+--- PASS: TestParseMinFinalCLTVExpiry (0.00s)
+=== CONT  TestParseRouteHint
+--- PASS: TestParseRouteHint (0.00s)
+=== CONT  TestParseFallbackAddr
+--- PASS: TestParseFallbackAddr (0.00s)
+=== CONT  TestParseDescription
+--- PASS: TestParseDescription (0.00s)
+=== CONT  TestParsePaymentHash
+--- PASS: TestParsePaymentHash (0.00s)
+=== CONT  TestParseFieldDataLength
+--- PASS: TestParseFieldDataLength (0.00s)
+=== CONT  TestParseTimestamp
+--- PASS: TestParseTimestamp (0.00s)
+=== CONT  TestEncodeAmount
+--- PASS: TestEncodeAmount (0.00s)
+=== CONT  TestParseExpiry
+--- PASS: TestParseExpiry (0.00s)
+--- PASS: TestNewInvoice (0.01s)
+--- PASS: TestDecodeEncode (0.01s)
+PASS
+ok  	github.com/decred/dcrlnd/zpay32	(cached)
