@@ -1194,6 +1194,7 @@ func (s *Switch) handlePacketForward(packet *htlcPacket) error {
 				fail.Reason = circuit.ErrorEncrypter.EncryptMalformedError(
 					fail.Reason,
 				)
+
 			default:
 				// Otherwise, it's a forwarded error, so we'll perform a
 				// wrapper encryption as normal.
