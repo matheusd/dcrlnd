@@ -173,6 +173,12 @@ type dcrdConfig struct {
 	RawRPCCert string `long:"rawrpccert" description:"The raw bytes of the daemon's PEM-encoded certificate chain which will be used to authenticate the RPC connection."`
 }
 
+type dcrwalletConfig struct {
+	GRPCHost      string `long:"grpchost" description:"The wallet's grpc listening address. If a port is omitted, then the default port for the selected chain parameters will be used."`
+	CertPath      string `long:"certpath" description:"The file containing the wallet's certificate file."`
+	AccountNumber int32  `long:"accountnumber" description:"The account number that dcrlnd should take control of for all onchain operations and offchain key derivation."`
+}
+
 type autoPilotConfig struct {
 	Active         bool               `long:"active" description:"If the autopilot agent should be active or not."`
 	Heuristic      map[string]float64 `long:"heuristic" description:"Heuristic to activate, and the weight to give it during scoring."`
@@ -246,8 +252,9 @@ type config struct {
 	MaxPendingChannels int    `long:"maxpendingchannels" description:"The maximum number of incoming pending channels permitted per peer."`
 	BackupFilePath     string `long:"backupfilepath" description:"The target location of the channel backup file"`
 
-	Decred   *chainConfig `group:"Decred" namespace:"decred"`
-	DcrdMode *dcrdConfig  `group:"dcrd" namespace:"dcrd"`
+	Decred    *chainConfig     `group:"Decred" namespace:"decred"`
+	DcrdMode  *dcrdConfig      `group:"dcrd" namespace:"dcrd"`
+	Dcrwallet *dcrwalletConfig `group:"dcrwallet" namespace:"dcrwallet"`
 
 	Autopilot *autoPilotConfig `group:"Autopilot" namespace:"autopilot"`
 
@@ -331,6 +338,7 @@ func loadConfig() (*config, error) {
 			RPCHost: defaultRPCHost,
 			RPCCert: defaultDcrdRPCCertFile,
 		},
+		Dcrwallet:          &dcrwalletConfig{},
 		MaxPendingChannels: DefaultMaxPendingChannels,
 		NoSeedBackup:       defaultNoSeedBackup,
 		MinBackoff:         defaultMinBackoff,
@@ -481,6 +489,7 @@ func loadConfig() (*config, error) {
 	cfg.DcrdMode.Dir = cleanAndExpandPath(cfg.DcrdMode.Dir)
 	cfg.Tor.PrivateKeyPath = cleanAndExpandPath(cfg.Tor.PrivateKeyPath)
 	cfg.Watchtower.TowerDir = cleanAndExpandPath(cfg.Watchtower.TowerDir)
+	cfg.Dcrwallet.CertPath = cleanAndExpandPath(cfg.Dcrwallet.CertPath)
 
 	// Ensure that the user didn't attempt to specify negative values for
 	// any of the autopilot params.

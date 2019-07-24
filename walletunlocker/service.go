@@ -16,9 +16,12 @@ import (
 
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	walletloader "github.com/decred/dcrwallet/loader"
+	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // ChannelsToRecover wraps any set of packed (serialized+encrypted) channel
@@ -83,6 +86,10 @@ type WalletUnlockMsg struct {
 
 	Loader *walletloader.Loader
 
+	// Conn is the connection to a remote wallet when the daemon has been
+	// configured to connect to a wallet instead of using the embedded one.
+	Conn *grpc.ClientConn
+
 	// ChanBackups a set of static channel backups that should be received
 	// after the wallet has been unlocked.
 	ChanBackups ChannelsToRecover
@@ -104,11 +111,15 @@ type UnlockerService struct {
 	chainDir      string
 	netParams     *chaincfg.Params
 	macaroonFiles []string
+
+	dcrwHost    string
+	dcrwCert    string
+	dcrwAccount int32
 }
 
 // New creates and returns a new UnlockerService.
 func New(chainDir string, params *chaincfg.Params,
-	macaroonFiles []string) *UnlockerService {
+	macaroonFiles []string, dcrwHost, dcrwCert string, dcrwAccount int32) *UnlockerService {
 
 	return &UnlockerService{
 		InitMsgs:      make(chan *WalletInitMsg, 1),
@@ -116,6 +127,9 @@ func New(chainDir string, params *chaincfg.Params,
 		chainDir:      chainDir,
 		netParams:     params,
 		macaroonFiles: macaroonFiles,
+		dcrwHost:      dcrwHost,
+		dcrwCert:      dcrwCert,
+		dcrwAccount:   dcrwAccount,
 	}
 }
 
@@ -322,6 +336,59 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	return &lnrpc.InitWalletResponse{}, nil
 }
 
+// UnlockRemoteWallet sends the password provided by the incoming
+// UnlockRemoteWalletRequest over the UnlockMsgs channel in case it
+// successfully decrypts an existing remote wallet.
+func (u *UnlockerService) unlockRemoteWallet(password []byte,
+	chanBackups *lnrpc.ChanBackupSnapshot) (*lnrpc.UnlockWalletResponse, error) {
+
+	ctxb := context.Background()
+
+	creds, err := credentials.NewClientTLSFromFile(u.dcrwCert, "localhost")
+	if err != nil {
+		return nil, err
+
+	}
+	conn, err := grpc.Dial(u.dcrwHost, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		return nil, err
+	}
+
+	wallet := pb.NewWalletServiceClient(conn)
+
+	// Ensure we can grab the privkey for the given account using the
+	// provided password.
+	getAcctReq := &pb.GetAccountExtendedPrivKeyRequest{
+		AccountNumber: uint32(u.dcrwAccount),
+		Passphrase:    password,
+	}
+	_, err = wallet.GetAccountExtendedPrivKey(ctxb, getAcctReq)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get xpriv: %v", err)
+	}
+
+	// We successfully opened the wallet and pass the instance back to
+	// avoid it needing to be unlocked again.
+	walletUnlockMsg := &WalletUnlockMsg{
+		Passphrase: password,
+		Conn:       conn,
+	}
+
+	// Before we return the unlock payload, we'll check if we can extract
+	// any channel backups to pass up to the higher level sub-system.
+	chansToRestore := extractChanBackups(chanBackups)
+	if chansToRestore != nil {
+		walletUnlockMsg.ChanBackups = *chansToRestore
+	}
+
+	// At this point we were able to open the existing wallet with the
+	// provided password. We send the password over the UnlockMsgs channel,
+	// such that it can be used by lnd to open the wallet.
+	u.UnlockMsgs <- walletUnlockMsg
+
+	return &lnrpc.UnlockWalletResponse{}, nil
+}
+
 // UnlockWallet sends the password provided by the incoming UnlockWalletRequest
 // over the UnlockMsgs channel in case it successfully decrypts an existing
 // wallet found in the chain's wallet database directory.
@@ -329,6 +396,9 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	in *lnrpc.UnlockWalletRequest) (*lnrpc.UnlockWalletResponse, error) {
 
 	password := in.WalletPassword
+	if u.dcrwHost != "" && u.dcrwCert != "" {
+		return u.unlockRemoteWallet(password, in.ChannelBackups)
+	}
 	gapLimit := wallet.DefaultGapLimit
 	if int(in.RecoveryWindow) > gapLimit {
 		gapLimit = int(in.RecoveryWindow)

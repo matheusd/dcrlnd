@@ -39,6 +39,7 @@ import (
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -109,8 +110,8 @@ func assertProperBalance(t *testing.T, lw *lnwallet.LightningWallet,
 		t.Fatalf("unable to query for balance: %v", err)
 	}
 	if balance.ToCoin() != amount {
-		t.Fatalf("wallet credits not properly loaded, should have 40DCR, "+
-			"instead have %v", balance)
+		t.Fatalf("wallet credits not properly loaded, should have %v DCR, "+
+			"instead have %v", amount, balance)
 	}
 }
 
@@ -905,7 +906,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	// by having Alice immediately process his contribution.
 	err = aliceChanReservation.ProcessContribution(bobContribution)
 	if err != nil {
-		t.Fatalf("alice unable to process bob's contribution")
+		t.Fatalf("alice unable to process bob's contribution: %v", err)
 	}
 	assertContributionInitPopulated(t, bobChanReservation.TheirContribution())
 
@@ -1447,8 +1448,8 @@ func testPublishTransaction(r *rpctest.Harness,
 	t *testing.T) {
 
 	// Base tx fee rate for the transactions in this test. This is lower
-	// than the defaultRate to allow various tests to modify the fee rate used
-	// for transactions and still be below the wallet's max fee rate.
+	// than the defaultRate to allow various tests to modify the fee rate
+	// used for transactions and still be below the wallet's max fee rate.
 	baseTxFee := dcrutil.Amount(1e4)
 
 	// mineAndAssert mines a block and ensures the passed TX
@@ -1719,9 +1720,9 @@ func testPublishTransaction(r *rpctest.Harness,
 		t.Fatalf("unable to obtain public key: %v", err)
 	}
 
-	// Create a new transaction that spends the output from
-	// tx3, and that pays to a different address. We expect
-	// this to be rejected because it is a double spend.
+	// Create a new transaction that spends the output from tx3, and that
+	// pays to a different address. We expect this to be rejected because
+	// it is a double spend.
 	tx5 := txFromOutput(tx3, pubKey2.PubKey, txFee)
 	if err := alice.PublishTransaction(tx5); err != lnwallet.ErrDoubleSpend {
 		t.Fatalf("expected ErrDoubleSpend, got: %v", err)
@@ -2198,6 +2199,13 @@ func testLastUnusedAddr(miner *rpctest.Harness,
 	vw *rpctest.VotingWallet,
 	alice, bob *lnwallet.LightningWallet, t *testing.T) {
 
+	// This is unimplemented on remotedcrwallet, but it's a bad
+	// idea to use anyway and isn't currently used anywhere in the
+	// code except the rpcserver, which we don't use anyway.
+	if alice.BackEnd() == "remotedcrwallet" {
+		t.Skip()
+	}
+
 	if _, err := vw.GenerateBlocks(1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -2604,76 +2612,77 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 func TestLightningWallet(t *testing.T) {
 	t.Parallel()
 
-	// Initialize the harness around a dcrd node which will serve as our
-	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
-	// this node with a chain length of 125, so we have plenty of DCR to
-	// play around with.
-	minerArgs := []string{"--txindex"}
-	miningNode, err := rpctest.New(netParams, nil, minerArgs)
-	if err != nil {
-		t.Fatalf("unable to create mining node: %v", err)
-	}
-	defer miningNode.TearDown()
-	if err := miningNode.SetUp(true, 0); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
-	}
-
-	// Generate the premine block.
-	_, err = miningNode.Node.Generate(1)
-	if err != nil {
-		t.Fatalf("unable to generate premine: %v", err)
-	}
-
-	// Generate enough blocks for the initial load of test and voting
-	// wallet but not so many that it would trigger a reorg after SVH
-	// during the testReorgWalletBalance test.
-	_, err = lntest.AdjustedSimnetMiner(miningNode.Node, 40)
-	if err != nil {
-		t.Fatalf("unable to generate initial blocks: %v", err)
-	}
-
-	// Setup a voting wallet for when the chain passes SVH.
-	votingWallet, err := rpctest.NewVotingWallet(miningNode)
-	if err != nil {
-		t.Fatalf("unable to create voting wallet: %v", err)
-	}
-	votingWallet.SetErrorReporting(func(err error) {
-		t.Logf("Voting wallet error: %v", err)
-	})
-	votingWallet.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
-		return lntest.AdjustedSimnetMiner(miningNode.Node, nb)
-	})
-	if err = votingWallet.Start(); err != nil {
-		t.Fatalf("unable to start voting wallet: %v", err)
-	}
-	defer votingWallet.Stop()
-
-	rpcConfig := miningNode.RPCConfig()
-
-	tempDir, err := ioutil.TempDir("", "channeldb")
-	if err != nil {
-		t.Fatalf("unable to create temp dir: %v", err)
-	}
-	db, err := channeldb.Open(tempDir)
-	if err != nil {
-		t.Fatalf("unable to create db: %v", err)
-	}
-	hintCache, err := chainntnfs.NewHeightHintCache(db)
-	if err != nil {
-		t.Fatalf("unable to create height hint cache: %v", err)
-	}
-	chainNotifier, err := dcrdnotify.New(
-		&rpcConfig, netParams, hintCache, hintCache,
-	)
-	if err != nil {
-		t.Fatalf("unable to create notifier: %v", err)
-	}
-	if err := chainNotifier.Start(); err != nil {
-		t.Fatalf("unable to start notifier: %v", err)
-	}
-
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
+			// Initialize the harness around a dcrd node which will
+			// serve as our dedicated miner to generate blocks,
+			// cause re-orgs, etc. We'll set up this node with a
+			// chain length of 125, so we have plenty of DCR to
+			// play around with.
+			minerArgs := []string{"--txindex"}
+			miningNode, err := rpctest.New(netParams, nil, minerArgs)
+			if err != nil {
+				t.Fatalf("unable to create mining node: %v", err)
+			}
+			defer miningNode.TearDown()
+			if err := miningNode.SetUp(true, 0); err != nil {
+				t.Fatalf("unable to set up mining node: %v", err)
+			}
+
+			// Generate the premine block.
+			_, err = miningNode.Node.Generate(1)
+			if err != nil {
+				t.Fatalf("unable to generate premine: %v", err)
+			}
+
+			// Generate enough blocks for the initial load of test and voting
+			// wallet but not so many that it would trigger a reorg after SVH
+			// during the testReorgWalletBalance test.
+			_, err = lntest.AdjustedSimnetMiner(miningNode.Node, 40)
+			if err != nil {
+				t.Fatalf("unable to generate initial blocks: %v", err)
+			}
+
+			// Setup a voting wallet for when the chain passes SVH.
+			votingWallet, err := rpctest.NewVotingWallet(miningNode)
+			if err != nil {
+				t.Fatalf("unable to create voting wallet: %v", err)
+			}
+			votingWallet.SetErrorReporting(func(err error) {
+				t.Logf("Voting wallet error: %v", err)
+			})
+			votingWallet.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
+				return lntest.AdjustedSimnetMiner(miningNode.Node, nb)
+			})
+			if err = votingWallet.Start(); err != nil {
+				t.Fatalf("unable to start voting wallet: %v", err)
+			}
+			defer votingWallet.Stop()
+
+			rpcConfig := miningNode.RPCConfig()
+
+			tempDir, err := ioutil.TempDir("", "channeldb")
+			if err != nil {
+				t.Fatalf("unable to create temp dir: %v", err)
+			}
+			db, err := channeldb.Open(tempDir)
+			if err != nil {
+				t.Fatalf("unable to create db: %v", err)
+			}
+			hintCache, err := chainntnfs.NewHeightHintCache(db)
+			if err != nil {
+				t.Fatalf("unable to create height hint cache: %v", err)
+			}
+			chainNotifier, err := dcrdnotify.New(
+				&rpcConfig, netParams, hintCache, hintCache,
+			)
+			if err != nil {
+				t.Fatalf("unable to create notifier: %v", err)
+			}
+			if err := chainNotifier.Start(); err != nil {
+				t.Fatalf("unable to start notifier: %v", err)
+			}
+
 			runTests(t, walletDriver, backEnd, miningNode,
 				rpcConfig, chainNotifier, votingWallet)
 		}
@@ -2729,6 +2738,20 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	}
 	defer bobCDB.Close()
 
+	aliceSeed := sha256.New()
+	aliceSeed.Write([]byte(backEnd))
+	aliceSeed.Write([]byte(walletDriver.WalletType))
+	aliceSeed.Write(aliceHDSeed[:])
+	aliceSeedBytes := aliceSeed.Sum(nil)
+	alicePrivatePass := []byte("alice-pass")
+
+	bobSeed := sha256.New()
+	bobSeed.Write([]byte(backEnd))
+	bobSeed.Write([]byte(walletDriver.WalletType))
+	bobSeed.Write(bobHDSeed[:])
+	bobSeedBytes := bobSeed.Sum(nil)
+	bobPrivatePass := []byte("bob-pass")
+
 	walletType := walletDriver.WalletType
 	switch walletType {
 	case "dcrwallet":
@@ -2759,13 +2782,8 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			t.Fatalf("unknown chain driver: %v", backEnd)
 		}
 
-		aliceSeed := sha256.New()
-		aliceSeed.Write([]byte(backEnd))
-		aliceSeed.Write(aliceHDSeed[:])
-		aliceSeedBytes := aliceSeed.Sum(nil)
-
 		aliceWalletConfig := &dcrwallet.Config{
-			PrivatePass: []byte("alice-pass"),
+			PrivatePass: alicePrivatePass,
 			HdSeed:      aliceSeedBytes,
 			DataDir:     tempTestDirAlice,
 			NetParams:   netParams,
@@ -2779,13 +2797,8 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		aliceSigner = aliceWalletController.(*dcrwallet.DcrWallet)
 		aliceKeyRing = aliceWalletController.(*dcrwallet.DcrWallet)
 
-		bobSeed := sha256.New()
-		bobSeed.Write([]byte(backEnd))
-		bobSeed.Write(bobHDSeed[:])
-		bobSeedBytes := bobSeed.Sum(nil)
-
 		bobWalletConfig := &dcrwallet.Config{
-			PrivatePass: []byte("bob-pass"),
+			PrivatePass: bobPrivatePass,
 			HdSeed:      bobSeedBytes,
 			DataDir:     tempTestDirBob,
 			NetParams:   netParams,
@@ -2798,6 +2811,58 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		}
 		bobSigner = bobWalletController.(*dcrwallet.DcrWallet)
 		bobKeyRing = bobWalletController.(*dcrwallet.DcrWallet)
+	case "remotedcrwallet":
+		switch backEnd {
+		case "dcrd":
+			aliceBio, err = dcrwallet.NewRPCChainIO(rpcConfig,
+				netParams)
+			if err != nil {
+				t.Fatalf("unable to make chain rpc: %v", err)
+			}
+			bobBio, err = dcrwallet.NewRPCChainIO(rpcConfig,
+				netParams)
+			if err != nil {
+				t.Fatalf("unable to make chain rpc: %v", err)
+			}
+
+		default:
+			t.Fatalf("unknown chain driver: %v", backEnd)
+		}
+		aliceConn, aliceCleanup := newTestRemoteDcrwallet(
+			t, "Alice", tempTestDirAlice, aliceSeedBytes,
+			alicePrivatePass, rpcConfig,
+		)
+		defer aliceCleanup()
+		aliceWalletConfig := &remotedcrwallet.Config{
+			Conn:        aliceConn,
+			PrivatePass: alicePrivatePass,
+			NetParams:   netParams,
+			DB:          aliceCDB,
+		}
+		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
+		if err != nil {
+			t.Fatalf("unable to create alice wallet: %v", err)
+		}
+		aliceSigner = aliceWalletController.(*remotedcrwallet.DcrWallet)
+		aliceKeyRing = aliceWalletController.(*remotedcrwallet.DcrWallet)
+
+		bobConn, bobCleanup := newTestRemoteDcrwallet(
+			t, "Bob", tempTestDirBob, bobSeedBytes, bobPrivatePass,
+			rpcConfig,
+		)
+		defer bobCleanup()
+		bobWalletConfig := &remotedcrwallet.Config{
+			Conn:        bobConn,
+			PrivatePass: bobPrivatePass,
+			NetParams:   netParams,
+			DB:          bobCDB,
+		}
+		bobWalletController, err = walletDriver.New(bobWalletConfig)
+		if err != nil {
+			t.Fatalf("unable to create bob wallet: %v", err)
+		}
+		bobSigner = bobWalletController.(*remotedcrwallet.DcrWallet)
+		bobKeyRing = bobWalletController.(*remotedcrwallet.DcrWallet)
 	default:
 		t.Fatalf("unknown wallet driver: %v", walletType)
 	}

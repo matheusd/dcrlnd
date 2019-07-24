@@ -20,10 +20,12 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
 	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v3"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -147,7 +149,8 @@ type chainControl struct {
 func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	privateWalletPw, publicWalletPw []byte, birthday time.Time,
 	recoveryWindow uint32, wallet *wallet.Wallet,
-	loader *walletloader.Loader) (*chainControl, error) {
+	loader *walletloader.Loader,
+	conn *grpc.ClientConn, accountNumber int32) (*chainControl, error) {
 
 	// Set the RPC config from the "home" chain. Multi-chain isn't yet
 	// active, so we'll restrict usage to a particular chain for now.
@@ -173,22 +176,9 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			"chain %v is unknown", registeredChains.PrimaryChain())
 	}
 
-	var chainIO lnwallet.BlockChainIO
-
-	walletConfig := &dcrwallet.Config{
-		PrivatePass:    privateWalletPw,
-		PublicPass:     publicWalletPw,
-		Birthday:       birthday,
-		RecoveryWindow: recoveryWindow,
-		DataDir:        homeChainConfig.ChainDir,
-		NetParams:      activeNetParams.Params,
-		Wallet:         wallet,
-		Loader:         loader,
-		DB:             chanDB,
-	}
-
 	var (
-		err error
+		err       error
+		rpcConfig *rpcclient.ConnConfig
 	)
 
 	// Initialize the height hint cache within the chain directory.
@@ -241,7 +231,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 		dcrdUser := dcrdMode.RPCUser
 		dcrdPass := dcrdMode.RPCPass
-		rpcConfig := &rpcclient.ConnConfig{
+		rpcConfig = &rpcclient.ConnConfig{
 			Host:                 dcrdHost,
 			Endpoint:             "ws",
 			User:                 dcrdUser,
@@ -275,19 +265,10 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			return nil, err
 		}
 
-		// Initialize an RPC syncer for this wallet and use it as
-		// blockchain IO source.
-		syncer, err := dcrwallet.NewRPCSyncer(*rpcConfig,
-			activeNetParams.Params)
+		cc.chainIO, err = dcrwallet.NewRPCChainIO(*rpcConfig, activeNetParams.Params)
 		if err != nil {
 			return nil, err
 		}
-
-		chainIO, err = dcrwallet.NewRPCChainIO(*rpcConfig, activeNetParams.Params)
-		if err != nil {
-			return nil, err
-		}
-		walletConfig.Syncer = syncer
 
 		// If we're not in simnet or regtest mode, then we'll attempt
 		// to use a proper fee estimator for testnet.
@@ -316,17 +297,72 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			homeChainConfig.Node)
 	}
 
-	wc, err := dcrwallet.New(*walletConfig)
-	if err != nil {
-		fmt.Printf("unable to create wallet controller: %v\n", err)
-		return nil, err
-	}
+	var secretKeyRing keychain.SecretKeyRing
 
-	cc.msgSigner = wc
-	cc.signer = wc
-	cc.chainIO = chainIO
-	cc.wc = wc
-	cc.keyRing = wc
+	// Initialize the appopriate wallet controller (either the embedded
+	// dcrwallet or a remote one).
+	switch {
+	case conn != nil:
+		// Initialize an RPC syncer for this wallet and use it as
+		// blockchain IO source.
+		//
+		// TODO: switch based on the selected backend mode (rpc/spv).
+		dcrwConfig := &remotedcrwallet.Config{
+			PrivatePass:   privateWalletPw,
+			NetParams:     activeNetParams.Params,
+			DB:            chanDB,
+			Conn:          conn,
+			AccountNumber: accountNumber,
+		}
+
+		wc, err := remotedcrwallet.New(*dcrwConfig)
+		if err != nil {
+			fmt.Printf("unable to create remote wallet controller: %v\n", err)
+			return nil, err
+		}
+
+		secretKeyRing = wc
+		cc.msgSigner = wc
+		cc.signer = wc
+		cc.wc = wc
+		cc.keyRing = wc
+
+	default:
+		// Initialize an RPC syncer for this wallet and use it as
+		// blockchain IO source.
+		//
+		// TODO: switch based on the selected backend mode (rpc/spv).
+		syncer, err := dcrwallet.NewRPCSyncer(*rpcConfig,
+			activeNetParams.Params)
+		if err != nil {
+			return nil, err
+		}
+
+		dcrwConfig := &dcrwallet.Config{
+			Syncer:         syncer,
+			PrivatePass:    privateWalletPw,
+			PublicPass:     publicWalletPw,
+			Birthday:       birthday,
+			RecoveryWindow: recoveryWindow,
+			DataDir:        homeChainConfig.ChainDir,
+			NetParams:      activeNetParams.Params,
+			Wallet:         wallet,
+			Loader:         loader,
+			DB:             chanDB,
+		}
+
+		wc, err := dcrwallet.New(*dcrwConfig)
+		if err != nil {
+			fmt.Printf("unable to create wallet controller: %v\n", err)
+			return nil, err
+		}
+
+		secretKeyRing = wc
+		cc.msgSigner = wc
+		cc.signer = wc
+		cc.wc = wc
+		cc.keyRing = wc
+	}
 
 	// Select the default channel constraints for the primary chain.
 	channelConstraints := defaultDcrChannelConstraints
@@ -336,10 +372,10 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	walletCfg := lnwallet.Config{
 		Database:           chanDB,
 		Notifier:           cc.chainNotifier,
-		WalletController:   wc,
+		WalletController:   cc.wc,
 		Signer:             cc.signer,
 		FeeEstimator:       cc.feeEstimator,
-		SecretKeyRing:      wc,
+		SecretKeyRing:      secretKeyRing,
 		ChainIO:            cc.chainIO,
 		DefaultConstraints: channelConstraints,
 		NetParams:          *activeNetParams.Params,

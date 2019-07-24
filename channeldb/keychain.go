@@ -1,6 +1,7 @@
 package channeldb
 
 import (
+	"bytes"
 	"errors"
 	bolt "go.etcd.io/bbolt"
 )
@@ -26,6 +27,11 @@ var (
 	// generated enough indexes that no more can be generated.
 	errKeyFamilyExhausted = errors.New("keyfamily indexes exhausted")
 
+	// errDifferentAccountID is returned when the account ID provided to
+	// CompareAndStoreAccountID is not the same as the one stored in the
+	// database.
+	errDifferentAccountID = errors.New("account ID is different than stored in the database")
+
 	// keychainBucket is the root bucket used to store keychain/keyring
 	// data.
 	keychainBucket = []byte("keychain")
@@ -36,6 +42,11 @@ var (
 	// Keys are byte-ordered uint32 slices, and values are byte-ordered
 	// uint32 values that represent the last returned index for a family.
 	keyFamilyIndexesBucket = []byte("kfidxs")
+
+	// keyAccountIDBucket is the bucket used to store the identifier of the
+	// account previously used with this keychain. By convention, this is
+	// the first pubkey of the first keyfamily of the keychain/account.
+	keyAccountIDBucket = []byte("acctid")
 )
 
 // NextFamilyIndex returns the next index for a given family of keys from the
@@ -96,4 +107,28 @@ func (d *DB) NextKeyFamilyIndex(keyFamily uint32) (uint32, error) {
 	})
 
 	return index, err
+}
+
+// CompareAndStoreAccountID attempts to compare an existing account ID to a
+// given parameter if the ID exists in the database and returns an error if the
+// IDs don't match. If the database is empty, then the ID is stored.
+func (d *DB) CompareAndStoreAccountID(id []byte) error {
+	return d.Update(func(tx *bolt.Tx) error {
+		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
+		if err != nil {
+			return err
+		}
+
+		acctId := keychain.Get(keyAccountIDBucket)
+		if acctId == nil {
+			keychain.Put(keyAccountIDBucket, id)
+			return nil
+		}
+
+		if !bytes.Equal(acctId, id) {
+			return errDifferentAccountID
+		}
+
+		return nil
+	})
 }

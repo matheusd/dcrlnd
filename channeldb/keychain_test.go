@@ -85,3 +85,29 @@ func TestSaneNextKeyFamilyIndex(t *testing.T) {
 			err)
 	}
 }
+
+// TestAtomicAccountID tests if the comparison of account IDs work as expected.
+func TestAtomicAccountID(t *testing.T) {
+	db, cleanUp, err := makeTestDB()
+	defer cleanUp()
+	if err != nil {
+		t.Fatalf("unable to make test db: %v", err)
+	}
+
+	v := make([]byte, 32)
+	err = db.CompareAndStoreAccountID(v)
+	if err != nil {
+		t.Fatalf("expected first comparison to not error. got %v", err)
+	}
+
+	err = db.CompareAndStoreAccountID(v)
+	if err != nil {
+		t.Fatalf("expected comparison to correct value to not error. got %v", err)
+	}
+
+	v[0] = 1
+	err = db.CompareAndStoreAccountID(v)
+	if err != errDifferentAccountID {
+		t.Fatalf("wrong error. want '%v' got '%v'", errDifferentAccountID, err)
+	}
+}

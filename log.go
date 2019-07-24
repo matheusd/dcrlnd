@@ -28,6 +28,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/monitoring"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/peernotifier"
@@ -102,6 +103,7 @@ var (
 func init() {
 	lnwallet.UseLogger(lnwlLog)
 	dcrwallet.UseLogger(dcrwLog)
+	remotedcrwallet.UseLogger(dcrwLog)
 	keychain.UseLogger(kchnLog)
 	discovery.UseLogger(discLog)
 	chainntnfs.UseLogger(ntfnLog)

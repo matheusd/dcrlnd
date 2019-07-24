@@ -188,6 +188,8 @@ github.com/decred/dcrwallet/rpc/jsonrpc/types v1.1.0/go.mod h1:xUT7XXATLOzE0pwwm
 github.com/decred/dcrwallet/rpc/jsonrpc/types v1.2.0 h1:k17F1rYmYRqX3iO8nQBrSacbB8A50qNU+HT3gfNo4dw=
 github.com/decred/dcrwallet/rpc/jsonrpc/types v1.2.0/go.mod h1:xUT7XXATLOzE0pwwmvgfRWtZdrB+PsWFilo+jkH5/Ig=
 github.com/decred/dcrwallet/rpc/walletrpc v0.2.0/go.mod h1:uhjgcju9lSb/+42Ms4VY1zpBOxstCLM5wVlL3mq/SYc=
+github.com/decred/dcrwallet/rpc/walletrpc v0.2.1-0.20190910182128-51900c2bd053 h1:2krSklO8A4eXLWe7l4PYYb3xQ0z+PDqI7iTRmUqf1oE=
+github.com/decred/dcrwallet/rpc/walletrpc v0.2.1-0.20190910182128-51900c2bd053/go.mod h1:oLrzAf1FtIIO6/HUGhk8Qt9bV7+7Y5aCFZwHtif9fqE=
 github.com/decred/dcrwallet/spv/v3 v3.0.0-20190910182128-51900c2bd053/go.mod h1:F43j0UdCyN6bjy3Ny9M7fycrI1ZISkTpi/q+YDSLu2I=
 github.com/decred/dcrwallet/ticketbuyer/v4 v4.0.0-20190910182128-51900c2bd053/go.mod h1:BHu8RwPkJ3QRvKWRcL28sL//7PGgi2A8M+xS+bv0cAg=
 github.com/decred/dcrwallet/validate v1.0.2 h1:EXY48b3SOkTGXJAB+OUmilvyFNROZywYIWTGYfUnTDE=

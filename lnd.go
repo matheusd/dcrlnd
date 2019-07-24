@@ -219,10 +219,12 @@ func Main() error {
 	// this information.
 	walletInitParams.Birthday = time.Now()
 
+	isRemoteWallet := cfg.Dcrwallet.GRPCHost != "" && cfg.Dcrwallet.CertPath != ""
+
 	// We wait until the user provides a password over RPC. In case lnd is
 	// started with the --noseedbackup flag, we use the default password
 	// for wallet encryption.
-	if !cfg.NoSeedBackup {
+	if !cfg.NoSeedBackup || isRemoteWallet {
 		params, err := waitForWalletPassword(
 			cfg.RPCListeners, cfg.RESTListeners, serverOpts,
 			restDialOpts, restProxyDest, tlsCfg,
@@ -291,6 +293,7 @@ func Main() error {
 		cfg, chanDB, privateWalletPw, publicWalletPw,
 		walletInitParams.Birthday, walletInitParams.RecoveryWindow,
 		walletInitParams.Wallet, walletInitParams.Loader,
+		walletInitParams.Conn, cfg.Dcrwallet.AccountNumber,
 	)
 	if err != nil {
 		err := fmt.Errorf("Unable to create chain control: %v", err)
@@ -838,6 +841,10 @@ type WalletUnlockParams struct {
 	// wallet.
 	Loader *walletloader.Loader
 
+	// Conn is the connection to the remote wallet when that is used
+	// instead of an embedded dcrwallet instance.
+	Conn *grpc.ClientConn
+
 	// ChansToRestore a set of static channel backups that should be
 	// restored before the main server instance starts up.
 	ChansToRestore walletunlocker.ChannelsToRecover
@@ -867,6 +874,8 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 	}
 	pwService := walletunlocker.New(
 		chainConfig.ChainDir, activeNetParams.Params, macaroonFiles,
+		cfg.Dcrwallet.GRPCHost, cfg.Dcrwallet.CertPath,
+		cfg.Dcrwallet.AccountNumber,
 	)
 	lnrpc.RegisterWalletUnlockerServer(grpcServer, pwService)
 
@@ -1012,6 +1021,7 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 			Wallet:         unlockMsg.Wallet,
 			Loader:         unlockMsg.Loader,
 			ChansToRestore: unlockMsg.ChanBackups,
+			Conn:           unlockMsg.Conn,
 		}, nil
 
 	case <-signal.ShutdownChannel():
