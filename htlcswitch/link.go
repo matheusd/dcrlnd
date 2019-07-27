@@ -38,9 +38,11 @@ const (
 	// willing to lock its own funds too, could force the funds of this node
 	// to be locked up for an indefinite (max int32) number of blocks.
 	//
-	// The value 5000 is based on the maximum number of hops (20), the
-	// default cltv delta (144) and some extra margin.
-	DefaultMaxOutgoingCltvExpiry = 5000
+	// The value 2016 corresponds to on average one week worth of blocks
+	// and is based on the maximum number of hops (20), the default cltv
+	// delta (40) and some extra margin to account for the other lightning
+	// implementations.
+	DefaultMaxOutgoingCltvExpiry = 2016
 
 	// DefaultMinLinkFeeUpdateTimeout represents the minimum interval in
 	// which a link should propose to update its commitment fee rate.
