@@ -29,6 +29,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/monitoring"
 	"github.com/decred/dcrlnd/netann"
+	"github.com/decred/dcrlnd/peernotifier"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
@@ -92,6 +93,7 @@ var (
 	chbuLog = build.NewSubLogger("CHBU", backendLog.Logger)
 	promLog = build.NewSubLogger("PROM", backendLog.Logger)
 	wtclLog = build.NewSubLogger("WTCL", backendLog.Logger)
+	prnfLog = build.NewSubLogger("PRNF", backendLog.Logger)
 )
 
 // Initialize package-global logger variables.
@@ -122,6 +124,7 @@ func init() {
 	chanbackup.UseLogger(chbuLog)
 	monitoring.UseLogger(promLog)
 	wtclient.UseLogger(wtclLog)
+	peernotifier.UseLogger(prnfLog)
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 	addSubLogger(wtclientrpc.Subsystem, wtclientrpc.UseLogger)
@@ -169,6 +172,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"CHBU": chbuLog,
 	"PROM": promLog,
 	"WTCL": wtclLog,
+	"PRNF": prnfLog,
 }
 
 // initLogRotator initializes the logging rotator to write logs to logFile and
