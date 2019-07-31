@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
+	"github.com/decred/dcrlnd/tlv"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -512,8 +514,46 @@ func serializeHop(w io.Writer, h *route.Hop) error {
 		return err
 	}
 
+	if err := binary.Write(w, byteOrder, h.LegacyPayload); err != nil {
+		return err
+	}
+
+	// For legacy payloads, we don't need to write any TLV records, so
+	// we'll write a zero indicating the our serialized TLV map has no
+	// records.
+	if h.LegacyPayload {
+		return WriteElements(w, uint32(0))
+	}
+
+	// Otherwise, we'll transform our slice of records into a map of the
+	// raw bytes, then serialize them in-line with a length (number of
+	// elements) prefix.
+	mapRecords, err := tlv.RecordsToMap(h.TLVRecords)
+	if err != nil {
+		return err
+	}
+
+	numRecords := uint32(len(mapRecords))
+	if err := WriteElements(w, numRecords); err != nil {
+		return err
+	}
+
+	for recordType, rawBytes := range mapRecords {
+		if err := WriteElements(w, recordType); err != nil {
+			return err
+		}
+
+		if err := wire.WriteVarBytes(w, 0, rawBytes); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
+
+// maxOnionPayloadSize is the largest Sphinx payload possible, so we don't need
+// to read/write a TLV stream larger than this.
+const maxOnionPayloadSize = 1300
 
 func deserializeHop(r io.Reader) (*route.Hop, error) {
 	h := &route.Hop{}
@@ -529,6 +569,47 @@ func deserializeHop(r io.Reader) (*route.Hop, error) {
 	); err != nil {
 		return nil, err
 	}
+
+	// TODO(roasbeef): change field to allow LegacyPayload false to be the
+	// legacy default?
+	err := binary.Read(r, byteOrder, &h.LegacyPayload)
+	if err != nil {
+		return nil, err
+	}
+
+	var numElements uint32
+	if err := ReadElements(r, &numElements); err != nil {
+		return nil, err
+	}
+
+	// If there're no elements, then we can return early.
+	if numElements == 0 {
+		return h, nil
+	}
+
+	tlvMap := make(map[uint64][]byte)
+	for i := uint32(0); i < numElements; i++ {
+		var tlvType uint64
+		if err := ReadElements(r, &tlvType); err != nil {
+			return nil, err
+		}
+
+		rawRecordBytes, err := wire.ReadVarBytes(
+			r, 0, maxOnionPayloadSize, "tlv",
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		tlvMap[tlvType] = rawRecordBytes
+	}
+
+	tlvRecords, err := tlv.MapToRecords(tlvMap)
+	if err != nil {
+		return nil, err
+	}
+
+	h.TLVRecords = tlvRecords
 
 	return h, nil
 }
