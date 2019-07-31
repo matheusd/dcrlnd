@@ -43,6 +43,7 @@ import (
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
+	"github.com/decred/dcrlnd/tlv"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
 	"github.com/decred/dcrwallet/wallet/v2/txauthor"
@@ -2927,6 +2928,8 @@ type rpcPaymentIntent struct {
 	ignoreMaxOutboundAmt bool
 	payReq               []byte
 
+	destTLV []tlv.Record
+
 	route *route.Route
 }
 
@@ -2969,6 +2972,16 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 	// Take cltv limit from request if set.
 	if rpcPayReq.CltvLimit != 0 {
 		payIntent.cltvLimit = &rpcPayReq.CltvLimit
+	}
+
+	if len(rpcPayReq.DestTlv) != 0 {
+		var err error
+		payIntent.destTLV, err = tlv.MapToRecords(
+			rpcPayReq.DestTlv,
+		)
+		if err != nil {
+			return payIntent, err
+		}
 	}
 
 	// If the payment request field isn't blank, then the details of the
@@ -3234,6 +3247,7 @@ func (r *rpcServer) dispatchPaymentIntent(
 			OutgoingChannelID: payIntent.outgoingChannelID,
 			PaymentRequest:    payIntent.payReq,
 			PayAttemptTimeout: routing.DefaultPayAttemptTimeout,
+			FinalDestRecords:  payIntent.destTLV,
 		}
 
 		preImage, route, routerErr = r.server.chanRouter.SendPayment(
@@ -3404,10 +3418,16 @@ func (r *rpcServer) sendPayment(stream *paymentStream) error {
 					return
 				}
 
-				marshalledRouted := r.routerBackend.
-					MarshallRoute(resp.Route)
+				backend := r.routerBackend
+				marshalledRouted, err := backend.MarshallRoute(
+					resp.Route,
+				)
+				if err != nil {
+					errChan <- err
+					return
+				}
 
-				err := stream.send(&lnrpc.SendResponse{
+				err = stream.send(&lnrpc.SendResponse{
 					PaymentHash:     payIntent.rHash[:],
 					PaymentPreimage: resp.Preimage[:],
 					PaymentRoute:    marshalledRouted,
@@ -3486,10 +3506,15 @@ func (r *rpcServer) sendPaymentSync(ctx context.Context,
 		}, nil
 	}
 
+	rpcRoute, err := r.routerBackend.MarshallRoute(resp.Route)
+	if err != nil {
+		return nil, err
+	}
+
 	return &lnrpc.SendResponse{
 		PaymentHash:     payIntent.rHash[:],
 		PaymentPreimage: resp.Preimage[:],
-		PaymentRoute:    r.routerBackend.MarshallRoute(resp.Route),
+		PaymentRoute:    rpcRoute,
 	}, nil
 }
 

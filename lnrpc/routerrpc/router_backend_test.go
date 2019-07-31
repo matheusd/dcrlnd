@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
+	"github.com/decred/dcrlnd/tlv"
 
 	"github.com/decred/dcrlnd/lnrpc"
 )
@@ -77,6 +78,7 @@ func testQueryRoutes(t *testing.T, useMissionControl bool) {
 
 	findRoute := func(source, target route.Vertex,
 		amt lnwire.MilliAtom, restrictions *routing.RestrictParams,
+		_ []tlv.Record,
 		finalExpiry ...uint16) (*route.Route, error) {
 
 		if int64(amt) != request.Amt*1000 {
