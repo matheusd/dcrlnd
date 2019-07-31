@@ -666,7 +666,8 @@ func TestFindLowestFeePath(t *testing.T) {
 	}
 	route, err := newRoute(
 		paymentAmt, sourceVertex, path, startingHeight,
-		finalHopCLTV)
+		finalHopCLTV, nil,
+	)
 	if err != nil {
 		t.Fatalf("unable to create path: %v", err)
 	}
@@ -815,7 +816,7 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 
 	route, err := newRoute(
 		paymentAmt, sourceVertex, path, startingHeight,
-		finalHopCLTV,
+		finalHopCLTV, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create path: %v", err)
@@ -853,9 +854,15 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 	for i := 0; i < len(expectedHops)-1; i++ {
 		var expectedHop [8]byte
 		binary.BigEndian.PutUint64(expectedHop[:], route.Hops[i+1].ChannelID)
-		if !bytes.Equal(sphinxPath[i].HopData.NextAddress[:], expectedHop[:]) {
+
+		hopData, err := sphinxPath[i].HopPayload.HopData()
+		if err != nil {
+			t.Fatalf("unable to make hop data: %v", err)
+		}
+
+		if !bytes.Equal(hopData.NextAddress[:], expectedHop[:]) {
 			t.Fatalf("first hop has incorrect next hop: expected %x, got %x",
-				expectedHop[:], sphinxPath[i].HopData.NextAddress)
+				expectedHop[:], hopData.NextAddress[:])
 		}
 	}
 
@@ -863,9 +870,15 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 	// to indicate it's the exit hop.
 	var exitHop [8]byte
 	lastHopIndex := len(expectedHops) - 1
-	if !bytes.Equal(sphinxPath[lastHopIndex].HopData.NextAddress[:], exitHop[:]) {
+
+	hopData, err := sphinxPath[lastHopIndex].HopPayload.HopData()
+	if err != nil {
+		t.Fatalf("unable to create hop data: %v", err)
+	}
+
+	if !bytes.Equal(hopData.NextAddress[:], exitHop[:]) {
 		t.Fatalf("first hop has incorrect next hop: expected %x, got %x",
-			exitHop[:], sphinxPath[lastHopIndex].HopData.NextAddress)
+			exitHop[:], hopData.NextAddress)
 	}
 
 	var expectedTotalFee lnwire.MilliAtom
@@ -997,7 +1010,11 @@ func TestNewRoute(t *testing.T) {
 		timeLockDelta uint16) *channeldb.ChannelEdgePolicy {
 
 		return &channeldb.ChannelEdgePolicy{
-			Node:                      &channeldb.LightningNode{},
+			Node: &channeldb.LightningNode{
+				Features: lnwire.NewFeatureVector(
+					nil, nil,
+				),
+			},
 			FeeProportionalMillionths: feeRate,
 			FeeBaseMAtoms:             baseFee,
 			TimeLockDelta:             timeLockDelta,
@@ -1172,9 +1189,11 @@ func TestNewRoute(t *testing.T) {
 		}
 
 		t.Run(testCase.name, func(t *testing.T) {
-			route, err := newRoute(testCase.paymentAmount,
-				sourceVertex, testCase.hops, startingHeight,
-				finalHopCLTV)
+			route, err := newRoute(
+				testCase.paymentAmount, sourceVertex,
+				testCase.hops, startingHeight, finalHopCLTV,
+				nil,
+			)
 
 			if testCase.expectError {
 				expectedCode := testCase.expectedErrorCode
@@ -1679,7 +1698,7 @@ func TestPathFindSpecExample(t *testing.T) {
 	carol := ctx.aliases["C"]
 	const amt lnwire.MilliAtom = 4999999
 	route, err := ctx.router.FindRoute(
-		bobNode.PubKeyBytes, carol, amt, noRestrictions,
+		bobNode.PubKeyBytes, carol, amt, noRestrictions, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to find route: %v", err)
@@ -1738,7 +1757,7 @@ func TestPathFindSpecExample(t *testing.T) {
 
 	// We'll now request a route from A -> B -> C.
 	route, err = ctx.router.FindRoute(
-		source.PubKeyBytes, carol, amt, noRestrictions,
+		source.PubKeyBytes, carol, amt, noRestrictions, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to find routes: %v", err)
@@ -1921,7 +1940,7 @@ func TestRestrictOutgoingChannel(t *testing.T) {
 	}
 	route, err := newRoute(
 		paymentAmt, sourceVertex, path, startingHeight,
-		finalHopCLTV,
+		finalHopCLTV, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create path: %v", err)
@@ -2029,6 +2048,7 @@ func testCltvLimit(t *testing.T, limit uint32, expectedChannel uint64) {
 	)
 	route, err := newRoute(
 		paymentAmt, sourceVertex, path, startingHeight, finalHopCLTV,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create path: %v", err)
