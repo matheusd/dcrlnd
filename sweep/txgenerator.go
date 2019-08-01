@@ -254,8 +254,11 @@ func createSweepTx(inputs []input.Input, outputPkScript []byte,
 func getInputSigScriptSizeUpperBound(inp input.Input) (int64, error) {
 	switch inp.WitnessType() {
 
-	// Outputs on a remote commitment transaction that pay directly
-	// to us.
+	// Outputs on a remote commitment transaction that pay directly to us.
+	case input.CommitSpendNoDelayTweakless:
+		fallthrough
+	case input.WitnessKeyHash:
+		fallthrough
 	case input.CommitmentNoDelay:
 		return input.P2PKHSigScriptSize, nil
 

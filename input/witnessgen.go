@@ -88,6 +88,11 @@ const (
 	// NODE(decred): The value was chosen so that it won't conflict with
 	// future new types added to the upstream lnd project.
 	PublicKeyHash WitnessType = 901
+
+	// CommitSpendNoDelayTweakless is similar to the CommitSpendNoDelay
+	// type, but it omits the tweak that randomizes the key we need to
+	// spend with a channel peer supplied set of randomness.
+	CommitSpendNoDelayTweakless = 12
 )
 
 // Stirng returns a human readable version of the target WitnessType.
@@ -98,6 +103,9 @@ func (wt WitnessType) String() string {
 
 	case CommitmentNoDelay:
 		return "CommitmentNoDelay"
+
+	case CommitSpendNoDelayTweakless:
+		return "CommitmentNoDelayTweakless"
 
 	case CommitmentRevoke:
 		return "CommitmentRevoke"
@@ -156,7 +164,17 @@ func (wt WitnessType) GenWitnessFunc(signer Signer,
 			}, nil
 
 		case CommitmentNoDelay:
-			witness, err := CommitSpendNoDelay(signer, desc, tx)
+			witness, err := CommitSpendNoDelay(signer, desc, tx, false)
+			if err != nil {
+				return nil, err
+			}
+
+			return &Script{
+				Witness: witness,
+			}, nil
+
+		case CommitSpendNoDelayTweakless:
+			witness, err := CommitSpendNoDelay(signer, desc, tx, true)
 			if err != nil {
 				return nil, err
 			}
