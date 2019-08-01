@@ -74,7 +74,7 @@ func TestChainWatcherRemoteUnilateralClose(t *testing.T) {
 
 	// First, we'll create two channels which already have established a
 	// commitment contract between themselves.
-	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestChainWatcherRemoteUnilateralClosePendingCommit(t *testing.T) {
 
 	// First, we'll create two channels which already have established a
 	// commitment contract between themselves.
-	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestChainWatcherCorrectSpendNtnf(t *testing.T) {
 
 	// First, we'll create two channels which already have established a
 	// commitment contract between themselves.
-	aliceChannel, _, cleanUp, err := lnwallet.CreateTestChannels()
+	aliceChannel, _, cleanUp, err := lnwallet.CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -336,7 +336,9 @@ func TestChainWatcherDataLossProtect(t *testing.T) {
 	dlpScenario := func(t *testing.T, testCase dlpTestCase) bool {
 		// First, we'll create two channels which already have
 		// established a commitment contract between themselves.
-		aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels()
+		aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(
+			false,
+		)
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
 		}
@@ -494,7 +496,7 @@ func TestChainWatcherDataLossProtect(t *testing.T) {
 func TestChainWatcherLocalForceCloseDetect(t *testing.T) {
 	t.Parallel()
 
-	// localForceCloseScenario is the primary test we'll use to execut eout
+	// localForceCloseScenario is the primary test we'll use to execute our
 	// table driven tests. We'll assert that for any number of state
 	// updates, and if the commitment transaction has our output or not,
 	// we're able to properly detect a local force close.
@@ -503,7 +505,9 @@ func TestChainWatcherLocalForceCloseDetect(t *testing.T) {
 
 		// First, we'll create two channels which already have
 		// established a commitment contract between themselves.
-		aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels()
+		aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(
+			false,
+		)
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
 		}

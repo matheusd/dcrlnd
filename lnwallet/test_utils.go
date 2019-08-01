@@ -103,8 +103,11 @@ var (
 // allocated to each side. Within the channel, Alice is the initiator. The
 // function also returns a "cleanup" function that is meant to be called once
 // the test has been finalized. The clean up function will remote all temporary
-// files created
-func CreateTestChannels(tweaklessCommits bool) (*LightningChannel, *LightningChannel, func(), error) {
+// files created. If tweaklessCommits is true, then the commits within the
+// channels will use the new format, otherwise the legacy format.
+func CreateTestChannels(tweaklessCommits bool) (
+	*LightningChannel, *LightningChannel, func(), error) {
+
 	channelCapacity, err := dcrutil.NewAmount(10)
 	if err != nil {
 		return nil, nil, nil, err
@@ -286,7 +289,7 @@ func CreateTestChannels(tweaklessCommits bool) (*LightningChannel, *LightningCha
 		IdentityPub:             aliceKeys[0].PubKey(),
 		FundingOutpoint:         *prevOut,
 		ShortChannelID:          shortChanID,
-		ChanType:                channeldb.SingleFunder,
+		ChanType:                channeldb.SingleFunderTweakless,
 		IsInitiator:             true,
 		Capacity:                channelCapacity,
 		RemoteCurrentRevocation: bobCommitPoint,
@@ -304,7 +307,7 @@ func CreateTestChannels(tweaklessCommits bool) (*LightningChannel, *LightningCha
 		IdentityPub:             bobKeys[0].PubKey(),
 		FundingOutpoint:         *prevOut,
 		ShortChannelID:          shortChanID,
-		ChanType:                channeldb.SingleFunder,
+		ChanType:                channeldb.SingleFunderTweakless,
 		IsInitiator:             false,
 		Capacity:                channelCapacity,
 		RemoteCurrentRevocation: aliceCommitPoint,
@@ -314,6 +317,11 @@ func CreateTestChannels(tweaklessCommits bool) (*LightningChannel, *LightningCha
 		RemoteCommitment:        bobCommit,
 		Db:                      dbBob,
 		Packager:                channeldb.NewChannelPackager(shortChanID),
+	}
+
+	if !tweaklessCommits {
+		aliceChannelState.ChanType = channeldb.SingleFunder
+		bobChannelState.ChanType = channeldb.SingleFunder
 	}
 
 	aliceSigner := &input.MockSigner{Privkeys: aliceKeys}
