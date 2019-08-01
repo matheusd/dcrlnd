@@ -61,22 +61,13 @@ func assertOutputExistsByValue(t *testing.T, commitTx *wire.MsgTx,
 		spew.Sdump(commitTx))
 }
 
-// TestSimpleAddSettleWorkflow tests a simple channel scenario wherein the
-// local node (Alice in this case) creates a new outgoing HTLC to bob, commits
-// this change, then bob immediately commits a settlement of the HTLC after the
-// initial add is fully committed in both commit chains.
-//
-// TODO(roasbeef): write higher level framework to exercise various states of
-// the state machine
-//  * DSL language perhaps?
-//  * constructed via input/output files
-func TestSimpleAddSettleWorkflow(t *testing.T) {
-	t.Parallel()
-
+// testAddSettleWorkflow tests a simple channel scenario where Alice and Bob
+// add, the settle an HTLC between themselves.
+func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(tweakless)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -304,10 +295,10 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 			"instead forwarding: %v", len(fwdPkg.SettleFails))
 	}
 
-	// At this point, Bob should have 6 DCR settled, with Alice still having
-	// 4 DCR. Alice's channel should show 1 DCR sent and Bob's channel
-	// should show 1 DCR received. They should also be at commitment height
-	// two, with the revocation window extended by 1 (5).
+	// At this point, Bob should have 6 DCR settled, with Alice still
+	// having 4 DCR. Alice's channel should show 1 DCR sent and Bob's
+	// channel should show 1 DCR received. They should also be at
+	// commitment height two, with the revocation window extended by 1 (5).
 	mAtTransferred := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	if aliceChannel.channelState.TotalMAtomsSent != mAtTransferred {
 		t.Fatalf("alice atoms sent incorrect %v vs %v expected",
@@ -357,6 +348,26 @@ func TestSimpleAddSettleWorkflow(t *testing.T) {
 	}
 }
 
+// TestSimpleAddSettleWorkflow tests a simple channel scenario wherein the
+// local node (Alice in this case) creates a new outgoing HTLC to bob, commits
+// this change, then bob immediately commits a settlement of the HTLC after the
+// initial add is fully committed in both commit chains.
+//
+// TODO(roasbeef): write higher level framework to exercise various states of
+// the state machine
+//  * DSL language perhaps?
+//  * constructed via input/output files
+func TestSimpleAddSettleWorkflow(t *testing.T) {
+	t.Parallel()
+
+	for _, tweakless := range []bool{true, false} {
+		tweakless := tweakless
+		t.Run(fmt.Sprintf("tweakless=%v", tweakless), func(t *testing.T) {
+			testAddSettleWorkflow(t, tweakless)
+		})
+	}
+}
+
 // TestCheckCommitTxSize checks that estimation size of commitment
 // transaction with some degree of error corresponds to the actual size.
 func TestCheckCommitTxSize(t *testing.T) {
@@ -383,7 +394,10 @@ func TestCheckCommitTxSize(t *testing.T) {
 
 		diff := estimatedCost - actualCost
 		if 0 > diff || commitTxSizeEstimationError < diff {
-			t.Fatalf("estimation is wrong, diff: %v", diff)
+			bts, _ := commitTx.Bytes()
+			t.Logf("%x", bts)
+			t.Fatalf("estimation is wrong with %d HTLCs, diff: %v",
+				count, diff)
 		}
 
 	}
@@ -391,7 +405,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(false)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -450,7 +464,7 @@ func TestCooperativeChannelClosure(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -489,7 +503,8 @@ func TestCooperativeChannelClosure(t *testing.T) {
 	// transaction is well formed, and the signatures verify.
 	aliceCloseTx, _, err := bobChannel.CompleteCooperativeClose(
 		bobCloseSig, aliceCloseSig, bobDeliveryScript,
-		aliceDeliveryScript, bobFee)
+		aliceDeliveryScript, bobFee,
+	)
 	if err != nil {
 		t.Fatalf("unable to complete alice cooperative close: %v", err)
 	}
@@ -497,7 +512,8 @@ func TestCooperativeChannelClosure(t *testing.T) {
 
 	bobCloseTx, _, err := aliceChannel.CompleteCooperativeClose(
 		aliceCloseSig, bobCloseSig, aliceDeliveryScript,
-		bobDeliveryScript, aliceFee)
+		bobDeliveryScript, aliceFee,
+	)
 	if err != nil {
 		t.Fatalf("unable to complete bob cooperative close: %v", err)
 	}
@@ -519,7 +535,7 @@ func TestForceClose(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -818,7 +834,7 @@ func TestForceCloseDustOutput(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -934,7 +950,7 @@ func TestDustHTLCFees(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1011,7 +1027,7 @@ func TestHTLCDustLimit(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1096,7 +1112,7 @@ func TestHTLCSigNumber(t *testing.T) {
 		// Create a test channel funded evenly with Alice having 5 DCR,
 		// and Bob having 5 DCR. Alice's dustlimit is 200 Atoms, while
 		// Bob has 1300 Atoms.
-		aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+		aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
 		}
@@ -1266,7 +1282,7 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1345,7 +1361,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1393,7 +1409,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 	}
 
 	// Also add a fee update to the update logs.
-	fee := AtomPerKByte(111)
+	fee := AtomPerKByte(333)
 	if err := aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to send fee update")
 	}
@@ -1686,7 +1702,7 @@ func TestCancelHTLC(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1800,7 +1816,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1961,7 +1977,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 func TestUpdateFeeAdjustments(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -1999,7 +2015,7 @@ func TestUpdateFeeAdjustments(t *testing.T) {
 	// Finally, we'll attempt to adjust the fee down and use a fee which is
 	// smaller than the initial base fee rate. The fee application and
 	// state transition should proceed without issue.
-	newFee = AtomPerKByte(baseFeeRate / 100)
+	newFee = AtomPerKByte(baseFeeRate / 10)
 	if err := aliceChannel.UpdateFee(newFee); err != nil {
 		t.Fatalf("unable to alice update fee: %v", err)
 	}
@@ -2016,7 +2032,7 @@ func TestUpdateFeeAdjustments(t *testing.T) {
 func TestUpdateFeeFail(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2024,8 +2040,8 @@ func TestUpdateFeeFail(t *testing.T) {
 
 	// Bob receives the update, that will apply to his commitment
 	// transaction.
-	if err = bobChannel.ReceiveUpdateFee(111); err != nil {
-		t.Fatalf("bob unable to receive update fee: %v", err)
+	if err := bobChannel.ReceiveUpdateFee(333); err != nil {
+		t.Fatalf("unable to apply fee update: %v", err)
 	}
 
 	// Alice sends signature for commitment that does not cover any fee
@@ -2050,7 +2066,7 @@ func TestUpdateFeeFail(t *testing.T) {
 func TestUpdateFeeConcurrentSig(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2075,7 +2091,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob.
-	fee := AtomPerKByte(111)
+	fee := AtomPerKByte(333)
 	if err := aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to send fee update")
 	}
@@ -2136,7 +2152,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2161,7 +2177,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob.
-	fee := AtomPerKByte(111)
+	fee := AtomPerKByte(333)
 	if err = aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("alice unable to update fee: %v", err)
 	}
@@ -2254,7 +2270,7 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2279,13 +2295,14 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob
-	fee := AtomPerKByte(111)
+	fee := AtomPerKByte(333)
 	if err = aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to update fee: %v", err)
 	}
 	if err = bobChannel.ReceiveUpdateFee(fee); err != nil {
 		t.Fatalf("unable to receive update fee: %v", err)
 	}
+
 	// Bob commits to every change he has sent since last time (none). He
 	// does not commit to the received HTLC and fee update, since Alice
 	// cannot know if he has received them.
@@ -2398,7 +2415,7 @@ func TestUpdateFeeReceiverSendsUpdate(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2406,7 +2423,7 @@ func TestUpdateFeeReceiverSendsUpdate(t *testing.T) {
 
 	// Since Alice is the channel initiator, she should fail when receiving
 	// fee update
-	fee := AtomPerKByte(111)
+	fee := AtomPerKByte(333)
 	err = aliceChannel.ReceiveUpdateFee(fee)
 	if err == nil {
 		t.Fatalf("expected alice to fail receiving fee update")
@@ -2427,15 +2444,15 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
 	defer cleanUp()
 
 	// Simulate Alice sending update fee message to bob.
-	fee1 := AtomPerKByte(111)
-	fee2 := AtomPerKByte(222)
+	fee1 := AtomPerKByte(333)
+	fee2 := AtomPerKByte(333)
 	fee := AtomPerKByte(333)
 	if err = aliceChannel.UpdateFee(fee1); err != nil {
 		t.Fatalf("alice unable to update fee1: %v", err)
@@ -2563,7 +2580,7 @@ func TestAddHTLCNegativeBalance(t *testing.T) {
 
 	// We'll kick off the test by creating our channels which both are
 	// loaded with 5 DCR each.
-	aliceChannel, _, cleanUp, err := CreateTestChannels()
+	aliceChannel, _, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2644,7 +2661,7 @@ func TestChanSyncFullySynced(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -2764,7 +2781,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -3078,7 +3095,7 @@ func TestChanSyncOweRevocation(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -3268,7 +3285,7 @@ func TestChanSyncOweRevocationAndCommit(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -3437,7 +3454,7 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -3666,7 +3683,7 @@ func TestChanSyncFailure(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(false)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -3919,7 +3936,7 @@ func TestFeeUpdateRejectInsaneFee(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, _, cleanUp, err := CreateTestChannels()
+	aliceChannel, _, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -3945,7 +3962,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4128,7 +4145,7 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 BTC,
 	// and Bob having 5 BTC.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4347,7 +4364,7 @@ func TestChanSyncUnableToSync(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4384,7 +4401,7 @@ func TestChanSyncInvalidLastSecret(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4474,7 +4491,7 @@ func TestChanAvailableBandwidth(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4597,7 +4614,7 @@ func TestSignCommitmentFailNotLockedIn(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, _, cleanUp, err := CreateTestChannels()
+	aliceChannel, _, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4622,7 +4639,7 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 	t.Parallel()
 
 	// First, we'll make a channel between Alice and Bob.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4936,7 +4953,7 @@ func TestInvalidCommitSigError(t *testing.T) {
 	t.Parallel()
 
 	// First, we'll make a channel between Alice and Bob.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -4983,7 +5000,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5144,7 +5161,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(false)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5241,7 +5258,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 		Value:    aliceSignDesc.Output.Value,
 	})
 	witness, err := input.CommitSpendNoDelay(
-		aliceChannel.Signer, &aliceSignDesc, sweepTx,
+		aliceChannel.Signer, &aliceSignDesc, sweepTx, false,
 	)
 	if err != nil {
 		t.Fatalf("unable to generate sweep witness: %v", err)
@@ -5272,7 +5289,7 @@ func TestDesyncHTLCs(t *testing.T) {
 
 	// We'll kick off the test by creating our channels which both are
 	// loaded with 5 DCR each.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5339,7 +5356,7 @@ func TestMaxAcceptedHTLCs(t *testing.T) {
 
 	// We'll kick off the test by creating our channels which both are
 	// loaded with 5 DCR each.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5400,7 +5417,7 @@ func TestMaxPendingAmount(t *testing.T) {
 
 	// We'll kick off the test by creating our channels which both are
 	// loaded with 5 DCR each.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5488,7 +5505,7 @@ func TestChanReserve(t *testing.T) {
 	setupChannels := func() (*LightningChannel, *LightningChannel, func()) {
 		// We'll kick off the test by creating our channels which both
 		// are loaded with 5 DCR each.
-		aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+		aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
 		}
@@ -5698,7 +5715,7 @@ func TestMinHTLC(t *testing.T) {
 
 	// We'll kick off the test by creating our channels which both are
 	// loaded with 5 DCR each.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5755,7 +5772,7 @@ func TestNewBreachRetributionSkipsDustHtlcs(t *testing.T) {
 
 	// We'll kick off the test by creating our channels which both are
 	// loaded with 5 DCR each.
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -5927,7 +5944,7 @@ func compareLogs(a, b *updateLog) error {
 func TestChannelRestoreUpdateLogs(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -6096,7 +6113,7 @@ func restoreAndAssert(t *testing.T, channel *LightningChannel, numAddsLocal,
 func TestChannelRestoreUpdateLogsFailedHTLC(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -6217,7 +6234,7 @@ func TestChannelRestoreUpdateLogsFailedHTLC(t *testing.T) {
 func TestDuplicateFailRejection(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -6295,7 +6312,7 @@ func TestDuplicateFailRejection(t *testing.T) {
 func TestDuplicateSettleRejection(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -6376,7 +6393,7 @@ func TestDuplicateSettleRejection(t *testing.T) {
 func TestChannelRestoreCommitHeight(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(true)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -6561,7 +6578,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 func TestForceCloseFailLocalDataLoss(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, _, cleanUp, err := CreateTestChannels()
+	aliceChannel, _, cleanUp, err := CreateTestChannels(false)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -6592,7 +6609,7 @@ func TestForceCloseFailLocalDataLoss(t *testing.T) {
 func TestForceCloseBorkedState(t *testing.T) {
 	t.Parallel()
 
-	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels()
+	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(false)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}

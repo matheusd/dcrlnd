@@ -893,7 +893,8 @@ func TestFetchWaitingCloseChannels(t *testing.T) {
 	// This would happen in the event of a force close and should make the
 	// channels enter a state of waiting close.
 	for _, channel := range channels {
-		closeTx := wire.NewMsgTx(2)
+		closeTx := wire.NewMsgTx()
+		closeTx.Version = 2
 		closeTx.AddTxIn(
 			&wire.TxIn{
 				PreviousOutPoint: channel.FundingOutpoint,

@@ -104,7 +104,7 @@ var (
 // function also returns a "cleanup" function that is meant to be called once
 // the test has been finalized. The clean up function will remote all temporary
 // files created
-func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) {
+func CreateTestChannels(tweaklessCommits bool) (*LightningChannel, *LightningChannel, func(), error) {
 	channelCapacity, err := dcrutil.NewAmount(10)
 	if err != nil {
 		return nil, nil, nil, err
@@ -217,9 +217,10 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 	}
 	aliceCommitPoint := input.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
-	aliceCommitTx, bobCommitTx, err := CreateCommitmentTxns(channelBal,
-		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn, chaincfg.RegNetParams())
+	netParams := chaincfg.RegNetParams()
+	aliceCommitTx, bobCommitTx, err := CreateCommitmentTxns(
+		channelBal, channelBal, &aliceCfg, &bobCfg, aliceCommitPoint,
+		bobCommitPoint, *fundingTxIn, netParams, tweaklessCommits)
 	if err != nil {
 		return nil, nil, nil, err
 	}

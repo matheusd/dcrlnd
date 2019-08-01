@@ -258,9 +258,10 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 	aliceCommitPoint := input.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
-	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(aliceAmount,
-		bobAmount, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn, netParams)
+	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(
+		aliceAmount, bobAmount, &aliceCfg, &bobCfg, aliceCommitPoint,
+		bobCommitPoint, *fundingTxIn, netParams, true,
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
