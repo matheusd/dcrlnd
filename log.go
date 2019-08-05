@@ -163,7 +163,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"INVC": invcLog,
 	"NANN": nannLog,
 	"WTWR": wtwrLog,
-	"NTFR": ntfnLog,
+	"NTFR": ntfrLog,
 	"IRPC": irpcLog,
 	"CHNF": chnfLog,
 	"CHBU": chbuLog,
