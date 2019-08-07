@@ -1124,6 +1124,7 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 	// transaction.
 	for _, input := range inputs {
 		txn.AddTxIn(&wire.TxIn{
+			ValueIn:          input.SignDesc().Output.Value,
 			PreviousOutPoint: *input.OutPoint(),
 		})
 	}
