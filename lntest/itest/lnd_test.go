@@ -8319,6 +8319,14 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 
 	time.Sleep(500 * time.Millisecond)
 
+	// Suspend Dave to prevent him from sending a justice tx redeeming the
+	// funds from the breach tx before Carol has a chance to redeem the
+	// second level HTLCs.
+	resumeDave, err := net.SuspendNode(dave)
+	if err != nil {
+		t.Fatalf("unable to suspend Dave: %v", err)
+	}
+
 	// Now we shutdown Carol, copying over the her temporary database state
 	// which has the *prior* channel state over her current most up to date
 	// state. With this, we essentially force Carol to travel back in time
@@ -8370,15 +8378,6 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		t.Fatalf("expected closeTx(%v) in mempool, instead found %v",
 			closeTxId, txid)
 	}
-	time.Sleep(200 * time.Millisecond)
-
-	// Suspend Dave to prevent him from sending a justice tx redeeming the
-	// funds from the breach tx before Carol has a chance to redeem the
-	// second level HTLCs.
-	resumeDave, err := net.SuspendNode(dave)
-	if err != nil {
-		t.Fatalf("unable to suspend Dave: %v", err)
-	}
 
 	// Generate a single block to mine the breach transaction.
 	block := mineBlocks(t, net, 1, 1)[0]
@@ -8395,26 +8394,6 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 			breachTXID, closeTxId)
 	}
 	assertTxInBlock(t, block, breachTXID)
-
-	// Grab transactions which will be required for future checks.
-	breachTx, err := net.Miner.Node.GetRawTransaction(closeTxId)
-	if err != nil {
-		t.Fatalf("unable to query for breach tx: %v", err)
-	}
-
-	fundingTxId, err := chainhash.NewHash(chanPoint.GetFundingTxidBytes())
-	if err != nil {
-		t.Fatalf("chainpoint id bytes not a chainhash: %v", err)
-	}
-	fundingTx, err := net.Miner.Node.GetRawTransaction(fundingTxId)
-	if err != nil {
-		t.Fatalf("unable to query for funding tx: %v", err)
-	}
-
-	// Mine enough blocks for Carol to attempt to redeem the timed-out
-	// htlcs via second-level txs.
-	numBlocks := padCLTV(uint32(cltvDelta))
-	mineBlocks(t, net, numBlocks, 0)
 
 	// isSecondLevelSpend checks that the passed secondLevelTxid is a
 	// potential second level spend spending from the commit tx.
@@ -8444,54 +8423,99 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		return true, secondLevel.MsgTx()
 	}
 
-	// Wait for Carol to send the second-level txs, then ensure they can be
-	// found on the mempool, that they redeem from the breach tx and that
-	// they are in fact second-level HTLC txs.
-	time.Sleep(time.Second * 3)
-	mempool, err := net.Miner.Node.GetRawMempool(dcrjson.GRMRegular)
+	// Grab transactions which will be required for future checks.
+	breachTx, err := net.Miner.Node.GetRawTransaction(closeTxId)
+	if err != nil {
+		t.Fatalf("unable to query for breach tx: %v", err)
+	}
+
+	fundingTxId, err := chainhash.NewHash(chanPoint.GetFundingTxidBytes())
+	if err != nil {
+		t.Fatalf("chainpoint id bytes not a chainhash: %v", err)
+	}
+	fundingTx, err := net.Miner.Node.GetRawTransaction(fundingTxId)
+	if err != nil {
+		t.Fatalf("unable to query for funding tx: %v", err)
+	}
+
+	// After force-closing the channel, Carol should send 3 second-level
+	// success htlc transactions to redeem her offered htlcs (for which she
+	// has the preimage).
+	//
+	// We'll ensure she has actually sent them and record the fees to
+	// correctly account for them in Dave's final balance.
+	txids, err := waitForNTxsInMempool(net.Miner.Node, 3, minerMempoolTimeout)
+	var numSecondLvlSuccess int
+	var feesSecondLvlSuccess int64
+	if err != nil {
+		t.Fatalf("unable to wait for htlc success transactions: %v", err)
+	}
+	for _, txid := range txids {
+		isSecondLevel, tx := isSecondLevelSpend(breachTXID, txid)
+		if !isSecondLevel {
+			continue
+		}
+		numSecondLvlSuccess++
+		prevOut := breachTx.MsgTx().TxOut[tx.TxIn[0].PreviousOutPoint.Index]
+		feesSecondLvlSuccess += prevOut.Value - tx.TxOut[0].Value
+	}
+	if numSecondLvlSuccess != 3 {
+		t.Fatalf("Carol did not send the expected second-level htlc "+
+			"success txs (found %d)", len(txids))
+	}
+
+	// Mine enough blocks for Carol to attempt to redeem the timed-out
+	// htlcs via second-level timeout txs.
+	numBlocks := padCLTV(uint32(cltvDelta - 1))
+	mineBlocks(t, net, numBlocks, 0)
+
+	// Wait for Carol to send the timeout second-level txs, then ensure
+	// they can be found on the mempool, that they redeem from the breach
+	// tx and that they are in fact second-level HTLC txs.
+	mempool, err := waitForNTxsInMempool(net.Miner.Node, 3, minerMempoolTimeout)
 	if err != nil {
 		t.Fatalf("unable to get mempool from miner: %v", err)
 	}
-	var numSecondLevelTxs int
-	var totalSecondLevelOut int64
-	var totalSecondLevelFees int64
+	var numSecondLvlTimeout int
+	var totalSecondLvlTimeout int64
+	var feesSecondLvlTimeout int64
 	for _, txid := range mempool {
 		isSecondLevel, tx := isSecondLevelSpend(breachTXID, txid)
 		if !isSecondLevel {
 			continue
 		}
 		prevOut := breachTx.MsgTx().TxOut[tx.TxIn[0].PreviousOutPoint.Index]
-		numSecondLevelTxs++
-		totalSecondLevelOut += tx.TxOut[0].Value
-		totalSecondLevelFees += prevOut.Value - tx.TxOut[0].Value
+		numSecondLvlTimeout++
+		totalSecondLvlTimeout += tx.TxOut[0].Value
+		feesSecondLvlTimeout += prevOut.Value - tx.TxOut[0].Value
 	}
-	if numSecondLevelTxs != 3 {
-		t.Fatalf("unable to find the 3 second-level txs from Carol "+
-			"(found %d)", numSecondLevelTxs)
+	if numSecondLvlTimeout != 3 {
+		t.Fatalf("unable to find the 3 htlc timeout second-level txs "+
+			"from Carol (found %d)", numSecondLvlTimeout)
 	}
 
-	// The total redeemed by the second-level txs should be the amount for
-	// 3 time-locked invoices minus the fees.
-	expectedSecondLevelOut := 3*paymentAmt - totalSecondLevelFees
-	if totalSecondLevelOut != expectedSecondLevelOut {
+	// The total redeemed by the second-level timeout txs should be the
+	// amount for 3 time-locked invoices minus the fees.
+	expectedSecondLvlTimeoutOut := 3*paymentAmt - feesSecondLvlTimeout
+	if totalSecondLvlTimeout != expectedSecondLvlTimeoutOut {
 		t.Fatalf("unexpected total redeemed by second-level txs; "+
-			"expected=%d actual=%d fees=%d", expectedSecondLevelOut,
-			totalSecondLevelOut, totalSecondLevelFees)
+			"expected=%d actual=%d fees=%d", expectedSecondLvlTimeoutOut,
+			totalSecondLvlTimeout, feesSecondLvlTimeout)
 	}
 
-	// Mine a block with the second-level HTLCs.
+	// Mine a block with the timeout second-level HTLCs.
 	mineBlocks(t, net, 1, 3)
 
 	// Restart Dave. He should notice the breached commitment transaction
 	// and the second-level txs. Once he does, he will send a justice tx to
 	// sweep the time-locked funds from Carol's breach tx, his side of the
-	// commitment tx, the 3 HTLCs in the commitment tx and the 3
-	// time-locked second-level txs, for a grand total of 8 inputs.
+	// commitment tx, the time-locked 3 HTLCs in the success second-level
+	// txs and the 3 time-locked HTLCs in the timeout second-level txs, for
+	// a grand total of 8 inputs.
 	err = resumeDave()
 	if err != nil {
 		t.Fatalf("unable to resume Dave: %v", err)
 	}
-	time.Sleep(time.Millisecond * 500)
 
 	// Query the mempool for Dave's justice transaction.
 	var predErr error
@@ -8529,7 +8553,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 
 		justiceTxid = txid
 		return true
-	}, time.Second*10)
+	}, time.Second*15)
 	if err != nil {
 		t.Fatalf(predErr.Error())
 	}
@@ -8543,6 +8567,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	// generated by Carol's breach transaction above or by one of the
 	// second-level txs.
 	var totalJusticeIn int64
+	var justiceTxNumSecondLvlIn int
 	for _, txIn := range justiceTx.MsgTx().TxIn {
 		if bytes.Equal(txIn.PreviousOutPoint.Hash[:], breachTXID[:]) {
 			txo := breachTx.MsgTx().TxOut[txIn.PreviousOutPoint.Index]
@@ -8551,10 +8576,15 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		}
 		if is, tx := isSecondLevelSpend(breachTXID, &txIn.PreviousOutPoint.Hash); is {
 			totalJusticeIn += tx.TxOut[0].Value
+			justiceTxNumSecondLvlIn++
 			continue
 		}
 		t.Fatalf("justice tx not spending commitment or second-level "+
 			"utxo; instead is: %v", txIn.PreviousOutPoint)
+	}
+	if justiceTxNumSecondLvlIn != 6 {
+		t.Fatalf("justice tx does not have 3 inputs from second-level "+
+			"txs (found %d)", justiceTxNumSecondLvlIn)
 	}
 
 	// The amount returned by the justice tx must be the total channel
@@ -8564,13 +8594,14 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	commitFee := int64(calcStaticFee(6))
 	justiceFee := totalJusticeIn - jtx.TxOut[0].Value
 	expectedJusticeOut := int64(chanAmt) - commitFee - justiceFee -
-		totalSecondLevelFees
+		feesSecondLvlSuccess - feesSecondLvlTimeout
 	if jtx.TxOut[0].Value != expectedJusticeOut {
 		t.Fatalf("wrong value returned by justice tx; expected=%d "+
 			"actual=%d chanAmt=%d commitFee=%d justiceFee=%d "+
-			"secondLevelFees=%d",
+			"secondLevelSuccessFees=%d secondLevelTimeoutFees=%d",
 			expectedJusticeOut, jtx.TxOut[0].Value, chanAmt,
-			commitFee, justiceFee, totalSecondLevelFees)
+			commitFee, justiceFee, feesSecondLvlSuccess,
+			feesSecondLvlTimeout)
 	}
 
 	// Now mine a block. This should include Dave's justice transaction
@@ -8607,7 +8638,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	// HTLCs and the justice tx.
 	fundingFee := recordedTxFee(fundingTx.MsgTx())
 	expectedDaveBalance := initialBalance - fundingFee - commitFee -
-		totalSecondLevelFees - justiceFee
+		feesSecondLvlSuccess - feesSecondLvlTimeout - justiceFee
 	checkTotalBalance(dave, expectedDaveBalance)
 
 }
