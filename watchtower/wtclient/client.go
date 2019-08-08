@@ -91,8 +91,10 @@ type Client interface {
 	// state. If the method returns nil, the backup is guaranteed to be
 	// successful unless the client is force quit, or the justice
 	// transaction would create dust outputs when trying to abide by the
-	// negotiated policy.
-	BackupState(*lnwire.ChannelID, *lnwallet.BreachRetribution) error
+	// negotiated policy. If the channel we're trying to back up doesn't
+	// have a tweak for the remote party's output, then isTweakless should
+	// be true.
+	BackupState(*lnwire.ChannelID, *lnwallet.BreachRetribution, bool) error
 
 	// Start initializes the watchtower client, allowing it process requests
 	// to backup revoked channel states.
@@ -569,7 +571,7 @@ func (c *TowerClient) RegisterChannel(chanID lnwire.ChannelID) error {
 //  - breached outputs contain too little value to sweep at the target sweep fee
 //    rate.
 func (c *TowerClient) BackupState(chanID *lnwire.ChannelID,
-	breachInfo *lnwallet.BreachRetribution) error {
+	breachInfo *lnwallet.BreachRetribution, isTweakless bool) error {
 
 	// Retrieve the cached sweep pkscript used for this channel.
 	c.backupMu.Lock()
@@ -594,7 +596,10 @@ func (c *TowerClient) BackupState(chanID *lnwire.ChannelID,
 	c.chanCommitHeights[*chanID] = breachInfo.RevokedStateNum
 	c.backupMu.Unlock()
 
-	task := newBackupTask(chanID, breachInfo, summary.SweepPkScript, c.cfg.ChainParams)
+	task := newBackupTask(
+		chanID, breachInfo, summary.SweepPkScript, c.cfg.ChainParams,
+		isTweakless,
+	)
 
 	return c.pipeline.QueueBackupTask(task)
 }

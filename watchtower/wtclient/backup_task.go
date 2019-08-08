@@ -57,7 +57,8 @@ type backupTask struct {
 func newBackupTask(chanID *lnwire.ChannelID,
 	breachInfo *lnwallet.BreachRetribution,
 	sweepPkScript []byte,
-	chainParams *chaincfg.Params) *backupTask {
+	chainParams *chaincfg.Params,
+	isTweakless bool) *backupTask {
 
 	// Parse the non-dust outputs from the breach transaction,
 	// simultaneously computing the total amount contained in the inputs
@@ -88,12 +89,18 @@ func newBackupTask(chanID *lnwire.ChannelID,
 		totalAmt += breachInfo.RemoteOutputSignDesc.Output.Value
 	}
 	if breachInfo.LocalOutputSignDesc != nil {
+		witnessType := input.CommitmentNoDelay
+		if isTweakless {
+			witnessType = input.CommitSpendNoDelayTweakless
+		}
+
 		toRemoteInput = input.NewBaseInput(
 			&breachInfo.LocalOutpoint,
-			input.CommitmentNoDelay,
+			witnessType,
 			breachInfo.LocalOutputSignDesc,
 			0,
 		)
+
 		totalAmt += breachInfo.LocalOutputSignDesc.Output.Value
 	}
 
@@ -272,6 +279,8 @@ func (t *backupTask) craftSessionPayload(
 		case input.CommitmentRevoke:
 			copy(justiceKit.CommitToLocalSig[:], signature[:])
 
+		case input.CommitSpendNoDelayTweakless:
+			fallthrough
 		case input.CommitmentNoDelay:
 			copy(justiceKit.CommitToRemoteSig[:], signature[:])
 		}
