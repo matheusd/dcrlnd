@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chanacceptor"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch"
@@ -288,6 +289,8 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 
 	var chanIDSeed [32]byte
 
+	chainedAcceptor := chanacceptor.NewChainedAcceptor()
+
 	fundingCfg := fundingConfig{
 		IDKey:        privKey.PubKey(),
 		Wallet:       lnw,
@@ -371,6 +374,7 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 		ReservationTimeout:     1 * time.Nanosecond,
 		MaxPendingChannels:     DefaultMaxPendingChannels,
 		NotifyOpenChannelEvent: func(wire.OutPoint) {},
+		OpenChannelPredicate:   chainedAcceptor,
 	}
 
 	for _, op := range options {
@@ -421,6 +425,8 @@ func recreateAliceFundingManager(t *testing.T, alice *testNode) {
 
 	oldCfg := alice.fundingMgr.cfg
 
+	chainedAcceptor := chanacceptor.NewChainedAcceptor()
+
 	f, err := newFundingManager(fundingConfig{
 		IDKey:        oldCfg.IDKey,
 		Wallet:       oldCfg.Wallet,
@@ -465,6 +471,7 @@ func recreateAliceFundingManager(t *testing.T, alice *testNode) {
 		},
 		ZombieSweeperInterval: oldCfg.ZombieSweeperInterval,
 		ReservationTimeout:    oldCfg.ReservationTimeout,
+		OpenChannelPredicate:  chainedAcceptor,
 	})
 	if err != nil {
 		t.Fatalf("failed recreating aliceFundingManager: %v", err)
