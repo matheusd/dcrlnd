@@ -8,6 +8,7 @@ import (
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chanbackup"
+	"github.com/decred/dcrlnd/chanfitness"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
@@ -99,6 +100,7 @@ func init() {
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 	addSubLogger(wtclientrpc.Subsystem, wtclientrpc.UseLogger)
+	addSubLogger(chanfitness.Subsystem, chanfitness.UseLogger)
 
 	// Decred-specific logs.
 	addSubLogger("DCRW", dcrwallet.UseLogger)
