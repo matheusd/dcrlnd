@@ -115,7 +115,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case uint64:
+	case int64, uint64:
 		if err := binary.Write(w, byteOrder, e); err != nil {
 			return err
 		}
@@ -287,7 +287,7 @@ func ReadElement(r io.Reader, element interface{}) error {
 			return err
 		}
 
-	case *uint64:
+	case *int64, *uint64:
 		if err := binary.Read(r, byteOrder, e); err != nil {
 			return err
 		}
