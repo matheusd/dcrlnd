@@ -1911,7 +1911,6 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	// We put Alice into hodl.ExitSettle mode, such that she won't settle
 	// incoming HTLCs automatically.
 	coreLink.cfg.HodlMask = hodl.MaskFromFlags(hodl.ExitSettle)
-	coreLink.cfg.DebugHTLC = true
 
 	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
@@ -2860,7 +2859,6 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 	// outgoing ADDs are opened, but the changes are not committed in the
 	// channel state.
 	alice.coreLink.cfg.HodlMask = hodl.Commit.Mask()
-	alice.coreLink.cfg.DebugHTLC = true
 
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
@@ -4236,7 +4234,6 @@ func (h *persistentLinkHarness) restartLink(
 		MaxFeeUpdateTimeout: 40 * time.Minute,
 		// Set any hodl flags requested for the new link.
 		HodlMask:              hodl.MaskFromFlags(hodlFlags...),
-		DebugHTLC:             len(hodlFlags) > 0,
 		MaxOutgoingCltvExpiry: DefaultMaxOutgoingCltvExpiry,
 	}
 
@@ -4936,7 +4933,6 @@ func TestChannelLinkCleanupSpuriousResponses(t *testing.T) {
 	// Settle Alice in hodl ExitSettle mode so that she won't respond
 	// immediately to the htlc's meant for her. This allows us to control
 	// the responses she gives back to Bob.
-	coreLink.cfg.DebugHTLC = true
 	coreLink.cfg.HodlMask = hodl.ExitSettle.Mask()
 
 	// Add two HTLCs to Alice's registry, that Bob can pay.
