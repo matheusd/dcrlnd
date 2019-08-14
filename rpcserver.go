@@ -3074,14 +3074,6 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 
 		copy(payIntent.rHash[:], paymentHash)
 
-	// If we're in debug HTLC mode, then all outgoing HTLCs will pay to the
-	// same debug rHash. Otherwise, we pay to the rHash specified within
-	// the RPC request.
-	case cfg.DebugHTLC &&
-		bytes.Equal(payIntent.rHash[:], lntypes.ZeroHash[:]):
-
-		copy(payIntent.rHash[:], invoices.DebugHash[:])
-
 	default:
 		copy(payIntent.rHash[:], rpcPayReq.PaymentHash)
 	}
