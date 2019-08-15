@@ -52,7 +52,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40 // indirect
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
-	go.etcd.io/bbolt v1.3.2
+	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20190320223903-b7391e95e576
 	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
