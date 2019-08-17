@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/queue"
@@ -38,7 +39,6 @@ var (
 // notifications. Multiple concurrent clients are supported. All notifications
 // are achieved via non-blocking sends on client channels.
 type DcrdNotifier struct {
-	spendClientCounter uint64 // To be used atomically.
 	epochClientCounter uint64 // To be used atomically.
 
 	started int32 // To be used atomically.
@@ -657,23 +657,11 @@ func (n *DcrdNotifier) notifyBlockEpochClient(epochClient *blockEpochRegistratio
 func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	pkScript []byte, heightHint uint32) (*chainntnfs.SpendEvent, error) {
 
-	// First, we'll construct a spend notification request and hand it off
-	// to the txNotifier.
-	spendID := atomic.AddUint64(&n.spendClientCounter, 1)
-	spendRequest, err := chainntnfs.NewSpendRequest(outpoint, pkScript)
-	if err != nil {
-		return nil, err
-	}
-	ntfn := &chainntnfs.SpendNtfn{
-		SpendID:      spendID,
-		SpendRequest: spendRequest,
-		Event: chainntnfs.NewSpendEvent(func() {
-			n.txNotifier.CancelSpend(spendRequest, spendID)
-		}),
-		HeightHint: heightHint,
-	}
-
-	historicalDispatch, _, err := n.txNotifier.RegisterSpend(ntfn)
+	// Register the conf notification with the TxNotifier. A non-nil value
+	// for `dispatch` will be returned if we are required to perform a
+	// manual scan for the confirmation. Otherwise the notifier will begin
+	// watching at tip for the transaction to confirm.
+	ntfn, err := n.txNotifier.RegisterSpend(outpoint, pkScript, heightHint)
 	if err != nil {
 		return nil, err
 	}
@@ -681,7 +669,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// If the txNotifier didn't return any details to perform a historical
 	// scan of the chain, then we can return early as there's nothing left
 	// for us to do.
-	if historicalDispatch == nil {
+	if ntfn.HistoricalDispatch == nil {
 		return ntfn.Event, nil
 	}
 
@@ -698,16 +686,18 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// Otherwise, we'll determine when the output was spent by scanning the
 	// chain.  We'll begin by determining where to start our historical
 	// rescan.
-	startHeight := historicalDispatch.StartHeight
+	startHeight := ntfn.HistoricalDispatch.StartHeight
 
-	if spendRequest.OutPoint == chainntnfs.ZeroOutPoint {
-		addr, err := spendRequest.PkScript.Address(n.chainParams)
+	emptyOutPoint := outpoint == nil || *outpoint == chainntnfs.ZeroOutPoint
+	if emptyOutPoint {
+		_, addrs, _, err = txscript.ExtractPkScriptAddrs(
+			0, pkScript, n.chainParams,
+		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to parse address: %v", err)
 		}
-		addrs = []dcrutil.Address{addr}
 	} else {
-		ops = []wire.OutPoint{spendRequest.OutPoint}
+		ops = []wire.OutPoint{*outpoint}
 	}
 
 	// Ensure we'll receive any new notifications for either the outpoint
@@ -716,7 +706,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		return nil, err
 	}
 
-	if spendRequest.OutPoint != chainntnfs.ZeroOutPoint {
+	if !emptyOutPoint {
 		// When dispatching spends of outpoints, there are a number of checks
 		// we can make to start our rescan from a better height or completely
 		// avoid it.
@@ -725,7 +715,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		// the outpoint has been spent. If it hasn't, we can return to the
 		// caller as well.
 		txOut, err := n.chainConn.GetTxOut(
-			&spendRequest.OutPoint.Hash, spendRequest.OutPoint.Index, true,
+			&outpoint.Hash, outpoint.Index, true,
 		)
 		if err != nil {
 			return nil, err
@@ -733,7 +723,9 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		if txOut != nil {
 			// We'll let the txNotifier know the outpoint is still
 			// unspent in order to begin updating its spend hint.
-			err := n.txNotifier.UpdateSpendDetails(spendRequest, nil)
+			err := n.txNotifier.UpdateSpendDetails(
+				ntfn.HistoricalDispatch.SpendRequest, nil,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -746,7 +738,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		// better rescan starting height. We can do this as the
 		// GetRawTransaction call will return the hash of the block it
 		// was included in within the chain.
-		tx, err := n.chainConn.GetRawTransactionVerbose(&spendRequest.OutPoint.Hash)
+		tx, err := n.chainConn.GetRawTransactionVerbose(&outpoint.Hash)
 		if err != nil {
 			// Avoid returning an error if the transaction was not found to
 			// proceed with fallback methods.
@@ -757,9 +749,9 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 			}
 		}
 
-		// If the transaction index was enabled, we'll use the block's hash to
-		// retrieve its height and check whether it provides a better starting
-		// point for our rescan.
+		// If the transaction index was enabled, we'll use the block's
+		// hash to retrieve its height and check whether it provides a
+		// better starting point for our rescan.
 		if tx != nil {
 			// If the transaction containing the outpoint hasn't confirmed
 			// on-chain, then there's no need to perform a rescan.
@@ -777,7 +769,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 					"block %v: %v", blockHash, err)
 			}
 
-			if blockHeader.Height > historicalDispatch.StartHeight {
+			if blockHeader.Height > ntfn.HistoricalDispatch.StartHeight {
 				startHeight = blockHeader.Height
 			}
 		}
@@ -792,7 +784,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// asyncResult channel not being exposed.
 	//
 	// TODO(wilmer): add retry logic if rescan fails?
-	go n.inefficientSpendRescan(startHeight, ntfn)
+	go n.inefficientSpendRescan(startHeight, ntfn.HistoricalDispatch)
 
 	return ntfn.Event, nil
 }
@@ -831,7 +823,7 @@ func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest)
 // TODO(decred) This _needs_ to be improved into a proper rescan procedure or
 // an index.
 func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
-	ntfn *chainntnfs.SpendNtfn) {
+	histDispatch *chainntnfs.HistoricalSpendDispatch) {
 
 	_, endHeight, err := n.chainConn.GetBestBlock()
 	if err != nil {
@@ -853,7 +845,7 @@ func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
 		res, err := n.chainConn.Rescan([]chainhash.Hash{*scanHash})
 		if err != nil {
 			chainntnfs.Log.Errorf("Rescan to determine the spend "+
-				"details of %v failed: %v", ntfn.OutPoint, err)
+				"details of %v failed: %v", histDispatch.SpendRequest.OutPoint, err)
 			return
 		}
 
@@ -877,7 +869,7 @@ func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
 							"during spend rescan: %v", err)
 					}
 
-					spenderIndex := txSpendsSpendRequest(&tx, &ntfn.SpendRequest)
+					spenderIndex := txSpendsSpendRequest(&tx, &histDispatch.SpendRequest)
 					if spenderIndex > -1 {
 						// Found the spender tx! Update
 						// the spend status (which will
@@ -885,13 +877,13 @@ func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
 						// finish the scan.
 						txHash := tx.TxHash()
 						details := &chainntnfs.SpendDetail{
-							SpentOutPoint:     &ntfn.OutPoint,
+							SpentOutPoint:     &histDispatch.SpendRequest.OutPoint,
 							SpenderTxHash:     &txHash,
 							SpendingTx:        &tx,
 							SpenderInputIndex: uint32(spenderIndex),
 							SpendingHeight:    int32(height),
 						}
-						n.txNotifier.UpdateSpendDetails(ntfn.SpendRequest, details)
+						n.txNotifier.UpdateSpendDetails(histDispatch.SpendRequest, details)
 						return
 					}
 
