@@ -38,7 +38,6 @@ var (
 // notifications. Multiple concurrent clients are supported. All notifications
 // are achieved via non-blocking sends on client channels.
 type DcrdNotifier struct {
-	confClientCounter  uint64 // To be used atomically.
 	spendClientCounter uint64 // To be used atomically.
 	epochClientCounter uint64 // To be used atomically.
 
@@ -919,41 +918,23 @@ func (n *DcrdNotifier) RegisterConfirmationsNtfn(txid *chainhash.Hash,
 	pkScript []byte,
 	numConfs, heightHint uint32) (*chainntnfs.ConfirmationEvent, error) {
 
-	// Construct a notification request for the transaction and send it to
-	// the main event loop.
-	confID := atomic.AddUint64(&n.confClientCounter, 1)
-	confRequest, err := chainntnfs.NewConfRequest(txid, pkScript)
-	if err != nil {
-		return nil, err
-	}
-	ntfn := &chainntnfs.ConfNtfn{
-		ConfID:           confID,
-		ConfRequest:      confRequest,
-		NumConfirmations: numConfs,
-		Event: chainntnfs.NewConfirmationEvent(numConfs, func() {
-			n.txNotifier.CancelConf(confRequest, confID)
-		}),
-		HeightHint: heightHint,
-	}
-
-	chainntnfs.Log.Infof("New confirmation subscription: %v, num_confs=%v ",
-		confRequest, numConfs)
-
 	// Register the conf notification with the TxNotifier. A non-nil value
 	// for `dispatch` will be returned if we are required to perform a
 	// manual scan for the confirmation. Otherwise the notifier will begin
 	// watching at tip for the transaction to confirm.
-	dispatch, _, err := n.txNotifier.RegisterConf(ntfn)
+	ntfn, err := n.txNotifier.RegisterConf(
+		txid, pkScript, numConfs, heightHint,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	if dispatch == nil {
+	if ntfn.HistoricalDispatch == nil {
 		return ntfn.Event, nil
 	}
 
 	select {
-	case n.notificationRegistry <- dispatch:
+	case n.notificationRegistry <- ntfn.HistoricalDispatch:
 		return ntfn.Event, nil
 	case <-n.quit:
 		return nil, chainntnfs.ErrChainNotifierShuttingDown
