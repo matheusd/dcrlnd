@@ -41,6 +41,11 @@ func TestRequestRoute(t *testing.T) {
 	}
 
 	session := &paymentSession{
+		getBandwidthHints: func() (map[uint64]lnwire.MilliAtom,
+			error) {
+
+			return nil, nil
+		},
 		sessionSource: sessionSource,
 		pathFinder:    findPath,
 	}
