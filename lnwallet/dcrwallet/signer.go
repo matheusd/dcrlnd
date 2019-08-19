@@ -22,12 +22,7 @@ import (
 // of ErrNotMine should be returned instead.
 //
 // This is a part of the WalletController interface.
-func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*wire.TxOut, error) {
-	var (
-		err    error
-		output *wire.TxOut
-	)
-
+func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, error) {
 	// We manually look up the output within the tx store.
 	txid := &prevOut.Hash
 	txDetail, err := base.UnstableAPI(b.wallet).TxDetails(txid)
@@ -44,12 +39,37 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*wire.TxOut, error) 
 	// we actually have control of this output. We do this because the check
 	// above only guarantees that the transaction is somehow relevant to us,
 	// like in the event of us being the sender of the transaction.
-	output = txDetail.TxRecord.MsgTx.TxOut[prevOut.Index]
+	output := txDetail.TxRecord.MsgTx.TxOut[prevOut.Index]
 	if _, err := b.fetchOutputAddr(output.Version, output.PkScript); err != nil {
 		return nil, err
 	}
 
-	return output, nil
+	// Then, we'll populate all of the information required by the struct.
+	addressType := lnwallet.UnknownAddressType
+	scriptClass := txscript.GetScriptClass(output.Version, output.PkScript)
+	switch scriptClass {
+	case txscript.PubKeyHashTy:
+		addressType = lnwallet.PubKeyHash
+	}
+
+	// Determine the number of confirmations the output currently has.
+	_, currentHeight := b.wallet.MainChainTip()
+	confs := int64(0)
+	if txDetail.Block.Height != -1 {
+		confs = int64(currentHeight - txDetail.Block.Height)
+
+	}
+
+	return &lnwallet.Utxo{
+		AddressType: addressType,
+		Value: dcrutil.Amount(
+			txDetail.TxRecord.MsgTx.TxOut[prevOut.Index].Value,
+		),
+		PkScript:      output.PkScript,
+		Confirmations: confs,
+		OutPoint:      *prevOut,
+	}, nil
+
 }
 
 // fetchOutputAddr attempts to fetch the managed address corresponding to the

@@ -496,22 +496,24 @@ func (w *WalletKit) BumpFee(ctx context.Context,
 	//
 	// We'll gather all of the information required by the UtxoSweeper in
 	// order to sweep the output.
-	txOut, err := w.cfg.Wallet.FetchInputInfo(op)
+	utxo, err := w.cfg.Wallet.FetchInputInfo(op)
 	if err != nil {
 		return nil, err
 	}
 
 	var witnessType input.WitnessType
-	cls := txscript.GetScriptClass(txOut.Version, txOut.PkScript)
-	switch cls {
-	case txscript.PubKeyHashTy:
+	switch utxo.AddressType {
+	case lnwallet.PubKeyHash:
 		witnessType = input.PublicKeyHash
 	default:
 		return nil, fmt.Errorf("unknown input witness %v", op)
 	}
 
 	signDesc := &input.SignDescriptor{
-		Output:   txOut,
+		Output: &wire.TxOut{
+			PkScript: utxo.PkScript,
+			Value:    int64(utxo.Value),
+		},
 		HashType: txscript.SigHashAll,
 	}
 
