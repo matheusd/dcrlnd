@@ -102,11 +102,6 @@ type UtxoSource interface {
 	// ListUnspentWitness returns all UTXOs from the source that have
 	// between minConfs and maxConfs number of confirmations.
 	ListUnspentWitness(minConfs, maxConfs int32) ([]*lnwallet.Utxo, error)
-
-	// FetchInputInfo returns the matching output for an outpoint. If the
-	// outpoint doesn't belong to this UTXO source, then an error should be
-	// returned.
-	FetchInputInfo(*wire.OutPoint) (*wire.TxOut, error)
 }
 
 // CoinSelectionLocker is an interface that allows the caller to perform an
@@ -218,28 +213,21 @@ func CraftSweepAllTx(feeRate lnwallet.AtomPerKByte, blockHeight uint32,
 	// sweeper to generate and sign a transaction for us.
 	var inputsToSweep []input.Input
 	for _, output := range allOutputs {
-		// We'll consult the utxoSource for information concerning this
-		// outpoint, we'll need to properly populate a signDescriptor
-		// for this output.
-		outputInfo, err := utxoSource.FetchInputInfo(&output.OutPoint)
-		if err != nil {
-			unlockOutputs()
-
-			return nil, err
-		}
-
 		// As we'll be signing for outputs under control of the wallet,
 		// we only need to populate the output value and output script.
 		// The rest of the items will be populated internally within
 		// the sweeper via the witness generation function.
 		signDesc := &input.SignDescriptor{
-			Output:   outputInfo,
+			Output: &wire.TxOut{
+				PkScript: output.PkScript,
+				Value:    int64(output.Value),
+			},
 			HashType: txscript.SigHashAll,
 		}
 
-		pkScript := outputInfo.PkScript
+		pkScript := output.PkScript
 		scriptClass := txscript.GetScriptClass(
-			outputInfo.Version, pkScript,
+			txscript.DefaultScriptVersion, pkScript,
 		)
 
 		// Based on the output type, we'll map it to the proper witness
