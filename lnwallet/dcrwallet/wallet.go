@@ -52,11 +52,6 @@ type DcrWallet struct {
 
 	netParams *chaincfg.Params
 
-	// utxoCache is a cache used to speed up repeated calls to
-	// FetchInputInfo.
-	utxoCache map[wire.OutPoint]*wire.TxOut
-	cacheMtx  sync.RWMutex
-
 	syncer WalletSyncer
 
 	*walletKeyRing
@@ -116,7 +111,6 @@ func New(cfg Config) (*DcrWallet, error) {
 		syncer:     syncer,
 		syncedChan: make(chan struct{}),
 		netParams:  cfg.NetParams,
-		utxoCache:  make(map[wire.OutPoint]*wire.TxOut),
 	}, nil
 }
 
