@@ -250,12 +250,15 @@ func (*mockWalletController) BackEnd() string {
 // FetchInputInfo will be called to get info about the inputs to the funding
 // transaction.
 func (*mockWalletController) FetchInputInfo(
-	prevOut *wire.OutPoint) (*wire.TxOut, error) {
-	txOut := &wire.TxOut{
-		Value:    int64(10 * dcrutil.AtomsPerCoin),
-		PkScript: []byte("dummy"),
+	prevOut *wire.OutPoint) (*lnwallet.Utxo, error) {
+	utxo := &lnwallet.Utxo{
+		AddressType:   lnwallet.PubKeyHash,
+		Value:         10 * dcrutil.AtomsPerCoin,
+		PkScript:      []byte("dummy"),
+		Confirmations: 1,
+		OutPoint:      *prevOut,
 	}
-	return txOut, nil
+	return utxo, nil
 }
 func (*mockWalletController) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 	return 0, nil
