@@ -67,8 +67,6 @@ type Utxo struct {
 	Value         dcrutil.Amount
 	Confirmations int64
 	PkScript      []byte
-	RedeemScript  []byte
-	WitnessScript []byte
 	wire.OutPoint
 
 	// TODO(decred) this needs to include ScriptVersion. Then this version needs
