@@ -3342,7 +3342,8 @@ var updateChannelPolicyCommand = cli.Command{
 	Category: "Channels",
 	Usage: "Update the channel policy for all channels, or a single " +
 		"channel.",
-	ArgsUsage: "base_fee_m_atoms fee_rate time_lock_delta [channel_point]",
+	ArgsUsage: "base_fee_m_atoms fee_rate time_lock_delta " +
+		"[--max_htlc_m_atoms=N] [channel_point]",
 	Description: `
 	Updates the channel policy for all channels, or just a particular channel
 	identified by its channel point. The update will be committed, and
@@ -3366,6 +3367,12 @@ var updateChannelPolicyCommand = cli.Command{
 			Name: "time_lock_delta",
 			Usage: "the CLTV delta that will be applied to all " +
 				"forwarded HTLCs",
+		},
+		cli.Uint64Flag{
+			Name: "max_htlc_m_atoms",
+			Usage: "if set, the max HTLC size that will be applied " +
+				"to all forwarded HTLCs. If unset, the max HTLC " +
+				"is left unchanged.",
 		},
 		cli.StringFlag{
 			Name: "chan_point",
@@ -3480,6 +3487,7 @@ func updateChannelPolicy(ctx *cli.Context) error {
 		BaseFeeMAtoms: baseFee,
 		FeeRate:       feeRate,
 		TimeLockDelta: uint32(timeLockDelta),
+		MaxHtlcMAtoms: ctx.Uint64("max_htlc_m_atoms"),
 	}
 
 	if chanPoint != nil {
