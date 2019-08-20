@@ -556,6 +556,7 @@ func generatePaymentWithPreimage(invoiceAmt, htlcAmt lnwire.MilliAtom,
 			Value:           invoiceAmt,
 			PaymentPreimage: preimage,
 		},
+		FinalCltvDelta: testInvoiceCltvExpiry,
 	}
 
 	htlc := &lnwire.UpdateAddHTLC{

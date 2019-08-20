@@ -52,7 +52,6 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtclient"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
-	"github.com/decred/dcrlnd/zpay32"
 	sphinx "github.com/decred/lightning-onion/v2"
 	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
@@ -350,14 +349,6 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		readBufferPool, cfg.Workers.Read, pool.DefaultWorkerTimeout,
 	)
 
-	decodeFinalCltvExpiry := func(payReq string) (uint32, error) {
-		invoice, err := zpay32.Decode(payReq, activeNetParams.Params)
-		if err != nil {
-			return 0, err
-		}
-		return uint32(invoice.MinFinalCLTVExpiry()), nil
-	}
-
 	s := &server{
 		chanDB:         chanDB,
 		cc:             cc,
@@ -367,8 +358,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		chansToRestore: chansToRestore,
 
 		invoices: invoices.NewRegistry(
-			chanDB, decodeFinalCltvExpiry,
-			defaultFinalCltvRejectDelta,
+			chanDB, defaultFinalCltvRejectDelta,
 		),
 
 		channelNotifier: channelnotifier.New(chanDB),
