@@ -1344,6 +1344,15 @@ type expectedChanUpdate struct {
 	chanPoint       *lnrpc.ChannelPoint
 }
 
+// calculateMaxHtlc re-implements the RequiredRemoteChannelReserve of the
+// funding manager's config, which corresponds to the maximum MaxHTLC value we
+// allow users to set when updating a channel policy.
+func calculateMaxHtlc(chanCap dcrutil.Amount) uint64 {
+	reserve := lnwire.NewMAtomsFromAtoms(chanCap / 100)
+	max := lnwire.NewMAtomsFromAtoms(chanCap) - reserve
+	return uint64(max)
+}
+
 // waitForChannelUpdate waits for a node to receive the expected channel
 // updates.
 func waitForChannelUpdate(t *harnessTest, subscription graphSubscription,
@@ -1514,6 +1523,10 @@ func checkChannelPolicy(policy, expectedPolicy *lnrpc.RoutingPolicy) error {
 		return fmt.Errorf("expected min htlc %v, got %v",
 			expectedPolicy.MinHtlc, policy.MinHtlc)
 	}
+	if policy.MaxHtlcMAtoms != expectedPolicy.MaxHtlcMAtoms {
+		return fmt.Errorf("expected max htlc %v, got %v",
+			expectedPolicy.MaxHtlcMAtoms, policy.MaxHtlcMAtoms)
+	}
 	if policy.Disabled != expectedPolicy.Disabled {
 		return errors.New("edge should be disabled but isn't")
 	}
@@ -1532,6 +1545,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		defaultTimeLockDelta = dcrlnd.DefaultDecredTimeLockDelta
 		defaultMinHtlc       = 1000
 	)
+	defaultMaxHtlc := calculateMaxHtlc(dcrlnd.MaxDecredFundingAmount)
 
 	// Launch notification clients for all nodes, such that we can
 	// get notified when they discover new channels and updates in the
@@ -1566,6 +1580,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		FeeRateMilliMAtoms: defaultFeeRate,
 		TimeLockDelta:      defaultTimeLockDelta,
 		MinHtlc:            defaultMinHtlc,
+		MaxHtlcMAtoms:      defaultMaxHtlc,
 	}
 
 	for _, graphSub := range graphSubs {
@@ -1644,6 +1659,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		FeeRateMilliMAtoms: defaultFeeRate,
 		TimeLockDelta:      defaultTimeLockDelta,
 		MinHtlc:            customMinHtlc,
+		MaxHtlcMAtoms:      defaultMaxHtlc,
 	}
 
 	expectedPolicyCarol := &lnrpc.RoutingPolicy{
@@ -1651,6 +1667,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		FeeRateMilliMAtoms: defaultFeeRate,
 		TimeLockDelta:      defaultTimeLockDelta,
 		MinHtlc:            defaultMinHtlc,
+		MaxHtlcMAtoms:      defaultMaxHtlc,
 	}
 
 	for _, graphSub := range graphSubs {
@@ -1811,24 +1828,27 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 			sendResp.PaymentError)
 	}
 
-	// With our little cluster set up, we'll update the fees for the
-	// channel Bob side of the Alice->Bob channel, and make sure all nodes
-	// learn about it.
+	// With our little cluster set up, we'll update the fees and the max htlc
+	// size for the Bob side of the Alice->Bob channel, and make sure
+	// all nodes learn about it.
 	baseFee := int64(1500)
 	feeRate := int64(12)
 	timeLockDelta := uint32(66)
+	maxHtlc := uint64(500000)
 
 	expectedPolicy = &lnrpc.RoutingPolicy{
 		FeeBaseMAtoms:      baseFee,
 		FeeRateMilliMAtoms: testFeeBase * feeRate,
 		TimeLockDelta:      timeLockDelta,
 		MinHtlc:            defaultMinHtlc,
+		MaxHtlcMAtoms:      maxHtlc,
 	}
 
 	req := &lnrpc.PolicyUpdateRequest{
 		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
+		MaxHtlcMAtoms: maxHtlc,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
 			ChanPoint: chanPoint,
 		},
@@ -1911,22 +1931,25 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 	baseFee = int64(800)
 	feeRate = int64(123)
 	timeLockDelta = uint32(22)
+	maxHtlc = maxHtlc * 2
 
 	expectedPolicy.FeeBaseMAtoms = baseFee
 	expectedPolicy.FeeRateMilliMAtoms = testFeeBase * feeRate
 	expectedPolicy.TimeLockDelta = timeLockDelta
+	expectedPolicy.MaxHtlcMAtoms = maxHtlc
 
 	req = &lnrpc.PolicyUpdateRequest{
 		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
+		MaxHtlcMAtoms: maxHtlc,
 	}
 	req.Scope = &lnrpc.PolicyUpdateRequest_Global{}
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	_, err = net.Alice.UpdateChannelPolicy(ctxt, req)
 	if err != nil {
-		t.Fatalf("unable to get alice's balance: %v", err)
+		t.Fatalf("unable to update alice's channel policy: %v", err)
 	}
 
 	// Wait for all nodes to have seen the policy updates for both of
@@ -4361,7 +4384,8 @@ func assertAmountPaid(t *harnessTest, channelName string,
 // listenerNode has received the policy update.
 func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 	chanPoint *lnrpc.ChannelPoint, baseFee int64, feeRate int64,
-	timeLockDelta uint32, listenerNode *lntest.HarnessNode) {
+	timeLockDelta uint32, maxHtlc uint64, listenerNode *lntest.HarnessNode) {
+
 	ctxb := context.Background()
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
@@ -4369,6 +4393,7 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 		FeeRateMilliMAtoms: feeRate,
 		TimeLockDelta:      timeLockDelta,
 		MinHtlc:            1000, // default value
+		MaxHtlcMAtoms:      maxHtlc,
 	}
 
 	updateFeeReq := &lnrpc.PolicyUpdateRequest{
@@ -4378,6 +4403,7 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
 			ChanPoint: chanPoint,
 		},
+		MaxHtlcMAtoms: maxHtlc,
 	}
 
 	// Create the subscription before sending the update so we're certain
@@ -4556,14 +4582,15 @@ func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	// Set the fee policies of the Alice -> Bob and the Dave -> Alice
 	// channel edges to relatively large non default values. This makes it
 	// possible to pick up more subtle fee calculation errors.
+	maxHtlc := uint64(calculateMaxHtlc(chanAmt))
 	updateChannelPolicy(
 		t, net.Alice, chanPointAlice, 1000, 100000,
-		dcrlnd.DefaultDecredTimeLockDelta, carol,
+		dcrlnd.DefaultDecredTimeLockDelta, maxHtlc, carol,
 	)
 
 	updateChannelPolicy(
 		t, dave, chanPointDave, 5000, 150000,
-		dcrlnd.DefaultDecredTimeLockDelta, carol,
+		dcrlnd.DefaultDecredTimeLockDelta, maxHtlc, carol,
 	)
 
 	// Using Carol as the source, pay to the 5 invoices from Bob created
@@ -13392,18 +13419,21 @@ func testRouteFeeCutoff(net *lntest.NetworkHarness, t *harnessTest) {
 	baseFee := int64(10000)
 	feeRate := int64(5)
 	timeLockDelta := uint32(dcrlnd.DefaultDecredTimeLockDelta)
+	maxHtlc := calculateMaxHtlc(chanAmt)
 
 	expectedPolicy := &lnrpc.RoutingPolicy{
 		FeeBaseMAtoms:      baseFee,
 		FeeRateMilliMAtoms: testFeeBase * feeRate,
 		TimeLockDelta:      timeLockDelta,
 		MinHtlc:            1000, // default value
+		MaxHtlcMAtoms:      maxHtlc,
 	}
 
 	updateFeeReq := &lnrpc.PolicyUpdateRequest{
 		BaseFeeMAtoms: baseFee,
 		FeeRate:       float64(feeRate),
 		TimeLockDelta: timeLockDelta,
+		MaxHtlcMAtoms: maxHtlc,
 		Scope: &lnrpc.PolicyUpdateRequest_ChanPoint{
 			ChanPoint: chanPointCarolDave,
 		},
@@ -13654,6 +13684,7 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		FeeRateMilliMAtoms: int64(dcrlnd.DefaultDecredFeeRate),
 		TimeLockDelta:      dcrlnd.DefaultDecredTimeLockDelta,
 		MinHtlc:            1000, // default value
+		MaxHtlcMAtoms:      calculateMaxHtlc(chanAmt),
 		Disabled:           true,
 	}
 
