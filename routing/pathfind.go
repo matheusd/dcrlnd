@@ -391,7 +391,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 	// processEdge is a helper closure that will be used to make sure edges
 	// satisfy our specific requirements.
 	processEdge := func(fromVertex route.Vertex, bandwidth lnwire.MilliAtom,
-		edge *channeldb.ChannelEdgePolicy, toNode route.Vertex) {
+		edge *channeldb.ChannelEdgePolicy, toNodeDist *nodeWithDist) {
 
 		edgesExpanded++
 
@@ -418,17 +418,16 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 
 		// Calculate amount that the candidate node would have to sent
 		// out.
-		toNodeDist := distance[toNode]
 		amountToSend := toNodeDist.amountToReceive
 
 		// Request the success probability for this edge.
 		edgeProbability := r.ProbabilitySource(
-			fromVertex, toNode, amountToSend,
+			fromVertex, toNodeDist.node, amountToSend,
 		)
 
 		log.Trace(newLogClosure(func() string {
 			return fmt.Sprintf("path finding probability: fromnode=%v,"+
-				" tonode=%v, probability=%v", fromVertex, toNode,
+				" tonode=%v, probability=%v", fromVertex, toNodeDist.node,
 				edgeProbability)
 		}))
 
@@ -624,7 +623,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 
 			// Check if this candidate node is better than what we
 			// already have.
-			processEdge(chanSource, edgeBandwidth, inEdge, pivot)
+			processEdge(chanSource, edgeBandwidth, inEdge, partialPath)
 			return nil
 		}
 
@@ -644,7 +643,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 		bandWidth := partialPath.amountToReceive
 		for _, reverseEdge := range additionalEdgesWithSrc[pivot] {
 			processEdge(reverseEdge.sourceNode, bandWidth,
-				reverseEdge.edge, pivot)
+				reverseEdge.edge, partialPath)
 		}
 	}
 
