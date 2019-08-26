@@ -6,6 +6,7 @@ import (
 
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -102,6 +103,8 @@ func newOutgoingResolverTestContext(t *testing.T) *outgoingResolverTestContext {
 
 	preimageDB := newMockWitnessBeacon()
 
+	onionProcessor := &mockOnionProcessor{}
+
 	chainCfg := ChannelArbitratorConfig{
 		ChainArbitratorConfig: ChainArbitratorConfig{
 			Notifier:   notifier,
@@ -116,6 +119,7 @@ func newOutgoingResolverTestContext(t *testing.T) *outgoingResolverTestContext {
 				resolutionChan <- msgs[0]
 				return nil
 			},
+			OnionProcessor: onionProcessor,
 		},
 	}
 
@@ -138,6 +142,10 @@ func newOutgoingResolverTestContext(t *testing.T) *outgoingResolverTestContext {
 		htlcTimeoutResolver: htlcTimeoutResolver{
 			contractResolverKit: *newContractResolverKit(cfg),
 			htlcResolution:      outgoingRes,
+			htlc: channeldb.HTLC{
+				RHash:     testResHash,
+				OnionBlob: testOnionBlob,
+			},
 		},
 	}
 

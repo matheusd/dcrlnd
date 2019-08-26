@@ -1,7 +1,10 @@
 package contractcourt
 
 import (
+	"io"
+
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
@@ -25,4 +28,11 @@ type Registry interface {
 
 	// HodlUnsubscribeAll unsubscribes from all hodl events.
 	HodlUnsubscribeAll(subscriber chan<- interface{})
+}
+
+// OnionProcessor is an interface used to decode onion blobs.
+type OnionProcessor interface {
+	// ReconstructHopIterator attempts to decode a valid sphinx packet from
+	// the passed io.Reader instance.
+	ReconstructHopIterator(r io.Reader, rHash []byte) (hop.Iterator, error)
 }

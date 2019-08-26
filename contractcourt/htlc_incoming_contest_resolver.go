@@ -1,6 +1,7 @@
 package contractcourt
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lntypes"
@@ -64,6 +66,22 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 	// If we're already full resolved, then we don't have anything further
 	// to do.
 	if h.resolved {
+		return nil, nil
+	}
+
+	// First try to parse the payload. If that fails, we can stop resolution
+	// now.
+	payload, err := h.decodePayload()
+	if err != nil {
+		log.Debugf("ChannelArbitrator(%v): cannot decode payload of "+
+			"htlc %v", h.ChanPoint, h.HtlcPoint())
+
+		// If we've locked in an htlc with an invalid payload on our
+		// commitment tx, we don't need to resolve it. The other party
+		// will time it out and get their funds back. This situation can
+		// present itself when we crash before processRemoteAdds in the
+		// link has ran.
+		h.resolved = true
 		return nil, nil
 	}
 
@@ -194,7 +212,7 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 
 	event, err := h.Registry.NotifyExitHopHtlc(
 		h.htlc.RHash, h.htlc.Amt, h.htlcExpiry, currentHeight,
-		circuitKey, hodlChan, nil,
+		circuitKey, hodlChan, payload,
 	)
 	switch err {
 	case channeldb.ErrInvoiceNotFound:
@@ -351,6 +369,20 @@ func newIncomingContestResolverFromReader(r io.Reader, resCfg ResolverConfig) (
 // NOTE: Part of the htlcContractResolver interface.
 func (h *htlcIncomingContestResolver) Supplement(htlc channeldb.HTLC) {
 	h.htlc = htlc
+}
+
+// decodePayload (re)decodes the hop payload of a received htlc.
+func (h *htlcIncomingContestResolver) decodePayload() (*hop.Payload, error) {
+
+	onionReader := bytes.NewReader(h.htlc.OnionBlob)
+	iterator, err := h.OnionProcessor.ReconstructHopIterator(
+		onionReader, h.htlc.RHash[:],
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return iterator.HopPayload()
 }
 
 // A compile time assertion to ensure htlcIncomingContestResolver meets the
