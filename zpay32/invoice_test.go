@@ -21,12 +21,14 @@ import (
 var (
 	testMilliAt24DCR    = lnwire.MilliAtom(2400000000000)
 	testMilliAt2500uDCR = lnwire.MilliAtom(250000000)
+	testMilliAt25mDCR   = lnwire.MilliAtom(2500000000)
 	testMilliAt20mDCR   = lnwire.MilliAtom(2000000000)
 
 	testPaymentHashSlice, _ = hex.DecodeString("0001020304050607080900010203040506070809000102030405060708090102")
 
 	testEmptyString    = ""
 	testCupOfCoffee    = "1 cup coffee"
+	testCoffeeBeans    = "coffee beans"
 	testCupOfNonsense  = "ナンセンス 1杯"
 	testPleaseConsider = "Please consider supporting this project"
 
@@ -450,6 +452,59 @@ func TestDecodeEncode(t *testing.T) {
 			},
 		},
 		{
+			// On mainnet, please send $30 coffee beans supporting
+			// features 1 and 9.
+			encodedInvoice: "lndcr25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9qzszw38ed0hl0epmvn738ceh5qnsxwk3w90d22f46k8t02hsz5p98g7nx07wmt9lta67mfgwcxr3tupzyj9zaxjjlcjmyrc40qls7lvdkegqm5a8m5",
+			valid:          true,
+			decodedInvoice: func() *Invoice {
+				return &Invoice{
+					Net:         &chaincfg.MainNetParams,
+					MilliAt:     &testMilliAt25mDCR,
+					Timestamp:   time.Unix(1496314658, 0),
+					PaymentHash: &testPaymentHash,
+					Description: &testCoffeeBeans,
+					Destination: testPubKey,
+					Features: lnwire.NewFeatureVector(
+						lnwire.NewRawFeatureVector(1, 9),
+						InvoiceFeatures,
+					),
+				}
+			},
+			beforeEncoding: func(i *Invoice) {
+				// Since this destination pubkey was recovered
+				// from the signature, we must set it nil before
+				// encoding to get back the same invoice string.
+				i.Destination = nil
+			},
+		},
+		{
+			// On mainnet, please send $30 coffee beans supporting
+			// features 1, 9, and 100.
+			encodedInvoice: "lndcr25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdees9q4pqqqqqqqqqqqqqqqqqqszmzyy64av3x52dfu7urlge0yneqyjv3yl0rpsgh6mx4u05ylsvnpp6g0h6g7jdv8z3ltql0etlnt9umz8k6z6cuvy44ddnzypvj52tvcpjex0g8",
+			valid:          false,
+			skipEncoding:   true,
+			decodedInvoice: func() *Invoice {
+				return &Invoice{
+					Net:         &chaincfg.MainNetParams,
+					MilliAt:     &testMilliAt25mDCR,
+					Timestamp:   time.Unix(1496314658, 0),
+					PaymentHash: &testPaymentHash,
+					Description: &testCoffeeBeans,
+					Destination: testPubKey,
+					Features: lnwire.NewFeatureVector(
+						lnwire.NewRawFeatureVector(1, 9, 100),
+						InvoiceFeatures,
+					),
+				}
+			},
+			beforeEncoding: func(i *Invoice) {
+				// Since this destination pubkey was recovered
+				// from the signature, we must set it nil before
+				// encoding to get back the same invoice string.
+				i.Destination = nil
+			},
+		},
+		{
 			// Send 2500uDCR for a cup of coffee with a custom CLTV
 			// expiry value.
 			encodedInvoice: "lndcr2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jscqzysnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv66fxyjhqjk2p5tfgzh8ddfkc7s25nc0qefzt86v7ct6rccv6577f753juhjra927ma6cg05wpd6a2tqjgc56ttp5xygrk237apy5e5vgqq660qqy",
@@ -502,6 +557,7 @@ func TestDecodeEncode(t *testing.T) {
 
 		if test.valid {
 			if err := compareInvoices(test.decodedInvoice(), invoice); err != nil {
+
 				t.Errorf("Invoice decoding result %d not as expected: %v", i, err)
 				return
 			}
@@ -694,6 +750,11 @@ func compareInvoices(expected, actual *Invoice) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if !reflect.DeepEqual(expected.Features, actual.Features) {
+		return fmt.Errorf("expected features %v, got %v",
+			expected.Features.RawFeatureVector, actual.Features.RawFeatureVector)
 	}
 
 	return nil
