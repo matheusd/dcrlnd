@@ -3187,3 +3187,25 @@ func TestLightningNodeSigVerification(t *testing.T) {
 		t.Fatalf("unable to verify sig")
 	}
 }
+
+// TestComputeFee tests fee calculation based on both in- and outgoing amt.
+func TestComputeFee(t *testing.T) {
+	var (
+		policy = ChannelEdgePolicy{
+			FeeBaseMAtoms:             10000,
+			FeeProportionalMillionths: 30000,
+		}
+		outgoingAmt = lnwire.MilliAtom(1000000)
+		expectedFee = lnwire.MilliAtom(40000)
+	)
+
+	fee := policy.ComputeFee(outgoingAmt)
+	if fee != expectedFee {
+		t.Fatalf("expected fee %v, got %v", expectedFee, fee)
+	}
+
+	fwdFee := policy.ComputeFeeFromIncoming(outgoingAmt + fee)
+	if fwdFee != expectedFee {
+		t.Fatalf("expected fee %v, but got %v", fee, fwdFee)
+	}
+}

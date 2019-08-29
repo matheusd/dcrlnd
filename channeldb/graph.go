@@ -2839,6 +2839,22 @@ func (c *ChannelEdgePolicy) ComputeFee(
 	return c.FeeBaseMAtoms + (amt*c.FeeProportionalMillionths)/feeRateParts
 }
 
+// divideCeil divides dividend by factor and rounds the result up.
+func divideCeil(dividend, factor lnwire.MilliAtom) lnwire.MilliAtom {
+	return (dividend + factor - 1) / factor
+}
+
+// ComputeFeeFromIncoming computes the fee to forward an HTLC given the incoming
+// amount.
+func (c *ChannelEdgePolicy) ComputeFeeFromIncoming(
+	incomingAmt lnwire.MilliAtom) lnwire.MilliAtom {
+
+	return incomingAmt - divideCeil(
+		feeRateParts*(incomingAmt-c.FeeBaseMAtoms),
+		feeRateParts+c.FeeProportionalMillionths,
+	)
+}
+
 // FetchChannelEdgesByOutpoint attempts to lookup the two directed edges for
 // the channel identified by the funding outpoint. If the channel can't be
 // found, then ErrEdgeNotFound is returned. A struct which houses the general
