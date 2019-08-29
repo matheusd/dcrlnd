@@ -9,14 +9,14 @@ require (
 	github.com/decred/dcrd/bech32 v1.0.0
 	github.com/decred/dcrd/blockchain v1.1.1
 	github.com/decred/dcrd/blockchain/stake v1.1.0
-	github.com/decred/dcrd/chaincfg v1.4.0
+	github.com/decred/dcrd/chaincfg v1.5.1
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
 	github.com/decred/dcrd/connmgr v1.0.2
-	github.com/decred/dcrd/dcrec v0.0.0-20190214012338-9265b4051009
-	github.com/decred/dcrd/dcrec/secp256k1 v1.0.1
+	github.com/decred/dcrd/dcrec v1.0.0
+	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
 	github.com/decred/dcrd/dcrjson v1.1.0 // indirect
 	github.com/decred/dcrd/dcrjson/v2 v2.0.0
-	github.com/decred/dcrd/dcrutil v1.2.0
+	github.com/decred/dcrd/dcrutil v1.3.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
 	github.com/decred/dcrd/mempool/v2 v2.0.0
 	github.com/decred/dcrd/rpcclient/v2 v2.0.0
@@ -53,8 +53,8 @@ require (
 	gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40 // indirect
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20190320223903-b7391e95e576
-	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3
+	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
+	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
 	google.golang.org/grpc v1.18.0
@@ -78,5 +78,5 @@ replace (
 	github.com/decred/dcrwallet => github.com/decred/dcrwallet v0.0.0-20190322135901-7e0e5a4227d7
 	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.0-20190322135901-7e0e5a4227d7
 
-	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190611102120-ad85d062fce8
+	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190723174454-28be9117331b
 )
