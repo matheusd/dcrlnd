@@ -7,33 +7,12 @@ import (
 	"io"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
 	sphinx "github.com/decred/lightning-onion/v2"
 )
-
-// NetworkHop indicates the blockchain network that is intended to be the next
-// hop for a forwarded HTLC. The existence of this field within the
-// ForwardingInfo struct enables the ability for HTLC to cross chain-boundaries
-// at will.
-type NetworkHop uint8
-
-const (
-	// DecredHop denotes that an HTLC is to be forwarded along the
-	// Decred link with the specified short channel ID.
-	DecredHop = iota
-)
-
-// String returns the string representation of the target NetworkHop.
-func (c NetworkHop) String() string {
-	switch c {
-	case DecredHop:
-		return "Decred"
-	default:
-		return "Kekcoin"
-	}
-}
 
 var (
 	// exitHop is a special "hop" which denotes that an incoming HTLC is
@@ -53,7 +32,7 @@ var (
 type ForwardingInfo struct {
 	// Network is the target blockchain network that the HTLC will travel
 	// over next.
-	Network NetworkHop
+	Network hop.Network
 
 	// NextHop is the channel ID of the next hop. The received HTLC should
 	// be forwarded to this particular channel in order to continue the
@@ -193,7 +172,7 @@ func (r *sphinxHopIterator) ForwardingInstructions() (ForwardingInfo, error) {
 	}
 
 	return ForwardingInfo{
-		Network:         DecredHop,
+		Network:         hop.DecredNetwork,
 		NextHop:         nextHop,
 		AmountToForward: lnwire.MilliAtom(amt),
 		OutgoingCTLV:    cltv,

@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnpeer"
@@ -485,7 +486,7 @@ func (f *ForwardingInfo) decode(r io.Reader) error {
 	if _, err := r.Read(net[:]); err != nil {
 		return err
 	}
-	f.Network = NetworkHop(net[0])
+	f.Network = hop.Network(net[0])
 
 	if err := binary.Read(r, binary.BigEndian, &f.NextHop); err != nil {
 		return err

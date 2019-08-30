@@ -27,6 +27,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lntypes"
@@ -4311,7 +4312,7 @@ func generateHtlcAndInvoice(t *testing.T,
 	htlcExpiry := testStartingHeight + testInvoiceCltvExpiry
 	hops := []ForwardingInfo{
 		{
-			Network:         DecredHop,
+			Network:         hop.DecredNetwork,
 			NextHop:         exitHop,
 			AmountToForward: htlcAmt,
 			OutgoingCTLV:    uint32(htlcExpiry),

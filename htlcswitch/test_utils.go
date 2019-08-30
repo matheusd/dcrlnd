@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnpeer"
@@ -679,7 +680,7 @@ func generateHops(payAmt lnwire.MilliAtom, startingHeight uint32,
 		}
 
 		hops[i] = ForwardingInfo{
-			Network:         DecredHop,
+			Network:         hop.DecredNetwork,
 			NextHop:         nextHop,
 			AmountToForward: amount,
 			OutgoingCTLV:    timeLock,

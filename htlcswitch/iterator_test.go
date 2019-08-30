@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
@@ -30,6 +31,7 @@ func TestSphinxHopIteratorForwardingInstructions(t *testing.T) {
 	// extract each type, no matter the payload type.
 	nextAddrInt := binary.BigEndian.Uint64(hopData.NextAddress[:])
 	expectedFwdInfo := ForwardingInfo{
+		Network:         hop.DecredNetwork,
 		NextHop:         lnwire.NewShortChanIDFromInt(nextAddrInt),
 		AmountToForward: lnwire.MilliAtom(hopData.ForwardAmount),
 		OutgoingCTLV:    hopData.OutgoingCltv,
