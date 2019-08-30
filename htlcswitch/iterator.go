@@ -8,6 +8,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
 	sphinx "github.com/decred/lightning-onion/v2"
 )
@@ -169,15 +170,9 @@ func (r *sphinxHopIterator) ForwardingInstructions() (ForwardingInfo, error) {
 		var cid uint64
 
 		tlvStream, err := tlv.NewStream(
-			tlv.MakeDynamicRecord(
-				tlv.AmtOnionType, &amt, nil,
-				tlv.ETUint64, tlv.DTUint64,
-			),
-			tlv.MakeDynamicRecord(
-				tlv.LockTimeOnionType, &cltv, nil,
-				tlv.ETUint32, tlv.DTUint32,
-			),
-			tlv.MakePrimitiveRecord(tlv.NextHopOnionType, &cid),
+			record.NewAmtToFwdRecord(&amt),
+			record.NewLockTimeRecord(&cltv),
+			record.NewNextHopIDRecord(&cid),
 		)
 		if err != nil {
 			return ForwardingInfo{}, err
