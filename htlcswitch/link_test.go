@@ -4310,7 +4310,7 @@ func generateHtlcAndInvoice(t *testing.T,
 
 	htlcAmt := lnwire.NewMAtomsFromAtoms(10000)
 	htlcExpiry := testStartingHeight + testInvoiceCltvExpiry
-	hops := []ForwardingInfo{
+	hops := []hop.ForwardingInfo{
 		{
 			Network:         hop.DecredNetwork,
 			NextHop:         exitHop,

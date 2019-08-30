@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnpeer"
@@ -2850,7 +2851,7 @@ func (l *channelLink) processRemoteAdds(fwdPkg *channeldb.FwdPkg,
 // processExitHop handles an htlc for which this link is the exit hop. It
 // returns a boolean indicating whether the commitment tx needs an update.
 func (l *channelLink) processExitHop(pd *lnwallet.PaymentDescriptor,
-	obfuscator ErrorEncrypter, fwdInfo ForwardingInfo,
+	obfuscator ErrorEncrypter, fwdInfo hop.ForwardingInfo,
 	heightNow uint32, eob []byte) (bool, error) {
 
 	// If hodl.ExitSettle is requested, we will not validate the final hop's

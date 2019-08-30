@@ -30,7 +30,7 @@ func TestSphinxHopIteratorForwardingInstructions(t *testing.T) {
 	// Next, we'll make the hop forwarding information that we should
 	// extract each type, no matter the payload type.
 	nextAddrInt := binary.BigEndian.Uint64(hopData.NextAddress[:])
-	expectedFwdInfo := ForwardingInfo{
+	expectedFwdInfo := hop.ForwardingInfo{
 		Network:         hop.DecredNetwork,
 		NextHop:         lnwire.NewShortChanIDFromInt(nextAddrInt),
 		AmountToForward: lnwire.MilliAtom(hopData.ForwardAmount),
@@ -55,7 +55,7 @@ func TestSphinxHopIteratorForwardingInstructions(t *testing.T) {
 
 	var testCases = []struct {
 		sphinxPacket    *sphinx.ProcessedPacket
-		expectedFwdInfo ForwardingInfo
+		expectedFwdInfo hop.ForwardingInfo
 	}{
 		// A regular legacy payload that signals more hops.
 		{
