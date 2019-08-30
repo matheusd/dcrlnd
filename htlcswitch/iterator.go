@@ -2,15 +2,12 @@ package htlcswitch
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/record"
-	"github.com/decred/dcrlnd/tlv"
 	sphinx "github.com/decred/lightning-onion/v2"
 )
 
@@ -85,64 +82,32 @@ func (r *sphinxHopIterator) EncodeNextHop(w io.Writer) error {
 func (r *sphinxHopIterator) ForwardingInstructions() (
 	hop.ForwardingInfo, error) {
 
-	var (
-		nextHop lnwire.ShortChannelID
-		amt     uint64
-		cltv    uint32
-	)
-
 	switch r.processedPacket.Payload.Type {
 	// If this is the legacy payload, then we'll extract the information
 	// directly from the pre-populated ForwardingInstructions field.
 	case sphinx.PayloadLegacy:
 		fwdInst := r.processedPacket.ForwardingInstructions
+		p := hop.NewLegacyPayload(fwdInst)
 
-		switch r.processedPacket.Action {
-		case sphinx.ExitNode:
-			nextHop = hop.Exit
-		case sphinx.MoreHops:
-			s := binary.BigEndian.Uint64(fwdInst.NextAddress[:])
-			nextHop = lnwire.NewShortChanIDFromInt(s)
-		}
-
-		amt = fwdInst.ForwardAmount
-		cltv = fwdInst.OutgoingCltv
+		return p.ForwardingInfo(), nil
 
 	// Otherwise, if this is the TLV payload, then we'll make a new stream
 	// to decode only what we need to make routing decisions.
 	case sphinx.PayloadTLV:
-		var cid uint64
-
-		tlvStream, err := tlv.NewStream(
-			record.NewAmtToFwdRecord(&amt),
-			record.NewLockTimeRecord(&cltv),
-			record.NewNextHopIDRecord(&cid),
-		)
-		if err != nil {
-			return hop.ForwardingInfo{}, err
-		}
-
-		err = tlvStream.Decode(bytes.NewReader(
+		p, err := hop.NewPayloadFromReader(bytes.NewReader(
 			r.processedPacket.Payload.Payload,
 		))
 		if err != nil {
 			return hop.ForwardingInfo{}, err
 		}
 
-		nextHop = lnwire.NewShortChanIDFromInt(cid)
+		return p.ForwardingInfo(), nil
 
 	default:
 		return hop.ForwardingInfo{}, fmt.Errorf("unknown "+
 			"sphinx payload type: %v",
 			r.processedPacket.Payload.Type)
 	}
-
-	return hop.ForwardingInfo{
-		Network:         hop.DecredNetwork,
-		NextHop:         nextHop,
-		AmountToForward: lnwire.MilliAtom(amt),
-		OutgoingCTLV:    cltv,
-	}, nil
 }
 
 // ExtraOnionBlob returns the additional EOB data (if available).
