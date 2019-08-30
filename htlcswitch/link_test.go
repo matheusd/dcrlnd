@@ -1940,7 +1940,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	}
 	addPkt := htlcPacket{
 		htlc:           htlc,
-		incomingChanID: sourceHop,
+		incomingChanID: hop.Source,
 		incomingHTLCID: 0,
 		obfuscator:     NewMockObfuscator(),
 	}
@@ -2020,7 +2020,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	}
 	addPkt = htlcPacket{
 		htlc:           htlc,
-		incomingChanID: sourceHop,
+		incomingChanID: hop.Source,
 		incomingHTLCID: 1,
 		obfuscator:     NewMockObfuscator(),
 	}
@@ -2538,7 +2538,7 @@ func genAddsAndCircuits(numHtlcs int, htlc *lnwire.UpdateAddHTLC) (
 	for i := 0; i < numHtlcs; i++ {
 		addPkt := htlcPacket{
 			htlc:           htlc,
-			incomingChanID: sourceHop,
+			incomingChanID: hop.Source,
 			incomingHTLCID: uint64(i),
 			obfuscator:     NewMockObfuscator(),
 		}
@@ -4313,7 +4313,7 @@ func generateHtlcAndInvoice(t *testing.T,
 	hops := []hop.ForwardingInfo{
 		{
 			Network:         hop.DecredNetwork,
-			NextHop:         exitHop,
+			NextHop:         hop.Exit,
 			AmountToForward: htlcAmt,
 			OutgoingCTLV:    uint32(htlcExpiry),
 		},
