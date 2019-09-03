@@ -1564,12 +1564,12 @@ mnemonicCheck:
 		"RESTORE THE WALLET!!!")
 
 	// We'll also check to see if they provided any static channel backups,
-	// if so, then we'll also tack these onto the final innit wallet
-	// request.
+	// if so, then we'll also tack these onto the final init wallet request.
+	// We can ignore the errMissingChanBackup error as it's an optional
+	// field.
 	backups, err := parseChanBackups(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to parse chan "+
-			"backups: %v", err)
+	if err != nil && err != errMissingChanBackup {
+		return fmt.Errorf("unable to parse chan backups: %v", err)
 	}
 
 	var chanBackups *lnrpc.ChanBackupSnapshot
@@ -3939,6 +3939,10 @@ var restoreChanBackupCommand = cli.Command{
 	Action: actionDecorator(restoreChanBackup),
 }
 
+// errMissingChanBackup is an error returned when we attempt to parse a channel
+// backup from a CLI command and it is missing.
+var errMissingChanBackup = errors.New("missing channel backup")
+
 func parseChanBackups(ctx *cli.Context) (*lnrpc.RestoreChanBackupRequest, error) {
 	switch {
 	case ctx.IsSet("single_backup"):
@@ -3991,7 +3995,7 @@ func parseChanBackups(ctx *cli.Context) (*lnrpc.RestoreChanBackupRequest, error)
 		}, nil
 
 	default:
-		return nil, nil
+		return nil, errMissingChanBackup
 	}
 }
 
