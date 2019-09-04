@@ -1,5 +1,7 @@
 module github.com/decred/dcrlnd
 
+go 1.12
+
 require (
 	git.schwanenlied.me/yawning/bsaes.git v0.0.0-20180720073208-c0276d75487e // indirect
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
@@ -14,7 +16,6 @@ require (
 	github.com/decred/dcrd/connmgr v1.0.2
 	github.com/decred/dcrd/dcrec v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
-	github.com/decred/dcrd/dcrjson v1.1.0 // indirect
 	github.com/decred/dcrd/dcrjson/v2 v2.0.0
 	github.com/decred/dcrd/dcrutil v1.3.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
@@ -65,18 +66,18 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd => github.com/decred/dcrd v0.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/bech32 => github.com/decred/dcrd/bech32 v0.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/blockchain => github.com/decred/dcrd/blockchain v0.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v0.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/mempool/v2 => github.com/decred/dcrd/mempool/v2 v2.0.0-20190524113024-5048959fdcf6
-	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v0.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.0-20190410055418-5048959fdcf6
-	github.com/decred/dcrd/txscript => github.com/decred/dcrd/txscript v0.0.0-20190410055418-5048959fdcf6
+	github.com/decred/dcrd => github.com/decred/dcrd v1.2.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/bech32 => github.com/decred/dcrd/bech32 v0.0.0-20190524113024-5048959fdcf6
+	github.com/decred/dcrd/blockchain => github.com/decred/dcrd/blockchain v1.1.2-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v1.0.3-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/mempool/v2 => github.com/decred/dcrd/mempool/v2 v2.0.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v1.1.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/txscript => github.com/decred/dcrd/txscript v1.0.3-0.20190524113024-5048959fdcf6
 
-	github.com/decred/dcrwallet => github.com/decred/dcrwallet v0.0.0-20190322135901-7e0e5a4227d7
-	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.0-20190322135901-7e0e5a4227d7
+	github.com/decred/dcrwallet => github.com/decred/dcrwallet v1.2.3-0.20190322135901-7e0e5a4227d7
+	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.1-0.20190322135901-7e0e5a4227d7
 
-	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190723174454-28be9117331b
+	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190829151128-28be9117331b
 )
