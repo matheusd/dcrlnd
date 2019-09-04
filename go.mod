@@ -7,26 +7,26 @@ require (
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
 	github.com/davecgh/go-spew v1.1.1
-	github.com/decred/dcrd v1.3.0
-	github.com/decred/dcrd/bech32 v1.0.0
-	github.com/decred/dcrd/blockchain v1.1.1
-	github.com/decred/dcrd/blockchain/stake v1.1.0
-	github.com/decred/dcrd/chaincfg v1.5.1
-	github.com/decred/dcrd/chaincfg/chainhash v1.0.1
-	github.com/decred/dcrd/connmgr v1.0.2
+	github.com/decred/dcrd v1.2.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd/bech32 v0.0.0-20190822152003-8be96a87293a
+	github.com/decred/dcrd/blockchain v1.2.0
+	github.com/decred/dcrd/blockchain/stake v1.2.1
+	github.com/decred/dcrd/chaincfg v1.5.2
+	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
+	github.com/decred/dcrd/connmgr v1.1.0
 	github.com/decred/dcrd/dcrec v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
-	github.com/decred/dcrd/dcrjson/v2 v2.0.0
-	github.com/decred/dcrd/dcrutil v1.3.0
+	github.com/decred/dcrd/dcrjson/v2 v2.2.0
+	github.com/decred/dcrd/dcrutil v1.4.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
-	github.com/decred/dcrd/mempool/v2 v2.0.0
-	github.com/decred/dcrd/rpcclient/v2 v2.0.0
-	github.com/decred/dcrd/txscript v1.0.2
+	github.com/decred/dcrd/mempool/v2 v2.1.0
+	github.com/decred/dcrd/rpcclient/v2 v2.1.0
+	github.com/decred/dcrd/txscript v1.1.0
 	github.com/decred/dcrd/wire v1.2.0
-	github.com/decred/dcrwallet v1.2.2
+	github.com/decred/dcrwallet v1.2.3-0.20190322135901-7e0e5a4227d7
 	github.com/decred/dcrwallet/chain/v2 v2.0.0
 	github.com/decred/dcrwallet/errors v1.0.1
-	github.com/decred/dcrwallet/wallet/v2 v2.0.0
+	github.com/decred/dcrwallet/wallet/v2 v2.0.1-0.20190322135901-7e0e5a4227d7
 	github.com/decred/lightning-onion v1.0.0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
@@ -66,18 +66,7 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd => github.com/decred/dcrd v1.2.1-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/bech32 => github.com/decred/dcrd/bech32 v0.0.0-20190524113024-5048959fdcf6
-	github.com/decred/dcrd/blockchain => github.com/decred/dcrd/blockchain v1.1.2-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/connmgr => github.com/decred/dcrd/connmgr v1.0.3-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/dcrjson/v2 => github.com/decred/dcrd/dcrjson/v2 v2.0.1-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/mempool/v2 => github.com/decred/dcrd/mempool/v2 v2.0.1-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/peer => github.com/decred/dcrd/peer v1.1.1-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/rpcclient/v2 => github.com/decred/dcrd/rpcclient/v2 v2.0.1-0.20190524113024-5048959fdcf6
-	github.com/decred/dcrd/txscript => github.com/decred/dcrd/txscript v1.0.3-0.20190524113024-5048959fdcf6
-
-	github.com/decred/dcrwallet => github.com/decred/dcrwallet v1.2.3-0.20190322135901-7e0e5a4227d7
-	github.com/decred/dcrwallet/wallet/v2 => github.com/decred/dcrwallet/wallet/v2 v2.0.1-0.20190322135901-7e0e5a4227d7
+	github.com/decred/dcrd/chaincfg => github.com/decred/dcrd/chaincfg v1.5.1
 
 	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190829151128-28be9117331b
 )
