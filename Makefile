@@ -51,8 +51,8 @@ DCRWALLET_TMPDIR := $(shell mktemp -d)
 
 GOACC_COMMIT := ddc355013f90fea78d83d3a6c71f1d37ac07ecd5
 
-GOBUILD := GO111MODULE=on go build -v
-GOINSTALL := GO111MODULE=on go install -v
+GOBUILD := GO111MODULE=on go build -v -trimpath
+GOINSTALL := GO111MODULE=on go install -v -trimpath
 GOTEST := GO111MODULE=on go test -v
 
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
