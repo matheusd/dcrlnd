@@ -2,6 +2,7 @@ package htlcswitch
 
 import (
 	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/slog"
 )
 
@@ -12,7 +13,10 @@ var log slog.Logger
 
 // The default amount of logging is none.
 func init() {
-	UseLogger(build.NewSubLogger("HSWC", nil))
+	logger := build.NewSubLogger("HSWC", nil)
+
+	UseLogger(logger)
+	hop.UseLogger(logger)
 }
 
 // DisableLog disables all library log output.  Logging output is disabled

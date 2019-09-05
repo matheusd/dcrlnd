@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 	sphinx "github.com/decred/lightning-onion/v2"
 )
@@ -30,7 +31,7 @@ var (
 
 	// testExtracter is a precomputed extraction of testEphemeralKey, using
 	// the sphinxPrivKey.
-	testExtracter *htlcswitch.SphinxErrorEncrypter
+	testExtracter *hop.SphinxErrorEncrypter
 )
 
 func init() {
@@ -67,7 +68,7 @@ func initTestExtracter() {
 		testEphemeralKey,
 	)
 
-	sphinxExtracter, ok := obfuscator.(*htlcswitch.SphinxErrorEncrypter)
+	sphinxExtracter, ok := obfuscator.(*hop.SphinxErrorEncrypter)
 	if !ok {
 		panic("did not extract sphinx error encrypter")
 	}
@@ -81,7 +82,7 @@ func initTestExtracter() {
 
 // newOnionProcessor creates starts a new htlcswitch.OnionProcessor using a temp
 // db and no garbage collection.
-func newOnionProcessor(t *testing.T) *htlcswitch.OnionProcessor {
+func newOnionProcessor(t *testing.T) *hop.OnionProcessor {
 	sphinxRouter := sphinx.NewRouter(
 		sphinxPrivKey, chaincfg.SimNetParams(),
 		sphinx.NewMemoryReplayLog(),
@@ -91,7 +92,7 @@ func newOnionProcessor(t *testing.T) *htlcswitch.OnionProcessor {
 		t.Fatalf("unable to start sphinx router: %v", err)
 	}
 
-	return htlcswitch.NewOnionProcessor(sphinxRouter)
+	return hop.NewOnionProcessor(sphinxRouter)
 }
 
 // newCircuitMap creates a new htlcswitch.CircuitMap using a temp db and a
@@ -129,7 +130,7 @@ var halfCircuitTests = []struct {
 	outValue  dcrutil.Amount
 	chanID    lnwire.ShortChannelID
 	htlcID    uint64
-	encrypter htlcswitch.ErrorEncrypter
+	encrypter hop.ErrorEncrypter
 }{
 	{
 		hash:      hash1,
@@ -1143,7 +1144,7 @@ func TestCircuitMapCloseOpenCircuits(t *testing.T) {
 			ChanID: chan1,
 			HtlcID: 3,
 		},
-		ErrorEncrypter: &htlcswitch.SphinxErrorEncrypter{
+		ErrorEncrypter: &hop.SphinxErrorEncrypter{
 			EphemeralKey: testEphemeralKey,
 		},
 	}

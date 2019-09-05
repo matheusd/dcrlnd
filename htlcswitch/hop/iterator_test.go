@@ -1,4 +1,4 @@
-package htlcswitch
+package hop
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
@@ -30,8 +29,8 @@ func TestSphinxHopIteratorForwardingInstructions(t *testing.T) {
 	// Next, we'll make the hop forwarding information that we should
 	// extract each type, no matter the payload type.
 	nextAddrInt := binary.BigEndian.Uint64(hopData.NextAddress[:])
-	expectedFwdInfo := hop.ForwardingInfo{
-		Network:         hop.DecredNetwork,
+	expectedFwdInfo := ForwardingInfo{
+		Network:         DecredNetwork,
 		NextHop:         lnwire.NewShortChanIDFromInt(nextAddrInt),
 		AmountToForward: lnwire.MilliAtom(hopData.ForwardAmount),
 		OutgoingCTLV:    hopData.OutgoingCltv,
@@ -55,7 +54,7 @@ func TestSphinxHopIteratorForwardingInstructions(t *testing.T) {
 
 	var testCases = []struct {
 		sphinxPacket    *sphinx.ProcessedPacket
-		expectedFwdInfo hop.ForwardingInfo
+		expectedFwdInfo ForwardingInfo
 	}{
 		// A regular legacy payload that signals more hops.
 		{
