@@ -5,15 +5,15 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrwallet/errors"
-	base "github.com/decred/dcrwallet/wallet/v2"
-	"github.com/decred/dcrwallet/wallet/v2/udb"
+	base "github.com/decred/dcrwallet/wallet/v3"
+	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 // FetchInputInfo queries for the WalletController's knowledge of the passed
@@ -145,9 +145,10 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 
 	// TODO(roasbeef): generate sighash midstate if not present?
 	// TODO(decred): use cached prefix hash in signDesc.sigHashes
+	hashTypeV2 := txscript.SigHashType(signDesc.HashType)
 	sig, err := txscript.RawTxInSignature(
 		tx, signDesc.InputIndex,
-		witnessScript, signDesc.HashType, privKey,
+		witnessScript, hashTypeV2, privKey,
 	)
 	if err != nil {
 		return nil, err
@@ -203,7 +204,7 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	if err != nil {
 		return nil, fmt.Errorf("invalid wif string for address: %v", err)
 	}
-	privKeyWif, err := dcrutil.DecodeWIF(privKeyWifStr)
+	privKeyWif, err := dcrutil.DecodeWIF(privKeyWifStr, b.netParams.PrivateKeyID)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding wif string for address: %v", err)
 	}
@@ -222,8 +223,9 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
+	hashTypeV2 := txscript.SigHashType(signDesc.HashType)
 	sigScript, err := txscript.SignatureScript(tx, signDesc.InputIndex,
-		outputScript, signDesc.HashType, privKey, true)
+		outputScript, hashTypeV2, privKey, true)
 	if err != nil {
 		return nil, err
 	}

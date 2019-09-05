@@ -10,13 +10,13 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v3"
 
 	// This is required to register bdb as a valid walletdb driver. In the
 	// init function of the package, it registers itself. The import is used
 	// to activate the side effects w/o actually binding the package name to
 	// a file-level variable.
-	_ "github.com/decred/dcrwallet/wallet/v2/drivers/bdb"
+	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
 )
 
 // WalletSyncer is an exported interface for the available wallet sync backends
@@ -28,8 +28,6 @@ import (
 // The current backend implementations also implement the BlockChainIO
 // interface.
 type WalletSyncer interface {
-	lnwallet.BlockChainIO
-
 	start(w *DcrWallet) error
 	stop()
 }

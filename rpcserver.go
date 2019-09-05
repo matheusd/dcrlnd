@@ -46,8 +46,8 @@ import (
 	"github.com/decred/dcrlnd/tlv"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
-	"github.com/decred/dcrwallet/wallet/v2/txauthor"
-	"github.com/decred/dcrwallet/wallet/v2/udb"
+	"github.com/decred/dcrwallet/wallet/v3/txauthor"
+	"github.com/decred/dcrwallet/wallet/v3/udb"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"

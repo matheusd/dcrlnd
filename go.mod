@@ -7,30 +7,36 @@ require (
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
 	github.com/davecgh/go-spew v1.1.1
-	github.com/decred/dcrd v1.2.1-0.20190524113024-5048959fdcf6
+	github.com/decred/dcrd v1.2.1-0.20190808181018-9b2309fa8eda
 	github.com/decred/dcrd/bech32 v0.0.0-20190822152003-8be96a87293a
 	github.com/decred/dcrd/blockchain v1.2.0
 	github.com/decred/dcrd/blockchain/stake v1.2.1
 	github.com/decred/dcrd/chaincfg v1.5.2
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
+	github.com/decred/dcrd/chaincfg/v2 v2.2.0
 	github.com/decred/dcrd/connmgr v1.1.0
 	github.com/decred/dcrd/dcrec v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
 	github.com/decred/dcrd/dcrjson/v2 v2.2.0
 	github.com/decred/dcrd/dcrutil v1.4.0
+	github.com/decred/dcrd/dcrutil/v2 v2.0.0
 	github.com/decred/dcrd/hdkeychain v1.1.1
-	github.com/decred/dcrd/mempool/v2 v2.1.0
+	github.com/decred/dcrd/hdkeychain/v2 v2.0.1
+	github.com/decred/dcrd/mempool/v2 v2.0.1-0.20190808181018-9b2309fa8eda
+	github.com/decred/dcrd/peer v1.1.1-0.20190808181018-9b2309fa8eda
 	github.com/decred/dcrd/rpcclient/v2 v2.1.0
+	github.com/decred/dcrd/rpcclient/v3 v3.0.0
 	github.com/decred/dcrd/txscript v1.1.0
+	github.com/decred/dcrd/txscript/v2 v2.0.0
 	github.com/decred/dcrd/wire v1.2.0
 	github.com/decred/dcrwallet v1.2.3-0.20190322135901-7e0e5a4227d7
-	github.com/decred/dcrwallet/chain/v2 v2.0.0
-	github.com/decred/dcrwallet/errors v1.0.1
-	github.com/decred/dcrwallet/wallet/v2 v2.0.1-0.20190322135901-7e0e5a4227d7
+	github.com/decred/dcrwallet/chain/v3 v3.0.0
+	github.com/decred/dcrwallet/errors v1.1.0
+	github.com/decred/dcrwallet/wallet/v3 v3.0.0
 	github.com/decred/lightning-onion v1.0.0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
-	github.com/golang/protobuf v1.3.1
+	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
@@ -54,11 +60,11 @@ require (
 	gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40 // indirect
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
 	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
-	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
+	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
-	google.golang.org/grpc v1.18.0
+	google.golang.org/grpc v1.22.0
 	gopkg.in/errgo.v1 v1.0.0 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.1.0
 	gopkg.in/macaroon.v2 v2.0.0
@@ -67,6 +73,15 @@ require (
 
 replace (
 	github.com/decred/dcrd/chaincfg => github.com/decred/dcrd/chaincfg v1.5.1
+
+	github.com/decred/dcrwallet => github.com/jrick/btcwallet v0.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/chain/v3 => github.com/jrick/btcwallet/chain/v3 v3.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/deployments/v2 => github.com/jrick/btcwallet/deployments/v2 v2.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/p2p/v2 => github.com/jrick/btcwallet/p2p/v2 v2.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/rpc/client/dcrd => github.com/jrick/btcwallet/rpc/client/dcrd v0.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/spv/v3 => github.com/jrick/btcwallet/spv/v3 v3.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/ticketbuyer/v4 => github.com/jrick/btcwallet/ticketbuyer/v4 v4.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/wallet/v3 => github.com/jrick/btcwallet/wallet/v3 v3.0.0-20190903173710-02ab93ce28c3
 
 	github.com/decred/lightning-onion => github.com/matheusd/lightning-onion v0.0.0-20190829151128-28be9117331b
 )
