@@ -8,9 +8,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/decred/dcrlnd/vconv"
+
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/rpcclient/v2"
+	rpcclient2 "github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/rpcclient/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 )
@@ -58,7 +61,7 @@ var _ FilteredChainView = (*DcrdFilteredChainView)(nil)
 
 // NewDcrdFilteredChainView creates a new instance of a FilteredChainView from
 // RPC credentials for an active dcrd instance.
-func NewDcrdFilteredChainView(config rpcclient.ConnConfig) (*DcrdFilteredChainView, error) {
+func NewDcrdFilteredChainView(config2 rpcclient2.ConnConfig) (*DcrdFilteredChainView, error) {
 	chainView := &DcrdFilteredChainView{
 		chainFilter:     make(map[wire.OutPoint]struct{}),
 		filterUpdates:   make(chan filterUpdate),
@@ -66,6 +69,7 @@ func NewDcrdFilteredChainView(config rpcclient.ConnConfig) (*DcrdFilteredChainVi
 		quit:            make(chan struct{}),
 	}
 
+	config := vconv.RPCConfig2to3(config2)
 	ntfnCallbacks := &rpcclient.NotificationHandlers{
 		OnBlockConnected:    chainView.onBlockConnected,
 		OnBlockDisconnected: chainView.onBlockDisconnected,

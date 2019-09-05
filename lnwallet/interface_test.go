@@ -15,11 +15,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrlnd/vconv"
+	"github.com/decred/slog"
+
+	_ "github.com/decred/slog"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	bolt "go.etcd.io/bbolt"
 
-	_ "github.com/decred/dcrwallet/wallet/v2/drivers/bdb"
+	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -1742,14 +1747,16 @@ func testPublishTransaction(r *rpctest.Harness,
 		t.Fatalf("expected ErrDoubleSpend, got: %v", err)
 	}
 
-	// At last we try to spend an output already spent by a
-	// confirmed transaction.
-	// TODO(halseth): we currently skip this test for neutrino,
-	// as the backing dcrd node will consider the tx being an
-	// orphan, and will accept it. Should look into if this is
-	// the behavior also for bitcoind, and update test
-	// accordingly.
-	if alice.BackEnd() != "neutrino" {
+	// At last we try to spend an output already spent by a confirmed
+	// transaction.  TODO(halseth): we currently skip this test for
+	// neutrino, as the backing dcrd node will consider the tx being an
+	// orphan, and will accept it. Should look into if this is the behavior
+	// also for bitcoind, and update test accordingly.
+	//
+	// TODO(decred) wallet/v3 also changed the semantics to simply ignore
+	// spent output errors and return nil when publishing a double spend
+	// that was already mined, so we ignore this test as well.
+	if alice.BackEnd() == "disabled" {
 		// Mine the tx spending tx3.
 		if err := mineAndAssert(tx4); err != nil {
 			t.Fatalf("unable to mine tx: %v", err)
@@ -2644,7 +2651,8 @@ func TestLightningWallet(t *testing.T) {
 	}
 	defer votingWallet.Stop()
 
-	rpcConfig := miningNode.RPCConfig()
+	rpcConfig3 := miningNode.RPCConfig()
+	rpcConfig := vconv.RPCConfig3to2(rpcConfig3)
 
 	tempDir, err := ioutil.TempDir("", "channeldb")
 	if err != nil {
@@ -2667,6 +2675,11 @@ func TestLightningWallet(t *testing.T) {
 	if err := chainNotifier.Start(); err != nil {
 		t.Fatalf("unable to start notifier: %v", err)
 	}
+
+	bknd := slog.NewBackend(os.Stdout)
+	logg := bknd.Logger("XXXX")
+	logg.SetLevel(slog.LevelDebug)
+	dcrwallet.UseLogger(logg)
 
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
@@ -2742,8 +2755,15 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 				t.Fatalf("unable to make chain rpc: %v", err)
 			}
 
-			aliceBio = aliceSyncer
-			bobBio = bobSyncer
+			aliceBio, err = dcrwallet.NewRPCChainIO(rpcConfig, netParams)
+			if err != nil {
+				t.Fatalf("unable to make alice chain IO: %v", err)
+			}
+
+			bobBio, err = dcrwallet.NewRPCChainIO(rpcConfig, netParams)
+			if err != nil {
+				t.Fatalf("unable to make bob chain IO: %v", err)
+			}
 		default:
 			t.Fatalf("unknown chain driver: %v", backEnd)
 		}

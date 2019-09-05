@@ -25,6 +25,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/dcrlnd/vconv"
+
 	// Blank import to set up profiling HTTP handlers.
 	_ "net/http/pprof"
 
@@ -38,8 +40,8 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrutil"
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet/v2"
-	"github.com/decred/dcrwallet/wallet/v2/txrules"
+	"github.com/decred/dcrwallet/wallet/v3"
+	"github.com/decred/dcrwallet/wallet/v3/txrules"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/decred/dcrlnd/autopilot"
@@ -972,7 +974,8 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 		netDir := dcrwallet.NetworkDir(
 			chainConfig.ChainDir, activeNetParams.Params,
 		)
-		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
+		netParams := vconv.NetParams1to2(activeNetParams.Params)
+		loader := walletloader.NewLoader(netParams, netDir,
 			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
 			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 			false)

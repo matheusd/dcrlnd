@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrlnd/vconv"
+
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpctest"
@@ -1901,7 +1903,8 @@ func TestInterfaces(t *testing.T) {
 		// this node with a chain length of 125, so we have plenty of DCR to
 		// play around with.
 		miner, tearDown := chainntnfs.NewMiner(t, []string{"--debuglevel=debug"}, true, 25)
-		rpcConfig := miner.RPCConfig()
+		rpcConfig3 := miner.RPCConfig()
+		rpcConfig := vconv.RPCConfig3to2(rpcConfig3)
 
 		// Initialize a height hint cache for each notifier.
 		tempDir, err := ioutil.TempDir("", "channeldb")

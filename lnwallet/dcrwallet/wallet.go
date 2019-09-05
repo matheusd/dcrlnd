@@ -2,6 +2,7 @@ package dcrwallet
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -9,23 +10,27 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrlnd/vconv"
+
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	dcrutil2 "github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/lnwallet"
 
 	walletloader "github.com/decred/dcrwallet/loader"
-	base "github.com/decred/dcrwallet/wallet/v2"
-	"github.com/decred/dcrwallet/wallet/v2/txauthor"
-	"github.com/decred/dcrwallet/wallet/v2/txrules"
-	"github.com/decred/dcrwallet/wallet/v2/udb"
+	base "github.com/decred/dcrwallet/wallet/v3"
+	"github.com/decred/dcrwallet/wallet/v3/txauthor"
+	"github.com/decred/dcrwallet/wallet/v3/txrules"
+	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 const (
 	defaultAccount = uint32(udb.DefaultAccountNum)
+	scriptVersion  = uint16(0)
 )
 
 // DcrWallet is an implementation of the lnwallet.WalletController interface
@@ -73,11 +78,13 @@ func New(cfg Config) (*DcrWallet, error) {
 		return nil, fmt.Errorf("cfg.Syncer needs to be specified")
 	}
 
+	netParams := vconv.NetParams1to2(cfg.NetParams)
+
 	if cfg.Wallet == nil {
 		// Ensure the wallet exists or create it when the create flag
 		// is specified
 		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
-		loader = walletloader.NewLoader(cfg.NetParams, netDir,
+		loader = walletloader.NewLoader(netParams, netDir,
 			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
 			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit,
 			false)
@@ -110,7 +117,7 @@ func New(cfg Config) (*DcrWallet, error) {
 		loader:     loader,
 		syncer:     syncer,
 		syncedChan: make(chan struct{}),
-		netParams:  cfg.NetParams,
+		netParams:  netParams,
 	}, nil
 }
 
@@ -159,9 +166,7 @@ func (b *DcrWallet) Start() error {
 // This is a part of the WalletController interface.
 func (b *DcrWallet) Stop() error {
 	dcrwLog.Debug("Requesting wallet shutdown")
-	b.wallet.Stop()
 	b.syncer.stop()
-	b.wallet.WaitForShutdown()
 
 	dcrwLog.Debugf("Wallet has shut down")
 
@@ -208,11 +213,15 @@ func (b *DcrWallet) NewAddress(t lnwallet.AddressType, change bool) (dcrutil.Add
 		return nil, fmt.Errorf("unknown address type")
 	}
 
+	var addr2 dcrutil2.Address
+	var err error
 	if change {
-		return b.wallet.NewInternalAddress(defaultAccount)
+		addr2, err = b.wallet.NewInternalAddress(context.TODO(), defaultAccount)
+	} else {
+		addr2, err = b.wallet.NewExternalAddress(context.TODO(), defaultAccount)
 	}
 
-	return b.wallet.NewExternalAddress(defaultAccount)
+	return vconv.Addr2to1(addr2), err
 }
 
 // LastUnusedAddress returns the last *unused* address known by the wallet. An
@@ -238,14 +247,15 @@ func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
 		return nil, fmt.Errorf("unknown address type")
 	}
 
-	return b.wallet.CurrentAddress(defaultAccount)
+	addr2, err := b.wallet.CurrentAddress(defaultAccount)
+	return vconv.Addr2to1(addr2), err
 }
 
 // IsOurAddress checks if the passed address belongs to this wallet
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
-	result, err := b.wallet.HaveAddress(a)
+	result, err := b.wallet.HaveAddress(vconv.Addr1to2(a, b.netParams))
 	return result && (err == nil)
 }
 
@@ -270,7 +280,8 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	b.wallet.SetRelayFee(dcrutil.Amount(feeRate))
 	defer b.wallet.SetRelayFee(oldRelayFee)
 
-	txHash, err := b.wallet.SendOutputs(outputs, defaultAccount, 1)
+	txHash, err := b.wallet.SendOutputs(context.TODO(), outputs,
+		defaultAccount, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +355,7 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 			return nil, err
 		}
 
-		scriptClass := txscript.GetScriptClass(txscript.DefaultScriptVersion, pkScript)
+		scriptClass := txscript.GetScriptClass(scriptVersion, pkScript)
 		if scriptClass != txscript.PubKeyHashTy {
 			continue
 		}
@@ -398,10 +409,11 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 	if n == nil {
 		return fmt.Errorf("wallet does not have an active backend")
 	}
-	_, err = b.wallet.PublishTransaction(tx, serTx, n)
+	_, err = b.wallet.PublishTransaction(context.TODO(), tx, serTx, n)
 	if err != nil {
-		// TODO(decred): review if the string messages are correct. Possible
-		// convert from checking the message to checking the op.
+		// TODO(decred): review if the string messages are correct.
+		// Possible convert from checking the message to checking the
+		// op.
 		//
 		// NOTE(decred): These checks were removed upstream due to
 		// changing the underlying btcwallet semantics on
@@ -495,7 +507,9 @@ func minedTransactionsToDetails(
 				return nil, err
 			}
 
-			destAddresses = append(destAddresses, outAddresses...)
+			for _, addr2 := range outAddresses {
+				destAddresses = append(destAddresses, vconv.Addr2to1(addr2))
+			}
 		}
 
 		blockHash := block.Header.BlockHash()
@@ -545,7 +559,9 @@ func unminedTransactionsToDetail(
 			return nil, err
 		}
 
-		destAddresses = append(destAddresses, outAddresses...)
+		for _, addr2 := range outAddresses {
+			destAddresses = append(destAddresses, vconv.Addr2to1(addr2))
+		}
 	}
 
 	txDetail := &lnwallet.TransactionDetail{
@@ -740,23 +756,10 @@ func (b *DcrWallet) SubscribeTransactions() (lnwallet.TransactionSubscription, e
 // This is a part of the WalletController interface.
 func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	// Grab the best chain state the wallet is currently aware of.
-	walletBestHash, walletBestHeight := b.wallet.MainChainTip()
+	walletBestHash, _ := b.wallet.MainChainTip()
 	walletBestHeader, err := b.wallet.BlockHeader(&walletBestHash)
 	if err != nil {
 		return false, 0, err
-	}
-
-	// Next, query the chain backend to grab the info about the tip of the
-	// main chain.
-	_, bestHeight, err := b.syncer.GetBestBlock()
-	if err != nil {
-		return false, 0, err
-	}
-
-	// If the wallet hasn't yet fully synced to the node's best chain tip,
-	// then we're not yet fully synced.
-	if walletBestHeight < bestHeight {
-		return false, walletBestHeader.Timestamp.Unix(), nil
 	}
 
 	// If the timestamp on the best header is more than 2 hours in the

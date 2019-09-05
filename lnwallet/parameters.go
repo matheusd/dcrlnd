@@ -3,7 +3,7 @@ package lnwallet
 import (
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrwallet/wallet/v2/txrules"
+	"github.com/decred/dcrwallet/wallet/v3/txrules"
 )
 
 // DefaultDustLimit is used to calculate the default dust threshold limit,

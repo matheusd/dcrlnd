@@ -23,7 +23,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
 	walletloader "github.com/decred/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet/v2"
+	"github.com/decred/dcrwallet/wallet/v3"
 )
 
 const (
@@ -282,8 +282,12 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		if err != nil {
 			return nil, err
 		}
+
+		chainIO, err = dcrwallet.NewRPCChainIO(*rpcConfig, activeNetParams.Params)
+		if err != nil {
+			return nil, err
+		}
 		walletConfig.Syncer = syncer
-		chainIO = syncer
 
 		// If we're not in simnet or regtest mode, then we'll attempt
 		// to use a proper fee estimator for testnet.

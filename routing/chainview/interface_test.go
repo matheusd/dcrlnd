@@ -7,12 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrlnd/vconv"
+
 	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil"
 	"github.com/decred/dcrd/rpcclient/v2"
+	rpcclient3 "github.com/decred/dcrd/rpcclient/v3"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/txscript"
 	"github.com/decred/dcrd/wire"
@@ -548,7 +551,8 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	}
 
 	// Init a chain view that has this node as its block source.
-	cleanUpFunc, reorgView, err := chainViewInit(reorgNode.RPCConfig())
+	rpcConfig := vconv.RPCConfig3to2(reorgNode.RPCConfig())
+	cleanUpFunc, reorgView, err := chainViewInit(rpcConfig)
 	if err != nil {
 		t.Fatalf("unable to create chain view: %v", err)
 	}
@@ -636,7 +640,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	if numPeers < 1 {
 		t.Fatalf("no connected peer")
 	}
-	err = reorgNode.Node.AddNode(peers[0].Addr, rpcclient.ANRemove)
+	err = reorgNode.Node.AddNode(peers[0].Addr, rpcclient3.ANRemove)
 	if err != nil {
 		t.Fatalf("unable to disconnect mining nodes: %v", err)
 	}
@@ -790,7 +794,7 @@ func TestFilteredChainView(t *testing.T) {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 
-	rpcConfig := miner.RPCConfig()
+	rpcConfig := vconv.RPCConfig3to2(miner.RPCConfig())
 
 	for _, chainViewImpl := range interfaceImpls {
 		t.Logf("Testing '%v' implementation of FilteredChainView",
