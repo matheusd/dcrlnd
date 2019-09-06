@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
@@ -294,6 +295,18 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 	source, target route.Vertex, amt lnwire.MilliAtom) (
 	[]*channeldb.ChannelEdgePolicy, error) {
 
+	// Pathfinding can be a significant portion of the total payment
+	// latency, especially on low-powered devices. Log several metrics to
+	// aid in the analysis performance problems in this area.
+	start := time.Now()
+	nodesVisited := 0
+	edgesExpanded := 0
+	defer func() {
+		timeElapsed := time.Since(start)
+		log.Debugf("Pathfinding perf metrics: nodes=%v, edges=%v, "+
+			"time=%v", nodesVisited, edgesExpanded, timeElapsed)
+	}()
+
 	var err error
 	tx := g.tx
 	if tx == nil {
@@ -399,6 +412,8 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 	// satisfy our specific requirements.
 	processEdge := func(fromVertex route.Vertex, bandwidth lnwire.MilliAtom,
 		edge *channeldb.ChannelEdgePolicy, toNode route.Vertex) {
+
+		edgesExpanded++
 
 		// If this is not a local channel and it is disabled, we will
 		// skip it.
@@ -571,6 +586,8 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 	heap.Push(&nodeHeap, distance[target])
 
 	for nodeHeap.Len() != 0 {
+		nodesVisited++
+
 		// Fetch the node within the smallest distance from our source
 		// from the heap.
 		partialPath := heap.Pop(&nodeHeap).(nodeWithDist)
