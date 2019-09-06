@@ -8,13 +8,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil"
-	rpcclient2 "github.com/decred/dcrd/rpcclient/v2"
-	"github.com/decred/dcrd/rpcclient/v3"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/queue"
@@ -79,7 +78,7 @@ var _ chainntnfs.ChainNotifier = (*DcrdNotifier)(nil)
 // New returns a new DcrdNotifier instance. This function assumes the dcrd node
 // detailed in the passed configuration is already running, and willing to
 // accept new websockets clients.
-func New(config2 *rpcclient2.ConnConfig, chainParams *chaincfg.Params,
+func New(config *rpcclient.ConnConfig, chainParams *chaincfg.Params,
 	spendHintCache chainntnfs.SpendHintCache,
 	confirmHintCache chainntnfs.ConfirmHintCache) (*DcrdNotifier, error) {
 
@@ -104,20 +103,11 @@ func New(config2 *rpcclient2.ConnConfig, chainParams *chaincfg.Params,
 		OnBlockDisconnected: notifier.onBlockDisconnected,
 	}
 
-	config := rpcclient.ConnConfig{
-		Host:         config2.Host,
-		Endpoint:     config2.Endpoint,
-		User:         config2.User,
-		Pass:         config2.Pass,
-		DisableTLS:   config2.DisableTLS,
-		Certificates: config2.Certificates,
-	}
-
-	// Disable connecting to dcrd within the rpcclient.New method. We
-	// defer establishing the connection to our .Start() method.
+	// Disable connecting to dcrd within the rpcclient.New method. We defer
+	// establishing the connection to our .Start() method.
 	config.DisableConnectOnNew = true
 	config.DisableAutoReconnect = false
-	chainConn, err := rpcclient.New(&config, ntfnCallbacks)
+	chainConn, err := rpcclient.New(config, ntfnCallbacks)
 	if err != nil {
 		return nil, err
 	}

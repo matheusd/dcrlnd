@@ -8,12 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/decred/dcrlnd/vconv"
-
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson/v2"
-	rpcclient2 "github.com/decred/dcrd/rpcclient/v2"
-	"github.com/decred/dcrd/rpcclient/v3"
+	jsontypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 )
@@ -61,7 +58,7 @@ var _ FilteredChainView = (*DcrdFilteredChainView)(nil)
 
 // NewDcrdFilteredChainView creates a new instance of a FilteredChainView from
 // RPC credentials for an active dcrd instance.
-func NewDcrdFilteredChainView(config2 rpcclient2.ConnConfig) (*DcrdFilteredChainView, error) {
+func NewDcrdFilteredChainView(config rpcclient.ConnConfig) (*DcrdFilteredChainView, error) {
 	chainView := &DcrdFilteredChainView{
 		chainFilter:     make(map[wire.OutPoint]struct{}),
 		filterUpdates:   make(chan filterUpdate),
@@ -69,7 +66,6 @@ func NewDcrdFilteredChainView(config2 rpcclient2.ConnConfig) (*DcrdFilteredChain
 		quit:            make(chan struct{}),
 	}
 
-	config := vconv.RPCConfig2to3(config2)
 	ntfnCallbacks := &rpcclient.NotificationHandlers{
 		OnBlockConnected:    chainView.onBlockConnected,
 		OnBlockDisconnected: chainView.onBlockDisconnected,
@@ -303,7 +299,7 @@ func (b *DcrdFilteredChainView) chainFilterer() {
 		return filteredTxns
 	}
 
-	decodeJSONBlock := func(block *dcrjson.RescannedBlock,
+	decodeJSONBlock := func(block *jsontypes.RescannedBlock,
 		height int64) (*FilteredBlock, error) {
 		hash, err := chainhash.NewHashFromStr(block.Hash)
 		if err != nil {

@@ -3,7 +3,7 @@
 package invoicesrpc
 
 import (
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnwire"

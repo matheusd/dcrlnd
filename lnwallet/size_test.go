@@ -3,10 +3,10 @@ package lnwallet_test
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 )
@@ -15,7 +15,7 @@ import (
 // correctly by comparing against an actual (though invalid) transaction
 // matching the template.
 func TestTxSizeEstimator(t *testing.T) {
-	netParams := &chaincfg.MainNetParams
+	netParams := chaincfg.MainNetParams()
 
 	// Static test data.
 	var nullData [73]byte

@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/blockchain/v2"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/dcrutil/txsort"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v2/txsort"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -86,7 +86,7 @@ func testJusticeDescriptor(t *testing.T, blobType blob.Type) {
 		remoteAmount = dcrutil.Amount(200000)
 		totalAmount  = localAmount + remoteAmount
 	)
-	netParams := &chaincfg.RegNetParams
+	netParams := chaincfg.RegNetParams()
 
 	// Parse the key pairs for all keys used in the test.
 	revSK, revPK := secp256k1.PrivKeyFromBytes(revPrivBytes)

@@ -7,23 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrlnd/vconv"
-
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient/v2"
-	rpcclient3 "github.com/decred/dcrd/rpcclient/v3"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
+	rpcclient3 "github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 )
 
 var (
-	netParams = &chaincfg.SimNetParams
+	netParams = chaincfg.SimNetParams()
 
 	testPrivKey = []byte{
 		0x81, 0xb6, 0x37, 0xd8, 0xfc, 0xd2, 0xc6, 0xda,
@@ -551,8 +549,7 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 	}
 
 	// Init a chain view that has this node as its block source.
-	rpcConfig := vconv.RPCConfig3to2(reorgNode.RPCConfig())
-	cleanUpFunc, reorgView, err := chainViewInit(rpcConfig)
+	cleanUpFunc, reorgView, err := chainViewInit(reorgNode.RPCConfig())
 	if err != nil {
 		t.Fatalf("unable to create chain view: %v", err)
 	}
@@ -794,13 +791,11 @@ func TestFilteredChainView(t *testing.T) {
 		t.Fatalf("unable to set up mining node: %v", err)
 	}
 
-	rpcConfig := vconv.RPCConfig3to2(miner.RPCConfig())
-
 	for _, chainViewImpl := range interfaceImpls {
 		t.Logf("Testing '%v' implementation of FilteredChainView",
 			chainViewImpl.name)
 
-		cleanUpFunc, chainView, err := chainViewImpl.chainViewInit(rpcConfig)
+		cleanUpFunc, chainView, err := chainViewImpl.chainViewInit(miner.RPCConfig())
 		if err != nil {
 			t.Fatalf("unable to make chain view: %v", err)
 		}

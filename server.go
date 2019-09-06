@@ -20,8 +20,8 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/brontide"
@@ -53,7 +53,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 	"github.com/decred/dcrlnd/zpay32"
-	sphinx "github.com/decred/lightning-onion"
+	sphinx "github.com/decred/lightning-onion/v2"
 	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
 )
@@ -328,7 +328,9 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	sharedSecretPath := filepath.Join(graphDir, "sphinxreplay.db")
 	replayLog := htlcswitch.NewDecayedLog(sharedSecretPath, cc.chainNotifier)
 
-	sphinxRouter := sphinx.NewRouter(privKey, activeNetParams.Params, replayLog)
+	sphinxRouter := sphinx.NewRouter(
+		privKey, activeNetParams.Params, replayLog,
+	)
 
 	writeBufferPool := pool.NewWriteBuffer(
 		pool.DefaultWriteBufferGCInterval,
@@ -720,7 +722,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	s.authGossiper = discovery.New(discovery.Config{
 		Router:                  s.chanRouter,
 		Notifier:                s.cc.chainNotifier,
-		ChainHash:               *activeNetParams.GenesisHash,
+		ChainHash:               activeNetParams.GenesisHash,
 		Broadcast:               s.BroadcastMessage,
 		ChanSeries:              chanSeries,
 		NotifyWhenOnline:        s.NotifyWhenOnline,
@@ -741,7 +743,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		s.identityPriv.PubKey(),
 	)
 
-	utxnStore, err := newNurseryStore(activeNetParams.GenesisHash, chanDB)
+	utxnStore, err := newNurseryStore(&activeNetParams.GenesisHash, chanDB)
 	if err != nil {
 		srvrLog.Errorf("unable to create nursery store: %v", err)
 		return nil, err
@@ -751,7 +753,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		sweep.DefaultBatchWindowDuration)
 
 	sweeperStore, err := sweep.NewSweeperStore(
-		chanDB, activeNetParams.GenesisHash,
+		chanDB, &activeNetParams.GenesisHash,
 	)
 	if err != nil {
 		srvrLog.Errorf("unable to create sweeper store: %v", err)
@@ -801,7 +803,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	contractBreaches := make(chan *ContractBreachEvent, 1)
 
 	s.chainArb = contractcourt.NewChainArbitrator(contractcourt.ChainArbitratorConfig{
-		ChainHash:              *activeNetParams.GenesisHash,
+		ChainHash:              activeNetParams.GenesisHash,
 		IncomingBroadcastDelta: DefaultIncomingBroadcastDelta,
 		OutgoingBroadcastDelta: DefaultOutgoingBroadcastDelta,
 		NewSweepAddr:           newSweepPkScriptGen(cc.wallet),
@@ -1109,7 +1111,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 			AuthDial:       wtclient.AuthDial,
 			DB:             towerClientDB,
 			Policy:         policy,
-			ChainHash:      *activeNetParams.GenesisHash,
+			ChainHash:      activeNetParams.GenesisHash,
 			MinBackoff:     10 * time.Second,
 			MaxBackoff:     5 * time.Minute,
 			ForceQuitDelay: wtclient.DefaultForceQuitDelay,
@@ -1588,7 +1590,7 @@ func initNetworkBootstrappers(s *server) ([]discovery.NetworkPeerBootstrapper, e
 	// If this isn't simnet mode, then one of our additional bootstrapping
 	// sources will be the set of running DNS seeds.
 	if !cfg.Decred.SimNet {
-		dnsSeeds, ok := chainDNSSeeds[*activeNetParams.GenesisHash]
+		dnsSeeds, ok := chainDNSSeeds[activeNetParams.GenesisHash]
 
 		// If we have a set of DNS seeds for this chain, then we'll add
 		// it as an additional bootstrapping source.

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrlnd/chainntnfs"
 )
 

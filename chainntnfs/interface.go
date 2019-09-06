@@ -10,6 +10,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrjson/v2"
+	jsontypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -590,11 +591,11 @@ type TxIndexConn interface {
 	// GetRawTransactionVerbose returns the transaction identified by the
 	// passed chain hash, and returns additional information such as the
 	// block that the transaction confirmed.
-	GetRawTransactionVerbose(*chainhash.Hash) (*dcrjson.TxRawResult, error)
+	GetRawTransactionVerbose(*chainhash.Hash) (*jsontypes.TxRawResult, error)
 
 	// GetBlockVerbose returns the block identified by the chain hash along
 	// with additional information such as the block's height in the chain.
-	GetBlockVerbose(*chainhash.Hash, bool) (*dcrjson.GetBlockVerboseResult, error)
+	GetBlockVerbose(*chainhash.Hash, bool) (*jsontypes.GetBlockVerboseResult, error)
 }
 
 // ConfDetailsFromTxIndex looks up whether a transaction is already included in

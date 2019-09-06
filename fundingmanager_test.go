@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -583,7 +583,7 @@ func fundChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		subtractFees:    subtractFees,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(pushAmt),
@@ -1452,7 +1452,7 @@ func TestFundingManagerPeerTimeoutAfterInitFunding(t *testing.T) {
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(0),
 		private:         false,
@@ -1514,7 +1514,7 @@ func TestFundingManagerPeerTimeoutAfterFundingOpen(t *testing.T) {
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(0),
 		private:         false,
@@ -1585,7 +1585,7 @@ func TestFundingManagerPeerTimeoutAfterFundingAccept(t *testing.T) {
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(0),
 		private:         false,
@@ -2307,7 +2307,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: localAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(pushAmt),
 		private:         false,
@@ -2538,7 +2538,7 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 		errChan := make(chan error, 1)
 		initReq := &openChanReq{
 			targetPubkey:    bob.privKey.PubKey(),
-			chainHash:       *activeNetParams.GenesisHash,
+			chainHash:       activeNetParams.GenesisHash,
 			localFundingAmt: 5000000,
 			pushAmt:         lnwire.NewMAtomsFromAtoms(0),
 			private:         false,
@@ -2708,7 +2708,7 @@ func TestFundingManagerRejectPush(t *testing.T) {
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(10),
 		private:         true,
@@ -2765,7 +2765,7 @@ func TestFundingManagerMaxConfs(t *testing.T) {
 	errChan := make(chan error, 1)
 	initReq := &openChanReq{
 		targetPubkey:    bob.privKey.PubKey(),
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: 500000,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(10),
 		private:         false,

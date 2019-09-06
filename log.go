@@ -36,7 +36,7 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/watchtower/wtclient"
-	sphinx "github.com/decred/lightning-onion"
+	sphinx "github.com/decred/lightning-onion/v2"
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
 	"google.golang.org/grpc"

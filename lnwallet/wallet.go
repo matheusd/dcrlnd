@@ -11,13 +11,13 @@ import (
 	"sync/atomic"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/dcrutil/txsort"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v2/txsort"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -444,7 +444,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 	// wallet is aware of, then we'll reject the request.
 	if !bytes.Equal(l.Cfg.NetParams.GenesisHash[:], req.ChainHash[:]) {
 		err := ErrChainMismatch(
-			l.Cfg.NetParams.GenesisHash, req.ChainHash,
+			&l.Cfg.NetParams.GenesisHash, req.ChainHash,
 		)
 		req.err <- err
 		req.resp <- nil
@@ -486,7 +486,7 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 	id := atomic.AddUint64(&l.nextFundingID, 1)
 	reservation, err := NewChannelReservation(
 		capacity, localFundingAmt, req.CommitFeePerKB, l, id,
-		req.PushMAtoms, l.Cfg.NetParams.GenesisHash, req.Flags,
+		req.PushMAtoms, &l.Cfg.NetParams.GenesisHash, req.Flags,
 	)
 	if err != nil {
 		selected.unlockCoins()

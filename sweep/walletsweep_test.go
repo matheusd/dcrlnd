@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
 )
@@ -169,7 +169,7 @@ var sweepScript = []byte{
 
 var deliveryAddr = func() dcrutil.Address {
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-		0, sweepScript, &chaincfg.TestNet3Params,
+		0, sweepScript, chaincfg.TestNet3Params(),
 	)
 	if err != nil {
 		panic(err)
@@ -287,7 +287,7 @@ func TestCraftSweepAllTxCoinSelectFail(t *testing.T) {
 
 	_, err := CraftSweepAllTx(
 		0, 100, nil, coinSelectLocker, utxoSource, utxoLocker, nil, nil,
-		&chaincfg.TestNet3Params,
+		chaincfg.TestNet3Params(),
 	)
 
 	// Since we instructed the coin select locker to fail above, we should
@@ -313,7 +313,7 @@ func TestCraftSweepAllTxUnknownWitnessType(t *testing.T) {
 
 	_, err := CraftSweepAllTx(
 		0, 100, nil, coinSelectLocker, utxoSource, utxoLocker, nil, nil,
-		&chaincfg.TestNet3Params,
+		chaincfg.TestNet3Params(),
 	)
 
 	// Since passed in a p2wsh output, which is unknown, we should fail to
@@ -348,7 +348,7 @@ func TestCraftSweepAllTx(t *testing.T) {
 
 	sweepPkg, err := CraftSweepAllTx(
 		0, 100, deliveryAddr, coinSelectLocker, utxoSource, utxoLocker,
-		feeEstimator, signer, &chaincfg.TestNet3Params,
+		feeEstimator, signer, chaincfg.TestNet3Params(),
 	)
 	if err != nil {
 		t.Fatalf("unable to make sweep tx: %v", err)

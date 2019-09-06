@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 )
 
 // ExternalScoreAttachment is an implementation of the AttachmentHeuristic

@@ -25,8 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrlnd/vconv"
-
 	// Blank import to set up profiling HTTP handlers.
 	_ "net/http/pprof"
 
@@ -38,7 +36,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
@@ -419,7 +417,7 @@ func Main() error {
 			},
 			NodePrivKey: towerPrivKey,
 			PublishTx:   activeChainControl.wallet.PublishTransaction,
-			ChainHash:   *activeNetParams.GenesisHash,
+			ChainHash:   activeNetParams.GenesisHash,
 		}, lncfg.NormalizeAddresses)
 		if err != nil {
 			err := fmt.Errorf("Unable to configure watchtower: %v",
@@ -620,7 +618,7 @@ func fileExists(name string) bool {
 // real PKI.
 //
 // This function is adapted from https://github.com/decred/dcrd and
-// https://github.com/decred/dcrd/dcrutil
+// https://github.com/decred/dcrd/dcrutil/v2
 func genCertPair(certFile, keyFile string, tlsExtraIPs,
 	tlsExtraDomains []string) error {
 
@@ -974,8 +972,7 @@ func waitForWalletPassword(grpcEndpoints, restEndpoints []net.Addr,
 		netDir := dcrwallet.NetworkDir(
 			chainConfig.ChainDir, activeNetParams.Params,
 		)
-		netParams := vconv.NetParams1to2(activeNetParams.Params)
-		loader := walletloader.NewLoader(netParams, netDir,
+		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
 			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
 			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 			false)

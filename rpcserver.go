@@ -17,9 +17,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/build"
@@ -63,6 +64,8 @@ const (
 	// permitted as defined in BOLT-0002. This is the same as the maximum
 	// channel size.
 	maxDcrPaymentMAtoms = lnwire.MilliAtom(MaxDecredFundingAmount * 1000)
+
+	scriptVersion uint16 = 0
 )
 
 var (
@@ -732,10 +735,10 @@ func (r *rpcServer) Stop() error {
 // the outputs themselves. The passed map pairs up an address, to a desired
 // output value amount. Each address is converted to its corresponding pkScript
 // to be used within the constructed output(s).
-func addrPairsToOutputs(addrPairs map[string]int64) ([]*wire.TxOut, error) {
+func addrPairsToOutputs(addrPairs map[string]int64, netParams *chaincfg.Params) ([]*wire.TxOut, error) {
 	outputs := make([]*wire.TxOut, 0, len(addrPairs))
 	for addr, amt := range addrPairs {
-		addr, err := dcrutil.DecodeAddress(addr)
+		addr, err := dcrutil.DecodeAddress(addr, netParams)
 		if err != nil {
 			return nil, err
 		}
@@ -757,7 +760,7 @@ func addrPairsToOutputs(addrPairs map[string]int64) ([]*wire.TxOut, error) {
 func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
 	feeRate lnwallet.AtomPerKByte) (*chainhash.Hash, error) {
 
-	outputs, err := addrPairsToOutputs(paymentMap)
+	outputs, err := addrPairsToOutputs(paymentMap, activeNetParams.Params)
 	if err != nil {
 		return nil, err
 	}
@@ -848,7 +851,7 @@ func (r *rpcServer) ListUnspent(ctx context.Context,
 		// user.
 		// TODO(decred) version needs to come from utxo.
 		_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
-			txscript.DefaultScriptVersion, utxo.PkScript, activeNetParams.Params,
+			scriptVersion, utxo.PkScript, activeNetParams.Params,
 		)
 		if err != nil {
 			return nil, err
@@ -884,7 +887,7 @@ func (r *rpcServer) EstimateFee(ctx context.Context,
 	in *lnrpc.EstimateFeeRequest) (*lnrpc.EstimateFeeResponse, error) {
 
 	// Create the list of outputs we are spending to.
-	outputs, err := addrPairsToOutputs(in.AddrToAmount)
+	outputs, err := addrPairsToOutputs(in.AddrToAmount, activeNetParams.Params)
 	if err != nil {
 		return nil, err
 	}
@@ -955,21 +958,14 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 
 	// Decode the address receiving the coins, we need to check whether the
 	// address is valid for this network.
-	targetAddr, err := dcrutil.DecodeAddress(in.Addr)
+	targetAddr, err := dcrutil.DecodeAddress(in.Addr, activeNetParams.Params)
 	if err != nil {
 		return nil, err
 	}
 
-	// Make the check on the decoded address according to the active network.
-	if !targetAddr.IsForNet(activeNetParams.Params) {
-		return nil, fmt.Errorf("address: %v is not valid for this "+
-			"network: %v", targetAddr.String(),
-			activeNetParams.Params.Name)
-	}
-
-	// If the destination address parses to a valid pubkey, we assume the user
-	// accidentally tried to send funds to a bare pubkey address. This check is
-	// here to prevent unintended transfers.
+	// If the destination address parses to a valid pubkey, we assume the
+	// user accidentally tried to send funds to a bare pubkey address. This
+	// check is here to prevent unintended transfers.
 	decodedAddr, _ := hex.DecodeString(in.Addr)
 	_, err = secp256k1.ParsePubKey(decodedAddr)
 	if err == nil {
@@ -1452,7 +1448,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	// be used to consume updates of the state of the pending channel.
 	req := &openChanReq{
 		targetPubkey:    nodePubKey,
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
@@ -1595,7 +1591,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 
 	req := &openChanReq{
 		targetPubkey:    nodepubKey,
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
 		minHtlc:         minHtlc,
@@ -3826,7 +3822,7 @@ func (r *rpcServer) SubscribeTransactions(req *lnrpc.GetTransactionsRequest,
 		case tx := <-txClient.ConfirmedTransactions():
 			destAddresses := make([]string, 0, len(tx.DestAddresses))
 			for _, destAddress := range tx.DestAddresses {
-				destAddresses = append(destAddresses, destAddress.EncodeAddress())
+				destAddresses = append(destAddresses, destAddress.Address())
 			}
 			detail := &lnrpc.Transaction{
 				TxHash:           tx.Hash.String(),
@@ -3845,7 +3841,7 @@ func (r *rpcServer) SubscribeTransactions(req *lnrpc.GetTransactionsRequest,
 		case tx := <-txClient.UnconfirmedTransactions():
 			var destAddresses []string
 			for _, destAddress := range tx.DestAddresses {
-				destAddresses = append(destAddresses, destAddress.EncodeAddress())
+				destAddresses = append(destAddresses, destAddress.Address())
 			}
 			detail := &lnrpc.Transaction{
 				TxHash:        tx.Hash.String(),
@@ -3882,7 +3878,7 @@ func (r *rpcServer) GetTransactions(ctx context.Context,
 	for i, tx := range transactions {
 		var destAddresses []string
 		for _, destAddress := range tx.DestAddresses {
-			destAddresses = append(destAddresses, destAddress.EncodeAddress())
+			destAddresses = append(destAddresses, destAddress.Address())
 		}
 
 		// We also get unconfirmed transactions, so BlockHash can be

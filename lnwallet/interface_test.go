@@ -15,26 +15,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrlnd/vconv"
-	"github.com/decred/slog"
-
-	_ "github.com/decred/slog"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	bolt "go.etcd.io/bbolt"
 
 	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -76,8 +71,8 @@ var (
 		0x69, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
 
-	netParams = &chaincfg.SimNetParams
-	chainHash = netParams.GenesisHash
+	netParams = chaincfg.SimNetParams()
+	chainHash = &netParams.GenesisHash
 
 	// TODO(matheusd) Are these all?
 	scriptFlagsForTest = txscript.ScriptDiscourageUpgradableNops |
@@ -94,6 +89,8 @@ var (
 	numReqConfs uint16 = 1
 
 	csvDelay uint16 = 4
+
+	scriptVersion uint16 = 0
 
 	bobAddr, _   = net.ResolveTCPAddr("tcp", "10.0.0.2:9000")
 	aliceAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.3:9000")
@@ -286,7 +283,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 		output := &wire.TxOut{
 			Value:    int64(atomsPerOutput),
 			PkScript: script,
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		}
 		if _, err := miner.SendOutputs([]*wire.TxOut{output}, 1e5); err != nil {
 			return err
@@ -1538,7 +1535,7 @@ func testPublishTransaction(r *rpctest.Harness,
 		tx1.AddTxOut(&wire.TxOut{
 			Value:    outputValue - int64(txFee),
 			PkScript: payToScript,
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		})
 
 		// Now we can populate the sign descriptor which we'll use to
@@ -1592,7 +1589,7 @@ func testPublishTransaction(r *rpctest.Harness,
 		newOutput := &wire.TxOut{
 			Value:    dcrutil.AtomsPerCoin,
 			PkScript: keyScript,
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		}
 		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, defaultFeeRate)
 		if err != nil {
@@ -1837,7 +1834,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		newOutput := &wire.TxOut{
 			Value:    dcrutil.AtomsPerCoin,
 			PkScript: keyScript,
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		}
 		tx, err := alice.SendOutputs([]*wire.TxOut{newOutput}, defaultFeeRate)
 		if err != nil {
@@ -1870,7 +1867,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		sweepTx.AddTxOut(&wire.TxOut{
 			Value:    1000,
 			PkScript: keyScript,
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		})
 
 		// Now we can populate the sign descriptor which we'll use to
@@ -2157,7 +2154,7 @@ func testChangeOutputSpendConfirmation(r *rpctest.Harness,
 	output = &wire.TxOut{
 		Value:    dcrutil.AtomsPerCoin,
 		PkScript: alicePkScript,
-		Version:  txscript.DefaultScriptVersion,
+		Version:  scriptVersion,
 	}
 	tx = sendCoins(t, r, vw, bob, alice, output, txFeeRate)
 	txHash = tx.TxHash()
@@ -2647,8 +2644,7 @@ func TestLightningWallet(t *testing.T) {
 	}
 	defer votingWallet.Stop()
 
-	rpcConfig3 := miningNode.RPCConfig()
-	rpcConfig := vconv.RPCConfig3to2(rpcConfig3)
+	rpcConfig := miningNode.RPCConfig()
 
 	tempDir, err := ioutil.TempDir("", "channeldb")
 	if err != nil {
@@ -2671,11 +2667,6 @@ func TestLightningWallet(t *testing.T) {
 	if err := chainNotifier.Start(); err != nil {
 		t.Fatalf("unable to start notifier: %v", err)
 	}
-
-	bknd := slog.NewBackend(os.Stdout)
-	logg := bknd.Logger("XXXX")
-	logg.SetLevel(slog.LevelDebug)
-	dcrwallet.UseLogger(logg)
 
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {

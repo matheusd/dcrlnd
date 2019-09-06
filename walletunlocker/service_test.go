@@ -8,9 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrlnd/vconv"
-
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -33,15 +31,14 @@ var (
 		0x1e, 0x0b, 0x4c, 0xfd,
 	}
 
-	testNetParams = &chaincfg.MainNetParams
+	testNetParams = chaincfg.MainNetParams()
 
 	testRecoveryWindow uint32 = 150
 )
 
 func createTestWallet(t *testing.T, dir string, netParams *chaincfg.Params) {
 	netDir := dcrwallet.NetworkDir(dir, netParams)
-	netParams2 := vconv.NetParams1to2(netParams)
-	loader := walletloader.NewLoader(netParams2, netDir,
+	loader := walletloader.NewLoader(netParams, netDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)

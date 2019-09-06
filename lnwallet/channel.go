@@ -10,14 +10,14 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/decred/dcrd/blockchain"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/dcrutil/txsort"
-	"github.com/decred/dcrd/mempool/v2"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v2/txsort"
+	"github.com/decred/dcrd/mempool/v3"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -26,6 +26,8 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
+
+const scriptVersion uint16 = 0
 
 var zeroHash chainhash.Hash
 
@@ -1397,7 +1399,7 @@ func NewLightningChannel(signer input.Signer,
 		RemoteFundingKey:  state.RemoteChanCfg.MultiSigKey.PubKey,
 
 		// TODO(decred) This needs to be fed in NewLightingChannel
-		netParams: &chaincfg.SimNetParams,
+		netParams: chaincfg.SimNetParams(),
 	}
 
 	// With the main channel struct reconstructed, we'll now restore the
@@ -6230,14 +6232,14 @@ func CreateCommitTx(fundingOutput wire.TxIn,
 		commitTx.AddTxOut(&wire.TxOut{
 			PkScript: payToUsScriptHash,
 			Value:    int64(amountToSelf),
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		})
 	}
 	if amountToThem >= dustLimit {
 		commitTx.AddTxOut(&wire.TxOut{
 			PkScript: theirWitnessKeyHash,
 			Value:    int64(amountToThem),
-			Version:  txscript.DefaultScriptVersion,
+			Version:  scriptVersion,
 		})
 	}
 

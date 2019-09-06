@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 )
 
 const (
@@ -76,7 +76,7 @@ func ParsePkScript(scriptVersion uint16, pkScript []byte) (PkScript, error) {
 
 	outputScript := PkScript{scriptVersion: scriptVersion}
 	scriptClass, _, _, err := txscript.ExtractPkScriptAddrs(
-		scriptVersion, pkScript, &chaincfg.MainNetParams,
+		scriptVersion, pkScript, chaincfg.MainNetParams(),
 	)
 	if err != nil {
 		return outputScript, fmt.Errorf("unable to parse script type: "+
@@ -222,14 +222,14 @@ func ComputePkScript(scriptVersion uint16, sigScript []byte) (PkScript, error) {
 		// p2pkh, therefore assume it is one.
 		scriptClass = txscript.PubKeyHashTy
 		address, err = dcrutil.NewAddressPubKeyHash(
-			lastDataHash, &chaincfg.MainNetParams,
+			lastDataHash, chaincfg.MainNetParams(),
 			dcrec.STEcdsaSecp256k1,
 		)
 	} else {
 		// Assume it's a p2sh.
 		scriptClass = txscript.ScriptHashTy
 		address, err = dcrutil.NewAddressScriptHashFromHash(
-			lastDataHash, &chaincfg.MainNetParams,
+			lastDataHash, chaincfg.MainNetParams(),
 		)
 	}
 	if err != nil {

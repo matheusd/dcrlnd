@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
+	jsonrpctypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
@@ -47,7 +47,7 @@ import (
 )
 
 var (
-	harnessNetParams = &chaincfg.SimNetParams
+	harnessNetParams = chaincfg.SimNetParams()
 )
 
 const (
@@ -6647,7 +6647,7 @@ func waitForNTxsInMempool(miner *rpcclient.Client, n int,
 			return nil, fmt.Errorf("wanted %v, found %v txs "+
 				"in mempool: %v", n, len(mempool), mempool)
 		case <-ticker.C:
-			mempool, err = miner.GetRawMempool(dcrjson.GRMRegular)
+			mempool, err = miner.GetRawMempool(jsonrpctypes.GRMRegular)
 			if err != nil {
 				return nil, err
 			}
@@ -7939,7 +7939,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	exNumInputs := 2 + numInvoices
 	errNotFound := fmt.Errorf("justice tx with %d inputs not found", exNumInputs)
 	findJusticeTx := func() (*chainhash.Hash, error) {
-		mempool, err := net.Miner.Node.GetRawMempool(dcrjson.GRMRegular)
+		mempool, err := net.Miner.Node.GetRawMempool(jsonrpctypes.GRMRegular)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get mempool from "+
 				"miner: %v", err)
@@ -8520,7 +8520,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	exNumInputs := 2 + numInvoices
 	errNotFound := fmt.Errorf("justice tx with %d inputs not found", exNumInputs)
 	findJusticeTx := func() (*chainhash.Hash, error) {
-		mempool, err := net.Miner.Node.GetRawMempool(dcrjson.GRMRegular)
+		mempool, err := net.Miner.Node.GetRawMempool(jsonrpctypes.GRMRegular)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get mempool from "+
 				"miner: %v", err)
@@ -11005,7 +11005,7 @@ func assertSpendingTxInMempool(t *harnessTest, miner *rpcclient.Client,
 		case <-breakTimeout:
 			t.Fatalf("didn't find tx in mempool")
 		case <-ticker.C:
-			mempool, err := miner.GetRawMempool(dcrjson.GRMRegular)
+			mempool, err := miner.GetRawMempool(jsonrpctypes.GRMRegular)
 			if err != nil {
 				t.Fatalf("unable to get mempool: %v", err)
 			}

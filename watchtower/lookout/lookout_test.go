@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/watchtower/blob"
@@ -91,7 +91,7 @@ func TestLookoutBreachMatching(t *testing.T) {
 		DB:             db,
 		EpochRegistrar: backend,
 		Punisher:       punisher,
-		NetParams:      &chaincfg.RegNetParams,
+		NetParams:      chaincfg.RegNetParams(),
 	})
 	if err := watcher.Start(); err != nil {
 		t.Fatalf("unable to start watcher: %v", err)

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -201,7 +201,7 @@ func newTestContext() (tc *testContext, err error) {
 
 	const fundingChangeAddressStr = "Rs8LovBHZfZmC4ShUicmExNWaivPm5cBtNN"
 	tc.fundingChangeAddress, err = dcrutil.DecodeAddress(
-		fundingChangeAddressStr)
+		fundingChangeAddressStr, tc.netParams)
 	if err != nil {
 		err = fmt.Errorf("Failed to parse address: %v", err)
 		return
@@ -292,7 +292,7 @@ func newTestContext() (tc *testContext, err error) {
 // createNetParams is used by newTestContext to construct new chain parameters
 // as required by the BOLT 03 spec.
 func (tc *testContext) createNetParams(genesisHashStr string) (*chaincfg.Params, error) {
-	params := chaincfg.RegNetParams
+	params := chaincfg.RegNetParams()
 
 	// Ensure regression net genesis block matches the one listed in BOLT spec.
 	expectedGenesisHash, err := chainhash.NewHashFromStr(genesisHashStr)
@@ -305,7 +305,7 @@ func (tc *testContext) createNetParams(genesisHashStr string) (*chaincfg.Params,
 		return nil, err
 	}
 
-	return &params, nil
+	return params, nil
 }
 
 // extractFundingInput returns references to the transaction output of the
@@ -379,7 +379,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 	// Manually construct a new LightningChannel.
 	channelState := channeldb.OpenChannel{
 		ChanType:        channeldb.SingleFunder,
-		ChainHash:       *tc.netParams.GenesisHash,
+		ChainHash:       tc.netParams.GenesisHash,
 		FundingOutpoint: tc.fundingOutpoint,
 		ShortChannelID:  tc.shortChanID,
 		IsInitiator:     true,

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 )
 
 // minMedianChanSizeFraction determines the minimum size a channel must have to

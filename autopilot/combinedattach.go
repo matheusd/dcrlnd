@@ -3,7 +3,7 @@ package autopilot
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 )
 
 // WeightedHeuristic is a tuple that associates a weight to an

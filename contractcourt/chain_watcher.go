@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -679,7 +679,9 @@ func (c *chainWatcher) toSelfAmount(tx *wire.MsgTx) dcrutil.Amount {
 	for _, txOut := range tx.TxOut {
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
 			// Doesn't matter what net we actually pass in.
-			txOut.Version, txOut.PkScript, &chaincfg.TestNet3Params,
+			//
+			// TODO(decred) Actually pass the correct params.
+			txOut.Version, txOut.PkScript, chaincfg.TestNet3Params(),
 		)
 		if err != nil {
 			continue
