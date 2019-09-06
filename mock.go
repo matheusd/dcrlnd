@@ -5,11 +5,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 
@@ -216,7 +216,7 @@ type mockChainIO struct {
 var _ lnwallet.BlockChainIO = (*mockChainIO)(nil)
 
 func (m *mockChainIO) GetBestBlock() (*chainhash.Hash, int32, error) {
-	return activeNetParams.GenesisHash, m.bestHeight, nil
+	return &activeNetParams.GenesisHash, m.bestHeight, nil
 }
 
 func (*mockChainIO) GetUtxo(op *wire.OutPoint, _ []byte,
@@ -268,7 +268,7 @@ func (*mockWalletController) ConfirmedBalance(confs int32) (dcrutil.Amount, erro
 func (m *mockWalletController) NewAddress(addrType lnwallet.AddressType,
 	change bool) (dcrutil.Address, error) {
 	addr, _ := dcrutil.NewAddressSecpPubKeyCompressed(
-		m.rootKey.PubKey(), &chaincfg.RegNetParams)
+		m.rootKey.PubKey(), chaincfg.RegNetParams())
 	return addr, nil
 }
 

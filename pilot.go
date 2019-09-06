@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/lnwire"
@@ -98,7 +98,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 	// the funding workflow.
 	req := &openChanReq{
 		targetPubkey:    target,
-		chainHash:       *activeNetParams.GenesisHash,
+		chainHash:       activeNetParams.GenesisHash,
 		subtractFees:    true,
 		localFundingAmt: amt,
 		pushAmt:         0,

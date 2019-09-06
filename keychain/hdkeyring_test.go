@@ -3,9 +3,9 @@ package keychain
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/hdkeychain"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/hdkeychain/v2"
 )
 
 var (
@@ -22,7 +22,7 @@ var (
 func createTestHDKeyRing() *HDKeyRing {
 	// We can ignore errors here because they could only be for invalid
 	// keys/seeds and the default test seed does not produce errors.
-	master, _ := hdkeychain.NewMaster(testHDSeed[:], &chaincfg.RegNetParams)
+	master, _ := hdkeychain.NewMaster(testHDSeed[:], chaincfg.RegNetParams())
 	masterPubs := make(map[KeyFamily]*hdkeychain.ExtendedKey,
 		len(versionZeroKeyFamilies))
 	indexes := make(map[KeyFamily]uint32, len(versionZeroKeyFamilies))

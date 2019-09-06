@@ -1,7 +1,7 @@
 package autopilot
 
 import (
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 )
 
 // AgentConstraints is an interface the agent will query to determine what

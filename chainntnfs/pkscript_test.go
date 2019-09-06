@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/txscript/v2"
 )
 
 // TestParsePkScript ensures that the supported script types can be parsed

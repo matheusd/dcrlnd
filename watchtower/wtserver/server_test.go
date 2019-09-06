@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
@@ -20,11 +20,12 @@ import (
 
 var (
 	// addr is the server's reward address given to watchtower clients.
-	addr, _ = dcrutil.DecodeAddress("TsVDyY1k1N2jZ7xYuoA1PEbwSP2mQnXR9qb")
+	addr, _ = dcrutil.DecodeAddress("TsVDyY1k1N2jZ7xYuoA1PEbwSP2mQnXR9qb",
+		chaincfg.TestNet3Params())
 
 	addrScript, _ = txscript.PayToAddrScript(addr)
 
-	testnetChainHash = *chaincfg.TestNet3Params.GenesisHash
+	testnetChainHash = chaincfg.TestNet3Params().GenesisHash
 
 	testBlob = make([]byte, blob.Size(blob.TypeAltruistCommit))
 )

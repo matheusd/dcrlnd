@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrlnd/chainntnfs"
-	sphinx "github.com/decred/lightning-onion"
+	sphinx "github.com/decred/lightning-onion/v2"
 )
 
 const (

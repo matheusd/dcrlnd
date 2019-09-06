@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -1648,7 +1648,7 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 		Notifier:           notifier,
 		PublishTransaction: func(_ *wire.MsgTx) error { return nil },
 		Store:              store,
-		NetParams:          &chaincfg.RegNetParams,
+		NetParams:          chaincfg.RegNetParams(),
 	})
 
 	if err := ba.Start(); err != nil {
@@ -1668,7 +1668,7 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 // initiator.
 func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwallet.LightningChannel, func(), error) {
 
-	chainParams := &chaincfg.RegNetParams
+	chainParams := chaincfg.RegNetParams()
 
 	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicesPrivKey)
 	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)

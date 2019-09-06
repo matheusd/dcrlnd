@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/standalone"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	rpcclient3 "github.com/decred/dcrd/rpcclient/v3"
+	rpcclient3 "github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -26,7 +26,7 @@ func solveBlock(header *wire.BlockHeader) bool {
 
 	// solver accepts a block header and a nonce range to test. It is
 	// intended to be run as a goroutine.
-	targetDifficulty := blockchain.CompactToBig(header.Bits)
+	targetDifficulty := standalone.CompactToBig(header.Bits)
 	quit := make(chan bool)
 	results := make(chan sbResult)
 	solver := func(hdr wire.BlockHeader, startNonce, stopNonce uint32) {
@@ -40,7 +40,7 @@ func solveBlock(header *wire.BlockHeader) bool {
 			default:
 				hdr.Nonce = i
 				hash := hdr.BlockHash()
-				if blockchain.HashToBig(&hash).Cmp(
+				if standalone.HashToBig(&hash).Cmp(
 					targetDifficulty) <= 0 {
 
 					results <- sbResult{true, i}

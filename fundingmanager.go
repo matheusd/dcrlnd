@@ -10,7 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -2516,7 +2516,7 @@ func (f *fundingManager) newChanAnnouncement(localPubKey, remotePubKey,
 	shortChanID lnwire.ShortChannelID, chanID lnwire.ChannelID,
 	fwdMinHTLC, fwdMaxHTLC lnwire.MilliAtom) (*chanAnnouncement, error) {
 
-	chainHash := *f.cfg.Wallet.Cfg.NetParams.GenesisHash
+	chainHash := f.cfg.Wallet.Cfg.NetParams.GenesisHash
 
 	// The unconditional section of the announcement is the ShortChannelID
 	// itself which compactly encodes the location of the funding output
@@ -2872,7 +2872,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		msg.peer.Address(), chanID)
 
 	fundingOpen := lnwire.OpenChannel{
-		ChainHash:            *f.cfg.Wallet.Cfg.NetParams.GenesisHash,
+		ChainHash:            f.cfg.Wallet.Cfg.NetParams.GenesisHash,
 		PendingChannelID:     chanID,
 		FundingAmount:        capacity,
 		PushAmount:           msg.pushAmt,

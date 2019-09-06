@@ -3,7 +3,7 @@ package lnwire
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 )
 
 // mAtomScale is a value that's used to scale atoms to milli-atoms, and

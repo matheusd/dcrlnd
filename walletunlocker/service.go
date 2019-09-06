@@ -7,9 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/decred/dcrlnd/vconv"
-
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/keychain"
@@ -135,8 +133,7 @@ func (u *UnlockerService) GenSeed(ctx context.Context,
 	// Before we start, we'll ensure that the wallet hasn't already created
 	// so we don't show a *new* seed to the user if one already exists.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	netParams := vconv.NetParams1to2(u.netParams)
-	loader := walletloader.NewLoader(netParams, netDir,
+	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)
@@ -275,8 +272,7 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	// loader is only used for this check and should not leak to the
 	// outside.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	netParams := vconv.NetParams1to2(u.netParams)
-	loader := walletloader.NewLoader(netParams, netDir,
+	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, gapLimit, false,
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)
@@ -339,8 +335,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	}
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	netParams := vconv.NetParams1to2(u.netParams)
-	loader := walletloader.NewLoader(netParams, netDir,
+	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, gapLimit, false,
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)
@@ -395,8 +390,7 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	in *lnrpc.ChangePasswordRequest) (*lnrpc.ChangePasswordResponse, error) {
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	netParams := vconv.NetParams1to2(u.netParams)
-	loader := walletloader.NewLoader(netParams, netDir,
+	loader := walletloader.NewLoader(u.netParams, netDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)

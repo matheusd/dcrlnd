@@ -16,8 +16,8 @@ import (
 	"github.com/decred/dcrlnd/zpay32"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
 )
 
 // AddInvoiceConfig contains dependencies for invoice creation.
@@ -196,7 +196,9 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 
 	// If specified, add a fallback address to the payment request.
 	if len(invoice.FallbackAddr) > 0 {
-		addr, err := dcrutil.DecodeAddress(invoice.FallbackAddr)
+		addr, err := dcrutil.DecodeAddress(
+			invoice.FallbackAddr, cfg.ChainParams,
+		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid fallback address: %v",
 				err)

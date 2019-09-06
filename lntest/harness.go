@@ -15,11 +15,11 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/lnrpc"
@@ -197,7 +197,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 			if err != nil {
 				return err
 			}
-			addr, err := dcrutil.DecodeAddress(resp.Address)
+			addr, err := dcrutil.DecodeAddress(resp.Address, n.netParams)
 			if err != nil {
 				return err
 			}
@@ -1377,7 +1377,7 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	if err != nil {
 		return err
 	}
-	addr, err := dcrutil.DecodeAddress(resp.Address)
+	addr, err := dcrutil.DecodeAddress(resp.Address, n.netParams)
 	if err != nil {
 		return err
 	}

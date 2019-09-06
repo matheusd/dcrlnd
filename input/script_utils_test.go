@@ -8,11 +8,13 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 )
+
+const scriptVersion uint16 = 0
 
 // TestRevocationKeyDerivation tests that given a public key, and a revocation
 // hash, the homomorphic revocation public and private key derivation work
@@ -156,7 +158,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	htlcOutput := &wire.TxOut{
 		Value:    int64(paymentAmt),
 		PkScript: htlcPkScript,
-		Version:  txscript.DefaultScriptVersion,
+		Version:  scriptVersion,
 	}
 	senderCommitTx := wire.NewMsgTx()
 	senderCommitTx.Version = LNTxVersion
@@ -413,7 +415,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	htlcOutput := &wire.TxOut{
 		Value:    int64(paymentAmt),
 		PkScript: htlcWitnessScript,
-		Version:  txscript.DefaultScriptVersion,
+		Version:  scriptVersion,
 	}
 
 	receiverCommitTx := wire.NewMsgTx()
@@ -577,7 +579,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, scriptFlagsForTest, txscript.DefaultScriptVersion,
+			sweepTx, 0, scriptFlagsForTest, scriptVersion,
 			nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
@@ -807,7 +809,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, scriptFlagsForTest, txscript.DefaultScriptVersion, nil)
+			sweepTx, 0, scriptFlagsForTest, scriptVersion, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}

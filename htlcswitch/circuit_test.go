@@ -6,13 +6,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwire"
-	sphinx "github.com/decred/lightning-onion"
+	sphinx "github.com/decred/lightning-onion/v2"
 )
 
 var (
@@ -83,7 +83,8 @@ func initTestExtracter() {
 // db and no garbage collection.
 func newOnionProcessor(t *testing.T) *htlcswitch.OnionProcessor {
 	sphinxRouter := sphinx.NewRouter(
-		sphinxPrivKey, &chaincfg.SimNetParams, sphinx.NewMemoryReplayLog(),
+		sphinxPrivKey, chaincfg.SimNetParams(),
+		sphinx.NewMemoryReplayLog(),
 	)
 
 	if err := sphinxRouter.Start(); err != nil {

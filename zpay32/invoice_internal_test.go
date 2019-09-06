@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/bech32"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -655,19 +655,19 @@ func TestParseFallbackAddr(t *testing.T) {
 		},
 		{
 			data:   testAddrTestnetDataWithVersion,
-			net:    &chaincfg.TestNet3Params,
+			net:    chaincfg.TestNet3Params(),
 			valid:  true,
 			result: testAddrTestnet,
 		},
 		{
 			data:   testRustyAddrDataWithVersion,
-			net:    &chaincfg.MainNetParams,
+			net:    chaincfg.MainNetParams(),
 			valid:  true,
 			result: testRustyAddr,
 		},
 		{
 			data:   testAddrMainnetP2SHDataWithVersion,
-			net:    &chaincfg.MainNetParams,
+			net:    chaincfg.MainNetParams(),
 			valid:  true,
 			result: testAddrMainnetP2SH,
 		},

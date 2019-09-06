@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/watchtower/blob"

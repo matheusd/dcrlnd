@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/decred/dcrd/chaincfg"
-	"github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
 )
 
@@ -69,7 +69,7 @@ func NewBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
 		"--debuglevel=debug",
 		"--logdir=" + logDir,
 	}
-	netParams := &chaincfg.SimNetParams
+	netParams := chaincfg.SimNetParams()
 	chainBackend, err := rpctest.New(netParams, nil, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create dcrd node: %v", err)

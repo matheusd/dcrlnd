@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -518,7 +518,7 @@ func TestGossipSyncerReplyShortChanIDsWrongChainHash(t *testing.T) {
 	// We'll now ask the syncer to reply to a chan ID query, but for a
 	// chain that it isn't aware of.
 	err := syncer.replyShortChanIDs(&lnwire.QueryShortChanIDs{
-		ChainHash: *chaincfg.SimNetParams.GenesisHash,
+		ChainHash: chaincfg.SimNetParams().GenesisHash,
 	})
 	if err != nil {
 		t.Fatalf("unable to process short chan ID's: %v", err)
@@ -543,9 +543,10 @@ func TestGossipSyncerReplyShortChanIDsWrongChainHash(t *testing.T) {
 				"instead got %T", msg)
 		}
 
-		if msg.ChainHash != *chaincfg.SimNetParams.GenesisHash {
+		simnetParams := chaincfg.SimNetParams()
+		if msg.ChainHash != simnetParams.GenesisHash {
 			t.Fatalf("wrong chain hash: expected %v, got %v",
-				msg.ChainHash, chaincfg.SimNetParams.GenesisHash)
+				msg.ChainHash, simnetParams.GenesisHash)
 		}
 		if msg.Complete != 0 {
 			t.Fatalf("complete set incorrectly")

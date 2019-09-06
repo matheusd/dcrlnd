@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -238,6 +238,7 @@ var (
 
 	addr, _ = dcrutil.DecodeAddress(
 		"Tsi6gGYNSMmFwi7JoL5Li39SrERZTTMu6vY",
+		chaincfg.TestNet3Params(),
 	)
 
 	addrScript, _ = txscript.PayToAddrScript(addr)
@@ -410,7 +411,7 @@ func TestBackupTask(t *testing.T) {
 func testBackupTask(t *testing.T, test backupTaskTest) {
 	// Create a new backupTask from the channel id and breach info.
 	task := newBackupTask(&test.chanID, test.breachInfo, test.expSweepScript,
-		&chaincfg.TestNet3Params)
+		chaincfg.TestNet3Params())
 
 	// Assert that all parameters set during initialization are properly
 	// populated.

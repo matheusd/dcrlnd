@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -57,6 +57,7 @@ var (
 	// addr is the server's reward address given to watchtower clients.
 	addr, _ = dcrutil.DecodeAddress(
 		"Tsi6gGYNSMmFwi7JoL5Li39SrERZTTMu6vY",
+		chaincfg.TestNet3Params(),
 	)
 
 	addrScript, _ = txscript.PayToAddrScript(addr)
@@ -447,7 +448,7 @@ func newHarness(t *testing.T, cfg harnessCfg) *testHarness {
 		WriteTimeout: timeout,
 		MinBackoff:   time.Millisecond,
 		MaxBackoff:   10 * time.Millisecond,
-		ChainParams:  &chaincfg.TestNet3Params,
+		ChainParams:  chaincfg.TestNet3Params(),
 	}
 	client, err := wtclient.New(clientCfg)
 	if err != nil {

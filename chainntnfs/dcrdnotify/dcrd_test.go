@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/decred/dcrlnd/vconv"
-
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -53,8 +51,8 @@ func initHintCache(t *testing.T) *chainntnfs.HeightHintCache {
 func setUpNotifier(t *testing.T, h *rpctest.Harness) *DcrdNotifier {
 	hintCache := initHintCache(t)
 
-	rpcCfg := vconv.RPCConfig3to2(h.RPCConfig())
-	notifier, err := New(&rpcCfg, chainntnfs.NetParams, hintCache, hintCache)
+	rpcConfig := h.RPCConfig()
+	notifier, err := New(&rpcConfig, chainntnfs.NetParams, hintCache, hintCache)
 	if err != nil {
 		t.Fatalf("unable to create notifier: %v", err)
 	}

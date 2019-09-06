@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -178,10 +178,10 @@ func (cfg nodeConfig) ChanBackupPath() string {
 func (cfg nodeConfig) genArgs() []string {
 	var args []string
 
-	switch cfg.NetParams {
-	case &chaincfg.TestNet3Params:
+	switch cfg.NetParams.Net {
+	case wire.TestNet3:
 		args = append(args, "--decred.testnet")
-	case &chaincfg.SimNetParams:
+	case wire.SimNet:
 		args = append(args, "--decred.simnet")
 	}
 

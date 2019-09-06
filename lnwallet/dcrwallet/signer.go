@@ -145,10 +145,9 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 
 	// TODO(roasbeef): generate sighash midstate if not present?
 	// TODO(decred): use cached prefix hash in signDesc.sigHashes
-	hashTypeV2 := txscript.SigHashType(signDesc.HashType)
 	sig, err := txscript.RawTxInSignature(
 		tx, signDesc.InputIndex,
-		witnessScript, hashTypeV2, privKey,
+		witnessScript, signDesc.HashType, privKey,
 	)
 	if err != nil {
 		return nil, err
@@ -223,9 +222,8 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
-	hashTypeV2 := txscript.SigHashType(signDesc.HashType)
 	sigScript, err := txscript.SignatureScript(tx, signDesc.InputIndex,
-		outputScript, hashTypeV2, privKey, true)
+		outputScript, signDesc.HashType, privKey, true)
 	if err != nil {
 		return nil, err
 	}

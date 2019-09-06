@@ -1,7 +1,7 @@
 package dcrlnd
 
 import (
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 )
@@ -21,7 +21,7 @@ type decredNetParams struct {
 // decredTestNetParams contains parameters specific to the 3rd version of the
 // test network.
 var decredTestNetParams = decredNetParams{
-	Params:   &chaincfg.TestNet3Params,
+	Params:   chaincfg.TestNet3Params(),
 	rpcPort:  "19109",
 	CoinType: keychain.CoinTypeTestnet,
 }
@@ -29,7 +29,7 @@ var decredTestNetParams = decredNetParams{
 // decredMainNetParams contains parameters specific to the current Decred
 // mainnet.
 var decredMainNetParams = decredNetParams{
-	Params:   &chaincfg.MainNetParams,
+	Params:   chaincfg.MainNetParams(),
 	rpcPort:  "9109",
 	CoinType: keychain.CoinTypeDecred,
 }
@@ -37,14 +37,14 @@ var decredMainNetParams = decredNetParams{
 // decredSimNetParams contains parameters specific to the simulation test
 // network.
 var decredSimNetParams = decredNetParams{
-	Params:   &chaincfg.SimNetParams,
+	Params:   chaincfg.SimNetParams(),
 	rpcPort:  "19556",
 	CoinType: keychain.CoinTypeTestnet,
 }
 
 // regTestNetParams contains parameters specific to a local regtest network.
 var regTestNetParams = decredNetParams{
-	Params:   &chaincfg.RegNetParams,
+	Params:   chaincfg.RegNetParams(),
 	rpcPort:  "19334",
 	CoinType: keychain.CoinTypeTestnet,
 }

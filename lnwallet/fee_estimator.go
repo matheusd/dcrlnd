@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/rpcclient/v2"
+	"github.com/decred/dcrd/dcrutil/v2"
+	dcrjson "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	"github.com/decred/dcrd/rpcclient/v5"
 )
 
 const (

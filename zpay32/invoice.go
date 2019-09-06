@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/bech32"
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -83,10 +83,10 @@ var (
 // decredHRPPrefixes are the prefixes that should be present on the HRP (human
 // readable part) section of ln addresses for each decred network.
 var decredHRPPrefixes = map[string]string{
-	chaincfg.MainNetParams.Name:  "dcr",
-	chaincfg.RegNetParams.Name:   "rdcr",
-	chaincfg.SimNetParams.Name:   "sdcr",
-	chaincfg.TestNet3Params.Name: "tdcr",
+	chaincfg.MainNetParams().Name:  "dcr",
+	chaincfg.RegNetParams().Name:   "rdcr",
+	chaincfg.SimNetParams().Name:   "sdcr",
+	chaincfg.TestNet3Params().Name: "tdcr",
 }
 
 // MessageSigner is passed to the Encode method to provide a signature

@@ -11,13 +11,13 @@ import (
 	"os"
 	"sync"
 
-	"github.com/decred/dcrd/blockchain"
 	"github.com/decred/dcrd/blockchain/stake"
-	"github.com/decred/dcrd/chaincfg"
+	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/dcrutil"
-	"github.com/decred/dcrd/txscript"
+	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -219,7 +219,7 @@ func CreateTestChannels() (*LightningChannel, *LightningChannel, func(), error) 
 
 	aliceCommitTx, bobCommitTx, err := CreateCommitmentTxns(channelBal,
 		channelBal, &aliceCfg, &bobCfg, aliceCommitPoint, bobCommitPoint,
-		*fundingTxIn, &chaincfg.RegNetParams)
+		*fundingTxIn, chaincfg.RegNetParams())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -533,7 +533,7 @@ func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOu
 			tx.Version, input.LNTxVersion)
 	}
 	for i, out := range tx.TxOut {
-		if out.Version != txscript.DefaultScriptVersion {
+		if out.Version != scriptVersion {
 			return fmt.Errorf("output %d of tx does not use the "+
 				"default script version (found %d)", i, out.Version)
 		}

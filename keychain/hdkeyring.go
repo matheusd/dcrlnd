@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
-	"github.com/decred/dcrd/hdkeychain"
+	"github.com/decred/dcrd/hdkeychain/v2"
 )
 
 var errPubOnlyKeyRing = errors.New("keyring configured as pubkey only")

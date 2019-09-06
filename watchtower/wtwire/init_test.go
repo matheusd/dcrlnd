@@ -3,15 +3,15 @@ package wtwire_test
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtwire"
 )
 
 var (
-	testnetChainHash = *chaincfg.TestNet3Params.GenesisHash
-	mainnetChainHash = *chaincfg.MainNetParams.GenesisHash
+	testnetChainHash = chaincfg.TestNet3Params().GenesisHash
+	mainnetChainHash = chaincfg.MainNetParams().GenesisHash
 )
 
 type checkRemoteInitTest struct {
