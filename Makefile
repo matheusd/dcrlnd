@@ -18,7 +18,6 @@ GOVERALLS_BIN := $(GO_BIN)/goveralls
 LINT_BIN := $(GO_BIN)/golangci-lint
 GOACC_BIN := $(GO_BIN)/go-acc
 
-DCRD_DIR :=${GOPATH}/src/$(DCRD_PKG)
 
 COMMIT := $(shell git describe --abbrev=40 --dirty)
 LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
@@ -27,7 +26,11 @@ DCRD_COMMIT := $(shell cat go.mod | \
 		grep $(DCRD_PKG) | \
 		head -n1 | \
 		awk -F " " '{ print $$2 }' | \
-		awk -F "/" '{ print $$1 }')
+		awk -F "/" '{ print $$1 }' | \
+		awk -F "-" '{ print $$NF }' )
+DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
+DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
+DCRD_TMPDIR := $(shell mktemp -d)
 
 GOACC_COMMIT := ddc355013f90fea78d83d3a6c71f1d37ac07ecd5
 
@@ -88,7 +91,12 @@ $(GOACC_BIN):
 
 dcrd:
 	@$(call print, "Installing dcrd $(DCRD_COMMIT).")
-	GO111MODULE=on go get -v github.com/decred/dcrd/@$(DCRD_COMMIT)
+	git clone https://github.com/decred/dcrd $(DCRD_TMPDIR)
+	cd $(DCRD_TMPDIR) && \
+		git checkout $(DCRD_COMMIT) && \
+		GO111MODULE=on go install -ldflags $(DCRD_LDFLAGS) . && \
+		GO111MODULE=on go install -ldflags $(DCRD_LDFLAGS) ./cmd/dcrctl
+	rm -rf $(DCRD_TMPDIR)
 
 # ============
 # INSTALLATION
