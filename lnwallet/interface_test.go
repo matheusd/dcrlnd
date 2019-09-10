@@ -1075,6 +1075,10 @@ func testListTransactionDetails(miner *rpctest.Harness,
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
 		txids[*txid] = struct{}{}
+		err = waitForMempoolTx(miner, txid)
+		if err != nil {
+			t.Fatalf("unable to detect mempool tx: %v", err)
+		}
 	}
 
 	// Generate 10 blocks to mine all the transactions created above.
@@ -2597,9 +2601,9 @@ func TestLightningWallet(t *testing.T) {
 	t.Parallel()
 
 	// Initialize the harness around a dcrd node which will serve as our
-	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set
-	// up this node with a chain length of 125, so we have plenty of DCR
-	// to play around with.
+	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
+	// this node with a chain length of 125, so we have plenty of DCR to
+	// play around with.
 	minerArgs := []string{"--txindex"}
 	miningNode, err := rpctest.New(netParams, nil, minerArgs)
 	if err != nil {
