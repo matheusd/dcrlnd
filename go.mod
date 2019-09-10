@@ -79,7 +79,7 @@ replace (
 	github.com/decred/dcrwallet/chain/v3 => github.com/jrick/btcwallet/chain/v3 v3.0.0-20190903173710-02ab93ce28c3
 	github.com/decred/dcrwallet/deployments/v2 => github.com/jrick/btcwallet/deployments/v2 v2.0.0-20190903173710-02ab93ce28c3
 	github.com/decred/dcrwallet/p2p/v2 => github.com/jrick/btcwallet/p2p/v2 v2.0.0-20190903173710-02ab93ce28c3
-	github.com/decred/dcrwallet/rpc/client/dcrd => github.com/jrick/btcwallet/rpc/client/dcrd v0.0.0-20190903173710-02ab93ce28c3
+	github.com/decred/dcrwallet/rpc/client/dcrd => github.com/matheusd/dcrwallet/rpc/client/dcrd v0.0.0-20190910182432-95d8c80cea0b
 	github.com/decred/dcrwallet/spv/v3 => github.com/jrick/btcwallet/spv/v3 v3.0.0-20190903173710-02ab93ce28c3
 	github.com/decred/dcrwallet/ticketbuyer/v4 => github.com/jrick/btcwallet/ticketbuyer/v4 v4.0.0-20190903173710-02ab93ce28c3
 	github.com/decred/dcrwallet/wallet/v3 => github.com/jrick/btcwallet/wallet/v3 v3.0.0-20190903173710-02ab93ce28c3

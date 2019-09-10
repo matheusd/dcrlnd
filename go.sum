@@ -273,6 +273,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/matheusd/dcrwallet/rpc/client/dcrd v0.0.0-20190910182432-95d8c80cea0b h1:CfOi6VN69TLil1lBOiJ8m+CNuZts3sO+94su3gD69CQ=
+github.com/matheusd/dcrwallet/rpc/client/dcrd v0.0.0-20190910182432-95d8c80cea0b/go.mod h1:r1qZ4Dk/sB8tOgelTCuipLio9SL+pdyoYkPvUS1V3ug=
 github.com/matheusd/lightning-onion/v2 v2.0.0-20190910134449-3c46604d6d0f h1:q21C2rK+ZtXeO9/mFbaPI9qbqgGKF47330EjDerEsQ8=
 github.com/matheusd/lightning-onion/v2 v2.0.0-20190910134449-3c46604d6d0f/go.mod h1:pvQsA+AQwRXP9ths/5JEzwEwosII/Y3FtTA6uVvA+/g=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
