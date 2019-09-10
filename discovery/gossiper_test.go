@@ -740,6 +740,11 @@ func createTestCtx(startHeight uint32) (*testCtx, func(), error) {
 			c := make(chan struct{})
 			return c
 		},
+		SelfNodeAnnouncement: func(bool) (lnwire.NodeAnnouncement, error) {
+			return lnwire.NodeAnnouncement{
+				Timestamp: testTimestamp,
+			}, nil
+		},
 		Router:               router,
 		TrickleDelay:         trickleDelay,
 		RetransmitTicker:     ticker.NewForce(retransmitDelay),
@@ -1492,6 +1497,7 @@ func TestSignatureAnnouncementRetryAtStartup(t *testing.T) {
 		Broadcast:            ctx.gossiper.cfg.Broadcast,
 		NotifyWhenOnline:     ctx.gossiper.reliableSender.cfg.NotifyWhenOnline,
 		NotifyWhenOffline:    ctx.gossiper.reliableSender.cfg.NotifyWhenOffline,
+		SelfNodeAnnouncement: ctx.gossiper.cfg.SelfNodeAnnouncement,
 		Router:               ctx.gossiper.cfg.Router,
 		TrickleDelay:         trickleDelay,
 		RetransmitTicker:     ticker.NewForce(retransmitDelay),
@@ -2823,11 +2829,11 @@ func TestRetransmit(t *testing.T) {
 		t.Fatalf("can't generate announcements: %v", err)
 	}
 
-	localKey, err := btcec.ParsePubKey(batch.nodeAnn1.NodeID[:], btcec.S256())
+	localKey, err := secp256k1.ParsePubKey(batch.nodeAnn1.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
-	remoteKey, err := btcec.ParsePubKey(batch.nodeAnn2.NodeID[:], btcec.S256())
+	remoteKey, err := secp256k1.ParsePubKey(batch.nodeAnn2.NodeID[:])
 	if err != nil {
 		t.Fatalf("unable to parse pubkey: %v", err)
 	}
