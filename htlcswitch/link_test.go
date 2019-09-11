@@ -1655,6 +1655,12 @@ func (m *mockPeer) Address() net.Addr {
 func (m *mockPeer) Inbound() bool {
 	return false
 }
+func (m *mockPeer) LocalGlobalFeatures() *lnwire.FeatureVector {
+	return nil
+}
+func (m *mockPeer) RemoteGlobalFeatures() *lnwire.FeatureVector {
+	return nil
+}
 
 func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 	ChannelLink, *lnwallet.LightningChannel, chan time.Time, func() error,

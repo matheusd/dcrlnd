@@ -601,6 +601,14 @@ func (s *mockServer) WipeChannel(*wire.OutPoint) error {
 	return nil
 }
 
+func (s *mockServer) LocalGlobalFeatures() *lnwire.FeatureVector {
+	return nil
+}
+
+func (s *mockServer) RemoteGlobalFeatures() *lnwire.FeatureVector {
+	return nil
+}
+
 func (s *mockServer) Stop() error {
 	if !atomic.CompareAndSwapInt32(&s.shutdown, 0, 1) {
 		return nil
