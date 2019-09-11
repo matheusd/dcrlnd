@@ -2802,6 +2802,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		t.Fatalf("unknown wallet driver: %v", walletType)
 	}
 
+	t.Logf("creating test wallets %s", time.Now())
 	// Funding via 20 outputs with 4DCR each.
 	alice, err := createTestWallet(
 		aliceCDB, miningNode, netParams,
@@ -2812,6 +2813,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		t.Fatalf("unable to create test ln wallet: %v", err)
 	}
 	defer alice.Shutdown()
+	t.Logf("alice created %s", time.Now())
 
 	bob, err := createTestWallet(
 		bobCDB, miningNode, netParams,
@@ -2822,6 +2824,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		t.Fatalf("unable to create test ln wallet: %v", err)
 	}
 	defer bob.Shutdown()
+	t.Logf("bob created %s", time.Now())
 
 	// Wait for both wallets to be synced.
 	t.Logf("Initiating sync %s", time.Now())
