@@ -27,7 +27,7 @@ script:
       --enable=ineffassign
 
   # Run unit tests with race condition detector.
-  - 'if [ "$RACE" = true ]; then make travis-race ; fi'
+  - 'if [ "$RACE" = true ]; then make travis-race pkg=lnwallet; fi'
 
   # Run integration tests.
   - 'if [ "$ITEST" = true ]; then make travis-itest; fi'
