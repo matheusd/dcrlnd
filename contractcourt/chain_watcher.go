@@ -732,9 +732,7 @@ func (c *chainWatcher) dispatchCooperativeClose(commitSpend *chainntnfs.SpendDet
 	}
 
 	// Attempt to add a channel sync message to the close summary.
-	chanSync, err := c.cfg.chanState.ChanSyncMsg(
-		c.cfg.chanState.HasChanStatus(channeldb.ChanStatusRestored),
-	)
+	chanSync, err := c.cfg.chanState.ChanSyncMsg()
 	if err != nil {
 		log.Errorf("ChannelPoint(%v): unable to create channel sync "+
 			"message: %v", c.cfg.chanState.FundingOutpoint, err)
@@ -811,9 +809,7 @@ func (c *chainWatcher) dispatchLocalForceClose(
 	}
 
 	// Attempt to add a channel sync message to the close summary.
-	chanSync, err := c.cfg.chanState.ChanSyncMsg(
-		c.cfg.chanState.HasChanStatus(channeldb.ChanStatusRestored),
-	)
+	chanSync, err := c.cfg.chanState.ChanSyncMsg()
 	if err != nil {
 		log.Errorf("ChannelPoint(%v): unable to create channel sync "+
 			"message: %v", c.cfg.chanState.FundingOutpoint, err)
@@ -997,9 +993,7 @@ func (c *chainWatcher) dispatchContractBreach(spendEvent *chainntnfs.SpendDetail
 	}
 
 	// Attempt to add a channel sync message to the close summary.
-	chanSync, err := c.cfg.chanState.ChanSyncMsg(
-		c.cfg.chanState.HasChanStatus(channeldb.ChanStatusRestored),
-	)
+	chanSync, err := c.cfg.chanState.ChanSyncMsg()
 	if err != nil {
 		log.Errorf("ChannelPoint(%v): unable to create channel sync "+
 			"message: %v", c.cfg.chanState.FundingOutpoint, err)
