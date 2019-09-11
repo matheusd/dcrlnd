@@ -2824,7 +2824,8 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	defer bob.Shutdown()
 
 	// Wait for both wallets to be synced.
-	timeout := time.After(time.Second * 30)
+	t.Logf("Initiating sync %s", time.Now())
+	timeout := time.After(time.Second * 60)
 	aliceSync := aliceWalletController.InitialSyncChannel()
 	bobSync := bobWalletController.InitialSyncChannel()
 	for aliceSync != nil || bobSync != nil {
@@ -2832,10 +2833,10 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		case <-timeout:
 			t.Fatalf("timeout while waiting for wallets to sync")
 		case <-aliceSync:
-			t.Logf("Alice synced")
+			t.Logf("Alice synced, %s", time.Now())
 			aliceSync = nil
 		case <-bobSync:
-			t.Logf("Bob synced")
+			t.Logf("Bob synced, %s", time.Now())
 			bobSync = nil
 		}
 	}
