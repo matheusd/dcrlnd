@@ -840,8 +840,7 @@ func TestPaymentRouteSerialization(t *testing.T) {
 						payInfo.PaymentHash[:],
 					)
 					if err != nil {
-						t.Fatalf("unable to create "+
-							"payInfo bucket: %v", err)
+						t.Fatalf("unable to create payments bucket: %v", err)
 					}
 				} else {
 					payHashBucket = paymentsBucket.Bucket(
