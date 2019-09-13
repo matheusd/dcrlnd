@@ -10,7 +10,7 @@ ESCPKG := github.com\/decred\/dcrlnd
 DCRD_PKG := github.com/decred/dcrd
 DCRWALLET_PKG := github.com/decred/dcrwallet
 GOVERALLS_PKG := github.com/mattn/goveralls
-LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
 GOACC_PKG := github.com/ory/go-acc
 
 GO_BIN := ${GOPATH}/bin
@@ -101,8 +101,11 @@ $(GOVERALLS_BIN):
 	go get -u $(GOVERALLS_PKG)
 
 $(LINT_BIN):
-	@$(call print, "Fetching golangci-lint")
-	GO111MODULE=on go get -u $(LINT_PKG)
+	@$(call print, "Fetching linter")
+	# Switch to tmp directory to prevent lnd go.mod from being modified.
+	# Hopefully someday a flag for go get will be added for this.
+	cd /tmp
+	GO111MODULE=on go get $(LINT_PKG)
 
 $(GOACC_BIN):
 	@$(call print, "Fetching go-acc")
