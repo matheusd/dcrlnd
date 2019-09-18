@@ -841,23 +841,7 @@ func (f *fundingManager) stateStep(channel *channeldb.OpenChannel,
 	// The funding transaction was confirmed, but we did not successfully
 	// send the fundingLocked message to the peer, so let's do that now.
 	case markedOpen:
-		peerChan := make(chan lnpeer.Peer, 1)
-
-		var peerKey [33]byte
-		copy(peerKey[:], channel.IdentityPub.SerializeCompressed())
-
-		f.cfg.NotifyWhenOnline(peerKey, peerChan)
-
-		var peer lnpeer.Peer
-		select {
-		case peer = <-peerChan:
-		case <-f.quit:
-			return ErrFundingManagerShuttingDown
-		}
-
-		err := f.sendFundingLocked(
-			peer, channel, lnChannel, shortChanID,
-		)
+		err := f.sendFundingLocked(channel, lnChannel, shortChanID)
 		if err != nil {
 			return fmt.Errorf("failed sending fundingLocked: %v",
 				err)
@@ -2069,7 +2053,7 @@ func (f *fundingManager) handleFundingConfirmation(
 // sendFundingLocked creates and sends the fundingLocked message.
 // This should be called after the funding transaction has been confirmed,
 // and the channelState is 'markedOpen'.
-func (f *fundingManager) sendFundingLocked(peer lnpeer.Peer,
+func (f *fundingManager) sendFundingLocked(
 	completeChan *channeldb.OpenChannel, channel *lnwallet.LightningChannel,
 	shortChanID *lnwire.ShortChannelID) error {
 
@@ -2100,8 +2084,18 @@ func (f *fundingManager) sendFundingLocked(peer lnpeer.Peer,
 	// send fundingLocked until we succeed, or the fundingManager is shut
 	// down.
 	for {
-		fndgLog.Debugf("Sending FundingLocked for ChannelID(%v) to "+
-			"peer %x", chanID, peerKey)
+		connected := make(chan lnpeer.Peer, 1)
+		f.cfg.NotifyWhenOnline(peerKey, connected)
+
+		var peer lnpeer.Peer
+		select {
+		case peer = <-connected:
+		case <-f.quit:
+			return ErrFundingManagerShuttingDown
+		}
+
+		fndgLog.Infof("Peer(%x) is online, sending FundingLocked "+
+			"for ChannelID(%v)", peerKey, chanID)
 
 		if err := peer.SendMessage(false, fundingLockedMsg); err == nil {
 			// Sending succeeded, we can break out and continue the
@@ -2111,20 +2105,6 @@ func (f *fundingManager) sendFundingLocked(peer lnpeer.Peer,
 
 		fndgLog.Warnf("Unable to send fundingLocked to peer %x: %v. "+
 			"Will retry when online", peerKey, err)
-
-		connected := make(chan lnpeer.Peer, 1)
-		f.cfg.NotifyWhenOnline(peerKey, connected)
-
-		select {
-		case <-connected:
-			fndgLog.Infof("Peer(%x) came back online, will retry "+
-				"sending FundingLocked for ChannelID(%v)",
-				peerKey, chanID)
-
-			// Retry sending.
-		case <-f.quit:
-			return ErrFundingManagerShuttingDown
-		}
 	}
 
 	return nil
