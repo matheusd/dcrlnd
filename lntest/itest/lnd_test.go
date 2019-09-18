@@ -148,6 +148,8 @@ func assertCleanState(h *harnessTest, net *lntest.NetworkHarness) {
 	assertNumPendingChannels(h, net.Alice, 0, 0, 0, 0)
 	assertNodeNumChannels(h, net.Bob, 0)
 	assertNumPendingChannels(h, net.Bob, 0, 0, 0, 0)
+	assertNumUnminedUnspent(h, net.Alice, 0)
+	assertNumUnminedUnspent(h, net.Bob, 0)
 	waitForNTxsInMempool(net.Miner.Node, 0, minerMempoolTimeout)
 }
 
@@ -640,6 +642,22 @@ func assertNumConnections(t *harnessTest, alice, bob *lntest.HarnessNode,
 		// Alice and Bob both have the required number of
 		// peers, stop polling and return to caller.
 		return
+	}
+}
+
+func assertNumUnminedUnspent(t *harnessTest, node *lntest.HarnessNode, expected int) {
+	ctxb := context.Background()
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	utxoReq := &lnrpc.ListUnspentRequest{}
+	utxoResp, err := node.ListUnspent(ctxt, utxoReq)
+	if err != nil {
+		t.Fatalf("unable to query utxos: %v", err)
+	}
+
+	actual := len(utxoResp.Utxos)
+	if actual != expected {
+		t.Fatalf("node %s has wrong number of unmined utxos ("+
+			"expected %d actual %d)", node.Name(), expected, actual)
 	}
 }
 
