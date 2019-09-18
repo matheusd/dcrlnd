@@ -1361,6 +1361,28 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	target *HarnessNode, addrType lnrpc.AddressType,
 	confirmed bool) error {
 
+	// This method requires that there be no other utxos for this node in
+	// the mempool, therefore mine up to 244 blocks to clear it.
+	maxBlocks := 244
+	for i := 0; i < maxBlocks; i++ {
+		req := &lnrpc.ListUnspentRequest{}
+		resp, err := target.ListUnspent(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		if len(resp.Utxos) == 0 {
+			break
+		}
+		if i == maxBlocks-1 {
+			return fmt.Errorf("node still has %d utxos in the "+
+				"mempool", len(resp.Utxos))
+		}
+		if _, err := n.Generate(1); err != nil {
+			return err
+		}
+	}
+
 	balReq := &lnrpc.WalletBalanceRequest{}
 	initialBalance, err := target.WalletBalance(ctx, balReq)
 	if err != nil {
