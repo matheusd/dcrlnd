@@ -74,6 +74,7 @@ DEV_TAGS := $(if ${tags},$(DEV_TAGS) ${tags},$(DEV_TAGS))
 
 LINT = $(LINT_BIN) \
 	run \
+	-v \
 	--build-tags=$(ALL_TAGS) \
 	--skip-files="mobile\\/.*generated\\.go" \
 	--disable-all \
