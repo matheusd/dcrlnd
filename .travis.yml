@@ -12,6 +12,8 @@ env:
   matrix:
     - RACE=true
     - ITEST=true
+    - REMOTEWALLET_ITEST=true
+    - REMOTEWALLET_RACE=true
 #    - COVER=true
 
 install:
@@ -29,8 +31,14 @@ script:
   # Run unit tests with race condition detector.
   - 'if [ "$RACE" = true ]; then make travis-race ; fi'
 
+  # Run unit tests with race condition detector for the remote wallet impl.
+  - 'if [ "$REMOTEWALLET_RACE" = true ]; then make travis-race walletimpl=remotewallet; fi'
+
   # Run integration tests.
   - 'if [ "$ITEST" = true ]; then make travis-itest; fi'
+
+  # Run remote wallet integration tests.
+  - 'if [ "$REMOTEWALLET_ITEST" = true ]; then make travis-itest walletimpl=remotewallet; fi'
 
   # Run unit tests and generate coverage report.
   - 'if [ "$COVER" = true ]; then make travis-cover; fi'

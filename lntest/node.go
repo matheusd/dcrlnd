@@ -20,7 +20,9 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/hdkeychain/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
@@ -29,6 +31,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
 	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/macaroons"
+	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/go-errors/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -65,6 +68,10 @@ const (
 	// defaultProfilePort + (4 * harness.nodeNum).
 	defaultProfilePort = defaultNodePort + 3
 
+	// defaultWalletPort is the initial port which will be used for the
+	// wallet when running a remote dcrwallet that dcrlnd connects to.
+	defaultWalletPort = defaultNodePort + 4
+
 	// logPubKeyBytes is the number of bytes of the node's PubKey that
 	// will be appended to the log file name. The whole PubKey is too
 	// long and not really necessary to quickly identify what node
@@ -96,13 +103,14 @@ var (
 // test instances created, the default ports are used. Otherwise, in order to
 // support multiple test nodes running at once, the p2p, rpc, rest and
 // profiling ports are incremented after each initialization.
-func generateListeningPorts() (int, int, int, int) {
-	p2p := defaultNodePort + (4 * numActiveNodes)
-	rpc := defaultClientPort + (4 * numActiveNodes)
-	rest := defaultRestPort + (4 * numActiveNodes)
-	profile := defaultProfilePort + (4 * numActiveNodes)
+func generateListeningPorts() (int, int, int, int, int) {
+	p2p := defaultNodePort + (5 * numActiveNodes)
+	rpc := defaultClientPort + (5 * numActiveNodes)
+	rest := defaultRestPort + (5 * numActiveNodes)
+	profile := defaultProfilePort + (5 * numActiveNodes)
+	wallet := defaultWalletPort + (5 * numActiveNodes)
 
-	return p2p, rpc, rest, profile
+	return p2p, rpc, rest, profile, wallet
 }
 
 // BackendConfig is an interface that abstracts away the specific chain backend
@@ -111,6 +119,10 @@ type BackendConfig interface {
 	// GenArgs returns the arguments needed to be passed to LND at startup
 	// for using this node as a chain backend.
 	GenArgs() []string
+
+	// StartWalletSync starts the sync process of a remote wallet using the
+	// given backend implementation.
+	StartWalletSync(loader pb.WalletLoaderServiceClient, password []byte) error
 
 	// ConnectMiner is called to establish a connection to the test miner.
 	ConnectMiner() error
@@ -137,13 +149,15 @@ type nodeConfig struct {
 	ReadMacPath    string
 	InvoiceMacPath string
 
-	HasSeed  bool
-	Password []byte
+	HasSeed      bool
+	Password     []byte
+	RemoteWallet bool
 
 	P2PPort     int
 	RPCPort     int
 	RESTPort    int
 	ProfilePort int
+	WalletPort  int
 }
 
 func (cfg nodeConfig) P2PAddr() string {
@@ -206,6 +220,11 @@ func (cfg nodeConfig) genArgs() []string {
 	args = append(args, fmt.Sprintf("--trickledelay=%v", trickleDelay))
 	args = append(args, fmt.Sprintf("--profile=%d", cfg.ProfilePort))
 
+	if cfg.RemoteWallet {
+		args = append(args, fmt.Sprintf("--dcrwallet.grpchost=localhost:%d", cfg.WalletPort))
+		args = append(args, fmt.Sprintf("--dcrwallet.certpath=%s", cfg.TLSCertPath))
+	}
+
 	if !cfg.HasSeed {
 		args = append(args, "--noseedbackup")
 	}
@@ -213,6 +232,33 @@ func (cfg nodeConfig) genArgs() []string {
 	if cfg.ExtraArgs != nil {
 		args = append(args, cfg.ExtraArgs...)
 	}
+
+	return args
+}
+
+func (cfg *nodeConfig) genWalletArgs() []string {
+	var args []string
+
+	switch cfg.NetParams.Net {
+	case wire.TestNet3:
+		args = append(args, "--testnet")
+	case wire.SimNet:
+		args = append(args, "--simnet")
+	}
+
+	args = append(args, "--nolegacyrpc")
+	args = append(args, "--noinitialload")
+	args = append(args, "--debuglevel=debug")
+	args = append(args, fmt.Sprintf("--grpclisten=127.0.0.1:%d", cfg.WalletPort))
+	args = append(args, fmt.Sprintf("--logdir=%s", cfg.LogDir))
+	args = append(args, fmt.Sprintf("--appdata=%s", cfg.DataDir))
+	args = append(args, fmt.Sprintf("--rpccert=%s", cfg.TLSCertPath))
+	args = append(args, fmt.Sprintf("--rpckey=%s", cfg.TLSKeyPath))
+
+	// This is not strictly necessary, but it's useful to reduce the
+	// startup time of test wallets since it prevents two address discovery
+	// processes from happening.
+	args = append(args, "--disablecointypeupgrades")
 
 	return args
 }
@@ -231,6 +277,9 @@ type HarnessNode struct {
 	// started via the start() method.
 	PubKey    [33]byte
 	PubKeyStr string
+
+	walletCmd  *exec.Cmd
+	walletConn *grpc.ClientConn
 
 	cmd     *exec.Cmd
 	pidFile string
@@ -291,7 +340,12 @@ func newNode(cfg nodeConfig) (*HarnessNode, error) {
 	cfg.ReadMacPath = filepath.Join(cfg.DataDir, "readonly.macaroon")
 	cfg.InvoiceMacPath = filepath.Join(cfg.DataDir, "invoice.macaroon")
 
-	cfg.P2PPort, cfg.RPCPort, cfg.RESTPort, cfg.ProfilePort = generateListeningPorts()
+	cfg.P2PPort, cfg.RPCPort, cfg.RESTPort, cfg.ProfilePort, cfg.WalletPort = generateListeningPorts()
+
+	err := os.MkdirAll(cfg.DataDir, os.FileMode(0755))
+	if err != nil {
+		return nil, err
+	}
 
 	nodeNum := numActiveNodes
 	numActiveNodes++
@@ -409,6 +463,13 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 		hn.logFile = file
 	}
 
+	if hn.cfg.RemoteWallet {
+		err := hn.startRemoteWallet()
+		if err != nil {
+			return fmt.Errorf("unable to start remote dcrwallet: %v", err)
+		}
+	}
+
 	if err := hn.cmd.Start(); err != nil {
 		return fmt.Errorf("unable to start %s's dcrlnd-itest: %v", hn.Name(), err)
 	}
@@ -425,6 +486,13 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 			lndError <- errors.Errorf("%v\n%v\n", err, errb.String())
 		}
 
+		if hn.walletCmd != nil {
+			err = hn.walletCmd.Wait()
+			if err != nil {
+				lndError <- errors.Errorf("wallet error during final wait: %v", err)
+			}
+		}
+
 		// Signal any onlookers that this process has exited.
 		close(hn.processExit)
 
@@ -435,15 +503,21 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 	// Write process ID to a file.
 	if err := hn.writePidFile(); err != nil {
 		hn.cmd.Process.Kill()
+		if hn.walletCmd != nil {
+			hn.walletCmd.Process.Kill()
+		}
 		return err
 	}
 
 	// Since Stop uses the LightningClient to stop the node, if we fail to
 	// get a connected client, we have to kill the process.
-	useMacaroons := !hn.cfg.HasSeed
+	useMacaroons := !hn.cfg.HasSeed && !hn.cfg.RemoteWallet
 	conn, err := hn.ConnectRPC(useMacaroons)
 	if err != nil {
 		hn.cmd.Process.Kill()
+		if hn.walletCmd != nil {
+			hn.walletCmd.Process.Kill()
+		}
 		return fmt.Errorf("unable to connect to %s's RPC: %v", hn.Name(), err)
 	}
 
@@ -456,7 +530,128 @@ func (hn *HarnessNode) start(lndError chan<- error) error {
 		return nil
 	}
 
+	if hn.cfg.RemoteWallet {
+		hn.WalletUnlockerClient = lnrpc.NewWalletUnlockerClient(conn)
+		err := hn.unlockRemoteWallet()
+		if err != nil {
+			hn.cmd.Process.Kill()
+			hn.walletCmd.Process.Kill()
+			return fmt.Errorf("unable to init remote wallet: %v", err)
+		}
+		return nil
+	}
+
 	return hn.initLightningClient(conn)
+}
+
+func (hn *HarnessNode) startRemoteWallet() error {
+	// Prepare and start the remote wallet process
+	walletArgs := hn.cfg.genWalletArgs()
+	const dcrwalletExe = "dcrwallet-dcrlnd"
+	hn.walletCmd = exec.Command(dcrwalletExe, walletArgs...)
+
+	hn.walletCmd.Stdout = hn.logFile
+	hn.walletCmd.Stderr = hn.logFile
+
+	if err := hn.walletCmd.Start(); err != nil {
+		return fmt.Errorf("unable to start %s's wallet: %v", hn.Name(), err)
+	}
+
+	// Wait until the TLS cert file exists, so we can connect to the
+	// wallet.
+	tlsFileExists := func() bool {
+		return fileExists(hn.cfg.TLSCertPath)
+	}
+	err := WaitPredicate(tlsFileExists, time.Second*15)
+	if err != nil {
+		return fmt.Errorf("wallet TLS cert file not created before timeout: %v", err)
+	}
+
+	// Connect to it via gRPC.
+	creds, err := credentials.NewClientTLSFromFile(
+		hn.cfg.TLSCertPath, "localhost",
+	)
+	if err != nil {
+		return err
+	}
+
+	opts := []grpc.DialOption{
+		grpc.WithBlock(),
+		grpc.WithTimeout(time.Second * 40),
+		grpc.WithBackoffMaxDelay(time.Millisecond * 20),
+		grpc.WithTransportCredentials(creds),
+	}
+
+	hn.walletConn, err = grpc.Dial(
+		fmt.Sprintf("localhost:%d", hn.cfg.WalletPort),
+		opts...,
+	)
+	if err != nil {
+		return fmt.Errorf("unable to connect to the wallet: %v", err)
+	}
+
+	password := hn.cfg.Password
+	if len(password) == 0 {
+		password = []byte("private1")
+	}
+
+	// Open or create the wallet as necessary.
+	ctxb := context.Background()
+	loader := pb.NewWalletLoaderServiceClient(hn.walletConn)
+	respExists, err := loader.WalletExists(ctxb, &pb.WalletExistsRequest{})
+	if err != nil {
+		return err
+	}
+	if respExists.Exists {
+		_, err := loader.OpenWallet(ctxb, &pb.OpenWalletRequest{})
+		if err != nil {
+			return err
+		}
+
+		err = hn.cfg.BackendCfg.StartWalletSync(loader, password)
+		if err != nil {
+			return err
+		}
+	} else if !hn.cfg.HasSeed {
+		// If the test won't require or provide a seed, then initialize
+		// the wallet with a random one.
+		seed, err := hdkeychain.GenerateSeed(hdkeychain.RecommendedSeedLen)
+		if err != nil {
+			return err
+		}
+		reqCreate := &pb.CreateWalletRequest{
+			PrivatePassphrase: password,
+			Seed:              seed,
+		}
+		_, err = loader.CreateWallet(ctxb, reqCreate)
+		if err != nil {
+			return err
+		}
+
+		err = hn.cfg.BackendCfg.StartWalletSync(loader, password)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (hn *HarnessNode) unlockRemoteWallet() error {
+	ctxb := context.Background()
+	password := hn.cfg.Password
+	if len(password) == 0 {
+		password = []byte("private1")
+	}
+
+	unlockReq := &lnrpc.UnlockWalletRequest{
+		WalletPassword: password,
+	}
+	err := hn.Unlock(ctxb, unlockReq)
+	if err != nil {
+		return fmt.Errorf("unable to unlock remote wallet: %v", err)
+	}
+	return err
 }
 
 // initClientWhenReady waits until the main gRPC server is detected as active,
@@ -477,6 +672,41 @@ func (hn *HarnessNode) initClientWhenReady() error {
 	return hn.initLightningClient(conn)
 }
 
+func (hn *HarnessNode) initRemoteWallet(ctx context.Context,
+	initReq *lnrpc.InitWalletRequest) error {
+
+	var mnemonic aezeed.Mnemonic
+	copy(mnemonic[:], initReq.CipherSeedMnemonic)
+	deciphered, err := mnemonic.Decipher(initReq.AezeedPassphrase)
+	if err != nil {
+		return err
+	}
+	// The returned HD seed are the last 16 bytes of the deciphered aezeed
+	// byte slice.
+	seed := deciphered[len(deciphered)-16:]
+
+	loader := pb.NewWalletLoaderServiceClient(hn.walletConn)
+	reqCreate := &pb.CreateWalletRequest{
+		PrivatePassphrase: initReq.WalletPassword,
+		Seed:              seed,
+	}
+	_, err = loader.CreateWallet(ctx, reqCreate)
+	if err != nil {
+		return err
+	}
+
+	err = hn.cfg.BackendCfg.StartWalletSync(loader, initReq.WalletPassword)
+	if err != nil {
+		return err
+	}
+	unlockReq := &lnrpc.UnlockWalletRequest{
+		WalletPassword: initReq.WalletPassword,
+		ChannelBackups: initReq.ChannelBackups,
+		RecoveryWindow: initReq.RecoveryWindow,
+	}
+	return hn.Unlock(ctx, unlockReq)
+}
+
 // Init initializes a harness node by passing the init request via rpc. After
 // the request is submitted, this method will block until an
 // macaroon-authenticated rpc connection can be established to the harness node.
@@ -484,6 +714,10 @@ func (hn *HarnessNode) initClientWhenReady() error {
 // LightningClient and subscribes the HarnessNode to topology changes.
 func (hn *HarnessNode) Init(ctx context.Context,
 	initReq *lnrpc.InitWalletRequest) error {
+
+	if hn.cfg.RemoteWallet {
+		return hn.initRemoteWallet(ctx, initReq)
+	}
 
 	ctxt, _ := context.WithTimeout(ctx, DefaultTimeout)
 	_, err := hn.InitWallet(ctxt, initReq)
@@ -749,6 +983,10 @@ func (hn *HarnessNode) stop() error {
 		hn.LightningClient.StopDaemon(ctx, &req)
 	}
 
+	if hn.walletCmd != nil {
+		hn.walletCmd.Process.Signal(os.Interrupt)
+	}
+
 	// Wait for lnd process and other goroutines to exit.
 	select {
 	case <-hn.processExit:
@@ -765,6 +1003,7 @@ func (hn *HarnessNode) stop() error {
 	hn.WalletUnlockerClient = nil
 	hn.Watchtower = nil
 	hn.WatchtowerClient = nil
+
 	return nil
 }
 

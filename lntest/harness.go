@@ -165,6 +165,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	}()
 	go func() {
 		defer wg.Done()
+		time.Sleep(time.Second * 3)
 		node, err := n.NewNode("Bob", lndArgs)
 		if err != nil {
 			errChan <- err
@@ -381,12 +382,13 @@ func (n *NetworkHarness) newNode(name string, extraArgs []string,
 	hasSeed bool, password []byte) (*HarnessNode, error) {
 
 	node, err := newNode(nodeConfig{
-		Name:       name,
-		HasSeed:    hasSeed,
-		BackendCfg: n.BackendCfg,
-		Password:   password,
-		NetParams:  n.netParams,
-		ExtraArgs:  extraArgs,
+		Name:         name,
+		HasSeed:      hasSeed,
+		BackendCfg:   n.BackendCfg,
+		Password:     password,
+		NetParams:    n.netParams,
+		ExtraArgs:    extraArgs,
+		RemoteWallet: useRemoteWallet(),
 	})
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ FULLPKG := github.com/decred/dcrlnd
 ESCPKG := github.com\/decred\/dcrlnd
 
 DCRD_PKG := github.com/decred/dcrd
+DCRWALLET_PKG := github.com/decred/dcrwallet
 GOVERALLS_PKG := github.com/mattn/goveralls
 LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 GOACC_PKG := github.com/ory/go-acc
@@ -31,6 +32,16 @@ DCRD_COMMIT := $(shell cat go.mod | \
 DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
 DCRD_TMPDIR := $(shell mktemp -d)
+
+DCRWALLET_COMMIT := $(shell cat go.mod | \
+		grep $(DCRWALLET_PKG) | \
+		head -n1 | \
+		awk -F " " '{ print $$2 }' | \
+		awk -F "/" '{ print $$1 }' | \
+		awk -F "-" '{ print $$NF }' )
+DCRWALLET_META := "$(DCRWALLET_COMMIT).from-dcrlnd"
+DCRWALLET_LDFLAGS := "-X github.com/decred/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
+DCRWALLET_TMPDIR := $(shell mktemp -d)
 
 GOACC_COMMIT := ddc355013f90fea78d83d3a6c71f1d37ac07ecd5
 
@@ -98,6 +109,19 @@ dcrd:
 		GO111MODULE=on go install -ldflags $(DCRD_LDFLAGS) ./cmd/dcrctl
 	rm -rf $(DCRD_TMPDIR)
 
+dcrwallet:
+	# Apply a patch to lower the scrypt parameters for the custom
+	# built wallet, so that tests execute faster. This is an ugly
+	# hack and ideally this will be exported in the future.
+	@$(call print, "Installing dcrwallet $(DCRWALLET_COMMIT).")
+	git clone https://github.com/decred/dcrwallet $(DCRWALLET_TMPDIR)
+	cd $(DCRWALLET_TMPDIR) && \
+		git checkout $(DCRWALLET_COMMIT) && \
+		sed -i 's/N: [0-9]*,/N: 16,/' ./wallet/udb/addressmanager.go && \
+		grep 'N: [0-9]*,' ./wallet/udb/addressmanager.go && \
+		GO111MODULE=on go build -o "$$GOPATH/bin/dcrwallet-dcrlnd" -ldflags $(DCRWALLET_LDFLAGS) .
+	rm -rf $(DCRWALLET_TMPDIR)
+
 # ============
 # INSTALLATION
 # ============
@@ -130,13 +154,13 @@ itest-only:
 	@$(call print, "Running integration tests with ${backend} backend.")
 	$(ITEST)
 
-itest: dcrd build-itest itest-only
+itest: dcrd dcrwallet build-itest itest-only
 
 unit-only:
 	@$(call print, "Running unit tests.")
 	$(UNIT)
 
-unit: dcrd unit-only
+unit: dcrd dcrwallet unit-only
 
 unit-cover: $(GOACC_BIN)
 	@$(call print, "Running unit coverage tests.")
@@ -151,9 +175,9 @@ goveralls: $(GOVERALLS_BIN)
 	@$(call print, "Sending coverage report.")
 	$(GOVERALLS_BIN) -coverprofile=coverage.txt -service=travis-ci
 
-travis-race: dcrd unit-race
+travis-race: dcrd dcrwallet unit-race
 
-travis-cover: dcrd unit-cover goveralls
+travis-cover: dcrd dcrwallet unit-cover goveralls
 
 travis-itest: itest
 

@@ -3,6 +3,7 @@
 package lntest
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
+	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 )
 
 // logDir is the name of the temporary log directory.
@@ -40,6 +42,48 @@ func (b DcrdBackendConfig) GenArgs() []string {
 	args = append(args, fmt.Sprintf("--dcrd.rawrpccert=%v", encodedCert))
 
 	return args
+}
+
+func (b DcrdBackendConfig) StartWalletSync(loader pb.WalletLoaderServiceClient, password []byte) error {
+	req := &pb.RpcSyncRequest{
+		NetworkAddress:    b.rpcConfig.Host,
+		Username:          b.rpcConfig.User,
+		Password:          []byte(b.rpcConfig.Pass),
+		Certificate:       b.rpcConfig.Certificates,
+		DiscoverAccounts:  true,
+		PrivatePassphrase: password,
+	}
+
+	stream, err := loader.RpcSync(context.Background(), req)
+	if err != nil {
+		return err
+	}
+
+	syncDone := make(chan error)
+	go func() {
+		for {
+			resp, err := stream.Recv()
+			if err != nil {
+				syncDone <- err
+				return
+			}
+			if resp.Synced {
+				close(syncDone)
+				break
+			}
+		}
+
+		// After sync is complete, just drain the notifications until
+		// the connection is closed.
+		for {
+			_, err := stream.Recv()
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	return <-syncDone
 }
 
 // ConnectMiner connects the backend to the underlying miner.

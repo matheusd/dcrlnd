@@ -22,6 +22,13 @@ ifneq ($(icase),)
 TEST_FLAGS += -test.run=TestLightningNetworkDaemon/$(icase)
 endif
 
+# Default to embedded wallet implementation if not set.
+ifneq ($(walletimpl),)
+DEV_TAGS += ${walletimpl}
+else
+DEV_TAGS += embeddedwallet
+endif
+
 # Define the log tags that will be applied only when running unit tests. If none
 # are provided, we default to "nolog" which will be silent.
 ifneq ($(log),)
