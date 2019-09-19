@@ -28,7 +28,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
-	"github.com/decred/dcrlnd/lntest"
+	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
@@ -1546,7 +1546,7 @@ func assertBrarCleanup(t *testing.T, brar *breachArbiter,
 
 	t.Helper()
 
-	err := lntest.WaitNoError(func() error {
+	err := wait.NoError(func() error {
 		isBreached, err := brar.IsBreached(chanPoint)
 		if err != nil {
 			return err

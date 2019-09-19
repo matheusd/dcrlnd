@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lntest"
+	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lntypes"
 )
 
@@ -73,7 +74,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	// the created HTLC pending on all of them.
 	var predErr error
 	nodes := []*lntest.HarnessNode{net.Alice, net.Bob, carol}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		predErr = assertActiveHtlcs(nodes, payHash[:])
 		return predErr == nil
 	}, time.Second*15)
@@ -225,7 +226,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	// At this point, Bob should have broadcast his second layer success
 	// transaction, and should have sent it to the nursery for incubation.
 	pendingChansRequest := &lnrpc.PendingChannelsRequest{}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := net.Bob.PendingChannels(
 			ctxt, pendingChansRequest,
@@ -317,7 +318,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	block = mineBlocks(t, net, 1, 1)[0]
 	assertTxInBlock(t, block, bobSweep)
 
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := net.Bob.PendingChannels(
 			ctxt, pendingChansRequest,
@@ -353,7 +354,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// Also Carol should have no channels left (open nor pending).
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := carol.PendingChannels(
 			ctxt, pendingChansRequest,

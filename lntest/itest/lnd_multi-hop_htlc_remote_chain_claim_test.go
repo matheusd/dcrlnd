@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lntest"
+	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lntypes"
 )
 
@@ -72,7 +73,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// the created HTLC pending on all of them.
 	var predErr error
 	nodes := []*lntest.HarnessNode{net.Alice, net.Bob, carol}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		predErr = assertActiveHtlcs(nodes, payHash[:])
 		return predErr == nil
 	}, time.Second*15)
@@ -248,7 +249,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// recognize that all contracts have been fully resolved, and show no
 	// pending close channels.
 	pendingChansRequest := &lnrpc.PendingChannelsRequest{}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := net.Bob.PendingChannels(
 			ctxt, pendingChansRequest,
@@ -287,7 +288,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	assertTxInBlock(t, block, carolSweep)
 
 	pendingChansRequest = &lnrpc.PendingChannelsRequest{}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := carol.PendingChannels(
 			ctxt, pendingChansRequest,

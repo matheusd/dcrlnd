@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lntest"
+	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lntypes"
 )
 
@@ -75,7 +76,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// the created HTLC pending on all of them.
 	var predErr error
 	nodes := []*lntest.HarnessNode{net.Alice, net.Bob, carol}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		predErr = assertActiveHtlcs(nodes, payHash[:])
 		return predErr == nil
 	}, time.Second*15)
@@ -226,7 +227,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// extracted the preimage from the chain, and sent it back to Alice,
 	// clearing the HTLC off-chain.
 	nodes = []*lntest.HarnessNode{net.Alice}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		predErr = assertNumActiveHtlcs(nodes, 0)
 		return predErr == nil
 	}, time.Second*15)
@@ -252,7 +253,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	if _, err := net.Generate(1); err != nil {
 		t.Fatalf("unable to mine block: %v", err)
 	}
-	err = lntest.WaitPredicate(func() bool {
+	err = wait.Predicate(func() bool {
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err = carol.PendingChannels(ctxt, pendingChansRequest)
 		if err != nil {
