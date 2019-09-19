@@ -45,6 +45,7 @@ import (
 	"github.com/decred/dcrlnd/peernotifier"
 	"github.com/decred/dcrlnd/pool"
 	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/routing/localchans"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/ticker"
@@ -202,6 +203,8 @@ type server struct {
 	controlTower routing.ControlTower
 
 	authGossiper *discovery.AuthenticatedGossiper
+
+	localChanMgr *localchans.Manager
 
 	utxoNursery *utxoNursery
 
@@ -735,6 +738,12 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	},
 		s.identityPriv.PubKey(),
 	)
+
+	s.localChanMgr = &localchans.Manager{
+		ForAllOutgoingChannels:    s.chanRouter.ForAllOutgoingChannels,
+		PropagateChanPolicyUpdate: s.authGossiper.PropagateChanPolicyUpdate,
+		UpdateForwardingPolicies:  s.htlcSwitch.UpdateForwardingPolicies,
+	}
 
 	utxnStore, err := newNurseryStore(&activeNetParams.GenesisHash, chanDB)
 	if err != nil {
