@@ -1501,8 +1501,8 @@ func mineAndAssert(r *rpctest.Harness, tx *wire.MsgTx) error {
 // txFromOutput takes a tx paying to fromPubKey, and creates a new tx that
 // spends the output from this tx, to an address derived from payToPubKey.
 func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
-	payToPubKey *secp256k1.PublicKey, txFee dcrutil.Amount) (
-	*wire.MsgTx, error) {
+	payToPubKey *secp256k1.PublicKey, txFee dcrutil.Amount,
+	rbf bool) (*wire.MsgTx, error) {
 
 	// Generate the script we want to spend from.
 	keyScript, err := scriptFromKey(fromPubKey)
@@ -1524,14 +1524,21 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 	tx1 := wire.NewMsgTx()
 	tx1.Version = 2
 
+	// If we want to create a tx that signals replacement, set its
+	// sequence number to the max one that signals replacement.
+	// Otherwise we just use the standard max sequence.
+	sequence := wire.MaxTxInSequenceNum
+	if rbf {
+		sequence = 0xfffffffd // mempool.MaxRBFSequence
+	}
+
 	tx1.AddTxIn(&wire.TxIn{
 		PreviousOutPoint: wire.OutPoint{
 			Hash:  tx.TxHash(),
 			Index: outputIndex,
 			Tree:  wire.TxTreeRegular,
 		},
-		// We don't support RBF, so set sequence to max.
-		Sequence: wire.MaxTxInSequenceNum,
+		Sequence: sequence,
 	})
 
 	// Create a script to pay to.
@@ -1617,7 +1624,7 @@ func newTx(t *testing.T, r *rpctest.Harness, pubKey *secp256k1.PublicKey,
 	// Create a new unconfirmed tx that spends this output.
 	txFee := dcrutil.Amount(defaultFeeRate)
 	tx1, err := txFromOutput(
-		tx, alice.Cfg.Signer, pubKey, pubKey, txFee,
+		tx, alice.Cfg.Signer, pubKey, pubKey, txFee, rbf,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -1689,88 +1696,112 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		t.Fatalf("unable to publish: %v", err)
 	}
 
-	// Now we'll try to double spend an output with a different
-	// transaction. Create a new tx and publish it. This is the output
-	// we'll try to double spend.
-	tx3 := newTx(t, r, keyDesc.PubKey, alice, false)
-	if err := alice.PublishTransaction(tx3); err != nil {
-		t.Fatalf("unable to publish: %v", err)
-	}
-
-	// Mine the transaction.
-	if err := mineAndAssert(r, tx3); err != nil {
-		t.Fatalf("unable to mine tx: %v", err)
-	}
-
-	// Now we create a transaction that spends the output from the tx just
-	// mined.
-	baseTxFee := dcrutil.Amount(1e4)
-	txFee := baseTxFee * 5
-	tx4, err := txFromOutput(
-		tx3, alice.Cfg.Signer, keyDesc.PubKey, keyDesc.PubKey,
-		txFee,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// This should be accepted into the mempool.
-	if err := alice.PublishTransaction(tx4); err != nil {
-		t.Fatalf("unable to publish: %v", err)
-	}
-
-	txid4 := tx4.TxHash()
-	err = waitForMempoolTx(r, &txid4)
-	if err != nil {
-		t.Fatalf("tx not relayed to miner: %v", err)
-	}
-
-	// Create a new key we'll pay to, to ensure we create a unique
-	// transaction.
-	keyDesc2, err := alice.DeriveNextKey(
-		keychain.KeyFamilyMultiSig,
-	)
-	if err != nil {
-		t.Fatalf("unable to obtain public key: %v", err)
-	}
-
-	// Create a new transaction that spends the output from tx3, and that
-	// pays to a different address. We expect this to be rejected because
-	// it is a double spend.
-	tx5, err := txFromOutput(
-		tx3, alice.Cfg.Signer, keyDesc.PubKey, keyDesc2.PubKey,
-		txFee,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = alice.PublishTransaction(tx5)
-	if err != lnwallet.ErrDoubleSpend {
-		t.Fatalf("expected ErrDoubleSpend, got: %v", err)
-	}
-
-	// Create another transaction that spends the same output, but has a
-	// higher fee. We expect also this tx to be rejected, since the
-	// sequence number of tx3 is set to Max, indicating it is not
-	// replacable.
-	pubKey3, err := alice.DeriveNextKey(keychain.KeyFamilyMultiSig)
-	if err != nil {
-		t.Fatalf("unable to obtain public key: %v", err)
-	}
-	tx6, err := txFromOutput(
-		tx3, alice.Cfg.Signer, keyDesc.PubKey,
-		pubKey3.PubKey, 2*txFee,
+	// We'll do the next mempool check on both RBF and non-RBF enabled
+	// transactions.
+	var (
+		txFee         = dcrutil.Amount(defaultFeeRate * 5)
+		tx3, tx3Spend *wire.MsgTx
 	)
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Note: decred does not support rbf at this time, so test only with
+	// rbf == false.
+	rbfTests := []bool{false}
+	for _, rbf := range rbfTests {
+		// Now we'll try to double spend an output with a different
+		// transaction. Create a new tx and publish it. This is the
+		// output we'll try to double spend.
+		tx3 = newTx(t, r, keyDesc.PubKey, alice, false)
+		if err := alice.PublishTransaction(tx3); err != nil {
+			t.Fatalf("unable to publish: %v", err)
+		}
 
-	// Expect rejection.
-	err = alice.PublishTransaction(tx6)
-	if err != lnwallet.ErrDoubleSpend {
-		t.Fatalf("expected ErrDoubleSpend, got: %v", err)
+		// Mine the transaction.
+		if err := mineAndAssert(r, tx3); err != nil {
+			t.Fatalf("unable to mine tx: %v", err)
+		}
+
+		// Now we create a transaction that spends the output from the
+		// tx just mined.
+		tx4, err := txFromOutput(
+			tx3, alice.Cfg.Signer, keyDesc.PubKey,
+			keyDesc.PubKey, txFee, rbf,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// This should be accepted into the mempool.
+		if err := alice.PublishTransaction(tx4); err != nil {
+			t.Fatalf("unable to publish: %v", err)
+		}
+
+		// Keep track of the last successfully published tx to spend
+		// tx3.
+		tx3Spend = tx4
+
+		txid4 := tx4.TxHash()
+		err = waitForMempoolTx(r, &txid4)
+		if err != nil {
+			t.Fatalf("tx not relayed to miner: %v", err)
+		}
+
+		// Create a new key we'll pay to, to ensure we create a unique
+		// transaction.
+		keyDesc2, err := alice.DeriveNextKey(
+			keychain.KeyFamilyMultiSig,
+		)
+		if err != nil {
+			t.Fatalf("unable to obtain public key: %v", err)
+		}
+
+		// Create a new transaction that spends the output from tx3,
+		// and that pays to a different address. We expect this to be
+		// rejected because it is a double spend.
+		tx5, err := txFromOutput(
+			tx3, alice.Cfg.Signer, keyDesc.PubKey,
+			keyDesc2.PubKey, txFee, rbf,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = alice.PublishTransaction(tx5)
+		if err != lnwallet.ErrDoubleSpend {
+			t.Fatalf("expected ErrDoubleSpend, got: %v", err)
+		}
+
+		// Create another transaction that spends the same output, but
+		// has a higher fee. We expect also this tx to be rejected for
+		// non-RBF enabled transactions, while it should succeed
+		// otherwise.
+		pubKey3, err := alice.DeriveNextKey(keychain.KeyFamilyMultiSig)
+		if err != nil {
+			t.Fatalf("unable to obtain public key: %v", err)
+		}
+		tx6, err := txFromOutput(
+			tx3, alice.Cfg.Signer, keyDesc.PubKey,
+			pubKey3.PubKey, 2*txFee, rbf,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Expect rejection in non-RBF case.
+		expErr := lnwallet.ErrDoubleSpend
+		if rbf {
+			// Expect success in rbf case.
+			expErr = nil
+			tx3Spend = tx6
+		}
+		err = alice.PublishTransaction(tx6)
+		if err != expErr {
+			t.Fatalf("expected ErrDoubleSpend, got: %v", err)
+		}
+
+		// Mine the tx spending tx3.
+		if err := mineAndAssert(r, tx3Spend); err != nil {
+			t.Fatalf("unable to mine tx: %v", err)
+		}
 	}
 
 	// At last we try to spend an output already spent by a confirmed
@@ -1785,11 +1816,6 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	// spent output errors and return nil when publishing a double spend
 	// that was already mined, so we ignore this test as well.
 	if alice.BackEnd() == "disabled" {
-		// Mine the tx spending tx3.
-		if err := mineAndAssert(r, tx4); err != nil {
-			t.Fatalf("unable to mine tx: %v", err)
-		}
-
 		// Create another tx spending tx3.
 		pubKey4, err := alice.DeriveNextKey(
 			keychain.KeyFamilyMultiSig,
@@ -1799,7 +1825,7 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		}
 		tx7, err := txFromOutput(
 			tx3, alice.Cfg.Signer, keyDesc.PubKey,
-			pubKey4.PubKey, txFee,
+			pubKey4.PubKey, txFee, false,
 		)
 
 		if err != nil {
@@ -1812,9 +1838,6 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 			t.Fatalf("expected ErrDoubleSpend, got: %v", err)
 		}
 	}
-
-	// TODO(halseth): test replaceable transactions when dcrd gets RBF
-	// support.
 }
 
 func testSignOutputUsingTweaks(r *rpctest.Harness,
