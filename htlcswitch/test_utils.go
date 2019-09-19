@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -836,7 +837,12 @@ func (n *threeHopNetwork) start() error {
 		return err
 	}
 
-	return nil
+	return waitLinksEligible(map[string]*channelLink{
+		"alice":      n.aliceChannelLink,
+		"bob first":  n.firstBobChannelLink,
+		"bob second": n.secondBobChannelLink,
+		"carol":      n.carolChannelLink,
+	})
 }
 
 // stop stops nodes and cleanup its databases.
@@ -1129,6 +1135,7 @@ func (h *hopNetwork) createChannelLink(server, peer *mockServer,
 	if err := server.htlcSwitch.AddLink(link); err != nil {
 		return nil, fmt.Errorf("unable to add channel link: %v", err)
 	}
+
 	go func() {
 		for {
 			select {
@@ -1229,7 +1236,10 @@ func (n *twoHopNetwork) start() error {
 		return err
 	}
 
-	return nil
+	return waitLinksEligible(map[string]*channelLink{
+		"alice": n.aliceChannelLink,
+		"bob":   n.bobChannelLink,
+	})
 }
 
 // stop stops nodes and cleanup its databases.
@@ -1319,12 +1329,26 @@ func (n *twoHopNetwork) makeHoldPayment(sendingPeer, receivingPeer lnpeer.Peer,
 	return paymentErr
 }
 
+// waitLinksEligible blocks until all links the provided name-to-link map are
+// eligible to forward HTLCs.
+func waitLinksEligible(links map[string]*channelLink) error {
+	return wait.NoError(func() error {
+		for name, link := range links {
+			if link.EligibleToForward() {
+				continue
+			}
+			return fmt.Errorf("%s channel link not eligible", name)
+		}
+		return nil
+	}, 3*time.Second)
+}
+
 // timeout implements a test level timeout.
 func timeout(t *testing.T) func() {
 	done := make(chan struct{})
 	go func() {
 		select {
-		case <-time.After(5 * time.Second):
+		case <-time.After(10 * time.Second):
 			pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
 
 			panic("test timeout")
