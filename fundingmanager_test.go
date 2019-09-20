@@ -609,7 +609,7 @@ func fundChannel(t *testing.T, alice, bob *testNode, localFundingAmt,
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -735,7 +735,7 @@ func assertFundingMsgSent(t *testing.T, msgChan chan lnwire.Message,
 		errorMsg, gotError := msg.(*lnwire.Error)
 		if gotError {
 			t.Fatalf("expected %s to be sent, instead got error: %v",
-				msgType, lnwire.ErrorCode(errorMsg.Data[0]))
+				msgType, errorMsg.Error())
 		}
 
 		_, _, line, _ := runtime.Caller(1)
@@ -1476,7 +1476,7 @@ func TestFundingManagerPeerTimeoutAfterInitFunding(t *testing.T) {
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -1538,7 +1538,7 @@ func TestFundingManagerPeerTimeoutAfterFundingOpen(t *testing.T) {
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -1609,7 +1609,7 @@ func TestFundingManagerPeerTimeoutAfterFundingAccept(t *testing.T) {
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -2333,7 +2333,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -2568,7 +2568,7 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 			if gotError {
 				t.Fatalf("expected OpenChannel to be sent "+
 					"from bob, instead got error: %v",
-					lnwire.ErrorCode(errorMsg.Data[0]))
+					errorMsg.Error())
 			}
 			t.Fatalf("expected OpenChannel to be sent from "+
 				"alice, instead got %T", aliceMsg)
@@ -2732,7 +2732,7 @@ func TestFundingManagerRejectPush(t *testing.T) {
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -2743,9 +2743,9 @@ func TestFundingManagerRejectPush(t *testing.T) {
 
 	// Assert Bob responded with an ErrNonZeroPushAmount error.
 	err := assertFundingMsgSent(t, bob.msgChan, "Error").(*lnwire.Error)
-	if string(err.Data) != lnwallet.ErrNonZeroPushAmount().Error() {
+	if !strings.Contains(err.Error(), "non-zero push amounts are disabled") {
 		t.Fatalf("expected ErrNonZeroPushAmount error, got \"%v\"",
-			string(err.Data))
+			err.Error())
 	}
 }
 
@@ -2789,7 +2789,7 @@ func TestFundingManagerMaxConfs(t *testing.T) {
 		if gotError {
 			t.Fatalf("expected OpenChannel to be sent "+
 				"from bob, instead got error: %v",
-				lnwire.ErrorCode(errorMsg.Data[0]))
+				errorMsg.Error())
 		}
 		t.Fatalf("expected OpenChannel to be sent from "+
 			"alice, instead got %T", aliceMsg)
@@ -2812,9 +2812,9 @@ func TestFundingManagerMaxConfs(t *testing.T) {
 	// Alice should respond back with an error indicating MinAcceptDepth is
 	// too large.
 	err := assertFundingMsgSent(t, alice.msgChan, "Error").(*lnwire.Error)
-	if !strings.Contains(string(err.Data), "minimum depth") {
+	if !strings.Contains(err.Error(), "minimum depth") {
 		t.Fatalf("expected ErrNumConfsTooLarge, got \"%v\"",
-			string(err.Data))
+			err.Error())
 	}
 }
 

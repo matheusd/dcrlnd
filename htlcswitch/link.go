@@ -1883,13 +1883,9 @@ func (l *channelLink) handleUpstreamMsg(msg lnwire.Message) {
 		// Error received from remote, MUST fail channel, but should
 		// only print the contents of the error message if all
 		// characters are printable ASCII.
-		errMsg := "non-ascii data"
-		if isASCII(msg.Data) {
-			errMsg = string(msg.Data)
-		}
 		l.fail(LinkFailureError{code: ErrRemoteError},
 			"ChannelPoint(%v): received error from peer: %v",
-			l.channel.ChannelPoint(), errMsg)
+			l.channel.ChannelPoint(), msg.Error())
 	default:
 		log.Warnf("ChannelPoint(%v): received unknown message of type %T",
 			l.channel.ChannelPoint(), msg)
@@ -3100,17 +3096,4 @@ func (l *channelLink) errorf(format string, a ...interface{}) {
 func (l *channelLink) tracef(format string, a ...interface{}) {
 	msg := fmt.Sprintf(format, a...)
 	log.Tracef("ChannelLink(%s) %s", l.ShortChanID(), msg)
-}
-
-// isASCII is a helper method that checks whether all bytes in `data` would be
-// printable ASCII characters if interpreted as a string.
-func isASCII(data []byte) bool {
-	isASCII := true
-	for _, c := range data {
-		if c < 32 || c > 126 {
-			isASCII = false
-			break
-		}
-	}
-	return isASCII
 }
