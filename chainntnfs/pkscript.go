@@ -4,6 +4,7 @@
 package chainntnfs
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -165,12 +166,36 @@ func (s PkScript) String() string {
 	return str
 }
 
+// ScriptVersion returns the recorded script version of the pkscript.
+func (s PkScript) ScriptVersion() uint16 {
+	return s.scriptVersion
+}
+
+// Equal returns true if the other pkscript is equal to this one (has the same
+// values).
+func (s PkScript) Equal(o *PkScript) bool {
+	var slen int
+
+	switch s.class {
+	case txscript.PubKeyHashTy:
+		slen = pubKeyHashLen
+	case txscript.ScriptHashTy:
+		slen = scriptHashLen
+	default:
+		slen = maxLen
+	}
+
+	return s.class == o.class &&
+		s.scriptVersion == o.scriptVersion &&
+		bytes.Equal(s.script[:slen], o.script[:slen])
+}
+
 // ComputePkScript computes the pkScript of an transaction output by looking at
 // the transaction input's signature script.
 //
 // NOTE: Only P2PKH and P2SH redeem scripts are supported. Only the standard
 // secp256k1 keys are supported (alternative suites are not).
-func ComputePkScript(scriptVersion uint16, sigScript []byte) (PkScript, error) {
+func ComputePkScript(scriptVersion uint16, sigScript []byte, addrParams dcrutil.AddressParams) (PkScript, error) {
 
 	var pkScript PkScript
 
@@ -222,14 +247,13 @@ func ComputePkScript(scriptVersion uint16, sigScript []byte) (PkScript, error) {
 		// p2pkh, therefore assume it is one.
 		scriptClass = txscript.PubKeyHashTy
 		address, err = dcrutil.NewAddressPubKeyHash(
-			lastDataHash, chaincfg.MainNetParams(),
-			dcrec.STEcdsaSecp256k1,
+			lastDataHash, addrParams, dcrec.STEcdsaSecp256k1,
 		)
 	} else {
 		// Assume it's a p2sh.
 		scriptClass = txscript.ScriptHashTy
 		address, err = dcrutil.NewAddressScriptHashFromHash(
-			lastDataHash, chaincfg.MainNetParams(),
+			lastDataHash, addrParams,
 		)
 	}
 	if err != nil {

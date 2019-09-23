@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -32,7 +33,8 @@ var (
 		0x86, 0xf4, 0xcb, 0xf9, 0x8e, 0xae, 0xd2, 0x21,
 		0xb3, 0x0b, 0xd9, 0xa0, 0xb9, 0x28,
 	}
-	testScript, _ = chainntnfs.ParsePkScript(0, testRawScript)
+	testScript, _   = chainntnfs.ParsePkScript(0, testRawScript)
+	testChainParams = chaincfg.RegNetParams()
 )
 
 type mockHintCache struct {
@@ -181,7 +183,8 @@ func TestTxNotifierRegistrationValidation(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			hintCache := newMockHintCache()
 			n := chainntnfs.NewTxNotifier(
-				10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
+				10, chainntnfs.ReorgSafetyLimit, hintCache,
+				hintCache, testChainParams,
 			)
 
 			_, err := n.RegisterConf(
@@ -222,6 +225,7 @@ func TestTxNotifierFutureConfDispatch(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
+		testChainParams,
 	)
 
 	// Create the test transactions and register them with the TxNotifier
@@ -397,6 +401,7 @@ func TestTxNotifierHistoricalConfDispatch(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
+		testChainParams,
 	)
 
 	// Create the test transactions at a height before the TxNotifier's
@@ -533,6 +538,7 @@ func TestTxNotifierFutureSpendDispatch(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
+		testChainParams,
 	)
 
 	// We'll start off by registering for a spend notification of an
@@ -623,7 +629,7 @@ func TestTxNotifierHistoricalSpendDispatch(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// We'll start by constructing the spending details of the outpoint
@@ -712,7 +718,7 @@ func TestTxNotifierMultipleHistoricalConfRescans(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// The first registration for a transaction in the notifier should
@@ -767,7 +773,7 @@ func TestTxNotifierMultipleHistoricalSpendRescans(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// The first registration for an outpoint in the notifier should request
@@ -836,7 +842,7 @@ func TestTxNotifierMultipleHistoricalNtfns(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	var txid chainhash.Hash
@@ -985,7 +991,9 @@ func TestTxNotifierCancelConf(t *testing.T) {
 
 	const startingHeight = 10
 	hintCache := newMockHintCache()
-	n := chainntnfs.NewTxNotifier(startingHeight, 100, hintCache, hintCache)
+	n := chainntnfs.NewTxNotifier(
+		startingHeight, 100, hintCache, hintCache, testChainParams,
+	)
 
 	// We'll register two notification requests. Only the second one will be
 	// canceled.
@@ -1059,7 +1067,7 @@ func TestTxNotifierCancelSpend(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// We'll register two notification requests. Only the second one will be
@@ -1145,6 +1153,7 @@ func TestTxNotifierConfReorg(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		7, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
+		testChainParams,
 	)
 
 	// Tx 1 will be confirmed in block 9 and requires 2 confs.
@@ -1416,7 +1425,7 @@ func TestTxNotifierSpendReorg(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// We'll have two outpoints that will be spent throughout the test. The
@@ -1638,7 +1647,7 @@ func TestTxNotifierConfirmHintCache(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// Create two test transactions and register them for notifications.
@@ -1836,7 +1845,7 @@ func TestTxNotifierSpendHintCache(t *testing.T) {
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
 		startingHeight, chainntnfs.ReorgSafetyLimit, hintCache,
-		hintCache,
+		hintCache, testChainParams,
 	)
 
 	// Create two test outpoints and register them for spend notifications.
@@ -2012,7 +2021,9 @@ func TestTxNotifierNtfnDone(t *testing.T) {
 
 	hintCache := newMockHintCache()
 	const reorgSafetyLimit = 100
-	n := chainntnfs.NewTxNotifier(10, reorgSafetyLimit, hintCache, hintCache)
+	n := chainntnfs.NewTxNotifier(
+		10, reorgSafetyLimit, hintCache, hintCache, testChainParams,
+	)
 
 	// We'll start by creating two notification requests: one confirmation
 	// and one spend.
@@ -2141,7 +2152,7 @@ func TestTxNotifierTearDown(t *testing.T) {
 
 	hintCache := newMockHintCache()
 	n := chainntnfs.NewTxNotifier(
-		10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache,
+		10, chainntnfs.ReorgSafetyLimit, hintCache, hintCache, testChainParams,
 	)
 
 	// To begin the test, we'll register for a confirmation and spend

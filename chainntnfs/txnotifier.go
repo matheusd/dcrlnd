@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
@@ -419,6 +420,9 @@ type TxNotifier struct {
 	confClientCounter  uint64 // To be used atomically.
 	spendClientCounter uint64 // To be used atomically.
 
+	// chainParams is the network parameters where the notifier runs.
+	chainParams *chaincfg.Params
+
 	// currentHeight is the height of the tracked blockchain. It is used to
 	// determine the number of confirmations a tx has and ensure blocks are
 	// connected and disconnected in order.
@@ -486,9 +490,10 @@ type TxNotifier struct {
 // dispatching a recan for a historical event in the chain.
 func NewTxNotifier(startHeight uint32, reorgSafetyLimit uint32,
 	confirmHintCache ConfirmHintCache,
-	spendHintCache SpendHintCache) *TxNotifier {
+	spendHintCache SpendHintCache, chainParams *chaincfg.Params) *TxNotifier {
 
 	return &TxNotifier{
+		chainParams:          chainParams,
 		currentHeight:        startHeight,
 		reorgSafetyLimit:     reorgSafetyLimit,
 		confNotifications:    make(map[ConfRequest]*confNtfnSet),
@@ -1393,7 +1398,7 @@ func (n *TxNotifier) filterTx(tx *dcrutil.Tx, blockHash *chainhash.Hash,
 			// requests.
 			prevOut := txIn.PreviousOutPoint
 			pkScript, err := ComputePkScript(
-				0, txIn.SignatureScript,
+				0, txIn.SignatureScript, n.chainParams,
 			)
 			if err != nil {
 				continue

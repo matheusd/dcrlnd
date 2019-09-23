@@ -104,17 +104,6 @@ func checkDcrdNode(rpcConfig rpcclient.ConnConfig) error {
 		return fmt.Errorf("dcrd node network mismatch")
 	}
 
-	// Verify if the txindex is enabled on the node. This is currently
-	// required by several dcrlnd services to perform tx discovery. Try to
-	// fetch a dummy transaction and check if the error code specifies the
-	// index is not enabled.
-	var nullTxID chainhash.Hash
-	errNoTxIndexMsg := "The transaction index must be enabled"
-	_, err = chainConn.GetRawTransaction(&nullTxID)
-	if err != nil && strings.Contains(err.Error(), errNoTxIndexMsg) {
-		return fmt.Errorf("dcrd instance is not running with --txindex")
-	}
-
 	return nil
 }
 

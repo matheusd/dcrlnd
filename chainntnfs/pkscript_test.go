@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/txscript/v2"
 )
 
@@ -256,12 +257,13 @@ func TestComputePkScript(t *testing.T) {
 	}
 
 	scriptVersion := uint16(0)
+	chainParams := chaincfg.RegNetParams()
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			valid := test.pkScript != nil
 			pkScript, err := ComputePkScript(
-				scriptVersion, test.sigScript,
+				scriptVersion, test.sigScript, chainParams,
 			)
 			if err != nil && valid {
 				t.Fatalf("unable to compute pkScript: %v", err)

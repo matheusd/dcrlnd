@@ -35,7 +35,7 @@ func (b *DcrdNotifier) UnsafeStart(bestHeight int64, bestHash *chainhash.Hash,
 
 	b.txNotifier = chainntnfs.NewTxNotifier(
 		uint32(bestHeight), chainntnfs.ReorgSafetyLimit,
-		b.confirmHintCache, b.spendHintCache,
+		b.confirmHintCache, b.spendHintCache, b.chainParams,
 	)
 
 	b.chainUpdates.Start()

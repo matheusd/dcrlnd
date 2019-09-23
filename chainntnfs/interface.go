@@ -598,6 +598,17 @@ type TxIndexConn interface {
 	GetBlockVerbose(*chainhash.Hash, bool) (*jsontypes.GetBlockVerboseResult, error)
 }
 
+// IsTxIndexDisabledError returns true if the provided error means the
+// transaction index has been disabled.
+func IsTxIndexDisabledError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errNoTxIndexMsg := "The transaction index must be enabled"
+	return strings.Contains(err.Error(), errNoTxIndexMsg)
+}
+
 // ConfDetailsFromTxIndex looks up whether a transaction is already included in
 // a block in the active chain by using the backend node's transaction index.
 // If the transaction is found its TxConfStatus is returned. If it was found in
@@ -611,11 +622,10 @@ func ConfDetailsFromTxIndex(chainConn TxIndexConn, r ConfRequest,
 	// then we may be able to dispatch it immediately.
 	rawTxRes, err := chainConn.GetRawTransactionVerbose(&r.TxID)
 	if err != nil {
-		// If the transaction lookup was successful, but it wasn't found
-		// within the index itself, then we can exit early. We'll also
-		// need to look at the error message returned as the error code
-		// is used for multiple errors.
-		txNotFoundErr := "No information available about transaction"
+		// If the transaction lookup was successful, but it wasn't
+		// found within the index itself, then we can exit early. We'll
+		// also need to look at the error message returned as the error
+		// code is used for multiple errors.
 		jsonErr, ok := err.(*dcrjson.RPCError)
 		if ok && jsonErr.Code == dcrjson.ErrRPCNoTxInfo &&
 			strings.Contains(jsonErr.Message, txNotFoundErr) {

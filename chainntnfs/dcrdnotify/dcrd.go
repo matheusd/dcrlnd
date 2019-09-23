@@ -30,6 +30,11 @@ var (
 	// measure a spend notification when notifier is already stopped.
 	ErrChainNotifierShuttingDown = errors.New("chainntnfs: system interrupt " +
 		"while attempting to register for spend notification")
+
+	// errInefficientRescanTxNotFound is used when manually calling the
+	// inefficient rescan method.
+	errInefficientRescanTxNotFound = errors.New("chainntnfs: tx not found " +
+		"after inneficient rescan")
 )
 
 // TODO(roasbeef): generalize struct below:
@@ -144,7 +149,7 @@ func (n *DcrdNotifier) Start() error {
 
 	n.txNotifier = chainntnfs.NewTxNotifier(
 		uint32(currentHeight), chainntnfs.ReorgSafetyLimit,
-		n.confirmHintCache, n.spendHintCache,
+		n.confirmHintCache, n.spendHintCache, n.chainParams,
 	)
 
 	n.bestBlock = chainntnfs.BlockEpoch{
@@ -742,8 +747,9 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		if err != nil {
 			// Avoid returning an error if the transaction was not found to
 			// proceed with fallback methods.
+			isNoTxIndexErr := chainntnfs.IsTxIndexDisabledError(err)
 			jsonErr, ok := err.(*dcrjson.RPCError)
-			if !ok || jsonErr.Code != dcrjson.ErrRPCNoTxInfo {
+			if !isNoTxIndexErr && (!ok || jsonErr.Code != dcrjson.ErrRPCNoTxInfo) {
 				return nil, fmt.Errorf("unable to query for "+
 					"txid %v: %v", outpoint.Hash, err)
 			}
@@ -791,7 +797,9 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 
 // txSpendsSpendRequest returns the index where the given spendRequest was
 // spent by the transaction or -1 if no inputs spend the given spendRequest.
-func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest) int {
+func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest,
+	addrParams dcrutil.AddressParams) int {
+
 	if spendRequest.OutPoint != chainntnfs.ZeroOutPoint {
 		// Matching by outpoint.
 		for i, in := range tx.TxIn {
@@ -806,8 +814,11 @@ func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest)
 	for i, in := range tx.TxIn {
 		// Ignore the errors here, due to them definitely not being a
 		// match.
-		pkScript, _ := chainntnfs.ComputePkScript(0, in.SignatureScript)
-		if pkScript == spendRequest.PkScript {
+		pkScript, _ := chainntnfs.ComputePkScript(
+			spendRequest.PkScript.ScriptVersion(), in.SignatureScript,
+			addrParams,
+		)
+		if spendRequest.PkScript.Equal(&pkScript) {
 			return i
 		}
 	}
@@ -823,78 +834,77 @@ func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest)
 // TODO(decred) This _needs_ to be improved into a proper rescan procedure or
 // an index.
 func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
-	histDispatch *chainntnfs.HistoricalSpendDispatch) {
+	histDispatch *chainntnfs.HistoricalSpendDispatch) (*chainntnfs.SpendDetail, error) {
 
-	_, endHeight, err := n.chainConn.GetBestBlock()
-	if err != nil {
-		chainntnfs.Log.Errorf("Error determining best block on initial "+
-			"rescan: %v", err)
-		return
-	}
+	endHeight := int64(histDispatch.EndHeight)
 
-	height := int64(startHeight)
-
-	for height <= endHeight {
+	for height := int64(startHeight); height <= endHeight; height++ {
 		scanHash, err := n.chainConn.GetBlockHash(height)
 		if err != nil {
 			chainntnfs.Log.Errorf("Error determining next block to scan for "+
 				"outpoint spender", err)
-			return
+			return nil, err
 		}
 
 		res, err := n.chainConn.Rescan([]chainhash.Hash{*scanHash})
 		if err != nil {
 			chainntnfs.Log.Errorf("Rescan to determine the spend "+
 				"details of %v failed: %v", histDispatch.SpendRequest.OutPoint, err)
-			return
+			return nil, err
 		}
 
-		if len(res.DiscoveredData) > 0 {
-			// We need to check individual txs since the active tx filter might
-			// have multiple transactions, and they may be repeatedly
-			// encountered.
-			for _, data := range res.DiscoveredData {
-				for _, hexTx := range data.Transactions {
-					bytesTx, err := hex.DecodeString(hexTx)
-					if err != nil {
-						chainntnfs.Log.Errorf("Error converting hexTx to "+
-							"bytes during spend rescan: %v", err)
-						return
-					}
+		if len(res.DiscoveredData) == 0 {
+			// No data found for this block, so go on to the next.
+			continue
+		}
 
-					var tx wire.MsgTx
-					err = tx.FromBytes(bytesTx)
-					if err != nil {
-						chainntnfs.Log.Errorf("Error decoding tx from bytes "+
-							"during spend rescan: %v", err)
-					}
-
-					spenderIndex := txSpendsSpendRequest(&tx, &histDispatch.SpendRequest)
-					if spenderIndex > -1 {
-						// Found the spender tx! Update
-						// the spend status (which will
-						// emit the notification) and
-						// finish the scan.
-						txHash := tx.TxHash()
-						details := &chainntnfs.SpendDetail{
-							SpentOutPoint:     &histDispatch.SpendRequest.OutPoint,
-							SpenderTxHash:     &txHash,
-							SpendingTx:        &tx,
-							SpenderInputIndex: uint32(spenderIndex),
-							SpendingHeight:    int32(height),
-						}
-						n.txNotifier.UpdateSpendDetails(histDispatch.SpendRequest, details)
-						return
-					}
-
+		// We need to check individual txs since the active tx filter
+		// might have multiple transactions, and they may be repeatedly
+		// encountered.
+		for _, data := range res.DiscoveredData {
+			for _, hexTx := range data.Transactions {
+				bytesTx, err := hex.DecodeString(hexTx)
+				if err != nil {
+					chainntnfs.Log.Errorf("Error converting hexTx to "+
+						"bytes during spend rescan: %v", err)
+					return nil, err
 				}
+
+				var tx wire.MsgTx
+				err = tx.FromBytes(bytesTx)
+				if err != nil {
+					chainntnfs.Log.Errorf("Error decoding tx from bytes "+
+						"during spend rescan: %v", err)
+				}
+
+				spenderIndex := txSpendsSpendRequest(
+					&tx, &histDispatch.SpendRequest,
+					n.chainParams,
+				)
+				if spenderIndex == -1 {
+					// This tx is not a match, so go on to
+					// the next.
+					continue
+				}
+
+				// Found the spender tx! Update the spend
+				// status (which will emit the notification)
+				// and finish the scan.
+				txHash := tx.TxHash()
+				details := &chainntnfs.SpendDetail{
+					SpentOutPoint:     &histDispatch.SpendRequest.OutPoint,
+					SpenderTxHash:     &txHash,
+					SpendingTx:        &tx,
+					SpenderInputIndex: uint32(spenderIndex),
+					SpendingHeight:    int32(height),
+				}
+				err = n.txNotifier.UpdateSpendDetails(histDispatch.SpendRequest, details)
+				return details, err
 			}
 		}
-
-		// Haven't found the spender yet. Scan the next block.
-		height++
 	}
 
+	return nil, errInefficientRescanTxNotFound
 }
 
 // RegisterConfirmationsNtfn registers an intent to be notified once the target

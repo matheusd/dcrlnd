@@ -8,7 +8,10 @@ import (
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 )
@@ -152,11 +155,10 @@ func TestHistoricalConfDetailsTxIndex(t *testing.T) {
 // historical confirmation details using the set of fallback methods when the
 // backend node's txindex is disabled.
 //
-// TODO(decred) Decide whether we want to support running the node without the
-// transaction index, and if so modify rpctest to support that. This would likely
-// be a major bump in rpctest's version, given that txindex is currently enabled
-// by default and package clients might be relying on that. Commenting this test
-// for the moment.
+// TODO(decred) rpctest currently always creates nodes with --txindex and
+// --addrindex, so this test can't be executed at this time. It can manually
+// verified by locally modifying a copy of rpctest and adding a replace
+// directive in the top level go.mod file. Commenting this test for the moment.
 /*
 func TestHistoricalConfDetailsNoTxIndex(t *testing.T) {
 	t.Parallel()
@@ -243,3 +245,185 @@ func TestHistoricalConfDetailsNoTxIndex(t *testing.T) {
 	}
 }
 */
+
+// TestInneficientRescan tests whether the inneficient per block rescan works
+// as required to detect spent outpoints and scripts.
+func TestInneficientRescan(t *testing.T) {
+	t.Parallel()
+
+	harness, tearDown := chainntnfs.NewMiner(
+		t, nil, true, 25,
+	)
+	defer tearDown()
+
+	notifier := setUpNotifier(t, harness)
+	defer notifier.Stop()
+
+	// Create an output and subsequently spend it.
+	outpoint, txout, privKey := chainntnfs.CreateSpendableOutput(
+		t, harness,
+	)
+	spenderTx := chainntnfs.CreateSpendTx(
+		t, outpoint, txout, privKey,
+	)
+	spenderTxHash := spenderTx.TxHash()
+	_, err := harness.Node.SendRawTransaction(spenderTx, true)
+	if err != nil {
+		t.Fatalf("unable to publish tx: %v", err)
+	}
+	if err := chainntnfs.WaitForMempoolTx(harness, &spenderTxHash); err != nil {
+		t.Fatalf("unable to find tx in the mempool: %v", err)
+	}
+
+	// We'll now confirm this transaction and attempt to retrieve its
+	// confirmation details.
+	bhs, err := harness.Node.Generate(1)
+	if err != nil {
+		t.Fatalf("unable to generate block: %v", err)
+	}
+	block, err := harness.Node.GetBlock(bhs[0])
+	if err != nil {
+		t.Fatalf("unable to get block: %v", err)
+	}
+	var testTx *wire.MsgTx
+	for _, tx := range block.Transactions {
+		otherHash := tx.TxHash()
+		if spenderTxHash.IsEqual(&otherHash) {
+			testTx = tx
+			break
+		}
+	}
+	if testTx == nil {
+		t.Fatalf("test transaction was not mined")
+	}
+	minedHeight := int64(block.Header.Height)
+	prevOutputHeight := minedHeight - 1
+
+	// Generate a few blocks after mining to test some conditions.
+	if _, err := harness.Node.Generate(20); err != nil {
+		t.Fatalf("unable to generate block: %v", err)
+	}
+
+	// Store some helper constants.
+	endHeight := minedHeight + 20
+	pkScript, err := chainntnfs.ParsePkScript(txout.Version, txout.PkScript)
+	if err != nil {
+		t.Fatalf("unable to parse pkscript: %v", err)
+	}
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(
+		txout.Version, txout.PkScript, chainntnfs.NetParams,
+	)
+	if err != nil {
+		t.Fatalf("unable to parse script type: %v", err)
+	}
+	addr := addrs[0]
+
+	// These are the individual cases to test.
+	testCases := []struct {
+		name       string
+		start      int64
+		shouldFind bool
+	}{
+		{
+			name:       "at mined block",
+			start:      minedHeight,
+			shouldFind: true,
+		},
+		{
+			name:       "long before mined",
+			start:      minedHeight - 20,
+			shouldFind: true,
+		},
+		{
+			name:       "just before prevout is mined",
+			start:      prevOutputHeight - 1,
+			shouldFind: true,
+		},
+		{
+			name:       "just before mined",
+			start:      minedHeight - 1,
+			shouldFind: true,
+		},
+		{
+			name:       "at next block",
+			start:      minedHeight + 1,
+			shouldFind: false,
+		},
+		{
+			name:       "long after the mined block",
+			start:      minedHeight + 20,
+			shouldFind: false,
+		},
+	}
+
+	// We'll test both scanning for an output and a pkscript for each of
+	// the previous tests.
+	spendReqTestCases := []struct {
+		name      string
+		spendReq  chainntnfs.SpendRequest
+		addrs     []dcrutil.Address
+		outpoints []wire.OutPoint
+	}{
+		{
+			name: "by outpoint",
+			spendReq: chainntnfs.SpendRequest{
+				OutPoint: *outpoint,
+			},
+			outpoints: []wire.OutPoint{*outpoint},
+		},
+		{
+			name: "by pkScript",
+			spendReq: chainntnfs.SpendRequest{
+				PkScript: pkScript,
+			},
+			addrs: []dcrutil.Address{addr},
+		},
+	}
+
+	for _, stc := range spendReqTestCases {
+		success := t.Run(stc.name, func(t2 *testing.T) {
+			spendReq := stc.spendReq
+
+			// Load the tx filter with the appropriate outpoint or
+			// address as preparation for the tests.
+			err := notifier.chainConn.LoadTxFilter(
+				true, stc.addrs, stc.outpoints,
+			)
+			if err != nil {
+				t.Fatalf("unable to build tx filter: %v", err)
+			}
+
+			for _, tc := range testCases {
+				success := t2.Run(tc.name, func(t3 *testing.T) {
+					histDispatch := chainntnfs.HistoricalSpendDispatch{
+						SpendRequest: spendReq,
+						StartHeight:  uint32(tc.start),
+						EndHeight:    uint32(endHeight),
+					}
+
+					details, err := notifier.inefficientSpendRescan(
+						histDispatch.StartHeight, &histDispatch,
+					)
+
+					switch {
+					case tc.shouldFind && details == nil:
+						t3.Fatalf("should find tx but did not get "+
+							"details (%v)", err)
+					case !tc.shouldFind && details != nil:
+						t3.Fatalf("should not find tx but got details")
+					case !tc.shouldFind && err != errInefficientRescanTxNotFound:
+						t3.Fatalf("should not find tx but got unexpected error %v", err)
+					}
+
+				})
+				if !success {
+					break
+				}
+			}
+		})
+
+		if !success {
+			break
+		}
+	}
+}
