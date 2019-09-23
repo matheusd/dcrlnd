@@ -71,8 +71,9 @@ func TestNewService(t *testing.T) {
 	}
 
 	// Third, check if the created service can bake macaroons.
-	macaroon, err := service.Oven.NewMacaroon(context.TODO(),
-		bakery.LatestVersion, nil, testOperation)
+	macaroon, err := service.Oven.NewMacaroon(
+		context.TODO(), bakery.LatestVersion, nil, testOperation,
+	)
 	if err != nil {
 		t.Fatalf("Error creating macaroon from service: %v", err)
 	}
@@ -108,14 +109,16 @@ func TestValidateMacaroon(t *testing.T) {
 		t.Fatalf("Error creating new service: %v", err)
 	}
 	defer service.Close()
+
 	err = service.CreateUnlock(&defaultPw)
 	if err != nil {
 		t.Fatalf("Error unlocking root key storage: %v", err)
 	}
 
 	// Then, create a new macaroon that we can serialize.
-	macaroon, err := service.Oven.NewMacaroon(context.TODO(),
-		bakery.LatestVersion, nil, testOperation)
+	macaroon, err := service.Oven.NewMacaroon(
+		context.TODO(), bakery.LatestVersion, nil, testOperation,
+	)
 	if err != nil {
 		t.Fatalf("Error creating macaroon from service: %v", err)
 	}
