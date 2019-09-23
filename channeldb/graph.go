@@ -2734,7 +2734,8 @@ func (c *ChannelAuthProof) IsEmpty() bool {
 type ChannelEdgePolicy struct {
 	// SigBytes is the raw bytes of the signature of the channel edge
 	// policy. We'll only parse these if the caller needs to access the
-	// signature for validation purposes.
+	// signature for validation purposes. Do not set SigBytes directly, but
+	// use SetSigBytes instead to make sure that the cache is invalidated.
 	SigBytes []byte
 
 	// sig is a cached fully parsed signature.
@@ -2811,6 +2812,13 @@ func (c *ChannelEdgePolicy) Signature() (*secp256k1.Signature, error) {
 	c.sig = sig
 
 	return sig, nil
+}
+
+// SetSigBytes updates the signature and invalidates the cached parsed
+// signature.
+func (c *ChannelEdgePolicy) SetSigBytes(sig []byte) {
+	c.SigBytes = sig
+	c.sig = nil
 }
 
 // IsDisabled determines whether the edge has the disabled bit set.
