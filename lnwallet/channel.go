@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/slog"
 
 	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -20,6 +21,7 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
+	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -1386,6 +1388,9 @@ type LightningChannel struct {
 
 	netParams *chaincfg.Params
 
+	// log is a channel-specific logging instance.
+	log slog.Logger
+
 	sync.RWMutex
 }
 
@@ -1411,6 +1416,8 @@ func NewLightningChannel(signer input.Signer,
 		localCommit.RemoteLogIndex, localCommit.RemoteHtlcIndex,
 	)
 
+	logPrefix := fmt.Sprintf("ChannelPoint(%v):", state.FundingOutpoint)
+
 	lc := &LightningChannel{
 		Signer:            signer,
 		sigPool:           sigPool,
@@ -1427,6 +1434,7 @@ func NewLightningChannel(signer input.Signer,
 		LocalFundingKey:   state.LocalChanCfg.MultiSigKey.PubKey,
 		RemoteFundingKey:  state.RemoteChanCfg.MultiSigKey.PubKey,
 		netParams:         netParams,
+		log:               build.NewPrefixLog(logPrefix, walletLog),
 	}
 
 	// With the main channel struct reconstructed, we'll now restore the
@@ -1662,8 +1670,8 @@ func (lc *LightningChannel) restoreCommitState(
 	}
 	lc.localCommitChain.addCommitment(localCommit)
 
-	walletLog.Debugf("ChannelPoint(%v), starting local commitment: %v",
-		lc.channelState.FundingOutpoint, newLogClosure(func() string {
+	lc.log.Debugf("starting local commitment: %v",
+		newLogClosure(func() string {
 			return spew.Sdump(lc.localCommitChain.tail())
 		}),
 	)
@@ -1678,8 +1686,8 @@ func (lc *LightningChannel) restoreCommitState(
 	}
 	lc.remoteCommitChain.addCommitment(remoteCommit)
 
-	walletLog.Debugf("ChannelPoint(%v), starting remote commitment: %v",
-		lc.channelState.FundingOutpoint, newLogClosure(func() string {
+	lc.log.Debugf("starting remote commitment: %v",
+		newLogClosure(func() string {
 			return spew.Sdump(lc.remoteCommitChain.tail())
 		}),
 	)
@@ -1713,8 +1721,7 @@ func (lc *LightningChannel) restoreCommitState(
 		}
 		lc.remoteCommitChain.addCommitment(pendingRemoteCommit)
 
-		walletLog.Debugf("ChannelPoint(%v), pending remote "+
-			"commitment: %v", lc.channelState.FundingOutpoint,
+		lc.log.Debugf("pending remote commitment: %v",
 			newLogClosure(func() string {
 				return spew.Sdump(lc.remoteCommitChain.tip())
 			}),
@@ -1844,7 +1851,7 @@ func (lc *LightningChannel) restoreStateLogs(
 			lc.localUpdateLog.logIndex > 0 {
 
 			payDesc.LogIndex = lc.localUpdateLog.logIndex
-			walletLog.Debugf("Found FeeUpdate on "+
+			lc.log.Debugf("Found FeeUpdate on "+
 				"pendingRemoteCommitDiff without logIndex, "+
 				"using %v", payDesc.LogIndex)
 		}
@@ -3292,14 +3299,14 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 		return sig, htlcSigs, nil, err
 	}
 
-	walletLog.Tracef("ChannelPoint(%v): extending remote chain to height %v, "+
+	lc.log.Tracef("extending remote chain to height %v, "+
 		"local_log=%v, remote_log=%v",
-		lc.channelState.FundingOutpoint, newCommitView.height,
+		newCommitView.height,
 		lc.localUpdateLog.logIndex, remoteACKedIndex)
 
-	walletLog.Tracef("ChannelPoint(%v): remote chain: our_balance=%v, "+
+	lc.log.Tracef("remote chain: our_balance=%v, "+
 		"their_balance=%v, commit_tx: %v",
-		lc.channelState.FundingOutpoint, newCommitView.ourBalance,
+		newCommitView.ourBalance,
 		newCommitView.theirBalance,
 		newLogClosure(func() string {
 			return spew.Sdump(newCommitView.txn)
@@ -3436,9 +3443,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 			// In this case, we'll return an error to indicate the
 			// remote node sent us the wrong values. This will let
 			// the caller act accordingly.
-			walletLog.Errorf("ChannelPoint(%v), sync failed: "+
-				"remote provided invalid commit secret!",
-				lc.channelState.FundingOutpoint)
+			lc.log.Errorf("sync failed: remote provided invalid " +
+				"commit secret!")
 			return nil, nil, nil, ErrInvalidLastCommitSecret
 		}
 	}
@@ -3468,15 +3474,12 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// If their reported height for our local chain tail is ahead of our
 	// view, then we're behind!
 	case msg.RemoteCommitTailHeight > localTailHeight || isRestoredChan:
-		walletLog.Errorf("ChannelPoint(%v), sync failed with local "+
-			"data loss: remote believes our tail height is %v, "+
-			"while we have %v!", lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed with local data loss: remote "+
+			"believes our tail height is %v, while we have %v!",
 			msg.RemoteCommitTailHeight, localTailHeight)
 
 		if isRestoredChan {
-			walletLog.Warnf("ChannelPoint(%v): detected restored "+
-				"triggering DLP",
-				lc.channelState.FundingOutpoint)
+			lc.log.Warnf("detected restored triggering DLP")
 		}
 
 		// We must check that we had recovery options to ensure the
@@ -3488,9 +3491,9 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 			// doesn't support data loss protection. In either case
 			// it is not safe for us to keep using the channel, so
 			// we mark it borked and fail the channel.
-			walletLog.Errorf("ChannelPoint(%v), sync failed: "+
-				"local data loss, but no recovery option.",
-				lc.channelState.FundingOutpoint)
+			lc.log.Errorf("sync failed: local data loss, but no " +
+				"recovery option.")
+
 			return nil, nil, nil, ErrCannotSyncCommitChains
 		}
 
@@ -3505,9 +3508,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// is behind our view of the chain, then they probably lost some state,
 	// and we'll force close the channel.
 	case msg.RemoteCommitTailHeight+1 < localTailHeight:
-		walletLog.Errorf("ChannelPoint(%v), sync failed: remote "+
-			"believes our tail height is %v, while we have %v!",
-			lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed: remote believes our tail height is "+
+			"%v, while we have %v!",
 			msg.RemoteCommitTailHeight, localTailHeight)
 		return nil, nil, nil, ErrCommitSyncRemoteDataLoss
 
@@ -3520,9 +3522,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// this case we'll re-send the last revocation message that we sent.
 	// This will be the revocation message for our prior chain tail.
 	case msg.RemoteCommitTailHeight+1 == localTailHeight:
-		walletLog.Debugf("ChannelPoint(%v), sync: remote believes "+
-			"our tail height is %v, while we have %v, we owe "+
-			"them a revocation", lc.channelState.FundingOutpoint,
+		lc.log.Debugf("sync: remote believes our tail height is %v, "+
+			"while we have %v, we owe them a revocation",
 			msg.RemoteCommitTailHeight, localTailHeight)
 
 		revocationMsg, err := lc.generateRevocation(
@@ -3568,9 +3569,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 
 	// There should be no other possible states.
 	default:
-		walletLog.Errorf("ChannelPoint(%v), sync failed: remote "+
-			"believes our tail height is %v, while we have %v!",
-			lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed: remote believes our tail height is "+
+			"%v, while we have %v!",
 			msg.RemoteCommitTailHeight, localTailHeight)
 		return nil, nil, nil, ErrCannotSyncCommitChains
 	}
@@ -3585,18 +3585,16 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// or not, we will fail the channel, but should not force close it
 	// automatically.
 	case msg.NextLocalCommitHeight > remoteTipHeight+1:
-		walletLog.Errorf("ChannelPoint(%v), sync failed: remote's "+
-			"next commit height is %v, while we believe it is %v!",
-			lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed: remote's next commit height is %v, "+
+			"while we believe it is %v!",
 			msg.NextLocalCommitHeight, remoteTipHeight)
 
 		return nil, nil, nil, ErrCannotSyncCommitChains
 
 	// They are waiting for a state they have already ACKed.
 	case msg.NextLocalCommitHeight <= remoteTailHeight:
-		walletLog.Errorf("ChannelPoint(%v), sync failed: remote's "+
-			"next commit height is %v, while we believe it is %v!",
-			lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed: remote's next commit height is %v, "+
+			"while we believe it is %v!",
 			msg.NextLocalCommitHeight, remoteTipHeight)
 
 		// They previously ACKed our current tail, and now they are
@@ -3611,9 +3609,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// re-send all the updates necessary to recreate this state, along
 	// with the commit sig.
 	case msg.NextLocalCommitHeight == remoteTipHeight:
-		walletLog.Debugf("ChannelPoint(%v), sync: remote's next "+
-			"commit height is %v, while we believe it is %v, we "+
-			"owe them a commitment", lc.channelState.FundingOutpoint,
+		lc.log.Debugf("sync: remote's next commit height is %v, while "+
+			"we believe it is %v, we owe them a commitment",
 			msg.NextLocalCommitHeight, remoteTipHeight)
 
 		// Grab the current remote chain tip from the database.  This
@@ -3642,9 +3639,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	// can have at most two elements. If that's the case, something is
 	// wrong.
 	default:
-		walletLog.Errorf("ChannelPoint(%v), sync failed: remote's "+
-			"next commit height is %v, while we believe it is %v!",
-			lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed: remote's next commit height is %v, "+
+			"while we believe it is %v!",
 			msg.NextLocalCommitHeight, remoteTipHeight)
 		return nil, nil, nil, ErrCannotSyncCommitChains
 	}
@@ -3682,9 +3678,8 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 	if !tweakless && commitPoint != nil &&
 		!commitPoint.IsEqual(msg.LocalUnrevokedCommitPoint) {
 
-		walletLog.Errorf("ChannelPoint(%v), sync failed: remote "+
-			"sent invalid commit point for height %v!",
-			lc.channelState.FundingOutpoint,
+		lc.log.Errorf("sync failed: remote sent invalid commit point "+
+			"for height %v!",
 			msg.NextLocalCommitHeight)
 		return nil, nil, nil, ErrInvalidLocalUnrevokedCommitPoint
 	}
@@ -4039,13 +4034,13 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 		return err
 	}
 
-	walletLog.Tracef("ChannelPoint(%v): extending local chain to height %v, "+
+	lc.log.Tracef("extending local chain to height %v, "+
 		"local_log=%v, remote_log=%v",
-		lc.channelState.FundingOutpoint, localCommitmentView.height,
+		localCommitmentView.height,
 		localACKedIndex, lc.remoteUpdateLog.logIndex)
 
-	walletLog.Tracef("ChannelPoint(%v): local chain: our_balance=%v, "+
-		"their_balance=%v, commit_tx: %v", lc.channelState.FundingOutpoint,
+	lc.log.Tracef("local chain: our_balance=%v, "+
+		"their_balance=%v, commit_tx: %v",
 		localCommitmentView.ourBalance, localCommitmentView.theirBalance,
 		newLogClosure(func() string {
 			return spew.Sdump(localCommitmentView.txn)
@@ -4187,8 +4182,8 @@ func (lc *LightningChannel) RevokeCurrentCommitment() (*lnwire.RevokeAndAck, []c
 		return nil, nil, err
 	}
 
-	walletLog.Tracef("ChannelPoint(%v): revoking height=%v, now at height=%v",
-		lc.channelState.FundingOutpoint, lc.localCommitChain.tail().height,
+	lc.log.Tracef("revoking height=%v, now at height=%v",
+		lc.localCommitChain.tail().height,
 		lc.currentHeight+1)
 
 	// Advance our tail, as we've revoked our previous state.
@@ -4204,9 +4199,9 @@ func (lc *LightningChannel) RevokeCurrentCommitment() (*lnwire.RevokeAndAck, []c
 		return nil, nil, err
 	}
 
-	walletLog.Tracef("ChannelPoint(%v): state transition accepted: "+
+	lc.log.Tracef("state transition accepted: "+
 		"our_balance=%v, their_balance=%v",
-		lc.channelState.FundingOutpoint, chainTail.ourBalance,
+		chainTail.ourBalance,
 		chainTail.theirBalance)
 
 	revocationMsg.ChanID = lnwire.NewChanIDFromOutPoint(
@@ -4267,8 +4262,8 @@ func (lc *LightningChannel) ReceiveRevocation(revMsg *lnwire.RevokeAndAck) (
 	lc.channelState.RemoteCurrentRevocation = lc.channelState.RemoteNextRevocation
 	lc.channelState.RemoteNextRevocation = revMsg.NextRevocationKey
 
-	walletLog.Tracef("ChannelPoint(%v): remote party accepted state transition, "+
-		"revoked height %v, now at %v", lc.channelState.FundingOutpoint,
+	lc.log.Tracef("remote party accepted state transition, revoked height "+
+		"%v, now at %v",
 		lc.remoteCommitChain.tail().height,
 		lc.remoteCommitChain.tail().height+1)
 
