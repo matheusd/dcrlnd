@@ -1712,8 +1712,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		var channelUpdates []*networkMsg
 
 		d.pChanUpdMtx.Lock()
-		channelUpdates = append(channelUpdates,
-			d.prematureChannelUpdates[shortChanID]...)
+		channelUpdates = append(channelUpdates, d.prematureChannelUpdates[shortChanID]...)
 
 		// Now delete the premature ChannelUpdates, since we added them
 		// all to the queue of network messages.
