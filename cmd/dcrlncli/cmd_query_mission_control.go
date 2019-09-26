@@ -35,7 +35,7 @@ func queryMissionControl(ctx *cli.Context) error {
 		NodeFrom, NodeTo      string
 		LastAttemptSuccessful bool
 		Timestamp             int64
-		MinPenalizeAmtAtoms   int64
+		AmtAtoms, AmtMAtoms   int64
 	}
 
 	displayResp := struct {
@@ -50,7 +50,8 @@ func queryMissionControl(ctx *cli.Context) error {
 				NodeTo:                hex.EncodeToString(n.NodeTo),
 				LastAttemptSuccessful: n.History.LastAttemptSuccessful,
 				Timestamp:             n.History.Timestamp,
-				MinPenalizeAmtAtoms:   n.History.MinPenalizeAmtAtoms,
+				AmtMAtoms:             n.History.AmtMAtoms,
+				AmtAtoms:              n.History.AmtAtoms,
 			},
 		)
 	}

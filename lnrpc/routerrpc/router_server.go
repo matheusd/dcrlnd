@@ -494,9 +494,8 @@ func (s *Server) QueryMissionControl(ctx context.Context,
 // toRPCPairData marshalls mission control pair data to the rpc struct.
 func toRPCPairData(data *routing.TimedPairResult) *PairData {
 	rpcData := PairData{
-		MinPenalizeAmtAtoms: int64(
-			data.MinPenalizeAmt.ToAtoms(),
-		),
+		AmtAtoms:              int64(data.Amt.ToAtoms()),
+		AmtMAtoms:             int64(data.Amt),
 		LastAttemptSuccessful: data.Success,
 	}
 
