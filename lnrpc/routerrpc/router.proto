@@ -391,17 +391,31 @@ message PairHistory {
 }
 
 message PairData {
-    /// Time stamp of last result.
-    int64 timestamp = 1 [json_name = "timestamp"];
+    /// Time of last failure.
+    int64 fail_time = 1 [json_name = "fail_time"];
 
-    /// Last amount that was forwarded rounded to whole atoms.
-    int64 amt_atoms = 2 [json_name = "amt_atoms"];
+    /**
+    Lowest amount that failed to forward rounded to whole atoms. This may be
+    set to zero if the failure is independent of amount.
+    */
+    int64 fail_amt_atoms = 2 [json_name = "fail_amt_atoms"];
 
-    /// Last amount that was forwarded in milliatoms.
-    int64 amt_m_atoms = 4 [json_name = "amt_m_atoms"];
+    /**
+    Lowest amount that failed to forward in milliatoms. This may be
+    set to zero if the failure is independent of amount.
+    */
+    int64 fail_amt_m_atoms = 4 [json_name = "fail_amt_m_atoms"];
 
-    /// Whether the last payment attempt through this pair was successful.
-    bool last_attempt_successful = 3 [json_name = "last_attempt_successful"];
+    reserved 3;
+
+    /// Time of last success.
+    int64 success_time = 5 [json_name = "success_time"];
+
+    /// Highest amount that we could successfully forward rounded to whole atoms.
+    int64 success_amt_atoms = 6 [json_name = "success_amt_atoms"];
+
+    /// Highest amount that we could successfully forward in milliatoms.
+    int64 success_amt_m_atoms = 7 [json_name = "success_amt_m_atoms"];
 }
 
 message QueryProbabilityRequest{

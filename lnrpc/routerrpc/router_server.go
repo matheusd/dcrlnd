@@ -494,13 +494,18 @@ func (s *Server) QueryMissionControl(ctx context.Context,
 // toRPCPairData marshalls mission control pair data to the rpc struct.
 func toRPCPairData(data *routing.TimedPairResult) *PairData {
 	rpcData := PairData{
-		AmtAtoms:              int64(data.Amt.ToAtoms()),
-		AmtMAtoms:             int64(data.Amt),
-		LastAttemptSuccessful: data.Success,
+		FailAmtAtoms:     int64(data.FailAmt.ToAtoms()),
+		FailAmtMAtoms:    int64(data.FailAmt),
+		SuccessAmtAtoms:  int64(data.SuccessAmt.ToAtoms()),
+		SuccessAmtMAtoms: int64(data.SuccessAmt),
 	}
 
-	if !data.Timestamp.IsZero() {
-		rpcData.Timestamp = data.Timestamp.Unix()
+	if !data.FailTime.IsZero() {
+		rpcData.FailTime = data.FailTime.Unix()
+	}
+
+	if !data.SuccessTime.IsZero() {
+		rpcData.SuccessTime = data.SuccessTime.Unix()
 	}
 
 	return &rpcData
