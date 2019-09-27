@@ -700,12 +700,12 @@ func (f *mockChannelLink) HandleChannelUpdate(lnwire.Message) {
 
 func (f *mockChannelLink) UpdateForwardingPolicy(_ ForwardingPolicy) {
 }
-func (f *mockChannelLink) HtlcSatifiesPolicy([32]byte, lnwire.MilliAtom,
+func (f *mockChannelLink) CheckHtlcForward([32]byte, lnwire.MilliAtom,
 	lnwire.MilliAtom, uint32, uint32, uint32) lnwire.FailureMessage {
 	return nil
 }
 
-func (f *mockChannelLink) HtlcSatifiesPolicyLocal(payHash [32]byte,
+func (f *mockChannelLink) CheckHtlcTransit(payHash [32]byte,
 	amt lnwire.MilliAtom, timeout uint32,
 	heightNow uint32) lnwire.FailureMessage {
 
