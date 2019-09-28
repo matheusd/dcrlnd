@@ -2,6 +2,7 @@ package lntest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
@@ -34,7 +35,6 @@ import (
 	"github.com/decred/dcrlnd/macaroons"
 	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/go-errors/errors"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/macaroon.v2"

@@ -6,5 +6,5 @@ issues:
                 # disable these warnings for now until this is fixed upstream
                 # (otherwise merging upstream itest changes will become 
                 # significantly harder)
-                - path: lnd.*_test\.go
+                - path: lntest/
                   text: lostcancel
