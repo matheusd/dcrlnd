@@ -1,11 +1,10 @@
 package macaroons
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
-
-	"golang.org/x/net/context"
 
 	bolt "go.etcd.io/bbolt"
 
