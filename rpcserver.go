@@ -2,6 +2,7 @@ package dcrlnd
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/hex"
 	"errors"
@@ -55,7 +56,6 @@ import (
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/tv42/zbase32"
 	bolt "go.etcd.io/bbolt"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 )
