@@ -2,6 +2,7 @@ package walletunlocker_test
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
-	"golang.org/x/net/context"
 )
 
 var (

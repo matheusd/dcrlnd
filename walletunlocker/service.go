@@ -1,6 +1,7 @@
 package walletunlocker
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
