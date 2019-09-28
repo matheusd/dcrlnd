@@ -4,6 +4,7 @@ package walletrpc
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -19,7 +20,6 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/sweep"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 )

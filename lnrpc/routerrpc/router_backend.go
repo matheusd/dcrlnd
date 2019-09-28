@@ -1,6 +1,7 @@
 package routerrpc
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -16,8 +17,6 @@ import (
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/tlv"
 	"github.com/decred/dcrlnd/zpay32"
-
-	context "golang.org/x/net/context"
 )
 
 // RouterBackend contains the backend implementation of the router rpc sub
