@@ -1468,7 +1468,8 @@
         "OPEN_CHANNEL",
         "CLOSED_CHANNEL",
         "ACTIVE_CHANNEL",
-        "INACTIVE_CHANNEL"
+        "INACTIVE_CHANNEL",
+        "PENDING_OPEN_CHANNEL"
       ],
       "default": "OPEN_CHANNEL"
     },
@@ -2160,6 +2161,9 @@
         },
         "inactive_channel": {
           "$ref": "#/definitions/lnrpcChannelPoint"
+        },
+        "pending_open_channel": {
+          "$ref": "#/definitions/lnrpcPendingUpdate"
         },
         "type": {
           "$ref": "#/definitions/ChannelEventUpdateUpdateType"

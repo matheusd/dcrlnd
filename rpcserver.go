@@ -3185,6 +3185,16 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 		case e := <-channelEventSub.Updates():
 			var update *lnrpc.ChannelEventUpdate
 			switch event := e.(type) {
+			case channelnotifier.PendingOpenChannelEvent:
+				update = &lnrpc.ChannelEventUpdate{
+					Type: lnrpc.ChannelEventUpdate_PENDING_OPEN_CHANNEL,
+					Channel: &lnrpc.ChannelEventUpdate_PendingOpenChannel{
+						PendingOpenChannel: &lnrpc.PendingUpdate{
+							Txid:        event.ChannelPoint.Hash[:],
+							OutputIndex: event.ChannelPoint.Index,
+						},
+					},
+				}
 			case channelnotifier.OpenChannelEvent:
 				channel, err := createRPCOpenChannel(r, graph,
 					event.Channel, true)
@@ -5810,7 +5820,9 @@ func (r *rpcServer) SubscribeChannelBackups(req *lnrpc.ChannelBackupSubscription
 			switch e.(type) {
 
 			// We only care about new/closed channels, so we'll
-			// skip any events for active/inactive channels.
+			// skip any events for pending/active/inactive channels.
+			case channelnotifier.PendingOpenChannelEvent:
+				continue
 			case channelnotifier.ActiveChannelEvent:
 				continue
 			case channelnotifier.InactiveChannelEvent:

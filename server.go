@@ -1104,13 +1104,14 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 			// channel bandwidth.
 			return uint16(input.MaxHTLCNumber / 2)
 		},
-		ZombieSweeperInterval:  1 * time.Minute,
-		ReservationTimeout:     10 * time.Minute,
-		MinChanSize:            dcrutil.Amount(cfg.MinChanSize),
-		MaxPendingChannels:     cfg.MaxPendingChannels,
-		RejectPush:             cfg.RejectPush,
-		NotifyOpenChannelEvent: s.channelNotifier.NotifyOpenChannelEvent,
-		OpenChannelPredicate:   chanPredicate,
+		ZombieSweeperInterval:         1 * time.Minute,
+		ReservationTimeout:            10 * time.Minute,
+		MinChanSize:                   dcrutil.Amount(cfg.MinChanSize),
+		MaxPendingChannels:            cfg.MaxPendingChannels,
+		RejectPush:                    cfg.RejectPush,
+		NotifyOpenChannelEvent:        s.channelNotifier.NotifyOpenChannelEvent,
+		OpenChannelPredicate:          chanPredicate,
+		NotifyPendingOpenChannelEvent: s.channelNotifier.NotifyPendingOpenChannelEvent,
 	})
 	if err != nil {
 		return nil, err

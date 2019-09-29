@@ -410,11 +410,12 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 			publTxChan <- txn
 			return nil
 		},
-		ZombieSweeperInterval:  1 * time.Hour,
-		ReservationTimeout:     1 * time.Nanosecond,
-		MaxPendingChannels:     DefaultMaxPendingChannels,
-		NotifyOpenChannelEvent: func(wire.OutPoint) {},
-		OpenChannelPredicate:   chainedAcceptor,
+		ZombieSweeperInterval:         1 * time.Hour,
+		ReservationTimeout:            1 * time.Nanosecond,
+		MaxPendingChannels:            DefaultMaxPendingChannels,
+		NotifyOpenChannelEvent:        func(wire.OutPoint) {},
+		OpenChannelPredicate:          chainedAcceptor,
+		NotifyPendingOpenChannelEvent: func(wire.OutPoint) {},
 	}
 
 	for _, op := range options {
