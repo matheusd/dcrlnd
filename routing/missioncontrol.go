@@ -127,7 +127,7 @@ type TimedPairResult struct {
 
 	// minPenalizeAmt is the minimum amount for which a penalty should be
 	// applied based on this result. Only applies to fail results.
-	MinPenalizeAmt lnwire.MilliSatoshi
+	MinPenalizeAmt lnwire.MilliAtom
 
 	// success indicates whether the payment attempt was successful through
 	// this pair.
@@ -159,16 +159,8 @@ type MissionControlPairSnapshot struct {
 	// Pair is the node pair of which the state is described.
 	Pair DirectedNodePair
 
-	// Timestamp is the time of last result.
-	Timestamp time.Time
-
-	// MinPenalizeAmt is the minimum amount for which the channel will be
-	// penalized.
-	MinPenalizeAmt lnwire.MilliAtom
-
-	// LastAttemptSuccessful indicates whether the last payment attempt
-	// through this pair was successful.
-	LastAttemptSuccessful bool
+	// TimedPairResult contains the data for this pair.
+	TimedPairResult
 }
 
 // paymentResult is the information that becomes available when a payment
@@ -345,14 +337,11 @@ func (m *MissionControl) GetHistorySnapshot() *MissionControlSnapshot {
 
 	for fromNode, fromPairs := range m.lastPairResult {
 		for toNode, result := range fromPairs {
-
 			pair := NewDirectedNodePair(fromNode, toNode)
 
 			pairSnapshot := MissionControlPairSnapshot{
-				Pair:                  pair,
-				MinPenalizeAmt:        result.MinPenalizeAmt,
-				Timestamp:             result.Timestamp,
-				LastAttemptSuccessful: result.Success,
+				Pair:            pair,
+				TimedPairResult: result,
 			}
 
 			pairs = append(pairs, pairSnapshot)
