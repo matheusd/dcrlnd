@@ -6,9 +6,15 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 )
 
-// mAtomScale is a value that's used to scale atoms to milli-atoms, and
-// the other way around.
-const mAtomScale uint64 = 1000
+const (
+	// mAtomScale is a value that's used to scale atoms to milli-atoms, and
+	// the other way around.
+	mAtomScale uint64 = 1000
+
+	// MaxMilliAtom is the maximum number of msats that can be expressed in
+	// this data type.
+	MaxMilliAtom = ^MilliAtom(0)
+)
 
 // MilliAtom are the native unit of the Lightning Network. A milli-atom
 // is simply 1/1000th of an atom. There are 1000 milli-atoms in a single
