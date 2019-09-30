@@ -48,9 +48,9 @@ func queryMissionControl(ctx *cli.Context) error {
 			displayPairHistory{
 				NodeFrom:              hex.EncodeToString(n.NodeFrom),
 				NodeTo:                hex.EncodeToString(n.NodeTo),
-				LastAttemptSuccessful: n.LastAttemptSuccessful,
-				Timestamp:             n.Timestamp,
-				MinPenalizeAmtAtoms:   n.MinPenalizeAmtAtoms,
+				LastAttemptSuccessful: n.History.LastAttemptSuccessful,
+				Timestamp:             n.History.Timestamp,
+				MinPenalizeAmtAtoms:   n.History.MinPenalizeAmtAtoms,
 			},
 		)
 	}

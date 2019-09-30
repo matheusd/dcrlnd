@@ -472,13 +472,9 @@ func (s *Server) QueryMissionControl(ctx context.Context,
 		pair := p
 
 		rpcPair := PairHistory{
-			NodeFrom:  pair.Pair.From[:],
-			NodeTo:    pair.Pair.To[:],
-			Timestamp: pair.Timestamp.Unix(),
-			MinPenalizeAmtAtoms: int64(
-				pair.MinPenalizeAmt.ToAtoms(),
-			),
-			LastAttemptSuccessful: pair.Success,
+			NodeFrom: pair.Pair.From[:],
+			NodeTo:   pair.Pair.To[:],
+			History:  toRPCPairData(&pair.TimedPairResult),
 		}
 
 		rpcPairs = append(rpcPairs, &rpcPair)
@@ -489,6 +485,22 @@ func (s *Server) QueryMissionControl(ctx context.Context,
 	}
 
 	return &response, nil
+}
+
+// toRPCPairData marshalls mission control pair data to the rpc struct.
+func toRPCPairData(data *routing.TimedPairResult) *PairData {
+	rpcData := PairData{
+		MinPenalizeAmtAtoms: int64(
+			data.MinPenalizeAmt.ToAtoms(),
+		),
+		LastAttemptSuccessful: data.Success,
+	}
+
+	if !data.Timestamp.IsZero() {
+		rpcData.Timestamp = data.Timestamp.Unix()
+	}
+
+	return &rpcData
 }
 
 // TrackPayment returns a stream of payment state updates. The stream is
