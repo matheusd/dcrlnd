@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet/chanvalidate"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
@@ -1621,4 +1622,59 @@ func coinSelectSubtractFees(feeRate AtomPerKByte, amt,
 	}
 
 	return selectedUtxos, outputAmt, changeAmt, nil
+}
+
+// ValidateChannel will attempt to fully validate a newly mined channel, given
+// its funding transaction and existing channel state. If this method returns
+// an error, then the mined channel is invalid, and shouldn't be used.
+func (l *LightningWallet) ValidateChannel(channelState *channeldb.OpenChannel,
+	fundingTx *wire.MsgTx) error {
+
+	// First, we'll obtain a fully signed commitment transaction so we can
+	// pass into it on the chanvalidate package for verification.
+	channel, err := NewLightningChannel(l.Cfg.Signer, channelState, nil)
+	if err != nil {
+		return err
+	}
+	signedCommitTx, err := channel.getSignedCommitTx()
+	if err != nil {
+		return err
+	}
+
+	// We'll also need the multi-sig witness script itself so the
+	// chanvalidate package can check it for correctness against the
+	// funding transaction, and also commitment validity.
+	localKey := channelState.LocalChanCfg.MultiSigKey.PubKey
+	remoteKey := channelState.RemoteChanCfg.MultiSigKey.PubKey
+	witnessScript, err := input.GenMultiSigScript(
+		localKey.SerializeCompressed(),
+		remoteKey.SerializeCompressed(),
+	)
+	if err != nil {
+		return err
+	}
+	pkScript, err := input.ScriptHashPkScript(witnessScript)
+	if err != nil {
+		return err
+	}
+
+	// Finally, we'll pass in all the necessary context needed to fully
+	// validate that this channel is indeed what we expect, and can be
+	// used.
+	_, err = chanvalidate.Validate(&chanvalidate.Context{
+		Locator: &chanvalidate.OutPointChanLocator{
+			ChanPoint: channelState.FundingOutpoint,
+		},
+		MultiSigPkScript: pkScript,
+		FundingTx:        fundingTx,
+		CommitCtx: &chanvalidate.CommitmentContext{
+			Value:               channel.Capacity,
+			FullySignedCommitTx: signedCommitTx,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
