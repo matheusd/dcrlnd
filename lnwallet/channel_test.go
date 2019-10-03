@@ -6679,3 +6679,45 @@ func TestForceCloseBorkedState(t *testing.T) {
 		t.Fatalf("append remove chain tail should have failed")
 	}
 }
+
+// TestChannelMaxFeeRate ensures we correctly compute a channel initiator's max
+// fee rate based on an allocation and its available balance. It should never
+// dip below the established fee floor.
+func TestChannelMaxFeeRate(t *testing.T) {
+	t.Parallel()
+
+	aliceChannel, _, cleanUp, err := CreateTestChannels(true)
+	if err != nil {
+		t.Fatalf("unable to create test channels: %v", err)
+	}
+	defer cleanUp()
+
+	assertMaxFeeRate := func(maxAlloc float64, expFeeRate AtomPerKByte) {
+		maxFeeRate := aliceChannel.MaxFeeRate(maxAlloc)
+		if maxFeeRate != expFeeRate {
+			t.Fatalf("expected max fee rate of %v with max "+
+				"allocation of %v, got %v", expFeeRate,
+				maxAlloc, maxFeeRate)
+		}
+	}
+
+	// Calculate the estimated fee rate when attempting to use the full
+	// channel balance of the initiator as fee.
+	commitSize := input.EstimateCommitmentTxSize(0)
+	chanBalance := float64(dcrutil.Amount(5 * dcrutil.AtomsPerCoin))
+	fullMaxFee := AtomPerKByte(chanBalance / (float64(commitSize) / 1000.0))
+
+	// Assert the estimation is the expected one. This helps ensure any
+	// changes to how the test balance, fee or commitment size are
+	// calculated breaks this test.
+	wantMaxFee := AtomPerKByte(1373626373)
+	if fullMaxFee != wantMaxFee {
+		t.Fatalf("unexpected full max fee (want=%s got=%s)", wantMaxFee,
+			fullMaxFee)
+	}
+
+	assertMaxFeeRate(1.0, fullMaxFee)
+	assertMaxFeeRate(0.001, fullMaxFee/1000)
+	assertMaxFeeRate(0.00001, fullMaxFee/100000)
+	assertMaxFeeRate(0.0000001, FeePerKBFloor)
+}

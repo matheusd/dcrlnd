@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"crypto/sha256"
 	"fmt"
+	"math"
 	"sort"
 	"sync"
 
@@ -6263,7 +6264,10 @@ func (lc *LightningChannel) MaxFeeRate(maxAllocation float64) AtomPerKByte {
 		balance.ToAtoms() + lc.channelState.LocalCommitment.CommitFee,
 	)
 	maxFee := feeBalance * maxAllocation
-	return AtomPerKByte(maxFee / (float64(weight) / 1000))
+
+	// Ensure the fee rate doesn't dip below the fee floor.
+	maxFeeRate := maxFee / (float64(weight) / 1000)
+	return AtomPerKByte(math.Max(maxFeeRate, float64(FeePerKBFloor)))
 }
 
 // RemoteNextRevocation returns the channelState's RemoteNextRevocation.
