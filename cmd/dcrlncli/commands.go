@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
@@ -3533,7 +3534,7 @@ var forwardingHistoryCommand = cli.Command{
 	payment circuits (HTLCs) over a particular time range (--start_time and
 	--end_time). The start and end times are meant to be expressed in
 	seconds since the Unix epoch. If --start_time isn't provided,
-	then the Unix epoch (01-01-1970) is used.  If --end_time isn't provided,
+	then 24 hours ago is used.  If --end_time isn't provided,
 	then the current time is used.
 
 	The max number of events returned is 50k. The default number is 100,
@@ -3587,6 +3588,9 @@ func forwardingHistory(ctx *cli.Context) error {
 			return fmt.Errorf("unable to decode start_time %v", err)
 		}
 		args = args.Tail()
+	default:
+		now := time.Now()
+		startTime = uint64(now.Add(-time.Hour * 24).Unix())
 	}
 
 	switch {
