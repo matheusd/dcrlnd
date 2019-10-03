@@ -9874,7 +9874,7 @@ out:
 	}
 
 	// The balances of all parties should be the same as initially since
-	// the HTLC was cancelled.
+	// the HTLC was canceled.
 	assertBaseBalance()
 
 	// Next, we'll test the case of a recognized payHash but, an incorrect
@@ -9912,7 +9912,7 @@ out:
 	}
 
 	// The balances of all parties should be the same as initially since
-	// the HTLC was cancelled.
+	// the HTLC was canceled.
 	assertBaseBalance()
 
 	// Next we'll test an error that occurs mid-route due to an outgoing
@@ -11279,7 +11279,7 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 
 // testMultiHopHtlcLocalTimeout tests that in a multi-hop HTLC scenario, if the
 // outgoing HTLC is about to time out, then we'll go to chain in order to claim
-// it. Any dust HTLC's should be immediately cancelled backwards. Once the
+// it. Any dust HTLC's should be immediately canceled backwards. Once the
 // timeout has been reached, then we should sweep it on-chain, and cancel the
 // HTLC backwards.
 func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
@@ -11379,7 +11379,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 	// Mine a block to confirm the closing transaction.
 	mineBlocks(t, net, 1, 1)
 
-	// At this point, Bob should have cancelled backwards the dust HTLC
+	// At this point, Bob should have canceled backwards the dust HTLC
 	// that we sent earlier. This means Alice should now only have a single
 	// HTLC on her channel.
 	nodes = []*lntest.HarnessNode{net.Alice}
@@ -11665,7 +11665,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	assertTxInBlock(t, block, timeoutTx)
 
 	// With the second layer timeout transaction confirmed, Bob should have
-	// cancelled backwards the HTLC that carol sent.
+	// canceled backwards the HTLC that carol sent.
 	nodes = []*lntest.HarnessNode{net.Alice}
 	err = wait.Predicate(func() bool {
 		predErr = assertNumActiveHtlcs(nodes, 0)

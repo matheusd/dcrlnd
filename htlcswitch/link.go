@@ -1435,7 +1435,7 @@ func (l *channelLink) handleDownStreamPkt(pkt *htlcPacket, isReProcess bool) {
 
 		// With the HTLC settled, we'll need to populate the wire
 		// message to target the specific channel and HTLC to be
-		// cancelled.
+		// canceled.
 		htlc.ChanID = l.ChanID()
 		htlc.ID = pkt.incomingHTLCID
 
@@ -1492,7 +1492,7 @@ func (l *channelLink) handleDownStreamPkt(pkt *htlcPacket, isReProcess bool) {
 
 		// With the HTLC removed, we'll need to populate the wire
 		// message to target the specific channel and HTLC to be
-		// cancelled. The "Reason" field will have already been set
+		// canceled. The "Reason" field will have already been set
 		// within the switch.
 		htlc.ChanID = l.ChanID()
 		htlc.ID = pkt.incomingHTLCID
@@ -2490,7 +2490,7 @@ func (l *channelLink) processRemoteSettleFails(fwdPkg *channeldb.FwdPkg,
 				continue
 			}
 
-			// Fetch the reason the HTLC was cancelled so we can
+			// Fetch the reason the HTLC was canceled so we can
 			// continue to propagate it.
 			failPacket := &htlcPacket{
 				outgoingChanID: l.ShortChanID(),
@@ -2651,7 +2651,7 @@ func (l *channelLink) processRemoteAdds(fwdPkg *channeldb.FwdPkg,
 			// If we're unable to process the onion payload, or we
 			// we received malformed TLV stream, then we should
 			// send an error back to the caller so the HTLC can be
-			// cancelled.
+			// canceled.
 			l.sendHTLCError(
 				pd.HtlcIndex,
 				lnwire.NewInvalidOnionVersion(onionBlob[:]),
