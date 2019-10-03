@@ -9917,7 +9917,7 @@ func testRejectHTLC(net *lntest.NetworkHarness, t *harnessTest) {
 	//
 	const chanAmt = dcrutil.Amount(1000000)
 	ctxb := context.Background()
-	timeout := time.Duration(time.Second * 5)
+	timeout := time.Second * 5
 
 	// Create Carol with reject htlc flag.
 	carol, err := net.NewNode("Carol", []string{"--rejecthtlc"})

@@ -4,8 +4,9 @@ package itest
 
 import (
 	"bytes"
-	"context"
 	"fmt"
+
+	"golang.org/x/net/context"
 
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"

@@ -64,7 +64,7 @@ DEV_TAGS := $(if ${tags},$(DEV_TAGS) ${tags},$(DEV_TAGS))
 
 LINT = $(LINT_BIN) \
 	run \
-	--build-tags rpctest \
+	--build-tags="rpctest dcrd" \
 	--disable-all \
 	--enable=gofmt \
 	--enable=vet \
