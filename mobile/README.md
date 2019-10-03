@@ -1,3 +1,8 @@
+# UNSUPPORTED IN DCRLND
+
+This is currently unsupported in Decred's port of lnd (dcrlnd) due to missing
+support for SPV.
+
 ## Building mobile libraries
 
 ### Prerequisites
