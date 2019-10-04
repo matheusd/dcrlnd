@@ -401,7 +401,7 @@ func (w *WalletKit) PendingSweeps(ctx context.Context,
 		amountAtoms := uint32(pendingInput.Amount)
 		atomsPerByte := uint32(pendingInput.LastFeeRate / 1000)
 		broadcastAttempts := uint32(pendingInput.BroadcastAttempts)
-		nextBroadcastHeight := uint32(pendingInput.NextBroadcastHeight)
+		nextBroadcastHeight := pendingInput.NextBroadcastHeight
 
 		rpcPendingSweeps = append(rpcPendingSweeps, &PendingSweep{
 			Outpoint:            op,
@@ -470,7 +470,7 @@ func (w *WalletKit) BumpFee(ctx context.Context,
 	// Construct the request's fee preference.
 	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
 	feePreference := sweep.FeePreference{
-		ConfTarget: uint32(in.TargetConf),
+		ConfTarget: in.TargetConf,
 		FeeRate:    atomsPerKB,
 	}
 
