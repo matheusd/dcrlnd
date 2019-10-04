@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"sync"
 
 	"github.com/decred/dcrd/blockchain/stake"
 	"github.com/decred/dcrd/blockchain/v2"
@@ -22,7 +21,6 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
-	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
@@ -401,41 +399,6 @@ func initRevocationWindows(chanA, chanB *LightningChannel) error {
 	return nil
 }
 
-type mockPreimageCache struct {
-	sync.Mutex
-	preimageMap map[lntypes.Hash]lntypes.Preimage
-}
-
-func newMockPreimageCache() *mockPreimageCache {
-	return &mockPreimageCache{
-		preimageMap: make(map[lntypes.Hash]lntypes.Preimage),
-	}
-}
-
-func (m *mockPreimageCache) LookupPreimage(
-	hash lntypes.Hash) (lntypes.Preimage, bool) {
-
-	m.Lock()
-	defer m.Unlock()
-
-	p, ok := m.preimageMap[hash]
-	return p, ok
-}
-
-func (m *mockPreimageCache) AddPreimages(preimages ...lntypes.Preimage) error {
-	preimageCopies := make([]lntypes.Preimage, 0, len(preimages))
-	preimageCopies = append(preimageCopies, preimages...)
-
-	m.Lock()
-	defer m.Unlock()
-
-	for _, preimage := range preimageCopies {
-		m.preimageMap[preimage.Hash()] = preimage
-	}
-
-	return nil
-}
-
 // pubkeyFromHex parses a Decred public key from a hex encoded string.
 func pubkeyFromHex(keyHex string) (*secp256k1.PublicKey, error) {
 	bytes, err := hex.DecodeString(keyHex)
@@ -454,16 +417,6 @@ func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 	key, _ := secp256k1.PrivKeyFromBytes(bytes)
 	return key, nil
 
-}
-
-// pubkeyToHex serializes a Decred public key to a hex encoded string.
-func pubkeyToHex(key *secp256k1.PublicKey) string {
-	return hex.EncodeToString(key.SerializeCompressed())
-}
-
-// privkeyFromHex serializes a Decred private key to a hex encoded string.
-func privkeyToHex(key *secp256k1.PrivateKey) string {
-	return hex.EncodeToString(key.Serialize())
 }
 
 // blockFromHex parses a full Decred block from a hex encoded string.

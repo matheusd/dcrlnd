@@ -40,11 +40,6 @@ type DcrWallet struct {
 	chainParams *chaincfg.Params
 	db          *channeldb.DB
 
-	// utxoCache is a cache used to speed up repeated calls to
-	// FetchInputInfo.
-	utxoCache map[wire.OutPoint]*wire.TxOut
-	cacheMtx  sync.RWMutex
-
 	*remoteWalletKeyRing
 
 	branchExtXPriv *hdkeychain.ExtendedKey
@@ -53,8 +48,6 @@ type DcrWallet struct {
 	// account is the account number which controls onchain funds available
 	// for use from dcrlnd.
 	account uint32
-
-	privatePassphrase []byte
 
 	// lockedOutpointsMu controls access to lockedOutpoints.
 	lockedOutpointsMu sync.Mutex
@@ -151,7 +144,6 @@ func New(cfg Config) (*DcrWallet, error) {
 		syncedChan:          make(chan struct{}),
 		chainParams:         cfg.NetParams,
 		db:                  cfg.DB,
-		utxoCache:           make(map[wire.OutPoint]*wire.TxOut),
 		conn:                cfg.Conn,
 		wallet:              wallet,
 		branchExtXPriv:      branchExtXPriv,

@@ -49,7 +49,6 @@ import (
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
 	"github.com/decred/dcrwallet/wallet/v3/txauthor"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -74,8 +73,6 @@ var (
 	// as defined in BOLT-002. This value depends on which chain is active.
 	// It is set to the value under the Decred chain as default.
 	MaxPaymentMAtoms = maxDcrPaymentMAtoms
-
-	defaultAccount uint32 = udb.DefaultAccountNum
 
 	// readPermissions is a slice of all entities that allow read
 	// permissions for authorization purposes, all lowercase.
@@ -393,8 +390,6 @@ type rpcServer struct {
 	shutdown int32 // To be used atomically.
 
 	server *server
-
-	wg sync.WaitGroup
 
 	// subServers are a set of sub-RPC servers that use the same gRPC and
 	// listening sockets as the main RPC server, but which maintain their

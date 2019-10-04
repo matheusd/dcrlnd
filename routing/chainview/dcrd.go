@@ -449,7 +449,6 @@ func (b *DcrdFilteredChainView) chainFilterer() {
 type filterUpdate struct {
 	newUtxos     []wire.OutPoint
 	updateHeight int64
-	done         chan struct{}
 }
 
 // UpdateFilter updates the UTXO filter which is to be consulted when creating

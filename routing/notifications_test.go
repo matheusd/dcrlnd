@@ -127,7 +127,6 @@ type mockChain struct {
 	utxos map[wire.OutPoint]wire.TxOut
 
 	bestHeight int32
-	bestHash   *chainhash.Hash
 
 	sync.RWMutex
 }

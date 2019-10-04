@@ -2259,7 +2259,7 @@ func testLastUnusedAddr(miner *rpctest.Harness,
 // testCreateSimpleTx checks that a call to CreateSimpleTx will return a
 // transaction that is equal to the one that is being created by SendOutputs in
 // a subsequent call.
-func testCreateSimpleTx(r *rpctest.Harness,
+func testCreateSimpleTx(r *rpctest.Harness, // nolint: unused
 	vw *rpctest.VotingWallet,
 	w, _ *lnwallet.LightningWallet, t *testing.T) {
 

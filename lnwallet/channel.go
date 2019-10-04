@@ -115,7 +115,7 @@ type channelState uint8
 const (
 	// channelPending indicates this channel is still going through the
 	// funding workflow, and isn't yet open.
-	channelPending channelState = iota
+	channelPending channelState = iota // nolint: unused
 
 	// channelOpen represents an open, active channel capable of
 	// sending/receiving HTLCs.
@@ -133,6 +133,10 @@ const (
 	// channelDispute indicates that an un-cooperative closure has been
 	// detected within the channel.
 	channelDispute
+
+	// channelPendingPayment indicates that there a currently outstanding
+	// HTLCs within the channel.
+	channelPendingPayment // nolint:unused
 )
 
 const (

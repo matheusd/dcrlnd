@@ -16,7 +16,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
-	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
@@ -236,7 +235,6 @@ func (*mockChainIO) GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error) 
 // interaction with the Decred network.
 type mockWalletController struct {
 	rootKey               *secp256k1.PrivateKey
-	prevAddres            dcrutil.Address
 	publishedTransactions chan *wire.MsgTx
 	index                 uint32
 	utxos                 []*lnwallet.Utxo
@@ -368,34 +366,4 @@ func (m *mockSecretKeyRing) DerivePrivKey(keyDesc keychain.KeyDescriptor) (*secp
 func (m *mockSecretKeyRing) ScalarMult(keyDesc keychain.KeyDescriptor,
 	pubKey *secp256k1.PublicKey) ([]byte, error) {
 	return nil, nil
-}
-
-type mockPreimageCache struct {
-	sync.Mutex
-	preimageMap map[lntypes.Hash]lntypes.Preimage
-}
-
-func newMockPreimageCache() *mockPreimageCache {
-	return &mockPreimageCache{
-		preimageMap: make(map[lntypes.Hash]lntypes.Preimage),
-	}
-}
-
-func (m *mockPreimageCache) LookupPreimage(hash lntypes.Hash) (lntypes.Preimage, bool) {
-	m.Lock()
-	defer m.Unlock()
-
-	p, ok := m.preimageMap[hash]
-	return p, ok
-}
-
-func (m *mockPreimageCache) AddPreimages(preimages ...lntypes.Preimage) error {
-	m.Lock()
-	defer m.Unlock()
-
-	for _, preimage := range preimages {
-		m.preimageMap[preimage.Hash()] = preimage
-	}
-
-	return nil
 }

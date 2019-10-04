@@ -15,14 +15,6 @@ import (
 )
 
 const (
-	// pubKeyHashSigScriptLen is the length of a signature script attempting
-	// to spend a P2PKH script. The only other possible length value is 107
-	// bytes, due to the signature within it. This length is determined by
-	// the following:
-	//   0x47 or 0x48 (71 or 72 byte data push) | <71 or 72 byte sig> |
-	//   0x21 (33 byte data push) | <33 byte compressed pubkey>
-	pubKeyHashSigScriptLen = 106
-
 	// sigLen is the maximum length of a signature data push in a p2pkh
 	// sigScript.
 	sigLen = 72

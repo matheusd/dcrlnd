@@ -67,13 +67,6 @@ func (c *testCtx) RestartRouter() error {
 	return nil
 }
 
-func copyPubKey(pub *secp256k1.PublicKey) *secp256k1.PublicKey {
-	return &secp256k1.PublicKey{
-		X: pub.X,
-		Y: pub.Y,
-	}
-}
-
 func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGraphInstance) (
 	*testCtx, func(), error) {
 

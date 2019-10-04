@@ -119,46 +119,9 @@ func TestPrefAttachmentSelectEmptyGraph(t *testing.T) {
 	}
 }
 
-// completeGraph is a helper method that adds numNodes fully connected nodes to
-// the graph.
-func completeGraph(t *testing.T, g testGraph, numNodes int) {
-	const chanCapacity = dcrutil.AtomsPerCoin
-	nodes := make(map[int]*secp256k1.PublicKey)
-	for i := 0; i < numNodes; i++ {
-		for j := i + 1; j < numNodes; j++ {
-
-			node1 := nodes[i]
-			node2 := nodes[j]
-			edge1, edge2, err := g.addRandChannel(
-				node1, node2, chanCapacity)
-			if err != nil {
-				t.Fatalf("unable to generate channel: %v", err)
-			}
-
-			if node1 == nil {
-				pubKeyBytes := edge1.Peer.PubKey()
-				nodes[i], err = secp256k1.ParsePubKey(pubKeyBytes[:])
-				if err != nil {
-					t.Fatalf("unable to parse pubkey: %v",
-						err)
-				}
-			}
-
-			if node2 == nil {
-				pubKeyBytes := edge2.Peer.PubKey()
-				nodes[j], err = secp256k1.ParsePubKey(pubKeyBytes[:])
-				if err != nil {
-					t.Fatalf("unable to parse pubkey: %v",
-						err)
-				}
-			}
-		}
-	}
-}
-
-// TestPrefAttachmentSelectTwoVertexes ensures that when passed a
-// graph with only two eligible vertexes, then both are given the same score,
-// and the funds are appropriately allocated across each peer.
+// TestPrefAttachmentSelectTwoVertexes ensures that when passed a graph with
+// only two eligible vertexes, then both are given the same score, and the
+// funds are appropriately allocated across each peer.
 func TestPrefAttachmentSelectTwoVertexes(t *testing.T) {
 	t.Parallel()
 

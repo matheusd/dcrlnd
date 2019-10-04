@@ -324,21 +324,6 @@ type testChannelEnd struct {
 	*testChannelPolicy
 }
 
-func defaultTestChannelEnd(alias string, capacity dcrutil.Amount) *testChannelEnd {
-	return &testChannelEnd{
-		Alias: alias,
-		testChannelPolicy: &testChannelPolicy{
-			Expiry:        144,
-			MinHTLC:       lnwire.MilliAtom(1000),
-			MaxHTLC:       lnwire.NewMAtomsFromAtoms(capacity),
-			FeeBaseMAtoms: lnwire.MilliAtom(1000),
-			FeeRate:       lnwire.MilliAtom(1),
-			LastUpdate:    testTime,
-			Disabled:      false,
-		},
-	}
-}
-
 func symmetricTestChannel(alias1 string, alias2 string, capacity dcrutil.Amount,
 	policy *testChannelPolicy, chanID ...uint64) *testChannel {
 
@@ -1673,10 +1658,6 @@ func TestPathFindSpecExample(t *testing.T) {
 		t.Fatalf("unable to create router: %v", err)
 	}
 	defer cleanUp()
-
-	const (
-		daveFinalCLTV = 40
-	)
 
 	// We'll first exercise the scenario of a direct payment from Bob to
 	// Carol, so we set "B" as the source node so path finding starts from

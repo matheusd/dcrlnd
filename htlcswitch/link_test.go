@@ -4038,10 +4038,6 @@ func TestChannelLinkAcceptOverpay(t *testing.T) {
 	}
 }
 
-// chanRestoreFunc is a method signature for functions that can reload both
-// endpoints of a link from their persistent storage engines.
-type chanRestoreFunc func() (*lnwallet.LightningChannel, *lnwallet.LightningChannel, error)
-
 // persistentLinkHarness is used to control the lifecylce of a link and the
 // switch that operates it. It supports the ability to restart either the link
 // or both the link and the switch.

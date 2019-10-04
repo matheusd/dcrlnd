@@ -31,12 +31,6 @@ func (p *mockPunisher) Punish(
 	return nil
 }
 
-func makeArray32(i uint64) [32]byte {
-	var arr [32]byte
-	binary.BigEndian.PutUint64(arr[:], i)
-	return arr
-}
-
 func makeArray33(i uint64) [33]byte {
 	var arr [33]byte
 	binary.BigEndian.PutUint64(arr[:], i)

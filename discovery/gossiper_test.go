@@ -55,10 +55,9 @@ var (
 	nodeKeyPriv2, _ = secp256k1.GeneratePrivateKey()
 	nodeKeyPub2     = nodeKeyPriv2.PubKey()
 
-	trickleDelay        = time.Millisecond * 100
-	retransmitDelay     = time.Hour * 1
-	proofMatureDelta    uint32
-	maxDcrFundingAmount = dcrutil.Amount(1<<62) - 1
+	trickleDelay     = time.Millisecond * 100
+	retransmitDelay  = time.Hour * 1
+	proofMatureDelta uint32
 )
 
 // makeTestDB creates a new instance of the ChannelDB for testing purposes. A
