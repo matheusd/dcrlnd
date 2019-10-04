@@ -22,6 +22,7 @@ script:
   - export GO111MODULE=on
   - go build
   - golangci-lint run --build-tags "autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" --disable-all --deadline=10m
+      --skip-files="mobile\\/.*generated\\.go"
       --enable=gofmt
       --enable=vet
       --enable=gosimple
