@@ -43,8 +43,6 @@ set -e
 SYS=${LNDBUILDSYS:-"
         darwin-386
         darwin-amd64
-        darwin-arm
-        darwin-arm64
         dragonfly-amd64
         freebsd-386
         freebsd-amd64
