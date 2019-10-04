@@ -191,6 +191,7 @@ func Main(lisCfg ListenerCfg) error {
 		graphDir,
 		channeldb.OptionSetRejectCacheSize(cfg.Caches.RejectCacheSize),
 		channeldb.OptionSetChannelCacheSize(cfg.Caches.ChannelCacheSize),
+		channeldb.OptionSetSyncFreelist(cfg.SyncFreelist),
 	)
 	if err != nil {
 		err := fmt.Errorf("Unable to open channeldb: %v", err)
@@ -970,7 +971,7 @@ func waitForWalletPassword(restEndpoints []net.Addr,
 		cfg.AdminMacPath, cfg.ReadMacPath, cfg.InvoiceMacPath,
 	}
 	pwService := walletunlocker.New(
-		chainConfig.ChainDir, activeNetParams.Params, true,
+		chainConfig.ChainDir, activeNetParams.Params, !cfg.SyncFreelist,
 		macaroonFiles, cfg.Dcrwallet.GRPCHost, cfg.Dcrwallet.CertPath,
 		cfg.Dcrwallet.AccountNumber,
 	)
