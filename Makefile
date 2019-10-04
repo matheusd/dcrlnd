@@ -10,7 +10,7 @@ ESCPKG := github.com\/decred\/dcrlnd
 DCRD_PKG := github.com/decred/dcrd
 DCRWALLET_PKG := github.com/decred/dcrwallet
 GOVERALLS_PKG := github.com/mattn/goveralls
-LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
 GOACC_PKG := github.com/ory/go-acc
 
 GO_BIN := ${GOPATH}/bin
@@ -50,7 +50,9 @@ DCRWALLET_LDFLAGS := "-X github.com/decred/dcrwallet/version.BuildMetadata=$(DCR
 DCRWALLET_TMPDIR := $(shell mktemp -d)
 
 GOACC_COMMIT := ddc355013f90fea78d83d3a6c71f1d37ac07ecd5
+LINT_COMMIT := v1.18.0
 
+DEPGET := cd /tmp && GO111MODULE=on go get -v
 GOBUILD := GO111MODULE=on go build -v -trimpath
 GOINSTALL := GO111MODULE=on go install -v -trimpath
 GOTEST := GO111MODULE=on go test -v
@@ -102,15 +104,11 @@ $(GOVERALLS_BIN):
 
 $(LINT_BIN):
 	@$(call print, "Fetching linter")
-	# Switch to tmp directory to prevent lnd go.mod from being modified.
-	# Hopefully someday a flag for go get will be added for this.
-	cd /tmp
-	GO111MODULE=on go get $(LINT_PKG)
+	$(DEPGET) $(LINT_PKG)@$(LINT_COMMIT)
 
 $(GOACC_BIN):
 	@$(call print, "Fetching go-acc")
-	go get -u -v $(GOACC_PKG)@$(GOACC_COMMIT)
-	$(GOINSTALL) $(GOACC_PKG)
+	$(DEPGET) $(GOACC_PKG)@$(GOACC_COMMIT)
 
 dcrd:
 	@$(call print, "Installing dcrd $(DCRD_COMMIT).")
@@ -122,15 +120,10 @@ dcrd:
 	rm -rf $(DCRD_TMPDIR)
 
 dcrwallet:
-	# Apply a patch to lower the scrypt parameters for the custom
-	# built wallet, so that tests execute faster. This is an ugly
-	# hack and ideally this will be exported in the future.
 	@$(call print, "Installing dcrwallet $(DCRWALLET_COMMIT).")
 	git clone https://github.com/decred/dcrwallet $(DCRWALLET_TMPDIR)
 	cd $(DCRWALLET_TMPDIR) && \
 		git checkout $(DCRWALLET_COMMIT) && \
-		sed -i 's/N: [0-9]*,/N: 16,/' ./wallet/udb/addressmanager.go && \
-		grep 'N: [0-9]*,' ./wallet/udb/addressmanager.go && \
 		GO111MODULE=on go build -o "$$GOPATH/bin/dcrwallet-dcrlnd" -ldflags $(DCRWALLET_LDFLAGS) .
 	rm -rf $(DCRWALLET_TMPDIR)
 
