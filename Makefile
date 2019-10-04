@@ -59,6 +59,8 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 GOLIST := go list $(PKG)/... | grep -v '/vendor/'
 GOLISTCOVER := $(shell go list -f '{{.ImportPath}}' ./... | sed -e 's/^$(ESCPKG)/./')
 
+ALL_TAGS="rpctest autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc"
+
 RM := rm -f
 CP := cp
 MAKE := make
@@ -70,13 +72,14 @@ DEV_TAGS := $(if ${tags},$(DEV_TAGS) ${tags},$(DEV_TAGS))
 
 LINT = $(LINT_BIN) \
 	run \
-	--build-tags="rpctest dcrd" \
+	--build-tags=$(ALL_TAGS) \
 	--disable-all \
 	--enable=gofmt \
 	--enable=vet \
 	--enable=gosimple \
 	--enable=unconvert \
 	--enable=ineffassign \
+	--enable=unused \
 	--deadline=10m
 
 GREEN := "\\033[0;32m"
