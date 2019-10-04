@@ -131,19 +131,24 @@ func (n *DcrdNotifier) Start() error {
 
 	chainntnfs.Log.Infof("Starting dcrd notifier")
 
+	n.chainUpdates.Start()
+
 	// TODO(decred): Handle 20 retries...
 	//
 	// Connect to dcrd, and register for notifications on connected, and
 	// disconnected blocks.
 	if err := n.chainConn.Connect(context.Background(), true); err != nil {
+		n.chainUpdates.Stop()
 		return err
 	}
 	if err := n.chainConn.NotifyBlocks(); err != nil {
+		n.chainUpdates.Stop()
 		return err
 	}
 
 	currentHash, currentHeight, err := n.chainConn.GetBestBlock()
 	if err != nil {
+		n.chainUpdates.Stop()
 		return err
 	}
 
@@ -156,8 +161,6 @@ func (n *DcrdNotifier) Start() error {
 		Height: int32(currentHeight),
 		Hash:   currentHash,
 	}
-
-	n.chainUpdates.Start()
 
 	n.wg.Add(1)
 	go n.notificationDispatcher()
@@ -230,10 +233,14 @@ func (n *DcrdNotifier) onBlockConnected(blockHeader []byte, transactions [][]byt
 
 	// Append this new chain update to the end of the queue of new chain
 	// updates.
-	n.chainUpdates.ChanIn() <- &filteredBlock{
+	select {
+	case n.chainUpdates.ChanIn() <- &filteredBlock{
 		header:  &header,
 		txns:    txns,
 		connect: true,
+	}:
+	case <-n.quit:
+		return
 	}
 }
 
@@ -248,9 +255,13 @@ func (n *DcrdNotifier) onBlockDisconnected(blockHeader []byte) {
 
 	// Append this new chain update to the end of the queue of new chain
 	// updates.
-	n.chainUpdates.ChanIn() <- &filteredBlock{
+	select {
+	case n.chainUpdates.ChanIn() <- &filteredBlock{
 		header:  &header,
 		connect: false,
+	}:
+	case <-n.quit:
+		return
 	}
 }
 
