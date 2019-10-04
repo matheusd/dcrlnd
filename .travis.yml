@@ -21,7 +21,7 @@ install:
 script:
   - export GO111MODULE=on
   - go build
-  - golangci-lint run --build-tags rpctest --disable-all --deadline=10m
+  - golangci-lint run --build-tags "autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" --disable-all --deadline=10m
       --enable=gofmt
       --enable=vet
       --enable=gosimple

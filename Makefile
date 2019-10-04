@@ -59,7 +59,7 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 GOLIST := go list $(PKG)/... | grep -v '/vendor/'
 GOLISTCOVER := $(shell go list -f '{{.ImportPath}}' ./... | sed -e 's/^$(ESCPKG)/./')
 
-ALL_TAGS="rpctest autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc"
+ALL_TAGS="autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc"
 
 RM := rm -f
 CP := cp
@@ -144,6 +144,11 @@ build-itest:
 	@$(call print, "Building itest dcrlnd and dcrlncli.")
 	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlnd-itest $(LDFLAGS) $(PKG)/cmd/dcrlnd
 	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlncli-itest $(LDFLAGS) $(PKG)/cmd/dcrlncli
+
+build-all: 
+	@$(call print, "Building debug dcrlnd and dcrlncli with all submodules.")
+	$(GOBUILD) -tags=$(ALL_TAGS) -o dcrlnd-debug $(LDFLAGS) $(PKG)/cmd/dcrlnd
+	$(GOBUILD) -tags=$(ALL_TAGS) -o dcrlncli-debug $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
 install:
 	@$(call print, "Installing dcrlnd and dcrlncli.")
