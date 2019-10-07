@@ -8,7 +8,6 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/channeldb"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -57,11 +56,11 @@ type SweeperStore interface {
 }
 
 type sweeperStore struct {
-	db *channeldb.DB
+	db *bolt.DB
 }
 
 // NewSweeperStore returns a new store instance.
-func NewSweeperStore(db *channeldb.DB, chainHash *chainhash.Hash) (
+func NewSweeperStore(db *bolt.DB, chainHash *chainhash.Hash) (
 	SweeperStore, error) {
 
 	err := db.Update(func(tx *bolt.Tx) error {
