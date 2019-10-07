@@ -131,9 +131,8 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 			ctx.timeoutChan <- c
 			return c
 		},
-		Store:   store,
-		Signer:  &mockSigner{},
-		ChainIO: &mockChainIO{},
+		Store:  store,
+		Signer: &mockSigner{},
 		GenSweepScript: func() ([]byte, error) {
 			// This needs to be a valid script, otherwise it fails
 			// checkTransactionSanity(). We use a simple OP_RETURN, given the

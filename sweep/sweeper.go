@@ -213,9 +213,6 @@ type UtxoSweeperConfig struct {
 	// certain on-chain events.
 	Notifier chainntnfs.ChainNotifier
 
-	// ChainIO is used  to determine the current block height.
-	ChainIO lnwallet.BlockChainIO
-
 	// Store stores the published sweeper txes.
 	Store SweeperStore
 
@@ -328,20 +325,10 @@ func (s *UtxoSweeper) Start() error {
 	// not change from here on.
 	s.relayFeeRate = s.cfg.FeeEstimator.RelayFeePerKB()
 
-	// Register for block epochs to retry sweeping every block.
-	bestHash, bestHeight, err := s.cfg.ChainIO.GetBestBlock()
-	if err != nil {
-		return fmt.Errorf("get best block: %v", err)
-	}
-
-	log.Debugf("Best height: %v", bestHeight)
-
-	blockEpochs, err := s.cfg.Notifier.RegisterBlockEpochNtfn(
-		&chainntnfs.BlockEpoch{
-			Height: bestHeight,
-			Hash:   bestHash,
-		},
-	)
+	// We need to register for block epochs and retry sweeping every block.
+	// We should get a notification with the current best block immediately
+	// if we don't provide any epoch. We'll wait for that in the collector.
+	blockEpochs, err := s.cfg.Notifier.RegisterBlockEpochNtfn(nil)
 	if err != nil {
 		return fmt.Errorf("register block epoch ntfn: %v", err)
 	}
@@ -352,10 +339,7 @@ func (s *UtxoSweeper) Start() error {
 		defer blockEpochs.Cancel()
 		defer s.wg.Done()
 
-		err := s.collector(blockEpochs.Epochs, bestHeight)
-		if err != nil {
-			log.Errorf("sweeper stopped: %v", err)
-		}
+		s.collector(blockEpochs.Epochs)
 	}()
 
 	return nil
@@ -450,8 +434,18 @@ func (s *UtxoSweeper) feeRateForPreference(
 
 // collector is the sweeper main loop. It processes new inputs, spend
 // notifications and counts down to publication of the sweep tx.
-func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
-	bestHeight int32) error {
+func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch) {
+	// We registered for the block epochs with a nil request. The notifier
+	// should send us the current best block immediately. So we need to wait
+	// for it here because we need to know the current best height.
+	var bestHeight int32
+	select {
+	case bestBlock := <-blockEpochs:
+		bestHeight = bestBlock.Height
+
+	case <-s.quit:
+		return
+	}
 
 	for {
 		select {
@@ -627,7 +621,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 		// sweep.
 		case epoch, ok := <-blockEpochs:
 			if !ok {
-				return nil
+				return
 			}
 
 			bestHeight = epoch.Height
@@ -640,7 +634,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch,
 			}
 
 		case <-s.quit:
-			return nil
+			return
 		}
 	}
 }
