@@ -52,7 +52,7 @@ func generateInputPartitionings(sweepableInputs []input.Input,
 	// on the signature length, which is not known yet at this point.
 	yields := make(map[wire.OutPoint]int64)
 	for _, input := range sweepableInputs {
-		size, err := getInputSigScriptSizeUpperBound(input)
+		size, _, err := input.WitnessType().SizeUpperBound()
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed adding input size: %v", err)
@@ -120,9 +120,7 @@ func getPositiveYieldInputs(sweepableInputs []input.Input, maxInputs int,
 
 	var total, outputValue dcrutil.Amount
 	for idx, input := range sweepableInputs {
-		// Can ignore error, because it has already been checked when
-		// calculating the yields.
-		sigScriptSize, _ := getInputSigScriptSizeUpperBound(input)
+		sigScriptSize, _, _ := input.WitnessType().SizeUpperBound()
 
 		// Keep a running size estimate of the input set.
 		sizeEstimate.AddCustomInput(sigScriptSize)
@@ -249,57 +247,8 @@ func createSweepTx(inputs []input.Input, outputPkScript []byte,
 	return sweepTx, nil
 }
 
-// getInputSigScriptSizeUpperBound returns the maximum length of the sig script
-// for the given input if it would be included in a tx.
-func getInputSigScriptSizeUpperBound(inp input.Input) (int64, error) {
-	switch inp.WitnessType() {
-
-	// Outputs on a remote commitment transaction that pay directly to us.
-	case input.CommitSpendNoDelayTweakless:
-		fallthrough
-	case input.WitnessKeyHash:
-		fallthrough
-	case input.CommitmentNoDelay:
-		return input.P2PKHSigScriptSize, nil
-
-	// Outputs on a past commitment transaction that pay directly
-	// to us.
-	case input.CommitmentTimeLock:
-		return input.ToLocalTimeoutSigScriptSize, nil
-
-	// Outgoing second layer HTLC's that have confirmed within the
-	// chain, and the output they produced is now mature enough to
-	// sweep.
-	case input.HtlcOfferedTimeoutSecondLevel:
-		return input.ToLocalTimeoutSigScriptSize, nil
-
-	// Incoming second layer HTLC's that have confirmed within the
-	// chain, and the output they produced is now mature enough to
-	// sweep.
-	case input.HtlcAcceptedSuccessSecondLevel:
-		return input.ToLocalTimeoutSigScriptSize, nil
-
-	// An HTLC on the commitment transaction of the remote party,
-	// that has had its absolute timelock expire.
-	case input.HtlcOfferedRemoteTimeout:
-		return input.AcceptedHtlcTimeoutSigScriptSize, nil
-
-	// An HTLC on the commitment transaction of the remote party,
-	// that can be swept with the preimage.
-	case input.HtlcAcceptedRemoteSuccess:
-		return input.OfferedHtlcSuccessSigScriptSize, nil
-
-	// A standard p2pkh signature script.
-	case input.PublicKeyHash:
-		return input.P2PKHSigScriptSize, nil
-
-	}
-
-	return 0, fmt.Errorf("unexpected witness type: %v", inp.WitnessType())
-}
-
-// getSizeEstimate returns a size estimate for the given inputs.
-// Additionally, it returns counts for the number of csv and cltv inputs.
+// getSizeEstimate returns a size estimate for the given inputs.  Additionally,
+// it returns counts for the number of csv and cltv inputs.
 func getSizeEstimate(inputs []input.Input) ([]input.Input, int64, int, int) {
 	// We initialize a size estimator so we can accurately asses the
 	// amount of fees we need to pay for this sweep transaction.
@@ -322,7 +271,8 @@ func getSizeEstimate(inputs []input.Input) ([]input.Input, int64, int, int) {
 	for i := range inputs {
 		inp := inputs[i]
 
-		size, err := getInputSigScriptSizeUpperBound(inp)
+		wt := inp.WitnessType()
+		inpCsv, inpCltv, err := wt.AddSizeEstimation(&sizeEstimate)
 		if err != nil {
 			log.Warn(err)
 
@@ -330,16 +280,8 @@ func getSizeEstimate(inputs []input.Input) ([]input.Input, int64, int, int) {
 			// given.
 			continue
 		}
-		sizeEstimate.AddCustomInput(size)
-
-		switch inp.WitnessType() {
-		case input.CommitmentTimeLock,
-			input.HtlcOfferedTimeoutSecondLevel,
-			input.HtlcAcceptedSuccessSecondLevel:
-			csvCount++
-		case input.HtlcOfferedRemoteTimeout:
-			cltvCount++
-		}
+		csvCount += inpCsv
+		cltvCount += inpCltv
 		sweepInputs = append(sweepInputs, inp)
 	}
 
