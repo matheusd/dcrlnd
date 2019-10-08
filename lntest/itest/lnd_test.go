@@ -1545,7 +1545,6 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 		defaultTimeLockDelta = dcrlnd.DefaultDecredTimeLockDelta
 		defaultMinHtlc       = 1000
 	)
-	defaultMaxHtlc := calculateMaxHtlc(dcrlnd.MaxDecredFundingAmount)
 
 	// Launch notification clients for all nodes, such that we can
 	// get notified when they discover new channels and updates in the
@@ -1557,6 +1556,7 @@ func testUpdateChannelPolicy(net *lntest.NetworkHarness, t *harnessTest) {
 
 	chanAmt := defaultChanAmt
 	pushAmt := chanAmt / 2
+	defaultMaxHtlc := calculateMaxHtlc(chanAmt)
 
 	// Create a channel Alice->Bob.
 	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
