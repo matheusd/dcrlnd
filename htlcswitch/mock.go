@@ -644,7 +644,9 @@ type mockChannelLink struct {
 
 	htlcID uint64
 
-	htlcSatifiesPolicyLocalResult lnwire.FailureMessage
+	checkHtlcTransitResult lnwire.FailureMessage
+
+	checkHtlcForwardResult lnwire.FailureMessage
 }
 
 // completeCircuit is a helper method for adding the finalized payment circuit
@@ -705,14 +707,15 @@ func (f *mockChannelLink) UpdateForwardingPolicy(_ ForwardingPolicy) {
 }
 func (f *mockChannelLink) CheckHtlcForward([32]byte, lnwire.MilliAtom,
 	lnwire.MilliAtom, uint32, uint32, uint32) lnwire.FailureMessage {
-	return nil
+
+	return f.checkHtlcForwardResult
 }
 
 func (f *mockChannelLink) CheckHtlcTransit(payHash [32]byte,
 	amt lnwire.MilliAtom, timeout uint32,
 	heightNow uint32) lnwire.FailureMessage {
 
-	return f.htlcSatifiesPolicyLocalResult
+	return f.checkHtlcTransitResult
 }
 
 func (f *mockChannelLink) Stats() (uint64, lnwire.MilliAtom, lnwire.MilliAtom) {
