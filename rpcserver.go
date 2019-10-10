@@ -2698,6 +2698,37 @@ func createRPCOpenChannel(r *rpcServer, graph *channeldb.ChannelGraph,
 	}
 	externalCommitFee := dbChannel.Capacity - sumOutputs
 
+	chanID := dbChannel.ShortChannelID.ToUint64()
+
+	var (
+		uptime   time.Duration
+		lifespan time.Duration
+	)
+
+	// Get the lifespan observed by the channel event store.
+	startTime, endTime, err := r.server.chanEventStore.GetLifespan(chanID)
+	if err != nil {
+		// If the channel cannot be found, log an error and do not perform
+		// further calculations for uptime and lifespan.
+		rpcsLog.Warnf("GetLifespan %v error: %v", chanID, err)
+	} else {
+		// If endTime is zero, the channel is still open, progress endTime to
+		// the present so we can calculate lifespan.
+		if endTime.IsZero() {
+			endTime = time.Now()
+		}
+		lifespan = endTime.Sub(startTime)
+
+		uptime, err = r.server.chanEventStore.GetUptime(
+			chanID,
+			startTime,
+			endTime,
+		)
+		if err != nil {
+			rpcsLog.Warnf("GetUptime %v error: %v", chanID, err)
+		}
+	}
+
 	channel := &lnrpc.Channel{
 		Active:                 isActive,
 		Private:                !isPublic,
@@ -2720,6 +2751,8 @@ func createRPCOpenChannel(r *rpcServer, graph *channeldb.ChannelGraph,
 		LocalChanReserveAtoms:  int64(dbChannel.LocalChanCfg.ChanReserve),
 		RemoteChanReserveAtoms: int64(dbChannel.RemoteChanCfg.ChanReserve),
 		StaticRemoteKey:        dbChannel.ChanType.IsTweakless(),
+		Lifetime:               int64(lifespan.Seconds()),
+		Uptime:                 int64(uptime.Seconds()),
 	}
 
 	for i, htlc := range localCommit.Htlcs {
