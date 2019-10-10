@@ -108,9 +108,10 @@ type UnlockerService struct {
 	// sent.
 	UnlockMsgs chan *WalletUnlockMsg
 
-	chainDir      string
-	netParams     *chaincfg.Params
-	macaroonFiles []string
+	chainDir       string
+	noFreelistSync bool
+	netParams      *chaincfg.Params
+	macaroonFiles  []string
 
 	dcrwHost    string
 	dcrwCert    string
@@ -118,18 +119,19 @@ type UnlockerService struct {
 }
 
 // New creates and returns a new UnlockerService.
-func New(chainDir string, params *chaincfg.Params,
+func New(chainDir string, params *chaincfg.Params, noFreelistSync bool,
 	macaroonFiles []string, dcrwHost, dcrwCert string, dcrwAccount int32) *UnlockerService {
 
 	return &UnlockerService{
-		InitMsgs:      make(chan *WalletInitMsg, 1),
-		UnlockMsgs:    make(chan *WalletUnlockMsg, 1),
-		chainDir:      chainDir,
-		netParams:     params,
-		macaroonFiles: macaroonFiles,
-		dcrwHost:      dcrwHost,
-		dcrwCert:      dcrwCert,
-		dcrwAccount:   dcrwAccount,
+		InitMsgs:       make(chan *WalletInitMsg, 1),
+		UnlockMsgs:     make(chan *WalletUnlockMsg, 1),
+		chainDir:       chainDir,
+		noFreelistSync: noFreelistSync,
+		netParams:      params,
+		macaroonFiles:  macaroonFiles,
+		dcrwHost:       dcrwHost,
+		dcrwCert:       dcrwCert,
+		dcrwAccount:    dcrwAccount,
 	}
 }
 
