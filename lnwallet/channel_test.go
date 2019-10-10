@@ -368,11 +368,11 @@ func TestCheckCommitTxSize(t *testing.T) {
 		// (estimation for worst case commitment tx uses 2 bytes).
 		commitTxSizeEstimationError := int64(1)
 
-		// Due to variable size of the signatures (70-72) in
-		// witness script actual size of commitment transaction might
-		// be lower by 4 bytes (recall that 2 signatures are required
-		// when redeeming the funding transaction).
-		commitTxSizeEstimationError += int64(4)
+		// Due to variable size of the signatures (70-73) in witness
+		// script actual size of commitment transaction might be lower
+		// by 6 bytes (recall that 2 signatures are required when
+		// redeeming the funding transaction).
+		commitTxSizeEstimationError += int64(6)
 
 		commitTx, err := channel.getSignedCommitTx()
 		if err != nil {
