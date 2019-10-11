@@ -284,7 +284,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		return nil, nil, nil, err
 	}
 
-	estimator := lnwallet.NewStaticFeeEstimator(6000, 0)
+	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err

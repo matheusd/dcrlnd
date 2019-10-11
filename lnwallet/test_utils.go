@@ -114,8 +114,8 @@ func CreateTestChannels(tweaklessCommits bool) (
 	}
 
 	channelBal := channelCapacity / 2
-	aliceDustLimit := dcrutil.Amount(200)
-	bobDustLimit := dcrutil.Amount(1300)
+	aliceDustLimit := dcrutil.Amount(6030)
+	bobDustLimit := dcrutil.Amount(12060)
 	csvTimeoutAlice := uint32(5)
 	csvTimeoutBob := uint32(4)
 
@@ -248,7 +248,11 @@ func CreateTestChannels(tweaklessCommits bool) (
 
 	// The rate for this estimator must be the same as what is returned by
 	// calcStaticFee().
-	estimator := NewStaticFeeEstimator(6000, 0)
+	//
+	// Note: This is purposefully higher than the feeKBFloor (that is, the
+	// network standard relay fee) so that tests can try both lowering and
+	// increasing the fee rate.
+	estimator := NewStaticFeeEstimator(1e5, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err
@@ -471,7 +475,7 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 		// values instead of estimateCommitmentTxSize?
 		// commitWeight = dcrutil.Amount(724)
 		// htlcWeight   = 172
-		feePerKB = dcrutil.Amount(6000)
+		feePerKB = dcrutil.Amount(1e5)
 	)
 	commitSize := input.EstimateCommitmentTxSize(numHTLCs)
 	return feePerKB * dcrutil.Amount(commitSize) / 1000

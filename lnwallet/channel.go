@@ -3138,15 +3138,12 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 		return ErrBelowChanReserve
 	}
 
-	/*
-
-		// Ensure that the fee being applied is enough to be relayed across the
-		// network in a reasonable time frame.
-		if feePerKB < FeePerKBFloor {
-			return fmt.Errorf("commitment fee per kb %v below fee floor %v",
-				feePerKB, FeePerKBFloor)
-		}
-	*/
+	// Ensure that the fee being applied is enough to be relayed across the
+	// network in a reasonable time frame.
+	if feePerKB < FeePerKBFloor {
+		return fmt.Errorf("commitment fee per kb %v below fee floor %v",
+			feePerKB, FeePerKBFloor)
+	}
 
 	// If the added HTLCs will decrease the balance, make sure they won't
 	// dip the local and remote balances below the channel reserves.

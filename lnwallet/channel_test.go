@@ -394,8 +394,6 @@ func TestCheckCommitTxSize(t *testing.T) {
 
 		diff := estimatedCost - actualCost
 		if 0 > diff || commitTxSizeEstimationError < diff {
-			bts, _ := commitTx.Bytes()
-			t.Logf("%x", bts)
 			t.Fatalf("estimation is wrong with %d HTLCs, diff: %v",
 				count, diff)
 		}
@@ -419,7 +417,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 	// Adding HTLCs and check that size stays in allowable estimation
 	// error window.
 	for i := 0; i <= 10; i++ {
-		htlc, _ := createHTLC(i, lnwire.MilliAtom(1e7))
+		htlc, _ := createHTLC(i, lnwire.MilliAtom(1e9))
 
 		if _, err := aliceChannel.AddHTLC(htlc, nil); err != nil {
 			t.Fatalf("alice unable to add htlc: %v", err)
@@ -438,7 +436,7 @@ func TestCheckCommitTxSize(t *testing.T) {
 	// Settle HTLCs and check that estimation is counting cost of settle
 	// HTLCs properly.
 	for i := 10; i >= 0; i-- {
-		_, preimage := createHTLC(i, lnwire.MilliAtom(1e7))
+		_, preimage := createHTLC(i, lnwire.MilliAtom(1e9))
 
 		err := bobChannel.SettleHTLC(preimage, uint64(i), nil, nil, nil)
 		if err != nil {
@@ -546,7 +544,7 @@ func TestForceClose(t *testing.T) {
 	// First, we'll add an outgoing HTLC from Alice to Bob, such that it
 	// will still be present within the broadcast commitment transaction.
 	// We'll ensure that the HTLC amount is above Alice's dust limit.
-	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(200000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
@@ -1035,7 +1033,7 @@ func TestHTLCDustLimit(t *testing.T) {
 
 	// The amount of the HTLC should be above Alice's dust limit and below
 	// Bob's dust limit.
-	htlcAtoms := (dcrutil.Amount(500) + htlcTimeoutFee(
+	htlcAtoms := (dcrutil.Amount(8000) + htlcTimeoutFee(
 		AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)))
 	htlcAmount := lnwire.NewMAtomsFromAtoms(htlcAtoms)
 
@@ -1134,14 +1132,14 @@ func TestHTLCSigNumber(t *testing.T) {
 	}
 
 	// Calculate two values that will be below and above Bob's dust limit.
-	estimator := NewStaticFeeEstimator(6000, 0)
+	estimator := NewStaticFeeEstimator(1e5, 0)
 	FeePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to get fee: %v", err)
 	}
 
-	belowDust := dcrutil.Amount(500) + htlcTimeoutFee(FeePerKB)
-	aboveDust := dcrutil.Amount(1400) + htlcSuccessFee(FeePerKB)
+	belowDust := dcrutil.Amount(5000) + htlcTimeoutFee(FeePerKB)
+	aboveDust := dcrutil.Amount(14000) + htlcSuccessFee(FeePerKB)
 
 	// ===================================================================
 	// Test that Bob will reject a commitment if Alice doesn't send enough
@@ -1409,7 +1407,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 	}
 
 	// Also add a fee update to the update logs.
-	fee := AtomPerKByte(333)
+	fee := AtomPerKByte(2e4)
 	if err := aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to send fee update")
 	}
@@ -2040,7 +2038,7 @@ func TestUpdateFeeFail(t *testing.T) {
 
 	// Bob receives the update, that will apply to his commitment
 	// transaction.
-	if err := bobChannel.ReceiveUpdateFee(333); err != nil {
+	if err := bobChannel.ReceiveUpdateFee(2e4); err != nil {
 		t.Fatalf("unable to apply fee update: %v", err)
 	}
 
@@ -2091,7 +2089,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob.
-	fee := AtomPerKByte(333)
+	fee := AtomPerKByte(2e4)
 	if err := aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to send fee update")
 	}
@@ -2177,7 +2175,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob.
-	fee := AtomPerKByte(333)
+	fee := AtomPerKByte(2e4)
 	if err = aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("alice unable to update fee: %v", err)
 	}
@@ -2295,7 +2293,7 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob
-	fee := AtomPerKByte(333)
+	fee := AtomPerKByte(2e4)
 	if err = aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to update fee: %v", err)
 	}
@@ -2423,7 +2421,7 @@ func TestUpdateFeeReceiverSendsUpdate(t *testing.T) {
 
 	// Since Alice is the channel initiator, she should fail when receiving
 	// fee update
-	fee := AtomPerKByte(333)
+	fee := AtomPerKByte(2e4)
 	err = aliceChannel.ReceiveUpdateFee(fee)
 	if err == nil {
 		t.Fatalf("expected alice to fail receiving fee update")
@@ -2451,9 +2449,9 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 	defer cleanUp()
 
 	// Simulate Alice sending update fee message to bob.
-	fee1 := AtomPerKByte(333)
-	fee2 := AtomPerKByte(333)
-	fee := AtomPerKByte(333)
+	fee1 := AtomPerKByte(2e4)
+	fee2 := AtomPerKByte(2e4)
+	fee := AtomPerKByte(2e4)
 	if err = aliceChannel.UpdateFee(fee1); err != nil {
 		t.Fatalf("alice unable to update fee1: %v", err)
 	}
@@ -5008,7 +5006,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 
 	// We'll start off the test by adding an HTLC in both directions, then
 	// initiating enough state transitions to lock both of them in.
-	htlcAmount := lnwire.NewMAtomsFromAtoms(20000)
+	htlcAmount := lnwire.NewMAtomsFromAtoms(200000)
 	htlcAlice, _ := createHTLC(0, htlcAmount)
 	if _, err := aliceChannel.AddHTLC(htlcAlice, nil); err != nil {
 		t.Fatalf("alice unable to add htlc: %v", err)
