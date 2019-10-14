@@ -22,8 +22,8 @@ import (
 const (
 	// DefaultMaxFeeRate is the default maximum fee rate allowed within the
 	// UtxoSweeper. The current value is equivalent to a fee rate of
-	// 100.000 atoms/KByte.
-	DefaultMaxFeeRate lnwallet.AtomPerKByte = 1e5
+	// 0.00100000 DCR/KByte.
+	DefaultMaxFeeRate lnwallet.AtomPerKByte = 1e6
 
 	// DefaultFeeRateBucketSize is the default size of fee rate buckets
 	// we'll use when clustering inputs into buckets with similar fee rates
