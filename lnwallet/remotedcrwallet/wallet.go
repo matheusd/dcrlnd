@@ -64,6 +64,10 @@ type DcrWallet struct {
 // WalletController interface.
 var _ lnwallet.WalletController = (*DcrWallet)(nil)
 
+// Compile time check to ensure that Dcrwallet implements the
+// onchainAddrSourcer interface.
+var _ (onchainAddrSourcer) = (*DcrWallet)(nil)
+
 func New(cfg Config) (*DcrWallet, error) {
 
 	if cfg.Conn == nil {
@@ -130,27 +134,28 @@ func New(cfg Config) (*DcrWallet, error) {
 			"previously stored account ID: %v", cfg.AccountNumber, err)
 	}
 
+	dcrw := &DcrWallet{
+		account:         uint32(cfg.AccountNumber),
+		syncedChan:      make(chan struct{}),
+		chainParams:     cfg.NetParams,
+		db:              cfg.DB,
+		conn:            cfg.Conn,
+		wallet:          wallet,
+		branchExtXPriv:  branchExtXPriv,
+		branchIntXPriv:  branchIntXPriv,
+		lockedOutpoints: make(map[wire.OutPoint]struct{}),
+	}
+
 	// Finally, create the keyring using the conventions for remote
 	// wallets.
-	xPrivKeyRing, err := newRemoteWalletKeyRing(acctXPriv, cfg.DB)
+	dcrw.remoteWalletKeyRing, err = newRemoteWalletKeyRing(acctXPriv, cfg.DB, dcrw)
 	if err != nil {
 		// Sign operations will fail, so signal the error and prevent
 		// the wallet from considering itself synced (to prevent usage)
 		return nil, fmt.Errorf("unable to create wallet key ring: %v", err)
 	}
 
-	return &DcrWallet{
-		account:             uint32(cfg.AccountNumber),
-		syncedChan:          make(chan struct{}),
-		chainParams:         cfg.NetParams,
-		db:                  cfg.DB,
-		conn:                cfg.Conn,
-		wallet:              wallet,
-		branchExtXPriv:      branchExtXPriv,
-		branchIntXPriv:      branchIntXPriv,
-		remoteWalletKeyRing: xPrivKeyRing,
-		lockedOutpoints:     make(map[wire.OutPoint]struct{}),
-	}, nil
+	return dcrw, nil
 }
 
 // BackEnd returns the underlying ChainService's name as a string.
@@ -957,4 +962,32 @@ func (b *DcrWallet) synced() {
 	if atomic.CompareAndSwapUint32(&b.atomicWalletSynced, 0, 1) {
 		close(b.syncedChan)
 	}
+}
+
+// Bip44AddressInfo returns the BIP44 relevant (account, branch and index) of
+// the given wallet address.
+func (b *DcrWallet) Bip44AddressInfo(addr dcrutil.Address) (uint32, uint32, uint32, error) {
+	req := &pb.ValidateAddressRequest{
+		Address: addr.Address(),
+	}
+	resp, err := b.wallet.ValidateAddress(context.Background(), req)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	if !resp.IsValid {
+		return 0, 0, 0, fmt.Errorf("invalid address")
+	}
+	if !resp.IsMine {
+		return 0, 0, 0, fmt.Errorf("not an owned address")
+	}
+	if resp.IsScript {
+		return 0, 0, 0, fmt.Errorf("not a p2pkh address")
+	}
+
+	branch := uint32(0)
+	if resp.IsInternal {
+		branch = 1
+	}
+	return resp.AccountNumber, branch, resp.Index, nil
 }
