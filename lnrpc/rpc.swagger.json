@@ -2175,6 +2175,16 @@
           "type": "string",
           "format": "uint64",
           "description": "/ The total fee (in milli-atoms) that this payment circuit carried."
+        },
+        "amt_in_m_atoms": {
+          "type": "string",
+          "format": "uint64",
+          "description": "/ The total amount (in milli-atoms) of the incoming HTLC that created half the circuit."
+        },
+        "amt_out_m_atoms": {
+          "type": "string",
+          "format": "uint64",
+          "description": "/ The total amount (in milli-atoms) of the outgoing HTLC that created the second half of the circuit."
         }
       }
     },

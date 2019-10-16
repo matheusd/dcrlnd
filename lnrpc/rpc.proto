@@ -2538,6 +2538,13 @@ message ForwardingEvent {
     /// The total fee (in milli-atoms) that this payment circuit carried.
     uint64 fee_m_atoms = 8 [json_name = "fee_m_atoms"];
 
+    /// The total amount (in milli-atoms) of the incoming HTLC that created half the circuit.
+    uint64 amt_in_m_atoms = 9 [json_name = "amt_in_m_atoms"];
+
+    /// The total amount (in milli-atoms) of the outgoing HTLC that created the second half of the circuit.
+    uint64 amt_out_m_atoms = 10 [json_name = "amt_out_m_atoms"];
+
+
     // TODO(roasbeef): add settlement latency?
     //  * use FPE on the chan id?
     //  * also list failures?

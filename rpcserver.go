@@ -4928,18 +4928,20 @@ func (r *rpcServer) ForwardingHistory(ctx context.Context,
 		LastOffsetIndex:  timeSlice.LastIndexOffset,
 	}
 	for i, event := range timeSlice.ForwardingEvents {
-		amtInAt := event.AmtIn.ToAtoms()
-		amtOutAt := event.AmtOut.ToAtoms()
+		amtInMAtoms := event.AmtIn
+		amtOutMAtoms := event.AmtOut
 		feeMAtoms := event.AmtIn - event.AmtOut
 
 		resp.ForwardingEvents[i] = &lnrpc.ForwardingEvent{
-			Timestamp: uint64(event.Timestamp.Unix()),
-			ChanIdIn:  event.IncomingChanID.ToUint64(),
-			ChanIdOut: event.OutgoingChanID.ToUint64(),
-			AmtIn:     uint64(amtInAt),
-			AmtOut:    uint64(amtOutAt),
-			Fee:       uint64(feeMAtoms.ToAtoms()),
-			FeeMAtoms: uint64(feeMAtoms),
+			Timestamp:    uint64(event.Timestamp.Unix()),
+			ChanIdIn:     event.IncomingChanID.ToUint64(),
+			ChanIdOut:    event.OutgoingChanID.ToUint64(),
+			AmtIn:        uint64(amtInMAtoms.ToAtoms()),
+			AmtOut:       uint64(amtOutMAtoms.ToAtoms()),
+			Fee:          uint64(feeMAtoms.ToAtoms()),
+			FeeMAtoms:    uint64(feeMAtoms),
+			AmtInMAtoms:  uint64(amtInMAtoms),
+			AmtOutMAtoms: uint64(amtOutMAtoms),
 		}
 	}
 
