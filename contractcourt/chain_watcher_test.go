@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ type spendNtnfRequest struct {
 }
 
 type mockNotifier struct {
+	mtx       sync.Mutex
 	spendChan chan *chainntnfs.SpendDetail
 	epochChan chan *chainntnfs.BlockEpoch
 	confChan  chan *chainntnfs.TxConfirmation
@@ -55,6 +57,8 @@ func (m *mockNotifier) Stop() error {
 func (m *mockNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint, pkScript []byte,
 	heightHint uint32) (*chainntnfs.SpendEvent, error) {
 
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
 	m.spendNtnfs = append(m.spendNtnfs, spendNtnfRequest{
 		outpoint: *outpoint,
 		pkScript: pkScript,
