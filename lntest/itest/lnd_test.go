@@ -7782,6 +7782,9 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	// block.
 	block := mineBlocks(t, net, 1, 1)[0]
 
+	// Give Dave some time to process and broadcast the brach transaction
+	time.Sleep(time.Second * 3)
+
 	// Here, Dave receives a confirmation of Carol's breach transaction.
 	// We restart Dave to ensure that she is persisting her retribution
 	// state and continues exacting justice after her node restarts.
