@@ -30,12 +30,16 @@ jobs:
         env:
           GO111MODULE: "on"
         run: |
+          export GOPATH=$(go env GOPATH)
+          export PATH=${PATH}:$(go env GOPATH)/bin
           make ci-race
           make ci-race walletimpl=remotewallet
       - name: Integration Tests
         env:
           GO111MODULE: "on"
         run: |
+          export GOPATH=$(go env GOPATH)
+          export PATH=${PATH}:$(go env GOPATH)/bin
           make ci-itest
           make ci-itest walletimpl=remotewallet
       - name: Cleanup
