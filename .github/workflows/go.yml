@@ -25,6 +25,7 @@ jobs:
           GO111MODULE: "on"
         run: |
           export PATH=${PATH}:$(go env GOPATH)/bin
+          export GOPATH=$(go env GOPATH)
           golangci-lint run --build-tags "autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc" --disable-all --deadline=10m --skip-files="mobile\\/.*generated\\.go" --enable=gofmt --enable=vet --enable=gosimple --enable=unconvert --enable=ineffassign --enable=unused
       - name: Unit Tests
         env:
