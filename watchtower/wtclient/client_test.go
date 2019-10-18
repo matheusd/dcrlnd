@@ -1115,7 +1115,7 @@ var clientTests = []clientTest{
 
 			// Wait for all of the updates to be populated in the
 			// server's database.
-			h.waitServerUpdates(hints, 3*time.Second)
+			h.waitServerUpdates(hints, 5*time.Second)
 		},
 	},
 	{
@@ -1220,7 +1220,7 @@ var clientTests = []clientTest{
 
 			// Wait for all of the updates to be populated in the
 			// server's database.
-			h.waitServerUpdates(hints, 5*time.Second)
+			h.waitServerUpdates(hints, 6*time.Second)
 
 			// Assert that the server has updates for the clients
 			// most recent policy.

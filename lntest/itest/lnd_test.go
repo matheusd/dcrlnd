@@ -10778,7 +10778,7 @@ func testAsyncPayments(net *lntest.NetworkHarness, t *harnessTest) {
 	errorReceived := false
 	for i := 0; i < numInvoices; i++ {
 		if resp, err := alicePayStream.Recv(); err != nil {
-			t.Fatalf("payment stream have been closed: %v", err)
+			t.Fatalf("payment stream have been closed (%d %d): %v", numInvoices, i, err)
 		} else if resp.PaymentError != "" {
 			if errorReceived {
 				t.Fatalf("redundant payment error: %v",

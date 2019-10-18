@@ -33,6 +33,7 @@ _testmain.go
 /dcrlncli-debug
 /dcrlnd-itest
 /dcrlncli-itest
+/dcrlnd_testbins.tar.gz
 
 # Integration test log files
 lntest/itest/output*.log

@@ -63,6 +63,8 @@ GOLISTCOVER := $(shell go list -f '{{.ImportPath}}' ./... | sed -e 's/^$(ESCPKG)
 
 ALL_TAGS="autopilotrpc chainrpc invoicesrpc routerrpc signrpc walletrpc watchtowerrpc wtclientrpc"
 
+TESTBINPKG := dcrlnd_testbins.tar.gz
+
 RM := rm -f
 CP := cp
 MAKE := make
@@ -164,6 +166,7 @@ check: unit itest
 
 itest-only:
 	@$(call print, "Running integration tests with ${backend} backend.")
+	echo $(GOBIN)
 	$(ITEST)
 
 itest: dcrd dcrwallet build-itest itest-only
@@ -192,6 +195,17 @@ ci-race: dcrd dcrwallet unit-race
 travis-cover: dcrd dcrwallet unit-cover goveralls
 
 ci-itest: itest
+
+package-test-binaries: dcrd dcrwallet build-itest
+	@$(call print, "Creating test binaries package $(TESTBINPKG)")
+	tar --transform 's/.*\///g' -czf $(TESTBINPKG) $(GO_BIN)/dcrd $(GO_BIN)/dcrwallet-dcrlnd dcrlnd-itest dcrlncli-itest
+
+unpack-test-binaries:
+	@$(call print, "Unpacking test binaries from $(TESTBINPKG)")
+	tar -xf $(TESTBINPKG)
+	mkdir -p $(GO_BIN)
+	mv dcrd $(GO_BIN)/dcrd
+	mv dcrwallet-dcrlnd $(GO_BIN)/dcrwallet-dcrlnd
 
 # =============
 # FLAKE HUNTING
@@ -281,4 +295,6 @@ clean:
 	ios \
 	android \
 	mobile \
+	package-test-binaries \
+	unpack-test-binaries \
 	clean

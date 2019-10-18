@@ -111,7 +111,7 @@ func newTestRemoteDcrwallet(t *testing.T, nodeName, dataDir string,
 		PublicPassphrase:  privatePass,
 		PrivatePassphrase: privatePass,
 	}
-	ctx, cancel := context.WithTimeout(ctxb, time.Second*5)
+	ctx, cancel := context.WithTimeout(ctxb, time.Second*30)
 	defer cancel()
 	_, err = loader.CreateWallet(ctx, reqCreate)
 	if err != nil {
