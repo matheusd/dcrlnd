@@ -2866,6 +2866,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			DataDir:     tempTestDirAlice,
 			NetParams:   netParams,
 			Syncer:      aliceSyncer,
+			ChainIO:     aliceBio,
 			DB:          aliceCDB,
 		}
 		aliceWalletController, err = walletDriver.New(aliceWalletConfig)
@@ -2881,6 +2882,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			DataDir:     tempTestDirBob,
 			NetParams:   netParams,
 			Syncer:      bobSyncer,
+			ChainIO:     bobBio,
 			DB:          bobCDB,
 		}
 		bobWalletController, err = walletDriver.New(bobWalletConfig)
@@ -2913,6 +2915,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		defer aliceCleanup()
 		aliceWalletConfig := &remotedcrwallet.Config{
 			Conn:        aliceConn,
+			ChainIO:     aliceBio,
 			PrivatePass: alicePrivatePass,
 			NetParams:   netParams,
 			DB:          aliceCDB,
@@ -2931,6 +2934,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		defer bobCleanup()
 		bobWalletConfig := &remotedcrwallet.Config{
 			Conn:        bobConn,
+			ChainIO:     bobBio,
 			PrivatePass: bobPrivatePass,
 			NetParams:   netParams,
 			DB:          bobCDB,

@@ -302,6 +302,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			DB:            chanDB,
 			Conn:          conn,
 			AccountNumber: accountNumber,
+			ChainIO:       cc.chainIO,
 		}
 
 		wc, err := remotedcrwallet.New(*dcrwConfig)
@@ -329,6 +330,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 		dcrwConfig := &dcrwallet.Config{
 			Syncer:         syncer,
+			ChainIO:        cc.chainIO,
 			PrivatePass:    privateWalletPw,
 			PublicPass:     publicWalletPw,
 			Birthday:       birthday,

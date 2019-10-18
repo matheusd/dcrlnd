@@ -75,6 +75,14 @@ type Config struct {
 	// backend synced to the chain.
 	Syncer WalletSyncer
 
+	// ChainIO is a direct connection to the blockchain IO driver needed by
+	// the wallet.
+	//
+	// TODO(decred) Ideally this should be performed by wallet operations
+	// but not all operations needed by the drivers are currently
+	// implemented in the wallet.
+	ChainIO lnwallet.BlockChainIO
+
 	// NetParams is the net parameters for the target chain.
 	NetParams *chaincfg.Params
 

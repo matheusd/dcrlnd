@@ -45,5 +45,13 @@ type Config struct {
 	// operations.
 	AccountNumber int32
 
+	// ChainIO is a direct connection to the blockchain IO driver needed by
+	// the wallet.
+	//
+	// TODO(decred) Ideally this should be performed by wallet operations
+	// but not all operations needed by the drivers are currently
+	// implemented in the wallet.
+	ChainIO lnwallet.BlockChainIO
+
 	DB *channeldb.DB
 }

@@ -37,6 +37,8 @@ type DcrWallet struct {
 	// conn is the underlying grpc socket connection.
 	conn *grpc.ClientConn
 
+	cfg Config
+
 	chainParams *chaincfg.Params
 	db          *channeldb.DB
 
@@ -139,6 +141,7 @@ func New(cfg Config) (*DcrWallet, error) {
 		syncedChan:      make(chan struct{}),
 		chainParams:     cfg.NetParams,
 		db:              cfg.DB,
+		cfg:             cfg,
 		conn:            cfg.Conn,
 		wallet:          wallet,
 		branchExtXPriv:  branchExtXPriv,
@@ -929,7 +932,16 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	}
 	headerTS := time.Unix(blockInfoResp.Timestamp, 0)
 
-	// TODO(decred) Check if the wallet is still syncing.
+	// TODO(decred) Check if the wallet is still syncing.  This is
+	// currently done by checking the associated chainIO but ideally the
+	// wallet should return the height it's attempting to sync to.
+	ioHash, _, err := b.cfg.ChainIO.GetBestBlock()
+	if err != nil {
+		return false, 0, err
+	}
+	if !bytes.Equal(walletBestHash, ioHash[:]) {
+		return false, headerTS.Unix(), nil
+	}
 
 	// If the timestamp on the best header is more than 2 hours in the
 	// past, then we're not yet synced.
