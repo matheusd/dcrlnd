@@ -5663,10 +5663,23 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	// announced in case it was public.
 	mineBlocks(t, net, 10, 0)
 
-	// We create a helper method to check how many edges each of the
-	// nodes know about. Carol and Alice should know about 4, while
-	// Bob and Dave should only know about 3, since one channel is
-	// private.
+	// Wait until all nodes have caught up to this height.
+	_, minerHeight, err := net.Miner.Node.GetBestBlock()
+	if err != nil {
+		t.Fatalf("unable to get current blockheight %v", err)
+	}
+	allNodes := []*lntest.HarnessNode{net.Alice, net.Bob, carol, dave}
+	for _, node := range allNodes {
+		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		err = waitForNodeBlockHeight(ctxt, node, minerHeight)
+		if err != nil {
+			t.Fatalf("unable to sync to chain: %v", err)
+		}
+	}
+
+	// We create a helper method to check how many edges each of the nodes
+	// know about. Carol and Alice should know about 4, while Bob and Dave
+	// should only know about 3, since one channel is private.
 	numChannels := func(node *lntest.HarnessNode, includeUnannounced bool) int {
 		req := &lnrpc.ChannelGraphRequest{
 			IncludeUnannounced: includeUnannounced,
