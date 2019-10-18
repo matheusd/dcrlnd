@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -46,7 +47,7 @@ const (
 	// connections.  Subsequent allocated ports for future Lightning nodes
 	// instances will be monotonically increasing numbers calculated as
 	// such: defaultP2pPort + (4 * harness.nodeNum).
-	defaultNodePort = 19555
+	defaultNodePort = 29180
 
 	// defaultClientPort is the initial rpc port which will be used by the
 	// first created lightning node to listen on for incoming rpc
@@ -86,7 +87,7 @@ const (
 
 var (
 	// numActiveNodes is the number of active nodes within the test network.
-	numActiveNodes = 0
+	numActiveNodes uint32 = 0
 
 	// logOutput is a flag that can be set to append the output from the
 	// seed nodes to log files.
@@ -104,12 +105,12 @@ var (
 // test instances created, the default ports are used. Otherwise, in order to
 // support multiple test nodes running at once, the p2p, rpc, rest and
 // profiling ports are incremented after each initialization.
-func generateListeningPorts() (int, int, int, int, int) {
-	p2p := defaultNodePort + (5 * numActiveNodes)
-	rpc := defaultClientPort + (5 * numActiveNodes)
-	rest := defaultRestPort + (5 * numActiveNodes)
-	profile := defaultProfilePort + (5 * numActiveNodes)
-	wallet := defaultWalletPort + (5 * numActiveNodes)
+func generateListeningPorts(num int) (int, int, int, int, int) {
+	p2p := defaultNodePort + (5 * num)
+	rpc := defaultClientPort + (5 * num)
+	rest := defaultRestPort + (5 * num)
+	profile := defaultProfilePort + (5 * num)
+	wallet := defaultWalletPort + (5 * num)
 
 	return p2p, rpc, rest, profile, wallet
 }
@@ -341,19 +342,18 @@ func newNode(cfg nodeConfig) (*HarnessNode, error) {
 	cfg.ReadMacPath = filepath.Join(cfg.DataDir, "readonly.macaroon")
 	cfg.InvoiceMacPath = filepath.Join(cfg.DataDir, "invoice.macaroon")
 
-	cfg.P2PPort, cfg.RPCPort, cfg.RESTPort, cfg.ProfilePort, cfg.WalletPort = generateListeningPorts()
+	nodeNum := atomic.AddUint32(&numActiveNodes, 1)
+
+	cfg.P2PPort, cfg.RPCPort, cfg.RESTPort, cfg.ProfilePort, cfg.WalletPort = generateListeningPorts(int(nodeNum))
 
 	err := os.MkdirAll(cfg.DataDir, os.FileMode(0755))
 	if err != nil {
 		return nil, err
 	}
 
-	nodeNum := numActiveNodes
-	numActiveNodes++
-
 	return &HarnessNode{
 		cfg:               &cfg,
-		NodeID:            nodeNum,
+		NodeID:            int(nodeNum),
 		chanWatchRequests: make(chan *chanWatchRequest),
 		openChans:         make(map[wire.OutPoint]int),
 		openClients:       make(map[wire.OutPoint][]chan struct{}),
