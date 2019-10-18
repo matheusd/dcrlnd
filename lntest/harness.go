@@ -1421,6 +1421,18 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 		return err
 	}
 
+	// Wait until the wallet has seen all 6 blocks.
+	_, height, err := n.Miner.Node.GetBestBlock()
+	if err != nil {
+		return err
+	}
+	ctxt, _ := context.WithTimeout(context.Background(), DefaultTimeout)
+	err = target.WaitForBlockHeight(ctxt, uint32(height))
+	if err != nil {
+		return nil
+	}
+
+	// Ensure the balance is as expected.
 	expectedBalance := dcrutil.Amount(initialBalance.ConfirmedBalance) + amt
 	return target.WaitForBalance(expectedBalance, true)
 }

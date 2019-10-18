@@ -1318,6 +1318,50 @@ func (hn *HarnessNode) WaitForBlockchainSync(ctx context.Context) error {
 	}
 }
 
+// WaitForBlockHeight  will block until the target node syncs to the given
+// block height or the context expires.
+func (hn *HarnessNode) WaitForBlockHeight(ctx context.Context, height uint32) error {
+	errChan := make(chan error, 1)
+	retryDelay := time.Millisecond * 100
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+			case <-hn.quit:
+				return
+			default:
+			}
+
+			getInfoReq := &lnrpc.GetInfoRequest{}
+			getInfoResp, err := hn.GetInfo(ctx, getInfoReq)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			if getInfoResp.SyncedToChain && getInfoResp.BlockHeight == height {
+				errChan <- nil
+				return
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(retryDelay):
+			}
+		}
+	}()
+
+	select {
+	case <-hn.quit:
+		return nil
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("timeout while waiting for blockchain sync")
+	}
+}
+
 // WaitForBalance waits until the node sees the expected confirmed/unconfirmed
 // balance within their wallet.
 func (hn *HarnessNode) WaitForBalance(expectedBalance dcrutil.Amount, confirmed bool) error {
