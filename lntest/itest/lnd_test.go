@@ -8094,7 +8094,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	assertTxInBlock(t, block, closeTxId)
 
 	// Wait so Dave receives a confirmation of Carol's breach transaction.
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// We restart Dave to ensure that he is persisting his retribution
 	// state and continues exacting justice after her node restarts.
