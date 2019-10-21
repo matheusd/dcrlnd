@@ -2633,6 +2633,7 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 	var (
 		synced              bool
 		err                 error
+		predErr             error
 		bestHash, knownHash *chainhash.Hash
 		knownHeight         int32
 		bestHeight          int64
@@ -2642,7 +2643,7 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 		// Do a short wait
 		select {
 		case <-timeout:
-			return fmt.Errorf("timeout after 30s")
+			return fmt.Errorf("timeout after 30s. predErr=%v", predErr)
 		case <-time.Tick(100 * time.Millisecond):
 		}
 
@@ -2656,7 +2657,10 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 		if err != nil {
 			return fmt.Errorf("error getting chainIO bestBlock: %v", err)
 		}
-		if int64(knownHeight) != bestHeight {
+		if knownHeight != bestHeight {
+			predErr = fmt.Errorf("miner and wallet best heights "+
+				"are not the same (want=%d got=%d)",
+				bestHeight, knownHeight)
 			continue
 		}
 		if *knownHash != *bestHash {
@@ -2669,6 +2673,9 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 		synced, _, err = w.IsSynced()
 		if err != nil {
 			return err
+		}
+		if !synced {
+			predErr = fmt.Errorf("wallet isSynced=false")
 		}
 	}
 	return nil
