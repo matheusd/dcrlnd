@@ -47,6 +47,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         go: [1.13]
         testsuite: ["unit-race", "itest-only", "itest-only walletimpl=remotewallet"]
