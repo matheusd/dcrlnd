@@ -784,6 +784,18 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	return walletSynced, walletBestHeader.Timestamp.Unix(), nil
 }
 
+func (b *DcrWallet) BestBlock() (int64, chainhash.Hash, int64, error) {
+	// Grab the best chain state the wallet is currently aware of.
+	walletBestHash, walletBestHeight := b.wallet.MainChainTip()
+	walletBestHeader, err := b.wallet.BlockHeader(&walletBestHash)
+	if err != nil {
+		return 0, chainhash.Hash{}, 0, err
+	}
+
+	timestamp := walletBestHeader.Timestamp.Unix()
+	return int64(walletBestHeight), walletBestHash, timestamp, nil
+}
+
 // InitialSyncChannel returns the channel used to signal that wallet init has
 // finished.
 //

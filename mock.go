@@ -336,6 +336,9 @@ func (*mockWalletController) InitialSyncChannel() <-chan struct{} {
 	close(c)
 	return c
 }
+func (*mockWalletController) BestBlock() (int64, chainhash.Hash, int64, error) {
+	return 0, chainhash.Hash{}, 0, nil
+}
 func (*mockWalletController) Start() error {
 	return nil
 }

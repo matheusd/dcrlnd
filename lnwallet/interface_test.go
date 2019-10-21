@@ -2631,12 +2631,13 @@ func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
 
 func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 	var (
-		synced              bool
-		err                 error
-		predErr             error
-		bestHash, knownHash *chainhash.Hash
-		knownHeight         int32
-		bestHeight          int64
+		synced      bool
+		err         error
+		predErr     error
+		bestHash    *chainhash.Hash
+		knownHash   chainhash.Hash
+		knownHeight int64
+		bestHeight  int64
 	)
 	timeout := time.After(10 * time.Second)
 	for !synced {
@@ -2653,7 +2654,7 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 		if err != nil {
 			return fmt.Errorf("error getting node best block: %v", err)
 		}
-		knownHash, knownHeight, err = w.Cfg.ChainIO.GetBestBlock()
+		knownHeight, knownHash, _, err = w.BestBlock()
 		if err != nil {
 			return fmt.Errorf("error getting chainIO bestBlock: %v", err)
 		}
@@ -2663,7 +2664,7 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 				bestHeight, knownHeight)
 			continue
 		}
-		if *knownHash != *bestHash {
+		if knownHash != *bestHash {
 			return fmt.Errorf("hash at height %d doesn't match: "+
 				"expected %s, got %s", bestHeight, bestHash,
 				knownHash)

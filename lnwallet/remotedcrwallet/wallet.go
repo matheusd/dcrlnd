@@ -957,6 +957,25 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	return walletSynced, headerTS.Unix(), nil
 }
 
+func (b *DcrWallet) BestBlock() (int64, chainhash.Hash, int64, error) {
+	ctxb := context.Background()
+	bestBlockResp, err := b.wallet.BestBlock(ctxb, &pb.BestBlockRequest{})
+	if err != nil {
+		return 0, chainhash.Hash{}, 0, err
+	}
+	walletBestHash, err := chainhash.NewHash(bestBlockResp.Hash)
+	if err != nil {
+		return 0, chainhash.Hash{}, 0, err
+	}
+	blockInfoResp, err := b.wallet.BlockInfo(ctxb, &pb.BlockInfoRequest{BlockHash: walletBestHash[:]})
+	if err != nil {
+		return 0, chainhash.Hash{}, 0, err
+	}
+	headerTS := time.Unix(blockInfoResp.Timestamp, 0)
+
+	return int64(bestBlockResp.Height), *walletBestHash, headerTS.Unix(), nil
+}
+
 // InitialSyncChannel returns the channel used to signal that wallet init has
 // finished.
 //

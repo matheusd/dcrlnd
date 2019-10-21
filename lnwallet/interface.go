@@ -251,6 +251,10 @@ type WalletController interface {
 	// network and potentially ready for use.
 	InitialSyncChannel() <-chan struct{}
 
+	// BestBlock returns the block height, block hash and timestamp for the
+	// tip of the main chain as viewed by the internal wallet controller.
+	BestBlock() (int64, chainhash.Hash, int64, error)
+
 	// Start initializes the wallet, making any necessary connections,
 	// starting up required goroutines etc.
 	Start() error
