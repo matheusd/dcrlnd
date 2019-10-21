@@ -481,6 +481,23 @@ func (l *LightningWallet) handleFundingReserveRequest(req *InitFundingReserveMsg
 			return
 		}
 
+		walletLog.Debugf("Selected %d coins for local funding (total "+
+			"%s, change %s)", len(selected.coins),
+			newLogClosure(func() string {
+				var totalIn dcrutil.Amount
+				for _, in := range selected.coins {
+					totalIn += dcrutil.Amount(in.ValueIn)
+				}
+				return totalIn.String()
+			}),
+			newLogClosure(func() string {
+				var totalChange dcrutil.Amount
+				for _, out := range selected.change {
+					totalChange += dcrutil.Amount(out.Value)
+				}
+				return totalChange.String()
+			}))
+
 		localFundingAmt = selected.fundingAmt
 	}
 
