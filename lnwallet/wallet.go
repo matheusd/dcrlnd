@@ -1350,6 +1350,15 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 		return nil, err
 	}
 
+	walletLog.Debugf("Found %d possible utxos to use for funding %s (max %s)",
+		len(coins), amt, newLogClosure(func() string {
+			var total dcrutil.Amount
+			for _, c := range coins {
+				total += c.Value
+			}
+			return total.String()
+		}))
+
 	var (
 		selectedCoins []*Utxo
 		fundingAmt    dcrutil.Amount
@@ -1382,6 +1391,8 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 		}
 	}
 
+	walletLog.Debugf("Selected %d from the utxos", len(selectedCoins))
+
 	// Record any change output(s) generated as a result of the coin
 	// selection, but only if the addition of the output won't lead to the
 	// creation of dust.
@@ -1401,6 +1412,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 			Value:    int64(changeAmt),
 			PkScript: changeScript,
 		}
+		walletLog.Debugf("Added change output to address %s", changeAddr.Address())
 	}
 
 	// Lock the selected coins. These coins are now "reserved", this
@@ -1409,6 +1421,7 @@ func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
 	inputs := make([]*wire.TxIn, len(selectedCoins))
 	for i, coin := range selectedCoins {
 		outpoint := &coin.OutPoint
+		walletLog.Debugf("Locking outpoint %s for use in funding", outpoint)
 		l.lockedOutPoints[*outpoint] = struct{}{}
 		l.LockOutpoint(*outpoint)
 
