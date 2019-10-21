@@ -282,6 +282,16 @@ func closeChannelAndAssert(ctx context.Context, t *harnessTest,
 	net *lntest.NetworkHarness, node *lntest.HarnessNode,
 	fundingChanPoint *lnrpc.ChannelPoint, force bool) *chainhash.Hash {
 
+	// If this is not a force close, we'll wait a few seconds for the
+	// channel to finish settling any outstanding HTLCs that might still be
+	// in flight.
+	if !force {
+		err := waitForPendingHtlcs(node, fundingChanPoint, 0)
+		if err != nil {
+			t.Fatalf("co-op channel close attempt with active htlcs: %v", err)
+		}
+	}
+
 	// Fetch the current channel policy. If the channel is currently
 	// enabled, we will register for graph notifications before closing to
 	// assert that the node sends out a disabling update as a result of the
