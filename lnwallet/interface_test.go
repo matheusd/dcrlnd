@@ -2698,6 +2698,16 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 func TestLightningWallet(t *testing.T) {
 	t.Parallel()
 
+	var (
+		miningNode *rpctest.Harness
+		err        error
+	)
+	defer func() {
+		if miningNode != nil {
+			miningNode.TearDown()
+		}
+	}()
+
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
 			// Initialize the harness around a dcrd node which will
@@ -2706,11 +2716,10 @@ func TestLightningWallet(t *testing.T) {
 			// chain length of 125, so we have plenty of DCR to
 			// play around with.
 			minerArgs := []string{"--txindex"}
-			miningNode, err := rpctest.New(netParams, nil, minerArgs)
+			miningNode, err = rpctest.New(netParams, nil, minerArgs)
 			if err != nil {
 				t.Fatalf("unable to create mining node: %v", err)
 			}
-			defer miningNode.TearDown()
 			if err := miningNode.SetUp(true, 0); err != nil {
 				t.Fatalf("unable to set up mining node: %v", err)
 			}
@@ -2771,6 +2780,17 @@ func TestLightningWallet(t *testing.T) {
 
 			runTests(t, walletDriver, backEnd, miningNode,
 				rpcConfig, chainNotifier, votingWallet)
+
+			// Tear down this mining node so it won't interfere
+			// with the next set of tests.
+			cleanUpNode := miningNode
+			miningNode = nil
+			if err := cleanUpNode.TearDown(); err != nil {
+				t.Fatalf("unable to teardown rpc test harness: %v", err)
+			}
+
+			// Give enough time for all processes to end.
+			time.Sleep(time.Second)
 		}
 	}
 }
