@@ -104,13 +104,14 @@ type reservationWithCtx struct {
 	err     chan error
 }
 
-// isLocked checks the reservation's timestamp to determine whether it is locked.
-func (r *reservationWithCtx) isLocked() bool {
+// isLocked checks the reservation's timestamp to determine whether it is
+// locked. It returns the last update time.
+func (r *reservationWithCtx) isLocked() (bool, time.Time) {
 	r.updateMtx.RLock()
 	defer r.updateMtx.RUnlock()
 
 	// The time zero value represents a locked reservation.
-	return r.lastUpdated.IsZero()
+	return r.lastUpdated.IsZero(), r.lastUpdated
 }
 
 // updateTimestamp updates the reservation's timestamp with the current time.
@@ -2978,11 +2979,12 @@ func (f *fundingManager) pruneZombieReservations() {
 	f.resMtx.RLock()
 	for _, pendingReservations := range f.activeReservations {
 		for pendingChanID, resCtx := range pendingReservations {
-			if resCtx.isLocked() {
+			locked, lastUpdated := resCtx.isLocked()
+			if locked {
 				continue
 			}
 
-			if time.Since(resCtx.lastUpdated) > f.cfg.ReservationTimeout {
+			if time.Since(lastUpdated) > f.cfg.ReservationTimeout {
 				zombieReservations[pendingChanID] = resCtx
 			}
 		}
