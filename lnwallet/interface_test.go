@@ -270,10 +270,10 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	// manager and underlying database. This is needed to prevent a possible
 	// deadlock condition in the wallet when generating new addresses while
 	// processing a transaction (see
-	// https://github.com/decred/dcrwallet/issues/1372). This isn't pretty, but
-	// 50ms should be more than enough to prevent triggering this bug on most
-	// dev machines.
-	time.Sleep(time.Millisecond * 50)
+	// https://github.com/decred/dcrwallet/issues/1372). This isn't pretty,
+	// but 200ms should be more than enough to prevent triggering this bug
+	// on most dev machines.
+	time.Sleep(time.Millisecond * 200)
 
 	for _, walletAddr := range addrs {
 		script, err := txscript.PayToAddrScript(walletAddr)
@@ -299,6 +299,8 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	if _, err := blockGenerator(10); err != nil {
 		return err
 	}
+
+	time.Sleep(time.Millisecond * 200)
 
 	// Wait until the wallet has finished syncing up to the main chain.
 	ticker := time.NewTicker(100 * time.Millisecond)
