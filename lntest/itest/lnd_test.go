@@ -501,6 +501,34 @@ func cleanupForceClose(t *harnessTest, net *lntest.NetworkHarness,
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
+
+	// Wait until the channel is no longer marked pendingForceClose
+	txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
+	if err != nil {
+		t.Fatalf("unable to get txid: %v", err)
+	}
+	chanPointStr := fmt.Sprintf("%v:%v", txid, chanPoint.OutputIndex)
+	err = wait.Predicate(func() bool {
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		pendingChansRequest := &lnrpc.PendingChannelsRequest{}
+		pendingChanResp, err := node.PendingChannels(
+			ctxt, pendingChansRequest,
+		)
+		if err != nil {
+			return false
+		}
+
+		for _, pendingClose := range pendingChanResp.PendingForceClosingChannels {
+			if pendingClose.Channel.ChannelPoint == chanPointStr {
+				return false
+			}
+		}
+
+		return true
+	}, time.Second*15)
+	if err != nil {
+		t.Fatalf("force-closed channel still not cleaned up after timeout: %v", err)
+	}
 }
 
 // waitForPendingHtlcs waits for up to 15 seconds for the given channel in the
