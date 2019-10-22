@@ -14328,7 +14328,7 @@ func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Create a Carol node to use in tests. All invoices will be created on
 	// her node.
-	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect"})
+	carol, err := net.NewNode("Carol", []string{"--unsafe-disconnect", "--nolisten"})
 	if err != nil {
 		t.Fatalf("unable to create carol's node: %v", err)
 	}
@@ -14414,6 +14414,15 @@ func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("payment should have suceeded, but failed with %v", err)
 	}
 
+	// Wait until Bob and Carol show no pending HTLCs before proceding.
+	for _, node := range []*lntest.HarnessNode{net.Bob, carol} {
+		err := waitForPendingHtlcs(node, chanPoint, 0)
+		if err != nil {
+			t.Fatalf("node %s still showing pending HTLCs: %v",
+				node.Name(), err)
+		}
+	}
+
 	// Disconnect the nodes from one another. While their channel remains
 	// open, carol cannot send payments (since bob is offline from her
 	// POV).
@@ -14432,11 +14441,16 @@ func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 			"correct error")
 	}
 
+	// Stop Carol to perform the forced channel close.
+	if err := net.StopNode(carol); err != nil {
+		t.Fatalf("unable to stop Carol: %v", err)
+	}
+
 	// Force-close and cleanup the channel, since bob & carol are
 	// disconnected.
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
-	closeChannelAndAssert(ctxt, t, net, carol, chanPoint, true)
-	cleanupForceClose(t, net, carol, chanPoint)
+	closeChannelAndAssert(ctxt, t, net, net.Bob, chanPoint, true)
+	cleanupForceClose(t, net, net.Bob, chanPoint)
 }
 
 // testMaxIOChannelBalances tests whether the max inbound/outbound amounts for
