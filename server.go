@@ -1301,8 +1301,6 @@ func (s *server) Start() error {
 			return
 		}
 
-		s.connMgr.Start()
-
 		// With all the relevant sub-systems started, we'll now attempt
 		// to establish persistent connections to our direct channel
 		// collaborators within the network. Before doing so however,
@@ -1313,6 +1311,15 @@ func (s *server) Start() error {
 			startErr = err
 			return
 		}
+
+		s.connMgr.Start()
+
+		// Give enough time for any outstanding, brontide-accepted
+		// connections to percolate through the connMgr and be
+		// registered as potential peers before attempting outbound
+		// connections.
+		time.Sleep(time.Second)
+
 		if err := s.establishPersistentConnections(); err != nil {
 			startErr = err
 			return
@@ -2034,6 +2041,8 @@ func (s *server) establishPersistentConnections() error {
 	// that we'll attempt to reconnect to. PubKey strings are used as keys
 	// since other PubKey forms can't be compared.
 	nodeAddrsMap := map[string]*nodeAddresses{}
+
+	srvrLog.Infof("Trying to establish persistent connections")
 
 	// Iterate through the list of LinkNodes to find addresses we should
 	// attempt to connect to based on our set of previous connections. Set
