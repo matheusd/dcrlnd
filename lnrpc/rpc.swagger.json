@@ -917,6 +917,33 @@
         ]
       }
     },
+    "/v1/macaroon": {
+      "post": {
+        "summary": "* lncli: `bakemacaroon`\nBakeMacaroon allows the creation of a new macaroon with custom read and\nwrite permissions. No first-party caveats are added since this can be done\noffline.",
+        "operationId": "BakeMacaroon",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/lnrpcBakeMacaroonResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/lnrpcBakeMacaroonRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Lightning"
+        ]
+      }
+    },
     "/v1/newaddress": {
       "get": {
         "summary": "* lncli: `newaddress`\nNewAddress creates a new address under control of the local wallet.",
@@ -1513,6 +1540,27 @@
       "default": "WITNESS_PUBKEY_HASH",
       "description": "- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)\n- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)\n- `p2pkh`: Pay to pubkey hash (`PUBKEY_HASH` = 2)\n- `p2sh`: Pay to script hash (`SCRIPT_HASH` = 3)",
       "title": "* \n`AddressType` has to be one of:"
+    },
+    "lnrpcBakeMacaroonRequest": {
+      "type": "object",
+      "properties": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/lnrpcMacaroonPermission"
+          },
+          "description": "/ The list of permissions the new macaroon should grant."
+        }
+      }
+    },
+    "lnrpcBakeMacaroonResponse": {
+      "type": "object",
+      "properties": {
+        "macaroon": {
+          "type": "string",
+          "description": "/ The hex encoded macaroon, serialized in binary format."
+        }
+      }
     },
     "lnrpcChain": {
       "type": "object",
@@ -2760,6 +2808,19 @@
             "$ref": "#/definitions/lnrpcUtxo"
           },
           "title": "/ A list of utxos"
+        }
+      }
+    },
+    "lnrpcMacaroonPermission": {
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string",
+          "description": "/ The entity a permission grants access to."
+        },
+        "action": {
+          "type": "string",
+          "description": "/ The action that is granted."
         }
       }
     },
