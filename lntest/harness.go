@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
+	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lnwire"
@@ -435,7 +436,7 @@ func (n *NetworkHarness) connect(ctx context.Context,
 tryconnect:
 	if _, err := a.ConnectPeer(ctx, req); err != nil {
 		// If the chain backend is still syncing, retry.
-		if strings.Contains(err.Error(), "still syncing") {
+		if err == dcrlnd.ErrServerNotActive {
 			select {
 			case <-time.After(100 * time.Millisecond):
 				goto tryconnect
