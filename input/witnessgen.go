@@ -35,9 +35,8 @@ type WitnessType interface {
 	SizeUpperBound() (int64, bool, error)
 
 	// AddSizeEstimation adds the estimated size of the witness in bytes to
-	// the given weight estimator and returns the number of CSVs/CLTVs used
-	// by the script.
-	AddSizeEstimation(estimator *TxSizeEstimator) (int, int, error)
+	// the given weight estimator.
+	AddSizeEstimation(e *TxSizeEstimator) error
 }
 
 // StandardWitnessType is a numeric representation of standard pre-defined types
@@ -170,6 +169,12 @@ func (wt StandardWitnessType) String() string {
 
 	case PublicKeyHash:
 		return "PublicKeyHash"
+
+	case WitnessKeyHash:
+		return "WitnessKeyHash"
+
+	case NestedWitnessKeyHash:
+		return "NestedWitnessKeyHash"
 
 	default:
 		return fmt.Sprintf("Unknown WitnessType: %v", uint32(wt))
@@ -378,42 +383,24 @@ func (wt StandardWitnessType) SizeUpperBound() (int64, bool, error) {
 }
 
 // AddSizeEstimation adds the estimated size of the witness in bytes to the
-// given weight estimator and returns the number of CSVs/CLTVs used by the
-// script.
+// given weight estimator.
 //
 // NOTE: This is part of the WitnessType interface.
-func (wt StandardWitnessType) AddSizeEstimation(
-	estimator *TxSizeEstimator) (int, int, error) {
-
-	var (
-		csvCount  = 0
-		cltvCount = 0
-	)
-
-	// For fee estimation purposes, we'll now attempt to obtain an
-	// upper bound on the weight this input will add when fully
-	// populated.
+func (wt StandardWitnessType) AddSizeEstimation(e *TxSizeEstimator) error {
+	// For fee estimation purposes, we'll now attempt to obtain an upper
+	// bound on the weight this input will add when fully populated.
 	size, isNestedP2SH, err := wt.SizeUpperBound()
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
 
 	// If this is a nested P2SH input, then we'll need to factor in
 	// the additional data push within the sigScript.
 	if isNestedP2SH {
-		return 0, 0, fmt.Errorf("nested p2sh are not supported in decred")
+		return fmt.Errorf("nested p2sh are not supported in decred")
 	} else {
-		estimator.AddCustomInput(size)
+		e.AddCustomInput(size)
 	}
 
-	switch wt {
-	case CommitmentTimeLock,
-		HtlcOfferedTimeoutSecondLevel,
-		HtlcAcceptedSuccessSecondLevel:
-		csvCount++
-	case HtlcOfferedRemoteTimeout:
-		cltvCount++
-	}
-
-	return csvCount, cltvCount, nil
+	return nil
 }
