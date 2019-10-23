@@ -3,7 +3,7 @@ package watchtowerrpc
 import (
 	"net"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 )
 
 // WatchtowerBackend abstracts access to the watchtower information that is

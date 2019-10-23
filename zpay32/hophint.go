@@ -1,6 +1,6 @@
 package zpay32
 
-import "github.com/decred/dcrd/dcrec/secp256k1"
+import "github.com/decred/dcrd/dcrec/secp256k1/v2"
 
 const (
 	// DefaultFinalCLTVDelta is the default value to be used as the final

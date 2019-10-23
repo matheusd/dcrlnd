@@ -7,25 +7,25 @@ require (
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
 	github.com/davecgh/go-spew v1.1.1
-	github.com/decred/dcrd v1.2.1-0.20190918192720-450a680097ec
-	github.com/decred/dcrd/bech32 v0.0.0-20190822152003-8be96a87293a
+	github.com/decred/dcrd v1.2.1-0.20191016204340-338ce9d7017d
+	github.com/decred/dcrd/bech32 v1.0.0
 	github.com/decred/dcrd/blockchain/stake v1.2.1
-	github.com/decred/dcrd/blockchain/standalone v1.0.0
-	github.com/decred/dcrd/blockchain/v2 v2.0.2
+	github.com/decred/dcrd/blockchain/standalone v1.1.0
+	github.com/decred/dcrd/blockchain/v2 v2.1.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
-	github.com/decred/dcrd/chaincfg/v2 v2.2.0
+	github.com/decred/dcrd/chaincfg/v2 v2.3.0
 	github.com/decred/dcrd/connmgr v1.1.0
 	github.com/decred/dcrd/dcrec v1.0.0
-	github.com/decred/dcrd/dcrec/secp256k1 v1.0.2
+	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0
 	github.com/decred/dcrd/dcrjson/v2 v2.2.0
 	github.com/decred/dcrd/dcrutil v1.4.0
-	github.com/decred/dcrd/dcrutil/v2 v2.0.0
-	github.com/decred/dcrd/hdkeychain/v2 v2.0.1
+	github.com/decred/dcrd/dcrutil/v2 v2.0.1
+	github.com/decred/dcrd/hdkeychain/v2 v2.1.0
 	github.com/decred/dcrd/mempool/v3 v3.1.0
 	github.com/decred/dcrd/rpc/jsonrpc/types/v2 v2.0.0
 	github.com/decred/dcrd/rpcclient/v5 v5.0.0
-	github.com/decred/dcrd/txscript/v2 v2.0.0
-	github.com/decred/dcrd/wire v1.2.0
+	github.com/decred/dcrd/txscript/v2 v2.1.0
+	github.com/decred/dcrd/wire v1.3.0
 	github.com/decred/dcrwallet v1.2.3-0.20190910182128-51900c2bd053
 	github.com/decred/dcrwallet/chain/v3 v3.0.0
 	github.com/decred/dcrwallet/errors v1.1.0
@@ -61,7 +61,6 @@ require (
 	go.etcd.io/bbolt v1.3.3
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
-	golang.org/x/sys v0.0.0-20190904154756-749cb33beabd // indirect
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
 	google.golang.org/grpc v1.22.0
@@ -72,12 +71,6 @@ require (
 )
 
 replace (
-	github.com/decred/dcrd/fees/v2 => github.com/decred/dcrd/fees/v2 v2.0.0-20190918192720-450a680097ec
-	github.com/decred/dcrd/gcs/v2 => github.com/decred/dcrd/gcs/v2 v2.0.0-20190918192720-450a680097ec
-	github.com/decred/dcrd/mempool/v3 => github.com/decred/dcrd/mempool/v3 v3.0.1-0.20190918192720-450a680097ec
-	github.com/decred/dcrd/rpc/jsonrpc/types/v2 => github.com/decred/dcrd/rpc/jsonrpc/types/v2 v2.0.0-20190918192720-450a680097ec
-	github.com/decred/dcrd/rpcclient/v5 => github.com/decred/dcrd/rpcclient/v5 v5.0.0-20190918192720-450a680097ec
-
 	github.com/decred/dcrwallet/chain/v3 => github.com/decred/dcrwallet/chain/v3 v3.0.0-20190910182128-51900c2bd053
 	github.com/decred/dcrwallet/deployments/v2 => github.com/decred/dcrwallet/deployments/v2 v2.0.0-20190910182128-51900c2bd053
 	github.com/decred/dcrwallet/p2p/v2 => github.com/decred/dcrwallet/p2p/v2 v2.0.0-20190910182128-51900c2bd053
@@ -86,5 +79,5 @@ replace (
 	github.com/decred/dcrwallet/ticketbuyer/v4 => github.com/decred/dcrwallet/ticketbuyer/v4 v4.0.0-20190910182128-51900c2bd053
 	github.com/decred/dcrwallet/wallet/v3 => github.com/decred/dcrwallet/wallet/v3 v3.0.0-20190910182128-51900c2bd053
 
-	github.com/decred/lightning-onion/v2 => github.com/matheusd/lightning-onion/v2 v2.0.0-20190910134449-3c46604d6d0f
+	github.com/decred/lightning-onion/v2 => github.com/matheusd/lightning-onion/v2 v2.0.0-20191023155543-c80fa633c906
 )

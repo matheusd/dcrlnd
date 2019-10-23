@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"errors"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/hdkeychain/v2"
 )
 

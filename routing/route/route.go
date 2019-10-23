@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"

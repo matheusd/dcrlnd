@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 )
 
 func TestSignatureSerializeDeserialize(t *testing.T) {

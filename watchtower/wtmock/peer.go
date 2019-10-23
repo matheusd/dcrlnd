@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/watchtower/wtserver"
 )
 
