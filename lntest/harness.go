@@ -1448,9 +1448,17 @@ func (n *NetworkHarness) setupVotingWallet() error {
 	// Use a custom miner on the voting wallet that ensures simnet blocks
 	// are generated as fast as possible without triggering PoW difficulty
 	// increases.
-	vw.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
-		return AdjustedSimnetMiner(n.Miner.Node, nb)
-	})
+	//
+	// TODO: Re-enable. The way the new background template generator works
+	// is that it holds on to templates for up to 30s, so new transactions
+	// aren't immediately visible via getwork. This means tests which rely
+	// on sending a tx then mining it will fail using the adjusted simnet
+	// miner.
+	/*
+		vw.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
+			return AdjustedSimnetMiner(n.Miner.Node, nb)
+		})
+	*/
 
 	err = vw.Start()
 	if err != nil {

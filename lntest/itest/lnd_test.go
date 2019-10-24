@@ -2267,7 +2267,9 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	// open.
 	block := mineBlocks(t, net, 10, 1)[0]
 	assertTxInBlock(t, block, fundingTxID)
-	lntest.AdjustedSimnetMiner(tempMiner.Node, 15)
+	// TODO: Re-enable.
+	tempMiner.Node.Generate(15)
+	// lntest.AdjustedSimnetMiner(tempMiner.Node, 15)
 
 	// Ensure the chain lengths are what we expect, with the temp miner
 	// being 5 blocks ahead.
