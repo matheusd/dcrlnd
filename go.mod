@@ -67,5 +67,3 @@ require (
 	gopkg.in/macaroon.v2 v2.0.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
-
-replace github.com/decred/lightning-onion/v2 => github.com/matheusd/lightning-onion/v2 v2.0.0-20191023155543-c80fa633c906
