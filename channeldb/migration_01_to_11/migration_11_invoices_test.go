@@ -112,7 +112,7 @@ func TestMigrateInvoices(t *testing.T) {
 	applyMigration(t,
 		func(d *DB) { beforeMigrationFuncV11(t, d, invoices) },
 		afterMigrationFunc,
-		migrateInvoices,
+		MigrateInvoices,
 		false)
 }
 
@@ -138,7 +138,7 @@ func TestMigrateInvoicesHodl(t *testing.T) {
 	applyMigration(t,
 		func(d *DB) { beforeMigrationFuncV11(t, d, invoices) },
 		func(d *DB) {},
-		migrateInvoices,
+		MigrateInvoices,
 		true)
 }
 

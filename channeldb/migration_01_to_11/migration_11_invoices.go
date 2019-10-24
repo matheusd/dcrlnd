@@ -13,9 +13,9 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// migrateInvoices adds invoice htlcs and a separate cltv delta field to the
+// MigrateInvoices adds invoice htlcs and a separate cltv delta field to the
 // invoices.
-func migrateInvoices(tx *bolt.Tx) error {
+func MigrateInvoices(tx *bolt.Tx) error {
 	log.Infof("Migrating invoices to new invoice format")
 
 	invoiceB := tx.Bucket(invoiceBucket)

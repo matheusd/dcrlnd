@@ -44,7 +44,7 @@ func fetchMeta(meta *Meta, tx *bolt.Tx) error {
 
 	data := metaBucket.Get(dbVersionKey)
 	if data == nil {
-		meta.DbVersionNumber = getLatestDBVersion(dbVersions)
+		meta.DbVersionNumber = 0
 	} else {
 		meta.DbVersionNumber = byteOrder.Uint32(data)
 	}
