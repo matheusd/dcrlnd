@@ -36,7 +36,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
-	walletloader "github.com/decred/dcrwallet/loader"
+	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -1074,7 +1074,7 @@ func waitForWalletPassword(restEndpoints []net.Addr,
 		// the wallet, then pass it back to avoid unlocking it again.
 		birthday := cipherSeed.BirthdayTime()
 		newWallet, err := loader.CreateNewWallet(
-			password, password, cipherSeed.Entropy[:],
+			context.TODO(), password, password, cipherSeed.Entropy[:],
 		)
 
 		if err != nil {

@@ -16,7 +16,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
-	walletloader "github.com/decred/dcrwallet/loader"
+	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
@@ -424,7 +424,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	}
 
 	// Try opening the existing wallet with the provided password.
-	unlockedWallet, err := loader.OpenExistingWallet(password)
+	unlockedWallet, err := loader.OpenExistingWallet(ctx, password)
 	if err != nil {
 		// Could not open wallet, most likely this means that provided
 		// password was incorrect.
@@ -494,7 +494,7 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	}
 
 	// Load the existing wallet in order to proceed with the password change.
-	w, err := loader.OpenExistingWallet(publicPw)
+	w, err := loader.OpenExistingWallet(ctx, publicPw)
 	if err != nil {
 		return nil, err
 	}
@@ -519,12 +519,12 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	//
 	// TODO(decred) This is not an atomic operation. Discuss whether we want to
 	// actually use the public pssword.
-	err = w.ChangePrivatePassphrase(privatePw, in.NewPassword)
+	err = w.ChangePrivatePassphrase(ctx, privatePw, in.NewPassword)
 	if err != nil {
 		return nil, fmt.Errorf("unable to change wallet private passphrase: "+
 			"%v", err)
 	}
-	err = w.ChangePublicPassphrase(publicPw, in.NewPassword)
+	err = w.ChangePublicPassphrase(ctx, publicPw, in.NewPassword)
 	if err != nil {
 		return nil, fmt.Errorf("unable to change wallet public passphrase: "+
 			"%v", err)

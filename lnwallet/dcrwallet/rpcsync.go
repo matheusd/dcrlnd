@@ -7,7 +7,7 @@ import (
 	"github.com/decred/dcrd/rpcclient/v5"
 
 	"github.com/decred/dcrwallet/chain/v3"
-	"github.com/decred/dcrwallet/errors"
+	"github.com/decred/dcrwallet/errors/v2"
 )
 
 // RPCSyncer implements the required methods for synchronizing a DcrWallet

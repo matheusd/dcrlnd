@@ -14,8 +14,8 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	"github.com/decred/dcrlnd/walletunlocker"
-	walletloader "github.com/decred/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
 )
@@ -43,7 +43,7 @@ func createTestWallet(t *testing.T, dir string, netParams *chaincfg.Params) {
 		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
 		false)
 	_, err := loader.CreateNewWallet(
-		testPassword, testPassword, testSeed,
+		context.Background(), testPassword, testPassword, testSeed,
 	)
 	if err != nil {
 		t.Fatalf("failed creating wallet: %v", err)

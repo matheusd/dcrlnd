@@ -1,6 +1,7 @@
 package dcrwallet
 
 import (
+	"context"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 
@@ -56,7 +57,7 @@ func newWalletKeyRing(w *wallet.Wallet, db *channeldb.DB) (*walletKeyRing, error
 	masterPubs := make(map[keychain.KeyFamily]*hdkeychain.ExtendedKey,
 		lastKeyFam+1)
 
-	ctKey, err := w.CoinTypePrivKey()
+	ctKey, err := w.CoinTypePrivKey(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func (wkr *walletKeyRing) nextIndex(keyFam keychain.KeyFamily) (uint32, error) {
 func (wkr *walletKeyRing) fetchMasterPriv(keyFam keychain.KeyFamily) (*hdkeychain.ExtendedKey,
 	error) {
 
-	ctKey, err := wkr.wallet.CoinTypePrivKey()
+	ctKey, err := wkr.wallet.CoinTypePrivKey(context.TODO())
 	if err != nil {
 		return nil, err
 	}

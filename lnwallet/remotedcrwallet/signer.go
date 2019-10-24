@@ -2,6 +2,7 @@ package remotedcrwallet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"google.golang.org/grpc/codes"
@@ -15,7 +16,6 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/errors"
 	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 )
 
@@ -272,7 +272,7 @@ func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 	msgDigest := chainhash.HashB(msg)
 	sign, err := privKey.Sign(msgDigest)
 	if err != nil {
-		return nil, errors.Errorf("unable sign the message: %v", err)
+		return nil, fmt.Errorf("unable sign the message: %v", err)
 	}
 
 	return sign, nil

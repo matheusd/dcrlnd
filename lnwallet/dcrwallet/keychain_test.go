@@ -1,6 +1,7 @@
 package dcrwallet
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	walletloader "github.com/decred/dcrwallet/loader"
+	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	wallet "github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
 )
@@ -37,13 +38,13 @@ func createTestWallet() (func(), *wallet.Wallet, *channeldb.DB, error) {
 	pass := []byte("test")
 
 	baseWallet, err := loader.CreateNewWallet(
-		pass, pass, testHDSeed[:],
+		context.Background(), pass, pass, testHDSeed[:],
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	if err := baseWallet.Unlock(pass, nil); err != nil {
+	if err := baseWallet.Unlock(context.Background(), pass, nil); err != nil {
 		return nil, nil, nil, err
 	}
 

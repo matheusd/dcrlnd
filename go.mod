@@ -26,12 +26,10 @@ require (
 	github.com/decred/dcrd/rpcclient/v5 v5.0.0
 	github.com/decred/dcrd/txscript/v2 v2.1.0
 	github.com/decred/dcrd/wire v1.3.0
-	github.com/decred/dcrwallet v1.2.3-0.20190910182128-51900c2bd053
 	github.com/decred/dcrwallet/chain/v3 v3.0.0
-	github.com/decred/dcrwallet/errors v1.1.0
-	github.com/decred/dcrwallet/rpc/client/dcrd v0.0.0-20190910182128-51900c2bd053 // indirect
-	github.com/decred/dcrwallet/rpc/walletrpc v0.2.1-0.20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/wallet/v3 v3.0.0-20190910182128-51900c2bd053
+	github.com/decred/dcrwallet/errors/v2 v2.0.0
+	github.com/decred/dcrwallet/rpc/walletrpc v0.3.0
+	github.com/decred/dcrwallet/wallet/v3 v3.0.0
 	github.com/decred/lightning-onion/v2 v2.0.0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
@@ -70,14 +68,4 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
 
-replace (
-	github.com/decred/dcrwallet/chain/v3 => github.com/decred/dcrwallet/chain/v3 v3.0.0-20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/deployments/v2 => github.com/decred/dcrwallet/deployments/v2 v2.0.0-20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/p2p/v2 => github.com/decred/dcrwallet/p2p/v2 v2.0.0-20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/rpc/client/dcrd => github.com/decred/dcrwallet/rpc/client/dcrd v0.0.0-20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/spv/v3 => github.com/decred/dcrwallet/spv/v3 v3.0.0-20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/ticketbuyer/v4 => github.com/decred/dcrwallet/ticketbuyer/v4 v4.0.0-20190910182128-51900c2bd053
-	github.com/decred/dcrwallet/wallet/v3 => github.com/decred/dcrwallet/wallet/v3 v3.0.0-20190910182128-51900c2bd053
-
-	github.com/decred/lightning-onion/v2 => github.com/matheusd/lightning-onion/v2 v2.0.0-20191023155543-c80fa633c906
-)
+replace github.com/decred/lightning-onion/v2 => github.com/matheusd/lightning-onion/v2 v2.0.0-20191023155543-c80fa633c906

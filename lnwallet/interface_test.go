@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
+	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 
 	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
@@ -422,9 +424,13 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	// selected of 4 DCR each. Additionally, the rest of the items needed
 	// to fulfill a funding contribution should also have been filled in.
 	aliceContribution := aliceChanReservation.OurContribution()
-	if len(aliceContribution.Inputs) != 2 {
+	if len(aliceContribution.Inputs) < 1 {
 		t.Fatalf("outputs for funding tx not properly selected, have %v "+
-			"outputs should have 2", len(aliceContribution.Inputs))
+			"outputs should at least 1", len(aliceContribution.Inputs))
+	}
+	if len(aliceContribution.ChangeOutputs) != 1 {
+		t.Fatalf("coin selection failed, should have one change outputs, "+
+			"instead have: %v", len(aliceContribution.ChangeOutputs))
 	}
 	assertContributionInitPopulated(t, aliceContribution)
 
@@ -2135,6 +2141,12 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 				err)
 		}
 
+		// Give wallet time to catch up so we force a full reorg.
+		err = waitForWalletSync(r, w)
+		if err != nil {
+			t.Fatalf("unable to sync wallet: %v", err)
+		}
+
 		// Step 5: Reconnect the miners and wait for them to synchronize.
 		err = rpctest.ConnectNode(r2, r)
 		if err != nil {
@@ -2705,7 +2717,6 @@ func TestLightningWallet(t *testing.T) {
 
 	var (
 		miningNode *rpctest.Harness
-		err        error
 	)
 	defer func() {
 		if miningNode != nil {
@@ -2715,6 +2726,22 @@ func TestLightningWallet(t *testing.T) {
 
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
+			// Direct the lnwallet and driver logs to the given
+			// files.
+			logFilename := fmt.Sprintf("output-lnwallet-%s-%s.log",
+				walletDriver.WalletType, backEnd)
+			logFile, err := os.Create(logFilename)
+			if err != nil {
+				t.Fatalf("Cannot create lnwallet log file: %v", err)
+			}
+			bknd := slog.NewBackend(logFile)
+			logg := bknd.Logger("XXXX")
+			logg.SetLevel(slog.LevelDebug)
+			lnwallet.UseLogger(logg)
+			dcrwallet.UseLogger(logg)
+			remotedcrwallet.UseLogger(logg)
+			defer logFile.Close()
+
 			// Initialize the harness around a dcrd node which will
 			// serve as our dedicated miner to generate blocks,
 			// cause re-orgs, etc. We'll set up this node with a
@@ -2800,7 +2827,20 @@ func TestLightningWallet(t *testing.T) {
 			// with the next set of tests.
 			cleanUpNode := miningNode
 			miningNode = nil
-			if err := cleanUpNode.TearDown(); err != nil {
+			teardownErr := cleanUpNode.TearDown()
+
+			// Copy the node logs from the original log dir.
+			oldFileName := path.Join(minerLogDir, netParams.Name,
+				"dcrd.log")
+			newFileName := fmt.Sprintf("output-miner-%s-%s.log",
+				walletDriver.WalletType, backEnd)
+			err = os.Rename(oldFileName, newFileName)
+			if err != nil {
+				t.Logf("could not rename %s to %s: %v\n",
+					oldFileName, newFileName, err)
+			}
+
+			if teardownErr != nil {
 				t.Fatalf("unable to teardown rpc test harness: %v", err)
 			}
 

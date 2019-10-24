@@ -18,7 +18,7 @@ import (
 
 	"github.com/decred/dcrlnd/lnwallet"
 
-	walletloader "github.com/decred/dcrwallet/loader"
+	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
@@ -90,7 +90,7 @@ func New(cfg Config) (*DcrWallet, error) {
 
 		if !walletExists {
 			// Wallet has never been created, perform initial set up.
-			wallet, err = loader.CreateNewWallet(cfg.PublicPass, cfg.PrivatePass,
+			wallet, err = loader.CreateNewWallet(context.TODO(), cfg.PublicPass, cfg.PrivatePass,
 				cfg.HdSeed)
 			if err != nil {
 				return nil, err
@@ -99,7 +99,7 @@ func New(cfg Config) (*DcrWallet, error) {
 			// Wallet has been created and been initialized at this point,
 			// open it along with all the required DB namepsaces, and the
 			// DB itself.
-			wallet, err = loader.OpenExistingWallet(cfg.PublicPass)
+			wallet, err = loader.OpenExistingWallet(context.TODO(), cfg.PublicPass)
 			if err != nil {
 				return nil, err
 			}
@@ -143,7 +143,7 @@ func (b *DcrWallet) Start() error {
 	// (1017, 1) exists within the internal waddrmgr. We'll need this in
 	// order to properly generate the keys required for signing various
 	// contracts.
-	if err := b.wallet.Unlock(b.cfg.PrivatePass, nil); err != nil {
+	if err := b.wallet.Unlock(context.TODO(), b.cfg.PrivatePass, nil); err != nil {
 		return err
 	}
 
@@ -178,7 +178,7 @@ func (b *DcrWallet) Stop() error {
 // TODO(matheusd) Remove witness argument, given that's not applicable to decred
 func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 
-	balances, err := b.wallet.CalculateAccountBalance(defaultAccount, confs)
+	balances, err := b.wallet.CalculateAccountBalance(context.TODO(), defaultAccount, confs)
 	if err != nil {
 		return 0, err
 	}
@@ -256,7 +256,7 @@ func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
-	result, err := b.wallet.HaveAddress(a)
+	result, err := b.wallet.HaveAddress(context.TODO(), a)
 	return result && (err == nil)
 }
 
@@ -282,12 +282,12 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	defer b.wallet.SetRelayFee(oldRelayFee)
 
 	txHash, err := b.wallet.SendOutputs(context.TODO(), outputs,
-		defaultAccount, 1)
+		defaultAccount, defaultAccount, 1)
 	if err != nil {
 		return nil, err
 	}
 
-	txs, _, err := b.wallet.GetTransactionsByHashes([]*chainhash.Hash{txHash})
+	txs, _, err := b.wallet.GetTransactionsByHashes(context.TODO(), []*chainhash.Hash{txHash})
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +343,7 @@ func (b *DcrWallet) UnlockOutpoint(o wire.OutPoint) {
 func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 	[]*lnwallet.Utxo, error) {
 	// First, grab all the unfiltered currently unspent outputs.
-	unspentOutputs, err := b.wallet.ListUnspent(minConfs, maxConfs, nil)
+	unspentOutputs, err := b.wallet.ListUnspent(context.TODO(), minConfs, maxConfs, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -585,7 +585,7 @@ func unminedTransactionsToDetail(
 func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, error) {
 	// Grab the best block the wallet knows of, we'll use this to calculate
 	// # of confirmations shortly below.
-	_, currentHeight := b.wallet.MainChainTip()
+	_, currentHeight := b.wallet.MainChainTip(context.TODO())
 
 	// Iterating over transactions using the range 0..-1 goes through all mined
 	// transactions (in ascending order) then through unmined transactions.
@@ -619,7 +619,7 @@ func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, err
 		return false, nil
 	}
 
-	err := b.wallet.GetTransactions(rangeFn, start, stop)
+	err := b.wallet.GetTransactions(context.TODO(), rangeFn, start, stop)
 	if err != nil {
 		return nil, err
 	}
@@ -677,7 +677,7 @@ out:
 		select {
 		case txNtfn := <-t.txClient.C:
 			// TODO(roasbeef): handle detached blocks
-			_, currentHeight := t.w.MainChainTip()
+			_, currentHeight := t.w.MainChainTip(context.TODO())
 
 			// Launch a goroutine to re-package and send
 			// notifications for any newly confirmed transactions.
@@ -753,8 +753,8 @@ func (b *DcrWallet) SubscribeTransactions() (lnwallet.TransactionSubscription, e
 // This is a part of the WalletController interface.
 func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	// Grab the best chain state the wallet is currently aware of.
-	walletBestHash, _ := b.wallet.MainChainTip()
-	walletBestHeader, err := b.wallet.BlockHeader(&walletBestHash)
+	walletBestHash, _ := b.wallet.MainChainTip(context.TODO())
+	walletBestHeader, err := b.wallet.BlockHeader(context.TODO(), &walletBestHash)
 	if err != nil {
 		return false, 0, err
 	}
@@ -786,8 +786,8 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 
 func (b *DcrWallet) BestBlock() (int64, chainhash.Hash, int64, error) {
 	// Grab the best chain state the wallet is currently aware of.
-	walletBestHash, walletBestHeight := b.wallet.MainChainTip()
-	walletBestHeader, err := b.wallet.BlockHeader(&walletBestHash)
+	walletBestHash, walletBestHeight := b.wallet.MainChainTip(context.TODO())
+	walletBestHeader, err := b.wallet.BlockHeader(context.TODO(), &walletBestHash)
 	if err != nil {
 		return 0, chainhash.Hash{}, 0, err
 	}

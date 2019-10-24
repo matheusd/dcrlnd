@@ -39,13 +39,8 @@ DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
 DCRD_TMPDIR := $(shell mktemp -d)
 
-DCRWALLET_COMMIT := $(shell cat go.mod | \
-		grep $(DCRWALLET_PKG) | \
-		head -n1 | \
-		awk -F " " '{ print $$2 }' | \
-		awk -F "/" '{ print $$1 }' | \
-		awk -F "-" '{ print $$NF }' )
-DCRWALLET_META := "$(DCRWALLET_COMMIT).from-dcrlnd"
+DCRWALLET_COMMIT := release-v1.5
+DCRWALLET_META := $(DCRWALLET_COMMIT).from-dcrlnd
 DCRWALLET_LDFLAGS := "-X github.com/decred/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
 DCRWALLET_TMPDIR := $(shell mktemp -d)
 
@@ -76,7 +71,6 @@ DEV_TAGS := $(if ${tags},$(DEV_TAGS) ${tags},$(DEV_TAGS))
 
 LINT = $(LINT_BIN) \
 	run \
-	-v \
 	--build-tags=$(ALL_TAGS) \
 	--skip-files="mobile\\/.*generated\\.go" \
 	--disable-all \

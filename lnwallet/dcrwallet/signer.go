@@ -1,6 +1,7 @@
 package dcrwallet
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -11,7 +12,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/errors"
+	"github.com/decred/dcrwallet/errors/v2"
 	base "github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
@@ -25,9 +26,9 @@ import (
 func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, error) {
 	// We manually look up the output within the tx store.
 	txid := &prevOut.Hash
-	txDetail, err := base.UnstableAPI(b.wallet).TxDetails(txid)
+	txDetail, err := base.UnstableAPI(b.wallet).TxDetails(context.TODO(), txid)
 	if err != nil {
-		if errors.Is(errors.NotExist, err) {
+		if errors.Is(err, errors.NotExist) {
 			return nil, lnwallet.ErrNotMine
 		}
 		return nil, err
@@ -53,7 +54,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 	}
 
 	// Determine the number of confirmations the output currently has.
-	_, currentHeight := b.wallet.MainChainTip()
+	_, currentHeight := b.wallet.MainChainTip(context.TODO())
 	confs := int64(0)
 	if txDetail.Block.Height != -1 {
 		confs = int64(currentHeight - txDetail.Block.Height)
@@ -86,7 +87,7 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 	// Therefore, we simply select the key for the first address we know
 	// of.
 	for _, addr := range addrs {
-		addr, err := b.wallet.AddressInfo(addr)
+		addr, err := b.wallet.AddressInfo(context.TODO(), addr)
 		if err == nil {
 			return addr, nil
 		}
@@ -199,7 +200,7 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	}
 
 	// Fetch the private key for the given wallet address.
-	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(walletAddr.Address())
+	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(context.TODO(), walletAddr.Address())
 	if err != nil {
 		return nil, fmt.Errorf("invalid wif string for address: %v", err)
 	}

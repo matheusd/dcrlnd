@@ -15,7 +15,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/hdkeychain/v2"
-	walletloader "github.com/decred/dcrwallet/loader"
+	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet/v3"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
 	"github.com/decred/dcrwallet/wallet/v3/udb"
@@ -54,7 +54,7 @@ func (mas *mockOnchainAddrSourcer) NewAddress(t lnwallet.AddressType, change boo
 
 }
 func (mas *mockOnchainAddrSourcer) Bip44AddressInfo(addr dcrutil.Address) (uint32, uint32, uint32, error) {
-	info, err := mas.w.AddressInfo(addr)
+	info, err := mas.w.AddressInfo(context.Background(), addr)
 	if err != nil {
 		return 0, 0, 0, nil
 	}
@@ -84,13 +84,13 @@ func createTestWallet() (func(), *hdkeychain.ExtendedKey, *channeldb.DB, onchain
 	pass := []byte("test")
 
 	baseWallet, err := loader.CreateNewWallet(
-		pass, pass, testHDSeed[:],
+		context.Background(), pass, pass, testHDSeed[:],
 	)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	if err := baseWallet.Unlock(pass, nil); err != nil {
+	if err := baseWallet.Unlock(context.Background(), pass, nil); err != nil {
 		return nil, nil, nil, nil, err
 	}
 
@@ -107,7 +107,7 @@ func createTestWallet() (func(), *hdkeychain.ExtendedKey, *channeldb.DB, onchain
 	}
 
 	// The root master xpriv is the default account's one.
-	acctXpriv, err := baseWallet.MasterPrivKey(0)
+	acctXpriv, err := baseWallet.MasterPrivKey(context.Background(), 0)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
