@@ -189,6 +189,7 @@ var (
 	validEntities = []string{
 		"onchain", "offchain", "address", "message",
 		"peers", "info", "invoices", "signer", "macaroon",
+		"address",
 	}
 )
 
