@@ -2,6 +2,7 @@ package dcrwallet
 
 import (
 	"context"
+	"sync"
 
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/rpcclient/v5"
@@ -16,6 +17,7 @@ type RPCSyncer struct {
 	cancel    func()
 	rpcConfig rpcclient.ConnConfig
 	net       *chaincfg.Params
+	wg        sync.WaitGroup
 }
 
 // NewRPCSyncer initializes a new syncer backed by a full dcrd node. It
@@ -49,7 +51,9 @@ func (s *RPCSyncer) start(w *DcrWallet) error {
 		Synced: w.onRPCSyncerSynced,
 	})
 
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		err := syncer.Run(ctx)
 		dcrwLog.Debugf("RPCsyncer shutting down")
 
@@ -69,4 +73,8 @@ func (s *RPCSyncer) start(w *DcrWallet) error {
 func (s *RPCSyncer) stop() {
 	dcrwLog.Debugf("RPCSyncer requested shutdown")
 	s.cancel()
+}
+
+func (s *RPCSyncer) waitForShutdown() {
+	s.wg.Wait()
 }

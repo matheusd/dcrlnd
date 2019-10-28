@@ -162,6 +162,7 @@ func (b *DcrWallet) Start() error {
 func (b *DcrWallet) Stop() error {
 	dcrwLog.Debug("Requesting wallet shutdown")
 	b.syncer.stop()
+	b.syncer.waitForShutdown()
 
 	dcrwLog.Debugf("Wallet has shut down")
 

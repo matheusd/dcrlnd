@@ -30,6 +30,7 @@ import (
 type WalletSyncer interface {
 	start(w *DcrWallet) error
 	stop()
+	waitForShutdown()
 }
 
 // Config is a struct which houses configuration parameters which modify the
