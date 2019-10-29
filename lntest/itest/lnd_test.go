@@ -55,7 +55,7 @@ const (
 	defaultCSV          = lntest.DefaultCSV
 	defaultTimeout      = lntest.DefaultTimeout
 	minerMempoolTimeout = lntest.MinerMempoolTimeout
-	channelOpenTimeout  = lntest.ChannelOpenTimeout
+	channelOpenTimeout  = lntest.ChannelOpenTimeout * 4
 	channelCloseTimeout = lntest.ChannelCloseTimeout
 
 	// defaultChanAmt is the default channel capacity for channels opened
