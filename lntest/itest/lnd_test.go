@@ -9545,6 +9545,15 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 			t.Fatalf("unable to send payments: %v", err)
 		}
 
+		// Ensure all HTLCs have been finalized so that the most recent
+		// commitment doesn't have any.
+		err = wait.NoError(func() error {
+			return assertNumActiveHtlcs([]*lntest.HarnessNode{node, carol}, 0)
+		}, defaultTimeout)
+		if err != nil {
+			t.Fatalf("nodes still show active htcls: %v", err)
+		}
+
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 		nodeChan, err = getChanInfo(ctxt, node)
 		if err != nil {
@@ -15272,6 +15281,15 @@ func testChanRestoreScenario(t *harnessTest, net *lntest.NetworkHarness,
 		)
 		if err != nil {
 			t.Fatalf("unable to complete payments: %v", err)
+		}
+
+		// Ensure the commitments are actually updated and no HTLCs
+		// remain active.
+		err = wait.NoError(func() error {
+			return assertNumActiveHtlcs([]*lntest.HarnessNode{to, from}, 0)
+		}, defaultTimeout)
+		if err != nil {
+			t.Fatalf("node still has active HTLCs: %v", err)
 		}
 	}
 
