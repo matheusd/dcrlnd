@@ -2713,8 +2713,6 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 //
 // TODO(roasbeef): purge bobNode in favor of dual lnwallet's
 func TestLightningWallet(t *testing.T) {
-	t.Parallel()
-
 	var (
 		miningNode *rpctest.Harness
 	)
@@ -2724,23 +2722,29 @@ func TestLightningWallet(t *testing.T) {
 		}
 	}()
 
+	// Direct the lnwallet and driver logs to the given files.
+	logFilename := fmt.Sprintf("output-lnwallet.log")
+	logFile, err := os.Create(logFilename)
+	if err != nil {
+		t.Fatalf("Cannot create lnwallet log file: %v", err)
+	}
+	bknd := slog.NewBackend(logFile)
+	logg := bknd.Logger("XXXX")
+	logg.SetLevel(slog.LevelDebug)
+	lnwallet.UseLogger(logg)
+	dcrwallet.UseLogger(logg)
+	remotedcrwallet.UseLogger(logg)
+	defer func() {
+		lnwallet.DisableLog()
+		dcrwallet.DisableLog()
+		remotedcrwallet.DisableLog()
+		logFile.Close()
+	}()
+
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
-			// Direct the lnwallet and driver logs to the given
-			// files.
-			logFilename := fmt.Sprintf("output-lnwallet-%s-%s.log",
+			logg.Errorf("============ Starting tests for driver=%s backend=%s ===========",
 				walletDriver.WalletType, backEnd)
-			logFile, err := os.Create(logFilename)
-			if err != nil {
-				t.Fatalf("Cannot create lnwallet log file: %v", err)
-			}
-			bknd := slog.NewBackend(logFile)
-			logg := bknd.Logger("XXXX")
-			logg.SetLevel(slog.LevelDebug)
-			lnwallet.UseLogger(logg)
-			dcrwallet.UseLogger(logg)
-			remotedcrwallet.UseLogger(logg)
-			defer logFile.Close()
 
 			// Initialize the harness around a dcrd node which will
 			// serve as our dedicated miner to generate blocks,
