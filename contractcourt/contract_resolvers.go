@@ -3,10 +3,13 @@ package contractcourt
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/slog"
 )
 
 var (
@@ -93,6 +96,8 @@ type ResolverConfig struct {
 type contractResolverKit struct {
 	ResolverConfig
 
+	log slog.Logger
+
 	quit chan struct{}
 }
 
@@ -102,6 +107,12 @@ func newContractResolverKit(cfg ResolverConfig) *contractResolverKit {
 		ResolverConfig: cfg,
 		quit:           make(chan struct{}),
 	}
+}
+
+// initLogger initializes the resolver-specific logger.
+func (r *contractResolverKit) initLogger(resolver ContractResolver) {
+	logPrefix := fmt.Sprintf("%T(%v):", resolver, r.ChanPoint)
+	r.log = build.NewPrefixLog(logPrefix, log)
 }
 
 var (
