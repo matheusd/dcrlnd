@@ -30,6 +30,7 @@ import (
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/channelnotifier"
+	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
@@ -2448,8 +2449,10 @@ func (r *rpcServer) arbitratorPopulateForceCloseResp(chanPoint *wire.OutPoint,
 	reports := arbitrator.Report()
 
 	for _, report := range reports {
+		incoming := report.Type == contractcourt.ReportOutputIncomingHtlc
+
 		htlc := &lnrpc.PendingHTLC{
-			Incoming:       report.Incoming,
+			Incoming:       incoming,
 			Amount:         int64(report.Amount),
 			Outpoint:       report.Outpoint.String(),
 			MaturityHeight: report.MaturityHeight,
