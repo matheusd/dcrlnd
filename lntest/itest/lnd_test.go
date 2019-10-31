@@ -10938,8 +10938,8 @@ func testBidirectionalAsyncPayments(net *lntest.NetworkHarness, t *harnessTest) 
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
-			Amt:     paymentAmt * 2000,
-			PushAmt: paymentAmt * 1000,
+			Amt:     paymentAmt * 500,
+			PushAmt: paymentAmt * 250,
 		},
 	)
 

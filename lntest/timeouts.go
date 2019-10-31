@@ -23,5 +23,5 @@ const (
 
 	// AsyncBenchmarkTimeout is the timeout used when running the async
 	// payments benchmark.
-	AsyncBenchmarkTimeout = time.Minute * 3
+	AsyncBenchmarkTimeout = time.Minute * 5
 )
