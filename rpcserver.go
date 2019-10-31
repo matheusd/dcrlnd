@@ -40,6 +40,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/monitoring"
@@ -814,7 +815,7 @@ func addrPairsToOutputs(addrPairs map[string]int64, netParams *chaincfg.Params) 
 // more addresses specified in the passed payment map. The payment map maps an
 // address to a specified output value to be sent to that address.
 func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
-	feeRate lnwallet.AtomPerKByte) (*chainhash.Hash, error) {
+	feeRate chainfee.AtomPerKByte) (*chainhash.Hash, error) {
 
 	outputs, err := addrPairsToOutputs(paymentMap, activeNetParams.Params)
 	if err != nil {
@@ -997,7 +998,7 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
-	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
 	feePerKB, err := sweep.DetermineFeePerKB(
 		r.server.cc.feeEstimator, sweep.FeePreference{
 			ConfTarget: uint32(in.TargetConf),
@@ -1113,7 +1114,7 @@ func (r *rpcServer) SendMany(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for this transaction.
-	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
 	feePerKB, err := sweep.DetermineFeePerKB(
 		r.server.cc.feeEstimator, sweep.FeePreference{
 			ConfTarget: uint32(in.TargetConf),
@@ -1482,7 +1483,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
-	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
 	feeRate, err := sweep.DetermineFeePerKB(
 		r.server.cc.feeEstimator, sweep.FeePreference{
 			ConfTarget: uint32(in.TargetConf),
@@ -1627,7 +1628,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
-	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
 	feeRate, err := sweep.DetermineFeePerKB(
 		r.server.cc.feeEstimator, sweep.FeePreference{
 			ConfTarget: uint32(in.TargetConf),
@@ -1825,7 +1826,7 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 		// Based on the passed fee related parameters, we'll determine
 		// an appropriate fee rate for the cooperative closure
 		// transaction.
-		atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+		atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
 		feeRate, err := sweep.DetermineFeePerKB(
 			r.server.cc.feeEstimator, sweep.FeePreference{
 				ConfTarget: uint32(in.TargetConf),

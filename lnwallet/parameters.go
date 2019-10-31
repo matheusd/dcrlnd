@@ -3,13 +3,14 @@ package lnwallet
 import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrwallet/wallet/v3/txrules"
 )
 
 // DefaultDustLimit is used to calculate the default dust threshold limit,
 // assuming the network uses the defaultRelayFeePerKb of the wallet.
 func DefaultDustLimit() dcrutil.Amount {
-	return DustThresholdForRelayFee(AtomPerKByte(txrules.DefaultRelayFeePerKb))
+	return DustThresholdForRelayFee(chainfee.AtomPerKByte(txrules.DefaultRelayFeePerKb))
 }
 
 // DustThresholdForRelayFee returns the minimum amount an output of the given
@@ -17,7 +18,7 @@ func DefaultDustLimit() dcrutil.Amount {
 // using the provided relay fee.
 //
 // It is assumed the output is paying to a P2PKH script.
-func DustThresholdForRelayFee(relayFeeRate AtomPerKByte) dcrutil.Amount {
+func DustThresholdForRelayFee(relayFeeRate chainfee.AtomPerKByte) dcrutil.Amount {
 	// Size to redeem a p2pkh script is the size of an input + size of a
 	// serialized p2pkh signature script (varint length + OP_DATA_73 + 73 +
 	// OP_DATA_33 + 33)

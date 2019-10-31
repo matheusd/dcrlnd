@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -469,8 +470,12 @@ func TestCooperativeChannelClosure(t *testing.T) {
 	aliceDeliveryScript := alicePkScript
 	bobDeliveryScript := bobPkScript
 
-	aliceFeeRate := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
-	bobFeeRate := AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB)
+	aliceFeeRate := chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	)
+	bobFeeRate := chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	)
 
 	// We'll store with both Alice and Bob creating a new close proposal
 	// with the same fee.
@@ -609,7 +614,7 @@ func TestForceClose(t *testing.T) {
 	// Factoring in the fee rate, Alice's amount should properly reflect
 	// that we've added two additional HTLC to the commitment transaction.
 	totalCommitSize := input.CommitmentTxSize + (input.HTLCOutputSize * 2)
-	feePerKB := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
+	feePerKB := chainfee.AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
 	commitFee := feePerKB.FeeForSize(totalCommitSize)
 	expectedAmount := (aliceChannel.Capacity / 2) - htlcAmount.ToAtoms() - commitFee
 	if aliceCommitResolution.SelfOutputSignDesc.Output.Value != int64(expectedAmount) {
@@ -1029,8 +1034,11 @@ func TestHTLCDustLimit(t *testing.T) {
 
 	// The amount of the HTLC should be above Alice's dust limit and below
 	// Bob's dust limit.
-	htlcAtoms := (dcrutil.Amount(8000) + htlcTimeoutFee(
-		AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)))
+	htlcAtoms := dcrutil.Amount(8000) + htlcTimeoutFee(
+		chainfee.AtomPerKByte(
+			aliceChannel.channelState.LocalCommitment.FeePerKB,
+		),
+	)
 	htlcAmount := lnwire.NewMAtomsFromAtoms(htlcAtoms)
 
 	htlc, preimage := createHTLC(0, htlcAmount)
@@ -1128,7 +1136,7 @@ func TestHTLCSigNumber(t *testing.T) {
 	}
 
 	// Calculate two values that will be below and above Bob's dust limit.
-	estimator := NewStaticFeeEstimator(1e5, 0)
+	estimator := chainfee.NewStaticEstimator(1e5, 0)
 	FeePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to get fee: %v", err)
@@ -1403,7 +1411,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 	}
 
 	// Also add a fee update to the update logs.
-	fee := AtomPerKByte(2e4)
+	fee := chainfee.AtomPerKByte(2e4)
 	if err := aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to send fee update")
 	}
@@ -1818,8 +1826,12 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	}
 	defer cleanUp()
 
-	aliceFeeRate := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
-	bobFeeRate := AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB)
+	aliceFeeRate := chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	)
+	bobFeeRate := chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	)
 
 	setDustLimit := func(dustVal dcrutil.Amount) {
 		aliceChannel.channelState.LocalChanCfg.DustLimit = dustVal
@@ -1985,7 +1997,7 @@ func TestUpdateFeeAdjustments(t *testing.T) {
 
 	// We'll first try to increase the fee rate 5x, this should be able to
 	// be committed without any issue.
-	newFee := AtomPerKByte(baseFeeRate * 5)
+	newFee := chainfee.AtomPerKByte(baseFeeRate * 5)
 
 	if err := aliceChannel.UpdateFee(newFee); err != nil {
 		t.Fatalf("unable to alice update fee: %v", err)
@@ -2003,7 +2015,7 @@ func TestUpdateFeeAdjustments(t *testing.T) {
 	// We'll now attempt to increase the fee rate 1,000,000x of the base
 	// fee.  This should result in an error as Alice won't be able to pay
 	// this new fee rate.
-	newFee = AtomPerKByte(baseFeeRate * 1000000)
+	newFee = chainfee.AtomPerKByte(baseFeeRate * 1000000)
 	if err := aliceChannel.UpdateFee(newFee); err == nil {
 		t.Fatalf("alice should reject the fee rate")
 	}
@@ -2011,7 +2023,7 @@ func TestUpdateFeeAdjustments(t *testing.T) {
 	// Finally, we'll attempt to adjust the fee down and use a fee which is
 	// smaller than the initial base fee rate. The fee application and
 	// state transition should proceed without issue.
-	newFee = AtomPerKByte(baseFeeRate / 10)
+	newFee = chainfee.AtomPerKByte(baseFeeRate / 10)
 	if err := aliceChannel.UpdateFee(newFee); err != nil {
 		t.Fatalf("unable to alice update fee: %v", err)
 	}
@@ -2087,7 +2099,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob.
-	fee := AtomPerKByte(2e4)
+	fee := chainfee.AtomPerKByte(2e4)
 	if err := aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to send fee update")
 	}
@@ -2123,7 +2135,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) == fee {
 		t.Fatalf("bob's feePerKw was unexpectedly locked in")
 	}
 
@@ -2134,7 +2146,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 		t.Fatalf("unable to generate bob revocation: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != fee {
 		t.Fatalf("bob's feePerKw was not locked in")
 	}
 }
@@ -2173,7 +2185,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob.
-	fee := AtomPerKByte(2e4)
+	fee := chainfee.AtomPerKByte(2e4)
 	if err = aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("alice unable to update fee: %v", err)
 	}
@@ -2197,7 +2209,9 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) == fee {
 		t.Fatalf("bob's FeePerKB was unexpectedly locked in")
 	}
 
@@ -2208,7 +2222,9 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 		t.Fatalf("unable to generate bob revocation: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) != fee {
 		t.Fatalf("bob's FeePerKB was not locked in")
 	}
 
@@ -2234,7 +2250,9 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) == fee {
 		t.Fatalf("alice's FeePerKB was unexpectedly locked in")
 	}
 
@@ -2245,7 +2263,9 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 		t.Fatalf("unable to revoke alice channel: %v", err)
 	}
 
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) != fee {
 		t.Fatalf("alice's FeePerKB was not locked in")
 	}
 
@@ -2291,7 +2311,7 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	}
 
 	// Simulate Alice sending update fee message to bob
-	fee := AtomPerKByte(2e4)
+	fee := chainfee.AtomPerKByte(2e4)
 	if err = aliceChannel.UpdateFee(fee); err != nil {
 		t.Fatalf("unable to update fee: %v", err)
 	}
@@ -2343,7 +2363,9 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) == fee {
 		t.Fatalf("bob's FeePerKB was unexpectedly locked in")
 	}
 
@@ -2355,7 +2377,9 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 		t.Fatalf("unable to revoke alice channel: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) != fee {
 		t.Fatalf("bob's FeePerKB was not locked in")
 	}
 
@@ -2380,7 +2404,9 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) == fee {
 		t.Fatalf("alice's FeePerKB was unexpectedly locked in")
 	}
 
@@ -2391,7 +2417,9 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 		t.Fatalf("unable to generate bob revocation: %v", err)
 	}
 
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) != fee {
 		t.Fatalf("Alice's FeePerKB was not locked in")
 	}
 
@@ -2419,7 +2447,7 @@ func TestUpdateFeeReceiverSendsUpdate(t *testing.T) {
 
 	// Since Alice is the channel initiator, she should fail when receiving
 	// fee update
-	fee := AtomPerKByte(2e4)
+	fee := chainfee.AtomPerKByte(2e4)
 	err = aliceChannel.ReceiveUpdateFee(fee)
 	if err == nil {
 		t.Fatalf("expected alice to fail receiving fee update")
@@ -2447,9 +2475,9 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 	defer cleanUp()
 
 	// Simulate Alice sending update fee message to bob.
-	fee1 := AtomPerKByte(2e4)
-	fee2 := AtomPerKByte(2e4)
-	fee := AtomPerKByte(2e4)
+	fee1 := chainfee.AtomPerKByte(2e4)
+	fee2 := chainfee.AtomPerKByte(2e4)
+	fee := chainfee.AtomPerKByte(2e4)
 	if err = aliceChannel.UpdateFee(fee1); err != nil {
 		t.Fatalf("alice unable to update fee1: %v", err)
 	}
@@ -2486,15 +2514,17 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) == fee {
 		t.Fatalf("bob's FeePerKB was unexpectedly locked in")
 	}
 
 	// Alice sending more fee updates now should not mess up the old fee
 	// they both committed to.
-	fee3 := AtomPerKByte(444)
-	fee4 := AtomPerKByte(555)
-	fee5 := AtomPerKByte(666)
+	fee3 := chainfee.AtomPerKByte(444)
+	fee4 := chainfee.AtomPerKByte(555)
+	fee5 := chainfee.AtomPerKByte(666)
 	if err = aliceChannel.UpdateFee(fee3); err != nil {
 		t.Fatalf("alice unable to update fee3: %v", err)
 	}
@@ -2521,7 +2551,9 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 		t.Fatalf("unable to generate bob revocation: %v", err)
 	}
 
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) != fee {
 		t.Fatalf("bob's FeePerKB was not locked in")
 	}
 
@@ -2546,7 +2578,9 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
 
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) == fee {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) == fee {
 		t.Fatalf("alice's FeePerKB was unexpectedly locked in")
 	}
 
@@ -2557,7 +2591,9 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 		t.Fatalf("unable to revoke alice channel: %v", err)
 	}
 
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) != fee {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) != fee {
 		t.Fatalf("alice's FeePerKB was not locked in")
 	}
 
@@ -3942,7 +3978,9 @@ func TestFeeUpdateRejectInsaneFee(t *testing.T) {
 
 	// Next, we'll try to add a fee rate to Alice which is 1,000,000x her
 	// starting fee rate.
-	startingFeeRate := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
+	startingFeeRate := chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	)
 	newFeeRate := startingFeeRate * 1000000
 
 	// Both Alice and Bob should reject this new fee rate as it is far too
@@ -3968,7 +4006,9 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 
 	// First, we'll fetch the current fee rate present within the
 	// commitment transactions.
-	startingFeeRate := AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
+	startingFeeRate := chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	)
 
 	// Next, we'll start a commitment update, with Alice sending a new
 	// update to double the fee rate of the commitment.
@@ -4107,10 +4147,14 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 	}
 
 	// Both parties should now have the latest fee rate locked-in.
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) != newFeeRate {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) != newFeeRate {
 		t.Fatalf("alice's FeePerKB was not locked in")
 	}
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != newFeeRate {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) != newFeeRate {
 		t.Fatalf("bob's FeePerKB was not locked in")
 	}
 
@@ -4191,7 +4235,7 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 
 	// First, we'll fetch the current fee rate present within the
 	// commitment transactions.
-	startingFeeRate := AtomPerKByte(
+	startingFeeRate := chainfee.AtomPerKByte(
 		aliceChannel.channelState.LocalCommitment.FeePerKB,
 	)
 	newFeeRate := startingFeeRate
@@ -4320,10 +4364,14 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 	}
 
 	// Both parties should now have the latest fee rate locked-in.
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) != newFeeRate {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) != newFeeRate {
 		t.Fatalf("alice's feePerKB was not locked in")
 	}
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != newFeeRate {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) != newFeeRate {
 		t.Fatalf("bob's feePerKB was not locked in")
 	}
 
@@ -4345,10 +4393,14 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 	assertLogItems(0, numHTLCs+1)
 
 	// ...and the final fee rate locked in.
-	if AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB) != newFeeRate {
+	if chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	) != newFeeRate {
 		t.Fatalf("alice's feePerKB was not locked in")
 	}
-	if AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != newFeeRate {
+	if chainfee.AtomPerKByte(
+		bobChannel.channelState.LocalCommitment.FeePerKB,
+	) != newFeeRate {
 		t.Fatalf("bob's feePerKB was not locked in")
 	}
 }
@@ -6691,7 +6743,9 @@ func TestChannelMaxFeeRate(t *testing.T) {
 	}
 	defer cleanUp()
 
-	assertMaxFeeRate := func(maxAlloc float64, expFeeRate AtomPerKByte) {
+	assertMaxFeeRate := func(maxAlloc float64,
+		expFeeRate chainfee.AtomPerKByte) {
+
 		maxFeeRate := aliceChannel.MaxFeeRate(maxAlloc)
 		if maxFeeRate != expFeeRate {
 			t.Fatalf("expected max fee rate of %v with max "+
@@ -6704,12 +6758,12 @@ func TestChannelMaxFeeRate(t *testing.T) {
 	// channel balance of the initiator as fee.
 	commitSize := input.EstimateCommitmentTxSize(0)
 	chanBalance := float64(dcrutil.Amount(5 * dcrutil.AtomsPerCoin))
-	fullMaxFee := AtomPerKByte(chanBalance / (float64(commitSize) / 1000.0))
+	fullMaxFee := chainfee.AtomPerKByte(chanBalance / (float64(commitSize) / 1000.0))
 
 	// Assert the estimation is the expected one. This helps ensure any
 	// changes to how the test balance, fee or commitment size are
 	// calculated breaks this test.
-	wantMaxFee := AtomPerKByte(1373626373)
+	wantMaxFee := chainfee.AtomPerKByte(1373626373)
 	if fullMaxFee != wantMaxFee {
 		t.Fatalf("unexpected full max fee (want=%s got=%s)", wantMaxFee,
 			fullMaxFee)
@@ -6718,5 +6772,5 @@ func TestChannelMaxFeeRate(t *testing.T) {
 	assertMaxFeeRate(1.0, fullMaxFee)
 	assertMaxFeeRate(0.001, fullMaxFee/1000)
 	assertMaxFeeRate(0.00001, fullMaxFee/100000)
-	assertMaxFeeRate(0.0000001, FeePerKBFloor)
+	assertMaxFeeRate(0.0000001, chainfee.FeePerKBFloor)
 }

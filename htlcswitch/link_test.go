@@ -32,6 +32,7 @@ import (
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
 )
@@ -1963,7 +1964,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	// incoming HTLCs automatically.
 	coreLink.cfg.HodlMask = hodl.MaskFromFlags(hodl.ExitSettle)
 
-	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -2383,7 +2384,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 		aliceMsgs              = coreLink.cfg.Peer.(*mockPeer).sentMsgs
 	)
 
-	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -2634,7 +2635,7 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
-	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -2913,7 +2914,7 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
-	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -3171,7 +3172,7 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 		aliceMsgs              = coreLink.cfg.Peer.(*mockPeer).sentMsgs
 	)
 
-	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKw, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -3558,8 +3559,8 @@ func TestChannelRetransmission(t *testing.T) {
 // deviates from our current fee by more 10% or more.
 func TestShouldAdjustCommitFee(t *testing.T) {
 	tests := []struct {
-		netFee       lnwallet.AtomPerKByte
-		chanFee      lnwallet.AtomPerKByte
+		netFee       chainfee.AtomPerKByte
+		chanFee      chainfee.AtomPerKByte
 		shouldAdjust bool
 	}{
 
@@ -3841,7 +3842,7 @@ func TestChannelLinkUpdateCommitFee(t *testing.T) {
 
 	// triggerFeeUpdate is a helper closure to determine whether a fee
 	// update was triggered and completed properly.
-	triggerFeeUpdate := func(feeEstimate, newFeeRate lnwallet.AtomPerKByte,
+	triggerFeeUpdate := func(feeEstimate, newFeeRate chainfee.AtomPerKByte,
 		shouldUpdate bool) {
 
 		t.Helper()
@@ -3902,7 +3903,7 @@ func TestChannelLinkUpdateCommitFee(t *testing.T) {
 	// Triggering the link to update the fee of the channel with a fee rate
 	// that exceeds its maximum fee allocation should result in a fee rate
 	// corresponding to the maximum fee allocation.
-	const maxFeeRate lnwallet.AtomPerKByte = 412087912
+	const maxFeeRate chainfee.AtomPerKByte = 412087912
 	triggerFeeUpdate(maxFeeRate+1, maxFeeRate, true)
 }
 

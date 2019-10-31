@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 )
@@ -74,7 +74,7 @@ func WriteElement(w io.Writer, element interface{}) error {
 			return err
 		}
 
-	case lnwallet.AtomPerKByte:
+	case chainfee.AtomPerKByte:
 		var b [8]byte
 		binary.BigEndian.PutUint64(b[:], uint64(e))
 		if _, err := w.Write(b[:]); err != nil {
@@ -194,12 +194,12 @@ func ReadElement(r io.Reader, element interface{}) error {
 		}
 		*e = bytes
 
-	case *lnwallet.AtomPerKByte:
+	case *chainfee.AtomPerKByte:
 		var b [8]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {
 			return err
 		}
-		*e = lnwallet.AtomPerKByte(binary.BigEndian.Uint64(b[:]))
+		*e = chainfee.AtomPerKByte(binary.BigEndian.Uint64(b[:]))
 
 	case *ErrorCode:
 		var b [2]byte

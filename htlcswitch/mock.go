@@ -26,7 +26,7 @@ import (
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lntypes"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/lightning-onion/v2"
@@ -70,13 +70,13 @@ func (m *mockPreimageCache) SubscribeUpdates() *contractcourt.WitnessSubscriptio
 }
 
 type mockFeeEstimator struct {
-	byteFeeIn chan lnwallet.AtomPerKByte
+	byteFeeIn chan chainfee.AtomPerKByte
 
 	quit chan struct{}
 }
 
 func (m *mockFeeEstimator) EstimateFeePerKB(
-	numBlocks uint32) (lnwallet.AtomPerKByte, error) {
+	numBlocks uint32) (chainfee.AtomPerKByte, error) {
 
 	select {
 	case feeRate := <-m.byteFeeIn:
@@ -86,7 +86,7 @@ func (m *mockFeeEstimator) EstimateFeePerKB(
 	}
 }
 
-func (m *mockFeeEstimator) RelayFeePerKB() lnwallet.AtomPerKByte {
+func (m *mockFeeEstimator) RelayFeePerKB() chainfee.AtomPerKByte {
 	return 1e3
 }
 
@@ -98,7 +98,7 @@ func (m *mockFeeEstimator) Stop() error {
 	return nil
 }
 
-var _ lnwallet.FeeEstimator = (*mockFeeEstimator)(nil)
+var _ chainfee.Estimator = (*mockFeeEstimator)(nil)
 
 type mockForwardingLog struct {
 	sync.Mutex

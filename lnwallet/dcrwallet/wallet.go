@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	base "github.com/decred/dcrwallet/wallet/v3"
@@ -271,7 +272,7 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
-	feeRate lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
+	feeRate chainfee.AtomPerKByte) (*wire.MsgTx, error) {
 
 	// Sanity check outputs.
 	if len(outputs) < 1 {
@@ -312,7 +313,7 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) CreateSimpleTx(outputs []*wire.TxOut,
-	feeRate lnwallet.AtomPerKByte, dryRun bool) (*txauthor.AuthoredTx, error) {
+	feeRate chainfee.AtomPerKByte, dryRun bool) (*txauthor.AuthoredTx, error) {
 
 	// Sanity check outputs.
 	if len(outputs) < 1 {

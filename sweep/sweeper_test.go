@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 var (
@@ -100,7 +101,7 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 
 	backend := newMockBackend(notifier)
 
-	estimator := newMockFeeEstimator(10000, lnwallet.FeePerKBFloor)
+	estimator := newMockFeeEstimator(10000, chainfee.FeePerKBFloor)
 
 	publishChan := make(chan wire.MsgTx, 2)
 	ctx := &sweeperTestContext{
@@ -319,7 +320,7 @@ func assertTxSweepsInputs(t *testing.T, sweepTx *wire.MsgTx,
 // NOTE: This assumes that transactions only have one output, as this is the
 // only type of transaction the UtxoSweeper can create at the moment.
 func assertTxFeeRate(t *testing.T, tx *wire.MsgTx,
-	expectedFeeRate lnwallet.AtomPerKByte, inputs ...input.Input) {
+	expectedFeeRate chainfee.AtomPerKByte, inputs ...input.Input) {
 
 	t.Helper()
 
@@ -419,7 +420,7 @@ func TestDust(t *testing.T) {
 
 	// Calculate the fee to relay this tx, given the test relay fee of
 	// 10000 atoms/kB.
-	txFee := int64(lnwallet.AtomPerKByte(10000).FeeForSize(txSize))
+	txFee := int64(chainfee.AtomPerKByte(10000).FeeForSize(txSize))
 
 	// Calculate the maximum value an output in this type of tx can have,
 	// after which it will no longer be considered dust.
@@ -1022,11 +1023,11 @@ func TestDifferentFeePreferences(t *testing.T) {
 	// this to ensure the sweeper can broadcast distinct transactions for
 	// each sweep with a different fee preference.
 	lowFeePref := FeePreference{ConfTarget: 12}
-	lowFeeRate := lnwallet.AtomPerKByte(10000)
+	lowFeeRate := chainfee.AtomPerKByte(10000)
 	ctx.estimator.blocksToFee[lowFeePref.ConfTarget] = lowFeeRate
 
 	highFeePref := FeePreference{ConfTarget: 6}
-	highFeeRate := lnwallet.AtomPerKByte(20000)
+	highFeeRate := chainfee.AtomPerKByte(20000)
 	ctx.estimator.blocksToFee[highFeePref.ConfTarget] = highFeeRate
 
 	input1 := spendableInputs[0]
@@ -1144,7 +1145,7 @@ func TestBumpFeeRBF(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	lowFeePref := FeePreference{ConfTarget: 144}
-	lowFeeRate := lnwallet.FeePerKBFloor
+	lowFeeRate := chainfee.FeePerKBFloor
 	ctx.estimator.blocksToFee[lowFeePref.ConfTarget] = lowFeeRate
 
 	// We'll first try to bump the fee of an output currently unknown to the

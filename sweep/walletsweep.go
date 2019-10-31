@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 const (
@@ -30,7 +31,7 @@ type FeePreference struct {
 
 	// FeeRate if non-zero, signals a fee pre fence expressed in the fee
 	// rate expressed in atom/KB for a particular transaction.
-	FeeRate lnwallet.AtomPerKByte
+	FeeRate chainfee.AtomPerKByte
 }
 
 // String returns a human-readable string of the fee preference.
@@ -45,8 +46,8 @@ func (p FeePreference) String() string {
 // given an estimator, a confirmation target, and a manual value for sat/byte.
 // A value is chosen based on the two free parameters as one, or both of them
 // can be zero.
-func DetermineFeePerKB(feeEstimator lnwallet.FeeEstimator,
-	feePref FeePreference) (lnwallet.AtomPerKByte, error) {
+func DetermineFeePerKB(feeEstimator chainfee.Estimator,
+	feePref FeePreference) (chainfee.AtomPerKByte, error) {
 
 	switch {
 	// If both values are set, then we'll return an error as we require a
@@ -73,12 +74,12 @@ func DetermineFeePerKB(feeEstimator lnwallet.FeeEstimator,
 	// internally.
 	case feePref.FeeRate != 0:
 		feePerKB := feePref.FeeRate
-		if feePerKB < lnwallet.FeePerKBFloor {
+		if feePerKB < chainfee.FeePerKBFloor {
 			log.Infof("Manual fee rate input of %d atom/KB is "+
 				"too low, using %d atom/KB instead", feePerKB,
-				lnwallet.FeePerKBFloor)
+				chainfee.FeePerKBFloor)
 
-			feePerKB = lnwallet.FeePerKBFloor
+			feePerKB = chainfee.FeePerKBFloor
 		}
 
 		return feePerKB, nil
@@ -155,10 +156,10 @@ type WalletSweepPackage struct {
 // by the delivery address. The sweep transaction will be crafted with the
 // target fee rate, and will use the utxoSource and outpointLocker as sources
 // for wallet funds.
-func CraftSweepAllTx(feeRate lnwallet.AtomPerKByte, blockHeight uint32,
+func CraftSweepAllTx(feeRate chainfee.AtomPerKByte, blockHeight uint32,
 	deliveryAddr dcrutil.Address, coinSelectLocker CoinSelectionLocker,
 	utxoSource UtxoSource, outpointLocker OutpointLocker,
-	feeEstimator lnwallet.FeeEstimator,
+	feeEstimator chainfee.Estimator,
 	signer input.Signer, netParams *chaincfg.Params) (*WalletSweepPackage, error) {
 
 	// TODO(roasbeef): turn off ATPL as well when available?

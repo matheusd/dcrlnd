@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 )
 
@@ -274,7 +275,7 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
-	feeRate lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
+	feeRate chainfee.AtomPerKByte) (*wire.MsgTx, error) {
 
 	ctxb := context.Background()
 
@@ -403,7 +404,7 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) CreateSimpleTx(outputs []*wire.TxOut,
-	feeRate lnwallet.AtomPerKByte, dryRun bool) (*txauthor.AuthoredTx, error) {
+	feeRate chainfee.AtomPerKByte, dryRun bool) (*txauthor.AuthoredTx, error) {
 
 	// TODO(decred) Review semantics for btcwallet's CreateSimpleTx.
 	return nil, fmt.Errorf("CreateSimpleTx unimplemented for dcrwallet")

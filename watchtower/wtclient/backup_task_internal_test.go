@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
@@ -95,7 +96,7 @@ func genTaskTest(
 	toLocalAmt int64,
 	toRemoteAmt int64,
 	blobType blob.Type,
-	sweepFeeRate lnwallet.AtomPerKByte,
+	sweepFeeRate chainfee.AtomPerKByte,
 	rewardScript []byte,
 	expSweepAmt int64,
 	expRewardAmt int64,

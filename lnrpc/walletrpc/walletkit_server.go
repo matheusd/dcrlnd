@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/sweep"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
@@ -303,7 +304,7 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 	// Now that we have the outputs mapped, we can request that the wallet
 	// attempt to create this transaction.
 	tx, err := w.cfg.Wallet.SendOutputs(
-		outputsToCreate, lnwallet.AtomPerKByte(req.AtomsPerKb),
+		outputsToCreate, chainfee.AtomPerKByte(req.AtomsPerKb),
 	)
 	if err != nil {
 		return nil, err
@@ -470,7 +471,7 @@ func (w *WalletKit) BumpFee(ctx context.Context,
 	}
 
 	// Construct the request's fee preference.
-	atomsPerKB := lnwallet.AtomPerKByte(in.AtomsPerByte * 1000)
+	atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
 	feePreference := sweep.FeePreference{
 		ConfTarget: in.TargetConf,
 		FeeRate:    atomsPerKB,

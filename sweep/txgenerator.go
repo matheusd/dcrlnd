@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 var (
@@ -30,7 +31,7 @@ type inputSet []input.Input
 // inputs are skipped. No input sets with a total value after fees below the
 // dust limit are returned.
 func generateInputPartitionings(sweepableInputs []input.Input,
-	relayFeePerKB, feePerKB lnwallet.AtomPerKByte,
+	relayFeePerKB, feePerKB chainfee.AtomPerKByte,
 	maxInputsPerTx int) ([]inputSet, error) {
 
 	// Calculate dust limit based on the P2PKH output script of the sweep
@@ -112,7 +113,7 @@ func generateInputPartitionings(sweepableInputs []input.Input,
 // minimizing any negative externalities we cause for the Bitcoin system as a
 // whole.
 func getPositiveYieldInputs(sweepableInputs []input.Input, maxInputs int,
-	feePerKB lnwallet.AtomPerKByte) (int, dcrutil.Amount) {
+	feePerKB chainfee.AtomPerKByte) (int, dcrutil.Amount) {
 
 	var sizeEstimate input.TxSizeEstimator
 
@@ -159,7 +160,7 @@ func getPositiveYieldInputs(sweepableInputs []input.Input, maxInputs int,
 
 // createSweepTx builds a signed tx spending the inputs to a the output script.
 func createSweepTx(inputs []input.Input, outputPkScript []byte,
-	currentBlockHeight uint32, feePerKB lnwallet.AtomPerKByte,
+	currentBlockHeight uint32, feePerKB chainfee.AtomPerKByte,
 	signer input.Signer, netParams *chaincfg.Params) (*wire.MsgTx, error) {
 
 	inputs, txSize := getSizeEstimate(inputs)

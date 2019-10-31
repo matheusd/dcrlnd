@@ -4,6 +4,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"google.golang.org/grpc"
 )
 
@@ -32,7 +33,7 @@ type Config struct {
 	// FeeEstimator is an instance of the fee estimator interface which
 	// will be used by the wallet to dynamically set transaction fees when
 	// crafting transactions.
-	FeeEstimator lnwallet.FeeEstimator
+	FeeEstimator chainfee.Estimator
 
 	// NetParams is the net parameters for the target chain.
 	NetParams *chaincfg.Params

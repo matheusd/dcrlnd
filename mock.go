@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 // The block height returned by the mock BlockChainIO's GetBestBlock.
@@ -280,13 +281,13 @@ func (*mockWalletController) IsOurAddress(a dcrutil.Address) bool {
 }
 
 func (*mockWalletController) SendOutputs(outputs []*wire.TxOut,
-	_ lnwallet.AtomPerKByte) (*wire.MsgTx, error) {
+	_ chainfee.AtomPerKByte) (*wire.MsgTx, error) {
 
 	return nil, nil
 }
 
 func (*mockWalletController) CreateSimpleTx(outputs []*wire.TxOut,
-	_ lnwallet.AtomPerKByte, _ bool) (*txauthor.AuthoredTx, error) {
+	_ chainfee.AtomPerKByte, _ bool) (*txauthor.AuthoredTx, error) {
 
 	return nil, nil
 }

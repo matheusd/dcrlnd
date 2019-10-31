@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
 )
@@ -135,7 +136,7 @@ type ChainArbitratorConfig struct {
 	Signer input.Signer
 
 	// FeeEstimator will be used to return fee estimates.
-	FeeEstimator lnwallet.FeeEstimator
+	FeeEstimator chainfee.Estimator
 
 	// ChainIO allows us to query the state of the current main chain.
 	ChainIO lnwallet.BlockChainIO

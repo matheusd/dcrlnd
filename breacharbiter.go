@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -77,7 +78,7 @@ type BreachConfig struct {
 	// Estimator is used by the breach arbiter to determine an appropriate
 	// fee level when generating, signing, and broadcasting sweep
 	// transactions.
-	Estimator lnwallet.FeeEstimator
+	Estimator chainfee.Estimator
 
 	// GenSweepScript generates the receiving scripts for swept outputs.
 	GenSweepScript func() ([]byte, error)

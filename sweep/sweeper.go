@@ -17,13 +17,14 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 const (
 	// DefaultMaxFeeRate is the default maximum fee rate allowed within the
 	// UtxoSweeper. The current value is equivalent to a fee rate of
 	// 0.00100000 DCR/KByte.
-	DefaultMaxFeeRate lnwallet.AtomPerKByte = 1e6
+	DefaultMaxFeeRate chainfee.AtomPerKByte = 1e6
 
 	// DefaultFeeRateBucketSize is the default size of fee rate buckets
 	// we'll use when clustering inputs into buckets with similar fee rates
@@ -93,7 +94,7 @@ type pendingInput struct {
 
 	// lastFeeRate is the most recent fee rate used for this input within a
 	// transaction broadcast to the network.
-	lastFeeRate lnwallet.AtomPerKByte
+	lastFeeRate chainfee.AtomPerKByte
 }
 
 // pendingInputs is a type alias for a set of pending inputs.
@@ -102,7 +103,7 @@ type pendingInputs = map[wire.OutPoint]*pendingInput
 // inputCluster is a helper struct to gather a set of pending inputs that should
 // be swept with the specified fee rate.
 type inputCluster struct {
-	sweepFeeRate lnwallet.AtomPerKByte
+	sweepFeeRate chainfee.AtomPerKByte
 	inputs       pendingInputs
 }
 
@@ -127,7 +128,7 @@ type PendingInput struct {
 
 	// LastFeeRate is the most recent fee rate used for the input being
 	// swept within a transaction broadcast to the network.
-	LastFeeRate lnwallet.AtomPerKByte
+	LastFeeRate chainfee.AtomPerKByte
 
 	// BroadcastAttempts is the number of attempts we've made to sweept the
 	// input.
@@ -183,7 +184,7 @@ type UtxoSweeper struct {
 
 	currentOutputScript []byte
 
-	relayFeeRate lnwallet.AtomPerKByte
+	relayFeeRate chainfee.AtomPerKByte
 
 	quit chan struct{}
 	wg   sync.WaitGroup
@@ -198,7 +199,7 @@ type UtxoSweeperConfig struct {
 	// FeeEstimator is used when crafting sweep transactions to estimate
 	// the necessary fee relative to the expected size of the sweep
 	// transaction.
-	FeeEstimator lnwallet.FeeEstimator
+	FeeEstimator chainfee.Estimator
 
 	// PublishTransaction facilitates the process of broadcasting a signed
 	// transaction to the appropriate network.
@@ -240,7 +241,7 @@ type UtxoSweeperConfig struct {
 
 	// MaxFeeRate is the the maximum fee rate allowed within the
 	// UtxoSweeper.
-	MaxFeeRate lnwallet.AtomPerKByte
+	MaxFeeRate chainfee.AtomPerKByte
 
 	// FeeRateBucketSize is the default size of fee rate buckets we'll use
 	// when clustering inputs into buckets with similar fee rates within the
@@ -408,7 +409,7 @@ func (s *UtxoSweeper) SweepInput(input input.Input,
 // feeRateForPreference returns a fee rate for the given fee preference. It
 // ensures that the fee rate respects the bounds of the UtxoSweeper.
 func (s *UtxoSweeper) feeRateForPreference(
-	feePreference FeePreference) (lnwallet.AtomPerKByte, error) {
+	feePreference FeePreference) (chainfee.AtomPerKByte, error) {
 
 	// Ensure a type of fee preference is specified to prevent using a
 	// default below.
@@ -642,10 +643,10 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch) {
 // bucketForFeeReate determines the proper bucket for a fee rate. This is done
 // in order to batch inputs with similar fee rates together.
 func (s *UtxoSweeper) bucketForFeeRate(
-	feeRate lnwallet.AtomPerKByte) lnwallet.AtomPerKByte {
+	feeRate chainfee.AtomPerKByte) chainfee.AtomPerKByte {
 
-	minBucket := s.relayFeeRate + lnwallet.AtomPerKByte(s.cfg.FeeRateBucketSize)
-	return lnwallet.AtomPerKByte(
+	minBucket := s.relayFeeRate + chainfee.AtomPerKByte(s.cfg.FeeRateBucketSize)
+	return chainfee.AtomPerKByte(
 		math.Ceil(float64(feeRate) / float64(minBucket)),
 	)
 }
@@ -655,8 +656,8 @@ func (s *UtxoSweeper) bucketForFeeRate(
 // sweep fee rate, which is determined by calculating the average fee rate of
 // all inputs within that cluster.
 func (s *UtxoSweeper) clusterBySweepFeeRate() []inputCluster {
-	bucketInputs := make(map[lnwallet.AtomPerKByte]pendingInputs)
-	inputFeeRates := make(map[wire.OutPoint]lnwallet.AtomPerKByte)
+	bucketInputs := make(map[chainfee.AtomPerKByte]pendingInputs)
+	inputFeeRates := make(map[wire.OutPoint]chainfee.AtomPerKByte)
 
 	// First, we'll group together all inputs with similar fee rates. This
 	// is done by determining the fee rate bucket they should belong in.
@@ -683,11 +684,11 @@ func (s *UtxoSweeper) clusterBySweepFeeRate() []inputCluster {
 	// calculating the average fee rate of the inputs within each set.
 	inputClusters := make([]inputCluster, 0, len(bucketInputs))
 	for _, inputs := range bucketInputs {
-		var sweepFeeRate lnwallet.AtomPerKByte
+		var sweepFeeRate chainfee.AtomPerKByte
 		for op := range inputs {
 			sweepFeeRate += inputFeeRates[op]
 		}
-		sweepFeeRate /= lnwallet.AtomPerKByte(len(inputs))
+		sweepFeeRate /= chainfee.AtomPerKByte(len(inputs))
 		inputClusters = append(inputClusters, inputCluster{
 			sweepFeeRate: sweepFeeRate,
 			inputs:       inputs,
@@ -841,7 +842,7 @@ func (s *UtxoSweeper) getInputLists(cluster inputCluster,
 
 // sweep takes a set of preselected inputs, creates a sweep tx and publishes the
 // tx. The output address is only marked as used if the publish succeeds.
-func (s *UtxoSweeper) sweep(inputs inputSet, feeRate lnwallet.AtomPerKByte,
+func (s *UtxoSweeper) sweep(inputs inputSet, feeRate chainfee.AtomPerKByte,
 	currentHeight int32) error {
 
 	// Generate an output script if there isn't an unused script available.

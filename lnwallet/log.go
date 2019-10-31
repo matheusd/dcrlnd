@@ -2,6 +2,7 @@ package lnwallet
 
 import (
 	"github.com/decred/dcrlnd/build"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/slog"
 )
 
@@ -26,6 +27,7 @@ func DisableLog() {
 // using slog.
 func UseLogger(logger slog.Logger) {
 	walletLog = logger
+	chainfee.UseLogger(logger)
 }
 
 // logClosure is used to provide a closure over expensive logging operations

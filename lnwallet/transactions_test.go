@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
@@ -813,7 +814,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 			height:       test.commitment.CommitHeight,
 			ourBalance:   test.commitment.LocalBalance,
 			theirBalance: test.commitment.RemoteBalance,
-			feePerKB:     AtomPerKByte(test.commitment.FeePerKB),
+			feePerKB:     chainfee.AtomPerKByte(test.commitment.FeePerKB),
 			dustLimit:    tc.dustLimit,
 			isOurs:       true,
 		}
@@ -862,7 +863,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 		// Generate second-level HTLC transactions for HTLCs in
 		// commitment tx.
 		htlcResolutions, err := extractHtlcResolutions(
-			AtomPerKByte(test.commitment.FeePerKB), true, signer,
+			chainfee.AtomPerKByte(test.commitment.FeePerKB), true, signer,
 			htlcs, keys, channel.localChanCfg, channel.remoteChanCfg,
 			commitTx.TxHash(),
 		)

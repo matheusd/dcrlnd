@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/shachain"
@@ -217,7 +218,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 		return nil, nil, nil, nil, err
 	}
 
-	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
+	estimator := chainfee.NewStaticEstimator(12500, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, nil, err

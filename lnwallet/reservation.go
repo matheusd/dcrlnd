@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -128,7 +129,7 @@ type ChannelReservation struct {
 // creation of all channel reservations should be carried out via the
 // lnwallet.InitChannelReservation interface.
 func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
-	commitFeePerKB AtomPerKByte, wallet *LightningWallet,
+	commitFeePerKB chainfee.AtomPerKByte, wallet *LightningWallet,
 	id uint64, pushMAtoms lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag,
 	tweaklessCommit bool) (*ChannelReservation, error) {

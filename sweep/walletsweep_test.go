@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 // TestDetermineFeePerKB tests that given a fee preference, the
@@ -17,8 +18,8 @@ import (
 func TestDetermineFeePerKw(t *testing.T) {
 	t.Parallel()
 
-	defaultFee := lnwallet.AtomPerKByte(99999)
-	relayFee := lnwallet.AtomPerKByte(30000)
+	defaultFee := chainfee.AtomPerKByte(99999)
+	relayFee := chainfee.AtomPerKByte(30000)
 
 	feeEstimator := newMockFeeEstimator(defaultFee, relayFee)
 
@@ -35,7 +36,7 @@ func TestDetermineFeePerKw(t *testing.T) {
 
 		// fee is the value the DetermineFeePerKB should return given
 		// the FeePreference above
-		fee lnwallet.AtomPerKByte
+		fee chainfee.AtomPerKByte
 
 		// fail determines if this test case should fail or not.
 		fail bool
@@ -43,9 +44,9 @@ func TestDetermineFeePerKw(t *testing.T) {
 		// A fee rate below the fee rate floor should output the floor.
 		{
 			feePref: FeePreference{
-				FeeRate: lnwallet.AtomPerKByte(99),
+				FeeRate: chainfee.AtomPerKByte(99),
 			},
-			fee: lnwallet.FeePerKBFloor,
+			fee: chainfee.FeePerKBFloor,
 		},
 
 		// A fee rate above the floor, should pass through and return

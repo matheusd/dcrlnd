@@ -10,7 +10,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/htlcswitch"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -156,7 +156,7 @@ func TestPeerChannelClosureAcceptFeeInitiator(t *testing.T) {
 			dummyDeliveryScript),
 	}
 
-	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
+	estimator := chainfee.NewStaticEstimator(12500, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
@@ -446,7 +446,7 @@ func TestPeerChannelClosureFeeNegotiationsInitiator(t *testing.T) {
 		msg: respShutdown,
 	}
 
-	estimator := lnwallet.NewStaticFeeEstimator(12500, 0)
+	estimator := chainfee.NewStaticEstimator(12500, 0)
 	initiatorIdealFeeRate, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)

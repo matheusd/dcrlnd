@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
@@ -46,7 +47,7 @@ const (
 	DefaultDecredTimeLockDelta = 80
 
 	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/kB
-	defaultDecredStaticFeePerKB = lnwallet.AtomPerKByte(1e4)
+	defaultDecredStaticFeePerKB = chainfee.AtomPerKByte(1e4)
 )
 
 // defaultDcrChannelConstraints is the default set of channel constraints that are
@@ -116,7 +117,7 @@ func checkDcrdNode(rpcConfig rpcclient.ConnConfig) error {
 type chainControl struct {
 	chainIO lnwallet.BlockChainIO
 
-	feeEstimator lnwallet.FeeEstimator
+	feeEstimator chainfee.Estimator
 
 	signer input.Signer
 
@@ -159,7 +160,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			FeeRate:       cfg.FeeRate,
 			TimeLockDelta: cfg.TimeLockDelta,
 		}
-		cc.feeEstimator = lnwallet.NewStaticFeeEstimator(
+		cc.feeEstimator = chainfee.NewStaticEstimator(
 			defaultDecredStaticFeePerKB, 0,
 		)
 	default:
@@ -270,10 +271,11 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			// if we're using dcrd as a backend, then we can use
 			// live fee estimates, rather than a statically coded
 			// value.
+			//
 			// TODO(decred) Review if fallbackFeeRate should be higher than
 			// the default relay fee.
-			fallBackFeeRate := lnwallet.AtomPerKByte(1e4)
-			cc.feeEstimator, err = lnwallet.NewDcrdFeeEstimator(
+			fallBackFeeRate := chainfee.AtomPerKByte(1e4)
+			cc.feeEstimator, err = chainfee.NewDcrdEstimator(
 				*rpcConfig, fallBackFeeRate,
 			)
 			if err != nil {

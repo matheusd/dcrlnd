@@ -8,6 +8,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	"github.com/decred/dcrwallet/wallet/v3"
@@ -64,7 +65,7 @@ type Config struct {
 	// FeeEstimator is an instance of the fee estimator interface which
 	// will be used by the wallet to dynamically set transaction fees when
 	// crafting transactions.
-	FeeEstimator lnwallet.FeeEstimator
+	FeeEstimator chainfee.Estimator
 
 	// RecoveryWindow specifies the address look-ahead for which to scan
 	// when restoring a wallet. The recovery window will apply to all

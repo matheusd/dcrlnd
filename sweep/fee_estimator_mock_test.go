@@ -3,38 +3,38 @@ package sweep
 import (
 	"sync"
 
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 // mockFeeEstimator implements a mock fee estimator. It closely resembles
 // lnwallet.StaticFeeEstimator with the addition that fees can be changed for
 // testing purposes in a thread safe manner.
 type mockFeeEstimator struct {
-	feePerKB lnwallet.AtomPerKByte
+	feePerKB chainfee.AtomPerKByte
 
-	relayFee lnwallet.AtomPerKByte
+	relayFee chainfee.AtomPerKByte
 
-	blocksToFee map[uint32]lnwallet.AtomPerKByte
+	blocksToFee map[uint32]chainfee.AtomPerKByte
 
 	// A closure that when set is used instead of the
 	// mockFeeEstimator.EstimateFeePerKW method.
-	estimateFeePerKW func(numBlocks uint32) (lnwallet.AtomPerKByte, error)
+	estimateFeePerKW func(numBlocks uint32) (chainfee.AtomPerKByte, error)
 
 	lock sync.Mutex
 }
 
 func newMockFeeEstimator(feePerKB,
-	relayFee lnwallet.AtomPerKByte) *mockFeeEstimator {
+	relayFee chainfee.AtomPerKByte) *mockFeeEstimator {
 
 	return &mockFeeEstimator{
 		feePerKB:    feePerKB,
 		relayFee:    relayFee,
-		blocksToFee: make(map[uint32]lnwallet.AtomPerKByte),
+		blocksToFee: make(map[uint32]chainfee.AtomPerKByte),
 	}
 }
 
 func (e *mockFeeEstimator) updateFees(feePerKB,
-	relayFee lnwallet.AtomPerKByte) {
+	relayFee chainfee.AtomPerKByte) {
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -44,7 +44,7 @@ func (e *mockFeeEstimator) updateFees(feePerKB,
 }
 
 func (e *mockFeeEstimator) EstimateFeePerKB(numBlocks uint32) (
-	lnwallet.AtomPerKByte, error) {
+	chainfee.AtomPerKByte, error) {
 
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -60,7 +60,7 @@ func (e *mockFeeEstimator) EstimateFeePerKB(numBlocks uint32) (
 	return e.feePerKB, nil
 }
 
-func (e *mockFeeEstimator) RelayFeePerKB() lnwallet.AtomPerKByte {
+func (e *mockFeeEstimator) RelayFeePerKB() chainfee.AtomPerKByte {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -75,4 +75,4 @@ func (e *mockFeeEstimator) Stop() error {
 	return nil
 }
 
-var _ lnwallet.FeeEstimator = (*mockFeeEstimator)(nil)
+var _ chainfee.Estimator = (*mockFeeEstimator)(nil)

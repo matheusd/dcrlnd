@@ -5,12 +5,15 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
 // fundingFee is a helper method that returns the fee estimate used for a tx
 // with the given number of inputs and the optional change output. This matches
 // the estimate done by the wallet.
-func fundingFee(feeRate AtomPerKByte, numInput int, change bool) dcrutil.Amount {
+func fundingFee(feeRate chainfee.AtomPerKByte, numInput int,
+	change bool) dcrutil.Amount {
+
 	var sizeEstimate input.TxSizeEstimator
 
 	// All inputs.
@@ -39,7 +42,7 @@ func fundingFee(feeRate AtomPerKByte, numInput int, change bool) dcrutil.Amount 
 func TestCoinSelect(t *testing.T) {
 	t.Parallel()
 
-	const feeRate = AtomPerKByte(100)
+	const feeRate = chainfee.AtomPerKByte(100)
 	const dust = dcrutil.Amount(100)
 
 	type testCase struct {
@@ -185,7 +188,7 @@ func TestCoinSelect(t *testing.T) {
 func TestCoinSelectSubtractFees(t *testing.T) {
 	t.Parallel()
 
-	const feeRate = AtomPerKByte(100)
+	const feeRate = chainfee.AtomPerKByte(100)
 	const dustLimit = dcrutil.Amount(1000)
 	const dust = dcrutil.Amount(100)
 

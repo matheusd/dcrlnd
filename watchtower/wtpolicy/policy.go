@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/watchtower/blob"
 )
 
@@ -29,11 +30,11 @@ const (
 
 	// DefaultSweepFeeRate specifies the fee rate used to construct justice
 	// transactions. The value is expressed in atoms per KByte.
-	DefaultSweepFeeRate = lnwallet.AtomPerKByte(1e4)
+	DefaultSweepFeeRate = chainfee.AtomPerKByte(1e4)
 
 	// MinSweepFeeRate is the minimum sweep fee rate a client may use in
 	// its policy, the current value is 0.00010000 dcr/KB.
-	MinSweepFeeRate = lnwallet.AtomPerKByte(1e4)
+	MinSweepFeeRate = chainfee.AtomPerKByte(1e4)
 )
 
 var (
@@ -99,7 +100,7 @@ type TxPolicy struct {
 	// constructing the justice transaction. All sweep transactions created
 	// for this session must use this value during construction, and the
 	// signatures must implicitly commit to the resulting output values.
-	SweepFeeRate lnwallet.AtomPerKByte
+	SweepFeeRate chainfee.AtomPerKByte
 }
 
 // Policy defines the negotiated parameters for a session between a client and

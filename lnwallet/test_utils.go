@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
@@ -252,7 +253,7 @@ func CreateTestChannels(tweaklessCommits bool) (
 	// Note: This is purposefully higher than the feeKBFloor (that is, the
 	// network standard relay fee) so that tests can try both lowering and
 	// increasing the fee rate.
-	estimator := NewStaticFeeEstimator(1e5, 0)
+	estimator := chainfee.NewStaticEstimator(1e5, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err

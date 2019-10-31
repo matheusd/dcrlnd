@@ -1,4 +1,4 @@
-package lnwallet_test
+package chainfee
 
 import (
 	"bytes"
@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/decred/dcrlnd/lnwallet"
 )
 
 type mockSparseConfFeeSource struct {
@@ -29,9 +27,9 @@ func (e mockSparseConfFeeSource) ParseResponse(r io.Reader) (map[uint32]uint32, 
 func TestStaticFeeEstimator(t *testing.T) {
 	t.Parallel()
 
-	const feePerKw = lnwallet.FeePerKBFloor
+	const feePerKb = FeePerKBFloor
 
-	feeEstimator := lnwallet.NewStaticFeeEstimator(feePerKw, 0)
+	feeEstimator := NewStaticEstimator(feePerKb, 0)
 	if err := feeEstimator.Start(); err != nil {
 		t.Fatalf("unable to start fee estimator: %v", err)
 	}
@@ -42,8 +40,8 @@ func TestStaticFeeEstimator(t *testing.T) {
 		t.Fatalf("unable to get fee rate: %v", err)
 	}
 
-	if feeRate != feePerKw {
-		t.Fatalf("expected fee rate %v, got %v", feePerKw, feeRate)
+	if feeRate != feePerKb {
+		t.Fatalf("expected fee rate %v, got %v", feePerKb, feeRate)
 	}
 }
 
@@ -54,7 +52,7 @@ func TestSparseConfFeeSource(t *testing.T) {
 
 	// Test that GenQueryURL returns the URL as is.
 	url := "test"
-	feeSource := lnwallet.SparseConfFeeSource{URL: url}
+	feeSource := SparseConfFeeSource{URL: url}
 	queryURL := feeSource.GenQueryURL()
 	if queryURL != url {
 		t.Fatalf("expected query URL of %v, got %v", url, queryURL)
@@ -104,7 +102,7 @@ func TestSparseConfFeeSource(t *testing.T) {
 func TestWebAPIFeeEstimator(t *testing.T) {
 	t.Parallel()
 
-	feeFloor := uint32(lnwallet.FeePerKBFloor)
+	feeFloor := uint32(FeePerKBFloor)
 	testCases := []struct {
 		name   string
 		target uint32
@@ -132,7 +130,7 @@ func TestWebAPIFeeEstimator(t *testing.T) {
 		fees: testFees,
 	}
 
-	estimator := lnwallet.NewWebAPIFeeEstimator(feeSource, 10)
+	estimator := NewWebAPIEstimator(feeSource, 10)
 
 	// Test that requesting a fee when no fees have been cached fails.
 	_, err := estimator.EstimateFeePerKB(5)
@@ -148,6 +146,7 @@ func TestWebAPIFeeEstimator(t *testing.T) {
 	defer estimator.Stop()
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			est, err := estimator.EstimateFeePerKB(tc.target)
 			if tc.err != "" {
@@ -158,7 +157,7 @@ func TestWebAPIFeeEstimator(t *testing.T) {
 						"fail, instead got: %v", err)
 				}
 			} else {
-				exp := lnwallet.AtomPerKByte(tc.est)
+				exp := AtomPerKByte(tc.est)
 				if err != nil {
 					t.Fatalf("unable to estimate fee for "+
 						"%v block target, got: %v",

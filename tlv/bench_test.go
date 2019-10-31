@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/tlv"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtwire"
@@ -19,7 +19,7 @@ type CreateSessionTLV struct {
 	MaxUpdates   uint16
 	RewardBase   uint32
 	RewardRate   uint32
-	SweepFeeRate lnwallet.AtomPerKByte
+	SweepFeeRate chainfee.AtomPerKByte
 
 	tlvStream *tlv.Stream
 }
@@ -46,26 +46,26 @@ func DBlobType(r io.Reader, val interface{}, buf *[8]byte, l uint64) error {
 	return tlv.NewTypeForDecodingErr(val, "blob.Type", l, 2)
 }
 
-// EAtomsPerKB is an encoder for lnwallet.AtomPerKByte.
+// EAtomsPerKB is an encoder for chainfee.AtomPerKByte.
 func EAtomsPerKB(w io.Writer, val interface{}, buf *[8]byte) error {
-	if v, ok := val.(*lnwallet.AtomPerKByte); ok {
+	if v, ok := val.(*chainfee.AtomPerKByte); ok {
 		return tlv.EUint64(w, uint64(*v), buf)
 	}
-	return tlv.NewTypeForEncodingErr(val, "lnwallet.AtomPerKByte")
+	return tlv.NewTypeForEncodingErr(val, "chainfee.AtomPerKByte")
 }
 
-// DAtomsPerKB is an decoder for lnwallet.AtomPerKByte.
+// DAtomsPerKB is an decoder for chainfee.AtomPerKByte.
 func DAtomsPerKB(r io.Reader, val interface{}, buf *[8]byte, l uint64) error {
-	if v, ok := val.(*lnwallet.AtomPerKByte); ok {
+	if v, ok := val.(*chainfee.AtomPerKByte); ok {
 		var sat uint64
 		err := tlv.DUint64(r, &sat, buf, l)
 		if err != nil {
 			return err
 		}
-		*v = lnwallet.AtomPerKByte(sat)
+		*v = chainfee.AtomPerKByte(sat)
 		return nil
 	}
-	return tlv.NewTypeForDecodingErr(val, "lnwallet.AtomPerKByte", l, 8)
+	return tlv.NewTypeForDecodingErr(val, "chainfee.AtomPerKByte", l, 8)
 }
 
 // NewCreateSessionTLV initializes a new CreateSessionTLV message.

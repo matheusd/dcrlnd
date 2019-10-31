@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 )
 
@@ -182,7 +183,7 @@ type WalletController interface {
 	// This method also takes the target fee expressed in atoms/kB that should
 	// be used when crafting the transaction.
 	SendOutputs(outputs []*wire.TxOut,
-		feeRate AtomPerKByte) (*wire.MsgTx, error)
+		feeRate chainfee.AtomPerKByte) (*wire.MsgTx, error)
 
 	// CreateSimpleTx creates a Bitcoin transaction paying to the specified
 	// outputs. The transaction is not broadcasted to the network. In the
@@ -194,7 +195,7 @@ type WalletController interface {
 	// NOTE: The dryRun argument can be set true to create a tx that
 	// doesn't alter the database. A tx created with this set to true
 	// SHOULD NOT be broadcasted.
-	CreateSimpleTx(outputs []*wire.TxOut, feeRate AtomPerKByte,
+	CreateSimpleTx(outputs []*wire.TxOut, feeRate chainfee.AtomPerKByte,
 		dryRun bool) (*txauthor.AuthoredTx, error)
 
 	// ListUnspentWitness returns all unspent outputs which are version 0

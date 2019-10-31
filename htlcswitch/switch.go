@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
 	bolt "go.etcd.io/bbolt"
@@ -102,7 +103,7 @@ type ChanClose struct {
 	// This value is only utilized if the closure type is CloseRegular.
 	// This will be the starting offered fee when the fee negotiation
 	// process for the cooperative closure transaction kicks off.
-	TargetFeePerKB lnwallet.AtomPerKByte
+	TargetFeePerKB chainfee.AtomPerKByte
 
 	// Updates is used by request creator to receive the notifications about
 	// execution of the close channel request.
@@ -1368,7 +1369,7 @@ func (s *Switch) teardownCircuit(pkt *htlcPacket) error {
 // then the last parameter should be the ideal fee-per-kw that will be used as
 // a starting point for close negotiation.
 func (s *Switch) CloseLink(chanPoint *wire.OutPoint, closeType ChannelCloseType,
-	targetFeePerKB lnwallet.AtomPerKByte) (chan interface{},
+	targetFeePerKB chainfee.AtomPerKByte) (chan interface{},
 	chan error) {
 
 	// TODO(roasbeef) abstract out the close updates.

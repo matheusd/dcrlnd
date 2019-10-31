@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -150,7 +151,7 @@ type channelCloser struct {
 // passed configuration, and delivery+fee preference. The final argument should
 // only be populated iff, we're the initiator of this closing request.
 func newChannelCloser(cfg chanCloseCfg, deliveryScript []byte,
-	idealFeePerKw lnwallet.AtomPerKByte, negotiationHeight uint32,
+	idealFeePerKw chainfee.AtomPerKByte, negotiationHeight uint32,
 	closeReq *htlcswitch.ChanClose) *channelCloser {
 
 	// Given the target fee-per-kw, we'll compute what our ideal _total_

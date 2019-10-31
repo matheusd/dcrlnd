@@ -3,7 +3,7 @@ package wtwire
 import (
 	"io"
 
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/watchtower/blob"
 )
 
@@ -34,7 +34,7 @@ type CreateSession struct {
 	// constructing the justice transaction. All sweep transactions created
 	// for this session must use this value during construction, and the
 	// signatures must implicitly commit to the resulting output values.
-	SweepFeeRate lnwallet.AtomPerKByte
+	SweepFeeRate chainfee.AtomPerKByte
 }
 
 // A compile time check to ensure CreateSession implements the wtwire.Message

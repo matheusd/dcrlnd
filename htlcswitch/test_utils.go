@@ -29,6 +29,7 @@ import (
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 	"github.com/decred/dcrlnd/ticker"
@@ -285,7 +286,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		return nil, nil, nil, err
 	}
 
-	estimator := lnwallet.NewStaticFeeEstimator(1e4, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1077,7 +1078,7 @@ func newHopNetwork() *hopNetwork {
 	obfuscator := NewMockObfuscator()
 
 	feeEstimator := &mockFeeEstimator{
-		byteFeeIn: make(chan lnwallet.AtomPerKByte),
+		byteFeeIn: make(chan chainfee.AtomPerKByte),
 		quit:      make(chan struct{}),
 	}
 

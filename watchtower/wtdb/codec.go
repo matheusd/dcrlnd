@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 )
@@ -58,7 +58,7 @@ func ReadElement(r io.Reader, element interface{}) error {
 		}
 
 		e.BlobType = blob.Type(blobType)
-		e.SweepFeeRate = lnwallet.AtomPerKByte(sweepFeeRate)
+		e.SweepFeeRate = chainfee.AtomPerKByte(sweepFeeRate)
 
 	// Type is still unknown to wtdb extensions, fail.
 	default:

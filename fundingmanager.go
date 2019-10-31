@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
@@ -215,7 +216,7 @@ type fundingConfig struct {
 
 	// FeeEstimator calculates appropriate fee rates based on historical
 	// transaction information.
-	FeeEstimator lnwallet.FeeEstimator
+	FeeEstimator chainfee.Estimator
 
 	// Notifier is used by the FundingManager to determine when the
 	// channel's funding transaction has been confirmed on the blockchain
@@ -1209,7 +1210,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		NodeAddr:         peerAddr,
 		LocalFundingAmt:  0,
 		RemoteFundingAmt: amt,
-		CommitFeePerKB:   lnwallet.AtomPerKByte(msg.FeePerKiloByte),
+		CommitFeePerKB:   chainfee.AtomPerKByte(msg.FeePerKiloByte),
 		FundingFeePerKB:  0,
 		PushMAtoms:       msg.PushAmount,
 		Flags:            msg.ChannelFlags,

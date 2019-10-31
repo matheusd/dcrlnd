@@ -41,6 +41,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/nat"
 	"github.com/decred/dcrlnd/netann"
@@ -1129,7 +1130,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		if cfg.WtClient.SweepFeeRate != 0 {
 			// We expose the sweep fee rate in atom/byte, but the
 			// tower protocol operations on atom/KB.
-			sweepRateAtomPerByte := lnwallet.AtomPerKByte(
+			sweepRateAtomPerByte := chainfee.AtomPerKByte(
 				1000 * cfg.WtClient.SweepFeeRate,
 			)
 			policy.SweepFeeRate = sweepRateAtomPerByte
@@ -3109,7 +3110,7 @@ type openChanReq struct {
 
 	pushAmt lnwire.MilliAtom
 
-	fundingFeePerKB lnwallet.AtomPerKByte
+	fundingFeePerKB chainfee.AtomPerKByte
 
 	private bool
 

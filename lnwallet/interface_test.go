@@ -40,6 +40,7 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -91,7 +92,7 @@ var (
 	bobAddr, _   = net.ResolveTCPAddr("tcp", "10.0.0.2:9000")
 	aliceAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.3:9000")
 
-	defaultFeeRate = lnwallet.AtomPerKByte(1e4)
+	defaultFeeRate = chainfee.AtomPerKByte(1e4)
 )
 
 // assertProperBalance asserts than the total value of the unspent outputs
@@ -175,7 +176,7 @@ func newPkScript(t *testing.T, w *lnwallet.LightningWallet,
 // parties to send on-chain funds to each other.
 func sendCoins(t *testing.T, miner *rpctest.Harness, vw *rpctest.VotingWallet,
 	sender, receiver *lnwallet.LightningWallet, output *wire.TxOut,
-	feeRate lnwallet.AtomPerKByte) *wire.MsgTx {
+	feeRate chainfee.AtomPerKByte) *wire.MsgTx {
 
 	t.Helper()
 
@@ -341,7 +342,7 @@ func createTestWallet(cdb *channeldb.DB, miningNode *rpctest.Harness,
 		WalletController: wc,
 		Signer:           signer,
 		ChainIO:          bio,
-		FeeEstimator:     lnwallet.NewStaticFeeEstimator(defaultFeeRate, 0),
+		FeeEstimator:     chainfee.NewStaticEstimator(defaultFeeRate, 0),
 		DefaultConstraints: channeldb.ChannelConstraints{
 			DustLimit:        500,
 			MaxPendingAmount: lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin) * 100,
@@ -740,7 +741,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		t.Fatalf("unable to create amt: %v", err)
 	}
 
-	FeePerKB := lnwallet.AtomPerKByte(
+	FeePerKB := chainfee.AtomPerKByte(
 		numDCR * numDCR * dcrutil.AtomsPerCoin,
 	)
 	req := &lnwallet.InitFundingReserveMsg{
@@ -2309,7 +2310,7 @@ func testLastUnusedAddr(miner *rpctest.Harness,
 		if err != nil {
 			t.Fatalf("unable to convert addr to script: %v", err)
 		}
-		feeRate := lnwallet.AtomPerKByte(1e4)
+		feeRate := chainfee.AtomPerKByte(1e4)
 		output := &wire.TxOut{
 			Value:    1000000,
 			PkScript: addrScript,
@@ -2344,7 +2345,7 @@ func testCreateSimpleTx(r *rpctest.Harness, // nolint: unused
 	// The test cases we will run through for all backends.
 	testCases := []struct {
 		outVals []int64
-		feeRate lnwallet.AtomPerKByte
+		feeRate chainfee.AtomPerKByte
 		valid   bool
 	}{
 		{

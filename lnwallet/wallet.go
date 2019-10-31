@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwallet/chanvalidate"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
@@ -90,11 +91,11 @@ type InitFundingReserveMsg struct {
 	// initial commitment transactions. In order to ensure timely
 	// confirmation, it is recommended that this fee should be generous,
 	// paying some multiple of the accepted base fee rate of the network.
-	CommitFeePerKB AtomPerKByte
+	CommitFeePerKB chainfee.AtomPerKByte
 
 	// FundingFeePerKB is the fee rate in atom/kB to use for the initial
 	// funding transaction.
-	FundingFeePerKB AtomPerKByte
+	FundingFeePerKB chainfee.AtomPerKByte
 
 	// PushMAtoms is the number of milli-atoms that should be pushed over
 	// the responder as part of the initial channel creation.
@@ -1330,7 +1331,7 @@ type coinSelection struct {
 // returned, and the value of the resulting funding output. This method locks
 // the selected outputs, and a function closure to unlock them in case of an
 // error is returned.
-func (l *LightningWallet) selectCoinsAndChange(feeRate AtomPerKByte,
+func (l *LightningWallet) selectCoinsAndChange(feeRate chainfee.AtomPerKByte,
 	amt dcrutil.Amount, minConfs int32, subtractFees bool) (
 	*coinSelection, error) {
 
@@ -1505,7 +1506,7 @@ func selectInputs(amt dcrutil.Amount, coins []*Utxo) (dcrutil.Amount, []*Utxo, e
 // change output to fund amt atoms, adhering to the specified fee rate. The
 // specified fee rate should be expressed in atom/kB for coin selection to
 // function properly.
-func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
+func coinSelect(feeRate chainfee.AtomPerKByte, amt dcrutil.Amount,
 	coins []*Utxo) ([]*Utxo, dcrutil.Amount, error) {
 
 	amtNeeded := amt
@@ -1567,7 +1568,7 @@ func coinSelect(feeRate AtomPerKByte, amt dcrutil.Amount,
 // coinSelectSubtractFees attempts to select coins such that we'll spend up to
 // amt in total after fees, adhering to the specified fee rate. The selected
 // coins, the final output and change values are returned.
-func coinSelectSubtractFees(feeRate AtomPerKByte, amt,
+func coinSelectSubtractFees(feeRate chainfee.AtomPerKByte, amt,
 	dustLimit dcrutil.Amount, coins []*Utxo) ([]*Utxo, dcrutil.Amount,
 	dcrutil.Amount, error) {
 
