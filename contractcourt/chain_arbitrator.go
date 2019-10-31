@@ -16,7 +16,6 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/sweep"
 )
 
 // ErrChainArbExiting signals that the chain arbitrator is shutting down.
@@ -145,7 +144,7 @@ type ChainArbitratorConfig struct {
 	DisableChannel func(wire.OutPoint) error
 
 	// Sweeper allows resolvers to sweep their final outputs.
-	Sweeper *sweep.UtxoSweeper
+	Sweeper UtxoSweeper
 
 	// Registry is the invoice database that is used by resolvers to lookup
 	// preimages and settle invoices.
