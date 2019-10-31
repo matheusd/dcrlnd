@@ -1861,11 +1861,9 @@ func (l *channelLink) handleUpstreamMsg(msg lnwire.Message) {
 			}
 
 			chanType := l.channel.State().ChanType
-			isTweakless := chanType == channeldb.SingleFunderTweakless
-
 			chanID := l.ChanID()
 			err = l.cfg.TowerClient.BackupState(
-				&chanID, breachInfo, isTweakless,
+				&chanID, breachInfo, chanType.IsTweakless(),
 			)
 			if err != nil {
 				l.fail(LinkFailureError{code: ErrInternalError},

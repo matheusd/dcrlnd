@@ -523,7 +523,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	if !bytes.Equal(aliceChannels[0].FundingOutpoint.Hash[:], fundingSha[:]) {
 		t.Fatalf("channel state not properly saved")
 	}
-	if aliceChannels[0].ChanType != channeldb.DualFunder {
+	if !aliceChannels[0].ChanType.IsDualFunder() {
 		t.Fatalf("channel not detected as dual funder")
 	}
 	bobChannels, err := bob.Cfg.Database.FetchOpenChannels(alicePub)
@@ -533,7 +533,7 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	if !bytes.Equal(bobChannels[0].FundingOutpoint.Hash[:], fundingSha[:]) {
 		t.Fatalf("channel state not properly saved")
 	}
-	if bobChannels[0].ChanType != channeldb.DualFunder {
+	if !bobChannels[0].ChanType.IsDualFunder() {
 		t.Fatalf("channel not detected as dual funder")
 	}
 
@@ -989,7 +989,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	}
 	if !aliceChannels[0].ChanType.IsSingleFunder() {
 		t.Fatalf("channel type is incorrect, expected %v instead got %v",
-			channeldb.SingleFunder, aliceChannels[0].ChanType)
+			channeldb.SingleFunderBit, aliceChannels[0].ChanType)
 	}
 
 	bobChannels, err := bob.Cfg.Database.FetchOpenChannels(alicePub)
@@ -1009,7 +1009,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	}
 	if !bobChannels[0].ChanType.IsSingleFunder() {
 		t.Fatalf("channel type is incorrect, expected %v instead got %v",
-			channeldb.SingleFunder, bobChannels[0].ChanType)
+			channeldb.SingleFunderBit, bobChannels[0].ChanType)
 	}
 
 	// Let Alice publish the funding transaction.

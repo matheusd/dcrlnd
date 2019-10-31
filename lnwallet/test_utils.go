@@ -293,7 +293,7 @@ func CreateTestChannels(tweaklessCommits bool) (
 		IdentityPub:             aliceKeys[0].PubKey(),
 		FundingOutpoint:         *prevOut,
 		ShortChannelID:          shortChanID,
-		ChanType:                channeldb.SingleFunderTweakless,
+		ChanType:                channeldb.SingleFunderTweaklessBit,
 		IsInitiator:             true,
 		Capacity:                channelCapacity,
 		RemoteCurrentRevocation: bobCommitPoint,
@@ -311,7 +311,7 @@ func CreateTestChannels(tweaklessCommits bool) (
 		IdentityPub:             bobKeys[0].PubKey(),
 		FundingOutpoint:         *prevOut,
 		ShortChannelID:          shortChanID,
-		ChanType:                channeldb.SingleFunderTweakless,
+		ChanType:                channeldb.SingleFunderTweaklessBit,
 		IsInitiator:             false,
 		Capacity:                channelCapacity,
 		RemoteCurrentRevocation: aliceCommitPoint,
@@ -324,8 +324,8 @@ func CreateTestChannels(tweaklessCommits bool) (
 	}
 
 	if !tweaklessCommits {
-		aliceChannelState.ChanType = channeldb.SingleFunder
-		bobChannelState.ChanType = channeldb.SingleFunder
+		aliceChannelState.ChanType = channeldb.SingleFunderBit
+		bobChannelState.ChanType = channeldb.SingleFunderBit
 	}
 
 	aliceSigner := &input.MockSigner{Privkeys: aliceKeys}
