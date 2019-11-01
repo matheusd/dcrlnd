@@ -8,6 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -479,6 +480,21 @@ func newTimeoutResolverFromReader(r io.Reader, resCfg ResolverConfig) (
 	return h, nil
 }
 
+// Supplement adds additional information to the resolver that is required
+// before Resolve() is called.
+//
+// NOTE: Part of the htlcContractResolver interface.
+func (h *htlcTimeoutResolver) Supplement(htlc channeldb.HTLC) {
+	h.htlcAmt = htlc.Amt
+}
+
+// HtlcPoint returns the htlc's outpoint on the commitment tx.
+//
+// NOTE: Part of the htlcContractResolver interface.
+func (h *htlcTimeoutResolver) HtlcPoint() wire.OutPoint {
+	return h.htlcResolution.HtlcPoint()
+}
+
 // A compile time assertion to ensure htlcTimeoutResolver meets the
 // ContractResolver interface.
-var _ ContractResolver = (*htlcTimeoutResolver)(nil)
+var _ htlcContractResolver = (*htlcTimeoutResolver)(nil)
