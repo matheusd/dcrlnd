@@ -110,6 +110,10 @@ type ChannelReservation struct {
 	// throughout its lifetime.
 	reservationID uint64
 
+	// pendingChanID is the pending channel ID for this channel as
+	// identified within the wire protocol.
+	pendingChanID [32]byte
+
 	// pushMAtoms the amount of milli-atoms that should be pushed to the
 	// responder of a single funding channel as part of the initial
 	// commitment state.
@@ -129,7 +133,8 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 	commitFeePerKB chainfee.AtomPerKByte, wallet *LightningWallet,
 	id uint64, pushMAtoms lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag, tweaklessCommit bool,
-	fundingAssembler chanfunding.Assembler) (*ChannelReservation, error) {
+	fundingAssembler chanfunding.Assembler,
+	pendingChanID [32]byte) (*ChannelReservation, error) {
 
 	var (
 		ourBalance   lnwire.MilliAtom
@@ -263,6 +268,7 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 			Db: wallet.Cfg.Database,
 		},
 		pushMAtoms:    pushMAtoms,
+		pendingChanID: pendingChanID,
 		reservationID: id,
 		wallet:        wallet,
 		chanFunder:    fundingAssembler,

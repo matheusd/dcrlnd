@@ -1207,6 +1207,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	chainHash := msg.ChainHash
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:        &chainHash,
+		PendingChanID:    msg.PendingChannelID,
 		NodeID:           fmsg.peer.IdentityKey(),
 		NodeAddr:         peerAddr,
 		LocalFundingAmt:  0,
@@ -2777,6 +2778,10 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		peerAddr = msg.peer.Address()
 	}
 
+	// Obtain a new pending channel ID which is used to track this
+	// reservation throughout its lifetime.
+	chanID := f.nextPendingChanID()
+
 	// Initialize a funding reservation with the local wallet. If the
 	// wallet doesn't have enough funds to commit to this channel, then the
 	// request will fail, and be aborted.
@@ -2794,6 +2799,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	tweaklessCommitment := localTweakless && remoteTweakless
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:        &msg.chainHash,
+		PendingChanID:    chanID,
 		NodeID:           peerKey,
 		NodeAddr:         peerAddr,
 		SubtractFees:     msg.subtractFees,
@@ -2818,10 +2824,6 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// this point since the final capacity might change in case of
 	// SubtractFees=true.
 	capacity := reservation.Capacity()
-
-	// Obtain a new pending channel ID which is used to track this
-	// reservation throughout its lifetime.
-	chanID := f.nextPendingChanID()
 
 	fndgLog.Infof("Target commit tx atom/kB for pending_id(%x): %v", chanID,
 		int64(commitFeePerKB))
