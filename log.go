@@ -24,6 +24,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chanfunding"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/monitoring"
@@ -97,6 +98,7 @@ func init() {
 	addSubLogger("PROM", monitoring.UseLogger)
 	addSubLogger("WTCL", wtclient.UseLogger)
 	addSubLogger("PRNF", peernotifier.UseLogger)
+	addSubLogger("CHFD", chanfunding.UseLogger)
 
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 	addSubLogger(wtclientrpc.Subsystem, wtclientrpc.UseLogger)
