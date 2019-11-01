@@ -106,7 +106,7 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 			// expiry again (in the proper way).
 			//
 			// Source:
-			// https://github.com/btcsuite/btcd/blob/991d32e72fe84d5fbf9c47cd604d793a0cd3a072/blockchain/validate.go#L154
+			// https://github.com/decred/dcrd/blob/991d32e72fe84d5fbf9c47cd604d793a0cd3a072/blockchain/validate.go#L154
 			newHeight := uint32(newBlock.Height)
 			if newHeight >= h.htlcResolution.Expiry-1 {
 				log.Infof("%T(%v): HTLC has expired "+
