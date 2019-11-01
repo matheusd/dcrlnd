@@ -967,13 +967,6 @@ func (l *LightningWallet) handleSingleContribution(req *addSingleContributionMsg
 	req.err <- nil
 }
 
-// openChanDetails contains a "finalized" channel which can be considered
-// "open" according to the requested confirmation depth at reservation
-// initialization. Additionally, the struct contains additional details
-// pertaining to the exact location in the main chain in-which the transaction
-// was confirmed.
-type openChanDetails struct {
-}
 
 // handleFundingCounterPartySigs is the final step in the channel reservation
 // workflow. During this step, we validate *all* the received signatures for
