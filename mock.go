@@ -1,6 +1,7 @@
 package dcrlnd
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -18,6 +19,10 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
+)
+
+var (
+	coinPkScript, _ = hex.DecodeString("76a914000000000000000000000000000000000000000088ac")
 )
 
 // The block height returned by the mock BlockChainIO's GetBestBlock.
@@ -306,7 +311,7 @@ func (m *mockWalletController) ListUnspentWitness(minconfirms,
 	utxo := &lnwallet.Utxo{
 		AddressType: lnwallet.PubKeyHash,
 		Value:       dcrutil.Amount(10 * dcrutil.AtomsPerCoin),
-		PkScript:    make([]byte, 22),
+		PkScript:    coinPkScript,
 		OutPoint: wire.OutPoint{
 			Hash:  chainhash.Hash{},
 			Index: m.index,

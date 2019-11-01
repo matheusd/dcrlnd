@@ -41,6 +41,7 @@ import (
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
+	"github.com/decred/dcrlnd/lnwallet/chanfunding"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
@@ -627,7 +628,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 	if err == nil {
 		t.Fatalf("not error returned, should fail on coin selection")
 	}
-	if _, ok := err.(*lnwallet.ErrInsufficientFunds); !ok {
+	if _, ok := err.(*chanfunding.ErrInsufficientFunds); !ok {
 		t.Fatalf("error not coinselect error: %v", err)
 	}
 	if failedReservation != nil {
@@ -670,7 +671,7 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 	// Attempt to create another channel spending the same amount. This
 	// should fail.
 	_, err = alice.InitChannelReservation(req)
-	if _, ok := err.(*lnwallet.ErrInsufficientFunds); !ok {
+	if _, ok := err.(*chanfunding.ErrInsufficientFunds); !ok {
 		t.Fatalf("coin selection succeeded should have insufficient funds: %v",
 			err)
 	}
@@ -715,7 +716,7 @@ func testCancelNonExistentReservation(miner *rpctest.Harness,
 	// Create our own reservation, give it some ID.
 	res, err := lnwallet.NewChannelReservation(
 		20000, 20000, feePerKB, alice, 22, 10, &testHdSeed,
-		lnwire.FFAnnounceChannel, true,
+		lnwire.FFAnnounceChannel, true, nil, [32]byte{},
 	)
 	if err != nil {
 		t.Fatalf("unable to create res: %v", err)

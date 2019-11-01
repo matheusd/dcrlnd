@@ -2871,7 +2871,7 @@ func TestFundingManagerFundAll(t *testing.T) {
 			Value: dcrutil.Amount(
 				0.05 * dcrutil.AtomsPerCoin,
 			),
-			PkScript: make([]byte, 22),
+			PkScript: coinPkScript,
 			OutPoint: wire.OutPoint{
 				Hash:  chainhash.Hash{},
 				Index: 0,
@@ -2882,7 +2882,7 @@ func TestFundingManagerFundAll(t *testing.T) {
 			Value: dcrutil.Amount(
 				0.06 * dcrutil.AtomsPerCoin,
 			),
-			PkScript: make([]byte, 22),
+			PkScript: coinPkScript,
 			OutPoint: wire.OutPoint{
 				Hash:  chainhash.Hash{},
 				Index: 1,

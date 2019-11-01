@@ -124,6 +124,7 @@ func (f *FullIntent) CompileFundingTx(extraInputs []*wire.TxIn,
 		// Now that we know the input is ours, we'll populate the
 		// signDesc with the per input unique information.
 		signDesc.Output = &wire.TxOut{
+			// TODO: add Version
 			Value:    info.Value,
 			PkScript: info.PkScript,
 		}
