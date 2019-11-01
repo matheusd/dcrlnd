@@ -13842,6 +13842,17 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
+	// Wait for bob to have seen this channel so he will relay updates of
+	// it to Dave. This prevents a race condition on the gossiper where on
+	// rare ocasions the Carol->Eve channel annoucement will arrive after
+	// Dave has setup his updateHorizon but with a timestamp in the past
+	// (and therefore gets ignored by Dave).
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPointEveCarol)
+	if err != nil {
+		t.Fatalf("Bob did not see Carol->Eve channel open: %v", err)
+	}
+
 	// Launch a node for Dave which will connect to Bob in order to receive
 	// graph updates from. This will ensure that the channel updates are
 	// propagated throughout the network.
