@@ -11,6 +11,8 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 // htlcIncomingContestResolver is a ContractResolver that's able to resolve an
@@ -33,6 +35,24 @@ type htlcIncomingContestResolver struct {
 	// htlcSuccessResolver is the inner resolver that may be utilized if we
 	// learn of the preimage.
 	htlcSuccessResolver
+}
+
+// newIncomingContestResolver instantiates a new incoming htlc contest resolver.
+func newIncomingContestResolver(htlcExpiry uint32,
+	circuitKey channeldb.CircuitKey, res lnwallet.IncomingHtlcResolution,
+	broadcastHeight uint32, payHash lntypes.Hash,
+	htlcAmt lnwire.MilliAtom,
+	resCfg ResolverConfig) *htlcIncomingContestResolver {
+
+	success := newSuccessResolver(
+		res, broadcastHeight, payHash, htlcAmt, resCfg,
+	)
+
+	return &htlcIncomingContestResolver{
+		htlcExpiry:          htlcExpiry,
+		circuitKey:          circuitKey,
+		htlcSuccessResolver: *success,
+	}
 }
 
 // Resolve attempts to resolve this contract. As we don't yet know of the
@@ -325,15 +345,6 @@ func newIncomingContestResolverFromReader(r io.Reader, resCfg ResolverConfig) (
 	h.htlcSuccessResolver = *successResolver
 
 	return h, nil
-}
-
-// AttachConfig should be called once a resolved is successfully decoded from
-// its stored format. This struct delivers the configuration items that
-// resolvers need to complete their duty.
-//
-// NOTE: Part of the ContractResolver interface.
-func (h *htlcIncomingContestResolver) AttachConfig(r ResolverConfig) {
-	h.htlcSuccessResolver.AttachConfig(r)
 }
 
 // A compile time assertion to ensure htlcIncomingContestResolver meets the
