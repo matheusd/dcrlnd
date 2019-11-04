@@ -12,6 +12,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/tlv"
 )
@@ -31,6 +32,7 @@ var (
 			tlv.MakeStaticRecord(1, nil, 3, tlvEncoder, nil),
 			tlv.MakeStaticRecord(2, nil, 3, tlvEncoder, nil),
 		},
+		MPP: record.NewMPP(32, [32]byte{0x42}),
 	}
 
 	testHop2 = &route.Hop{
@@ -46,8 +48,8 @@ var (
 		TotalAmount:   1234567,
 		SourcePubKey:  route.NewVertex(pub),
 		Hops: []*route.Hop{
-			testHop1,
 			testHop2,
+			testHop1,
 		},
 	}
 )
