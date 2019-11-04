@@ -13,7 +13,9 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/tlv"
@@ -352,6 +354,17 @@ func (r *RouterBackend) MarshallRoute(route *route.Route) (*lnrpc.Route, error) 
 			chanCapacity = incomingAmt.ToAtoms()
 		}
 
+		// Extract the MPP fields if present on this hop.
+		var mpp *lnrpc.MPPRecord
+		if hop.MPP != nil {
+			addr := hop.MPP.PaymentAddr()
+
+			mpp = &lnrpc.MPPRecord{
+				PaymentAddr:    addr[:],
+				TotalAmtMAtoms: int64(hop.MPP.TotalMAtoms()),
+			}
+		}
+
 		resp.Hops[i] = &lnrpc.Hop{
 			ChanId:             hop.ChannelID,
 			ChanCapacity:       int64(chanCapacity),
@@ -364,6 +377,7 @@ func (r *RouterBackend) MarshallRoute(route *route.Route) (*lnrpc.Route, error) 
 				hop.PubKeyBytes[:],
 			),
 			TlvPayload: !hop.LegacyPayload,
+			MppRecord:  mpp,
 		}
 		incomingAmt = hop.AmtToForward
 	}
@@ -396,6 +410,11 @@ func (r *RouterBackend) UnmarshallHopByChannelLookup(hop *lnrpc.Hop,
 
 	var tlvRecords []tlv.Record
 
+	mpp, err := UnmarshalMPP(hop.MppRecord)
+	if err != nil {
+		return nil, err
+	}
+
 	return &route.Hop{
 		OutgoingTimeLock: hop.Expiry,
 		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMAtoms),
@@ -403,6 +422,7 @@ func (r *RouterBackend) UnmarshallHopByChannelLookup(hop *lnrpc.Hop,
 		ChannelID:        hop.ChanId,
 		TLVRecords:       tlvRecords,
 		LegacyPayload:    !hop.TlvPayload,
+		MPP:              mpp,
 	}, nil
 }
 
@@ -420,6 +440,11 @@ func UnmarshallKnownPubkeyHop(hop *lnrpc.Hop) (*route.Hop, error) {
 
 	var tlvRecords []tlv.Record
 
+	mpp, err := UnmarshalMPP(hop.MppRecord)
+	if err != nil {
+		return nil, err
+	}
+
 	return &route.Hop{
 		OutgoingTimeLock: hop.Expiry,
 		AmtToForward:     lnwire.MilliAtom(hop.AmtToForwardMAtoms),
@@ -427,6 +452,7 @@ func UnmarshallKnownPubkeyHop(hop *lnrpc.Hop) (*route.Hop, error) {
 		ChannelID:        hop.ChanId,
 		TLVRecords:       tlvRecords,
 		LegacyPayload:    !hop.TlvPayload,
+		MPP:              mpp,
 	}, nil
 }
 
@@ -711,4 +737,46 @@ func ValidateCLTVLimit(val, max uint32) (uint32, error) {
 	default:
 		return val, nil
 	}
+}
+
+// UnmarshalMPP accepts the mpp_total_amt_m_atoms and mpp_payment_addr fields
+// from an RPC request and converts into an record.MPP object. An error is
+// returned if the payment address is not 0 or 32 bytes. If the total amount
+// and payment address are zero-value, the return value will be nil signaling
+// there is no MPP record to attach to this hop. Otherwise, a non-nil reocrd
+// will be contained combining the provided values.
+func UnmarshalMPP(reqMPP *lnrpc.MPPRecord) (*record.MPP, error) {
+	// If no MPP record was submitted, assume the user wants to send a
+	// regular payment.
+	if reqMPP == nil {
+		return nil, nil
+	}
+
+	reqTotal := reqMPP.TotalAmtMAtoms
+	reqAddr := reqMPP.PaymentAddr
+
+	switch {
+
+	// No MPP fields were provided.
+	case reqTotal == 0 && len(reqAddr) == 0:
+		return nil, fmt.Errorf("missing total_msat and payment_addr")
+
+	// Total is present, but payment address is missing.
+	case reqTotal > 0 && len(reqAddr) == 0:
+		return nil, fmt.Errorf("missing payment_addr")
+
+	// Payment address is present, but total is missing.
+	case reqTotal == 0 && len(reqAddr) > 0:
+		return nil, fmt.Errorf("missing total_m_atoms")
+	}
+
+	addr, err := lntypes.MakeHash(reqAddr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse "+
+			"payment_addr: %v", err)
+	}
+
+	total := lnwire.MilliAtom(reqTotal)
+
+	return record.NewMPP(total, addr), nil
 }
