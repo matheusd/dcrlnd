@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+	sphinx "github.com/decred/lightning-onion/v2"
 
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/channeldb"
@@ -564,7 +565,7 @@ func TestExitNodeTimelockPayloadMismatch(t *testing.T) {
 	// per-hop payload for outgoing time lock to be the incorrect value.
 	// The proper value of the outgoing CLTV should be the policy set by
 	// the receiving node, instead we set it to be a random value.
-	hops[0].OutgoingCTLV = 500
+	hops[0].FwdInfo.OutgoingCTLV = 500
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
@@ -617,7 +618,7 @@ func TestExitNodeAmountPayloadMismatch(t *testing.T) {
 	// per-hop payload for amount to be the incorrect value.  The proper
 	// value of the amount to forward should be the amount that the
 	// receiving node expects to receive.
-	hops[0].AmountToForward = 1
+	hops[0].FwdInfo.AmountToForward = 1
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
@@ -4358,13 +4359,13 @@ func generateHtlcAndInvoice(t *testing.T,
 
 	htlcAmt := lnwire.NewMAtomsFromAtoms(10000)
 	htlcExpiry := testStartingHeight + testInvoiceCltvExpiry
-	hops := []hop.ForwardingInfo{
-		{
-			Network:         hop.DecredNetwork,
-			NextHop:         hop.Exit,
-			AmountToForward: htlcAmt,
-			OutgoingCTLV:    uint32(htlcExpiry),
-		},
+	hops := []*hop.Payload{
+		hop.NewLegacyPayload(&sphinx.HopData{
+			Realm:         [1]byte{2}, // hop.DecredNetwork
+			NextAddress:   [8]byte{},  // hop.Exit,
+			ForwardAmount: uint64(htlcAmt),
+			OutgoingCltv:  uint32(htlcExpiry),
+		}),
 	}
 	blob, err := generateRoute(hops...)
 	if err != nil {
