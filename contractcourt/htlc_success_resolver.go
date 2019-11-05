@@ -9,9 +9,7 @@ import (
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
-	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
 )
 
@@ -40,9 +38,6 @@ type htlcSuccessResolver struct {
 	// historical queries to the chain for spends/confirmations.
 	broadcastHeight uint32
 
-	// payHash is the payment hash of the original HTLC extended to us.
-	payHash lntypes.Hash
-
 	// sweepTx will be non-nil if we've already crafted a transaction to
 	// sweep a direct HTLC output. This is only a concern if we're sweeping
 	// from the commitment transaction of the remote party.
@@ -50,25 +45,23 @@ type htlcSuccessResolver struct {
 	// TODO(roasbeef): send off to utxobundler
 	sweepTx *wire.MsgTx
 
-	// htlcAmt is the original amount of the htlc, not taking into
-	// account any fees that may have to be paid if it goes on chain.
-	htlcAmt lnwire.MilliAtom
+	// htlc contains information on the htlc that we are resolving
+	// on-chain.
+	htlc channeldb.HTLC
 
 	contractResolverKit
 }
 
 // newSuccessResolver instanties a new htlc success resolver.
 func newSuccessResolver(res lnwallet.IncomingHtlcResolution,
-	broadcastHeight uint32, payHash lntypes.Hash,
-	htlcAmt lnwire.MilliAtom,
+	broadcastHeight uint32, htlc channeldb.HTLC,
 	resCfg ResolverConfig) *htlcSuccessResolver {
 
 	return &htlcSuccessResolver{
 		contractResolverKit: *newContractResolverKit(resCfg),
 		htlcResolution:      res,
 		broadcastHeight:     broadcastHeight,
-		payHash:             payHash,
-		htlcAmt:             htlcAmt,
+		htlc:                htlc,
 	}
 }
 
@@ -116,7 +109,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 		if h.sweepTx == nil {
 			log.Infof("%T(%x): crafting sweep tx for "+
 				"incoming+remote htlc confirmed", h,
-				h.payHash[:])
+				h.htlc.RHash[:])
 
 			// Before we can craft out sweeping transaction, we
 			// need to create an input which contains all the items
@@ -150,7 +143,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 			}
 
 			log.Infof("%T(%x): crafted sweep tx=%v", h,
-				h.payHash[:], spew.Sdump(h.sweepTx))
+				h.htlc.RHash[:], spew.Sdump(h.sweepTx))
 
 			// With the sweep transaction signed, we'll now
 			// Checkpoint our state.
@@ -166,7 +159,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 		err := h.PublishTx(h.sweepTx)
 		if err != nil {
 			log.Infof("%T(%x): unable to publish tx: %v",
-				h, h.payHash[:], err)
+				h, h.htlc.RHash[:], err)
 			return nil, err
 		}
 
@@ -182,7 +175,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 		}
 
 		log.Infof("%T(%x): waiting for sweep tx (txid=%v) to be "+
-			"confirmed", h, h.payHash[:], sweepTXID)
+			"confirmed", h, h.htlc.RHash[:], sweepTXID)
 
 		select {
 		case _, ok := <-confNtfn.Confirmed:
@@ -201,7 +194,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 	}
 
 	log.Infof("%T(%x): broadcasting second-layer transition tx: %v",
-		h, h.payHash[:], spew.Sdump(h.htlcResolution.SignedSuccessTx))
+		h, h.htlc.RHash[:], spew.Sdump(h.htlcResolution.SignedSuccessTx))
 
 	// We'll now broadcast the second layer transaction so we can kick off
 	// the claiming process.
@@ -217,7 +210,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 	// done so.
 	if !h.outputIncubating {
 		log.Infof("%T(%x): incubating incoming htlc output",
-			h, h.payHash[:])
+			h, h.htlc.RHash[:])
 
 		err := h.IncubateOutputs(
 			h.ChanPoint, nil, nil, &h.htlcResolution,
@@ -247,7 +240,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 	}
 
 	log.Infof("%T(%x): waiting for second-level HTLC output to be spent "+
-		"after csv_delay=%v", h, h.payHash[:], h.htlcResolution.CsvDelay)
+		"after csv_delay=%v", h, h.htlc.RHash[:], h.htlcResolution.CsvDelay)
 
 	select {
 	case _, ok := <-spendNtfn.Spend:
@@ -300,7 +293,7 @@ func (h *htlcSuccessResolver) Encode(w io.Writer) error {
 	if err := binary.Write(w, endian, h.broadcastHeight); err != nil {
 		return err
 	}
-	if _, err := w.Write(h.payHash[:]); err != nil {
+	if _, err := w.Write(h.htlc.RHash[:]); err != nil {
 		return err
 	}
 
@@ -333,7 +326,7 @@ func newSuccessResolverFromReader(r io.Reader, resCfg ResolverConfig) (
 	if err := binary.Read(r, endian, &h.broadcastHeight); err != nil {
 		return nil, err
 	}
-	if _, err := io.ReadFull(r, h.payHash[:]); err != nil {
+	if _, err := io.ReadFull(r, h.htlc.RHash[:]); err != nil {
 		return nil, err
 	}
 
@@ -345,7 +338,7 @@ func newSuccessResolverFromReader(r io.Reader, resCfg ResolverConfig) (
 //
 // NOTE: Part of the htlcContractResolver interface.
 func (h *htlcSuccessResolver) Supplement(htlc channeldb.HTLC) {
-	h.htlcAmt = htlc.Amt
+	h.htlc = htlc
 }
 
 // HtlcPoint returns the htlc's outpoint on the commitment tx.

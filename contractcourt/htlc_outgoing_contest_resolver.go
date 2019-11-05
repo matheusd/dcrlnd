@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrlnd/lnwire"
 )
 
 // htlcOutgoingContestResolver is a ContractResolver that's able to resolve an
@@ -23,11 +23,11 @@ type htlcOutgoingContestResolver struct {
 // newOutgoingContestResolver instantiates a new outgoing contested htlc
 // resolver.
 func newOutgoingContestResolver(res lnwallet.OutgoingHtlcResolution,
-	broadcastHeight uint32, htlcIndex uint64, htlcAmt lnwire.MilliAtom,
+	broadcastHeight uint32, htlc channeldb.HTLC,
 	resCfg ResolverConfig) *htlcOutgoingContestResolver {
 
 	timeout := newTimeoutResolver(
-		res, broadcastHeight, htlcIndex, htlcAmt, resCfg,
+		res, broadcastHeight, htlc, resCfg,
 	)
 
 	return &htlcOutgoingContestResolver{
@@ -157,7 +157,7 @@ func (h *htlcOutgoingContestResolver) Resolve() (ContractResolver, error) {
 func (h *htlcOutgoingContestResolver) report() *ContractReport {
 	// No locking needed as these values are read-only.
 
-	finalAmt := h.htlcAmt.ToAtoms()
+	finalAmt := h.htlc.Amt.ToAtoms()
 	if h.htlcResolution.SignedTimeoutTx != nil {
 		finalAmt = dcrutil.Amount(
 			h.htlcResolution.SignedTimeoutTx.TxOut[0].Value,
