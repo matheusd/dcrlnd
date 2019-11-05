@@ -663,7 +663,7 @@ func (f *fundingManager) CancelPeerReservations(nodePub [33]byte) {
 func (f *fundingManager) failFundingFlow(peer lnpeer.Peer, tempChanID [32]byte,
 	fundingErr error) {
 
-	fndgLog.Debugf("Failing funding flow for pendingID=%x: %v",
+	fndgLog.Debugf("Failing funding flow for pending_id=%x: %v",
 		tempChanID, fundingErr)
 
 	ctx, err := f.cancelReservationCtx(peer.IdentityKey(), tempChanID)
@@ -797,7 +797,7 @@ func (f *fundingManager) advanceFundingState(channel *channeldb.OpenChannel,
 			// network.
 			// TODO(halseth): could do graph consistency check
 			// here, and re-add the edge if missing.
-			fndgLog.Debugf("ChannlPoint(%v) with chanID=%v not "+
+			fndgLog.Debugf("ChannelPoint(%v) with chan_id=%x not "+
 				"found in opening database, assuming already "+
 				"announced to the network",
 				channel.FundingOutpoint, pendingChanID)
@@ -1321,7 +1321,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		return
 	}
 
-	fndgLog.Infof("Sending fundingResp for pendingID(%x)",
+	fndgLog.Infof("Sending fundingResp for pending_id(%x)",
 		msg.PendingChannelID)
 	fndgLog.Debugf("Remote party accepted commitment constraints: %v",
 		spew.Sdump(remoteContribution.ChannelConfig.ChannelConstraints))
@@ -1374,7 +1374,7 @@ func (f *fundingManager) handleFundingAccept(fmsg *fundingAcceptMsg) {
 
 	resCtx, err := f.getReservationCtx(peerKey, pendingChanID)
 	if err != nil {
-		fndgLog.Warnf("Can't find reservation (peerKey:%v, chanID:%v)",
+		fndgLog.Warnf("Can't find reservation (peerKey:%v, chan_id:%v)",
 			peerKey, pendingChanID)
 		return
 	}
@@ -1382,7 +1382,8 @@ func (f *fundingManager) handleFundingAccept(fmsg *fundingAcceptMsg) {
 	// Update the timestamp once the fundingAcceptMsg has been handled.
 	defer resCtx.updateTimestamp()
 
-	fndgLog.Infof("Recv'd fundingResponse for pendingID(%x)", pendingChanID[:])
+	fndgLog.Infof("Recv'd fundingResponse for pending_id(%x)",
+		pendingChanID[:])
 
 	// The required number of confirmations should not be greater than the
 	// maximum number of confirmations required by the ChainNotifier to
@@ -1491,7 +1492,7 @@ func (f *fundingManager) handleFundingAccept(fmsg *fundingAcceptMsg) {
 	f.signedReservations[channelID] = pendingChanID
 	f.resMtx.Unlock()
 
-	fndgLog.Infof("Generated ChannelPoint(%v) for pendingID(%x)", outPoint,
+	fndgLog.Infof("Generated ChannelPoint(%v) for pending_id(%x)", outPoint,
 		pendingChanID[:])
 
 	fundingCreated := &lnwire.FundingCreated{
@@ -1533,7 +1534,7 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 
 	resCtx, err := f.getReservationCtx(peerKey, pendingChanID)
 	if err != nil {
-		fndgLog.Warnf("can't find reservation (peerID:%v, chanID:%x)",
+		fndgLog.Warnf("can't find reservation (peer_id:%v, chan_id:%x)",
 			peerKey, pendingChanID[:])
 		return
 	}
@@ -1544,7 +1545,7 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 	// initiator's commitment transaction, then send our own if it's valid.
 	// TODO(roasbeef): make case (p vs P) consistent throughout
 	fundingOut := fmsg.msg.FundingPoint
-	fndgLog.Infof("completing pendingID(%x) with ChannelPoint(%v)",
+	fndgLog.Infof("completing pending_id(%x) with ChannelPoint(%v)",
 		pendingChanID[:], fundingOut)
 
 	// With all the necessary data available, attempt to advance the
@@ -1599,7 +1600,7 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 	f.newChanBarriers[channelID] = make(chan struct{})
 	f.barrierMtx.Unlock()
 
-	fndgLog.Infof("sending FundingSigned for pendingID(%x) over "+
+	fndgLog.Infof("sending FundingSigned for pending_id(%x) over "+
 		"ChannelPoint(%v)", pendingChanID[:], fundingOut)
 
 	// With their signature for our version of the commitment transaction
@@ -1695,8 +1696,8 @@ func (f *fundingManager) handleFundingSigned(fmsg *fundingSignedMsg) {
 	peerKey := fmsg.peer.IdentityKey()
 	resCtx, err := f.getReservationCtx(peerKey, pendingChanID)
 	if err != nil {
-		fndgLog.Warnf("unable to find reservation (peerID:%v, chanID:%x)",
-			peerKey, pendingChanID[:])
+		fndgLog.Warnf("Unable to find reservation (peer_id:%v, "+
+			"chan_id:%x)", peerKey, pendingChanID[:])
 		// TODO: add ErrChanNotFound?
 		f.failFundingFlow(fmsg.peer, pendingChanID, err)
 		return
@@ -1755,7 +1756,7 @@ func (f *fundingManager) handleFundingSigned(fmsg *fundingSignedMsg) {
 			"arbitration: %v", fundingPoint, err)
 	}
 
-	fndgLog.Infof("Finalizing pendingID(%x) over ChannelPoint(%v), "+
+	fndgLog.Infof("Finalizing pending_id(%x) over ChannelPoint(%v), "+
 		"waiting for channel open on-chain", pendingChanID[:],
 		fundingPoint)
 
@@ -1927,7 +1928,7 @@ func (f *fundingManager) waitForFundingConfirmation(
 	}
 
 	fundingPoint := completeChan.FundingOutpoint
-	fndgLog.Infof("ChannelPoint(%v) is now active: ChannelID(%x)",
+	fndgLog.Infof("ChannelPoint(%v) is now active: ChannelID(%v)",
 		fundingPoint, lnwire.NewChanIDFromOutPoint(&fundingPoint))
 
 	// With the block height and the transaction index known, we can
@@ -2814,7 +2815,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// reservation throughout its lifetime.
 	chanID := f.nextPendingChanID()
 
-	fndgLog.Infof("Target commit tx atom/kB for pendingID(%x): %v", chanID,
+	fndgLog.Infof("Target commit tx atom/kB for pending_id(%x): %v", chanID,
 		int64(commitFeePerKB))
 
 	// If the remote CSV delay was not set in the open channel request,
@@ -2864,7 +2865,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	maxValue := f.cfg.RequiredRemoteMaxValue(capacity)
 	maxHtlcs := f.cfg.RequiredRemoteMaxHTLCs(capacity)
 
-	fndgLog.Infof("Starting funding workflow with %v for pendingID(%x), "+
+	fndgLog.Infof("Starting funding workflow with %v for pending_id(%x), "+
 		"tweakless=%v", msg.peer.Address(), chanID, tweaklessCommitment)
 
 	fundingOpen := lnwire.OpenChannel{
@@ -2994,7 +2995,7 @@ func (f *fundingManager) pruneZombieReservations() {
 
 	for pendingChanID, resCtx := range zombieReservations {
 		err := fmt.Errorf("reservation timed out waiting for peer "+
-			"(peerID:%v, chanID:%x)", resCtx.peer.IdentityKey(),
+			"(peer_id:%v, chan_id:%x)", resCtx.peer.IdentityKey(),
 			pendingChanID[:])
 		fndgLog.Warnf(err.Error())
 		f.failFundingFlow(resCtx.peer, pendingChanID, err)
