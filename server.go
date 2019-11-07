@@ -673,6 +673,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 			PenaltyHalfLife:       routingConfig.PenaltyHalfLife,
 			MaxMcHistory:          routingConfig.MaxMcHistory,
 			AprioriWeight:         routingConfig.AprioriWeight,
+			SelfNode:              selfNode.PubKeyBytes,
 		},
 	)
 	if err != nil {
