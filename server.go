@@ -32,6 +32,7 @@ import (
 	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
+	"github.com/decred/dcrlnd/feature"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
@@ -232,9 +233,9 @@ type server struct {
 
 	readPool *pool.Read
 
-	// globalFeatures feature vector which affects HTLCs and thus are also
-	// advertised to other nodes.
-	globalFeatures *lnwire.FeatureVector
+	// featureMgr dispatches feature vectors for various contexts within the
+	// daemon.
+	featureMgr *feature.Manager
 
 	// currentNodeAnn is the node announcement that has been broadcast to
 	// the network upon startup, if the attributes of the node (us) has
@@ -372,6 +373,14 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		readBufferPool, cfg.Workers.Read, pool.DefaultWorkerTimeout,
 	)
 
+	featureMgr, err := feature.NewManager(feature.Config{
+		NoTLVOnion:        cfg.LegacyProtocol.LegacyOnion(),
+		NoStaticRemoteKey: cfg.LegacyProtocol.LegacyCommitment(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	s := &server{
 		chanDB:         chanDB,
 		cc:             cc,
@@ -408,10 +417,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		peerConnectedListeners:    make(map[string][]chan<- lnpeer.Peer),
 		peerDisconnectedListeners: make(map[string][]chan<- struct{}),
 
-		globalFeatures: lnwire.NewFeatureVector(
-			globalFeatures, lnwire.GlobalFeatures,
-		),
-		quit: make(chan struct{}),
+		featureMgr: featureMgr,
+		quit:       make(chan struct{}),
 	}
 
 	s.witnessBeacon = &preimageBeacon{
@@ -595,7 +602,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		LastUpdate:           time.Now(),
 		Addresses:            selfAddrs,
 		Alias:                nodeAlias.String(),
-		Features:             s.globalFeatures,
+		Features:             s.featureMgr.Get(feature.SetNodeAnn),
 		Color:                color,
 	}
 	copy(selfNode.PubKeyBytes[:], privKey.PubKey().SerializeCompressed())
@@ -2760,14 +2767,10 @@ func (s *server) peerConnected(conn net.Conn, connReq *connmgr.ConnReq,
 		ChainNet:    activeNetParams.Net,
 	}
 
-	// With the brontide connection established, we'll now craft the local
-	// feature vector to advertise to the remote node.
-	localFeatures := lnwire.NewRawFeatureVector()
-
-	// We'll signal that we understand the data loss protection feature,
-	// and also that we support the new gossip query features.
-	localFeatures.Set(lnwire.DataLossProtectRequired)
-	localFeatures.Set(lnwire.GossipQueriesOptional)
+	// With the brontide connection established, we'll now craft the feature
+	// vectors to advertise to the remote node.
+	initFeatures := s.featureMgr.Get(feature.SetInit)
+	legacyFeatures := s.featureMgr.Get(feature.SetLegacyGlobal)
 
 	// Now that we've established a connection, create a peer, and it to the
 	// set of currently active peers. Configure the peer with the incoming
@@ -2776,8 +2779,8 @@ func (s *server) peerConnected(conn net.Conn, connReq *connmgr.ConnReq,
 	// htlcs, an extra block is added to prevent the channel from being
 	// closed when the htlc is outstanding and a new block comes in.
 	p, err := newPeer(
-		conn, connReq, s, peerAddr, inbound, localFeatures,
-		cfg.ChanEnableTimeout,
+		conn, connReq, s, peerAddr, inbound, initFeatures,
+		legacyFeatures, cfg.ChanEnableTimeout,
 		defaultOutgoingCltvRejectDelta,
 	)
 	if err != nil {
