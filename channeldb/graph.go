@@ -3502,7 +3502,7 @@ func deserializeLightningNode(r io.Reader) (LightningNode, error) {
 		return LightningNode{}, err
 	}
 
-	fv := lnwire.NewFeatureVector(nil, lnwire.GlobalFeatures)
+	fv := lnwire.NewFeatureVector(nil, lnwire.Features)
 	err = fv.Decode(r)
 	if err != nil {
 		return LightningNode{}, err
