@@ -57,10 +57,10 @@ func (p *mockPeer) QuitSignal() <-chan struct{} {
 	return p.quit
 }
 func (p *mockPeer) Inbound() bool { return false }
-func (p *mockPeer) LocalGlobalFeatures() *lnwire.FeatureVector {
+func (p *mockPeer) LocalFeatures() *lnwire.FeatureVector {
 	return nil
 }
-func (p *mockPeer) RemoteGlobalFeatures() *lnwire.FeatureVector {
+func (p *mockPeer) RemoteFeatures() *lnwire.FeatureVector {
 	return nil
 }
 

@@ -1657,10 +1657,10 @@ func (m *mockPeer) Address() net.Addr {
 func (m *mockPeer) Inbound() bool {
 	return false
 }
-func (m *mockPeer) LocalGlobalFeatures() *lnwire.FeatureVector {
+func (m *mockPeer) LocalFeatures() *lnwire.FeatureVector {
 	return nil
 }
-func (m *mockPeer) RemoteGlobalFeatures() *lnwire.FeatureVector {
+func (m *mockPeer) RemoteFeatures() *lnwire.FeatureVector {
 	return nil
 }
 
