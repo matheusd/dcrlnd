@@ -852,8 +852,19 @@ message TransactionDetails {
 
 message FeeLimit {
     oneof limit {
-        /// The fee limit expressed as a fixed amount of atoms.
+        /**
+        The fee limit expressed as a fixed amount of atoms.
+
+        The fields fixed and fixed_m_atoms are mutually exclusive.
+        */
         int64 fixed = 1;
+
+        /**
+        The fee limit expressed as a fixed amount of milliatoms.
+
+        The fields fixed and fixed_m_atoms are mutually exclusive.
+        */
+        int64 fixed_m_atoms = 3;
 
         /// The fee limit expressed as a percentage of the payment amount.
         int64 percent = 2;
@@ -873,8 +884,19 @@ message SendRequest {
     */
     string dest_string = 2 [deprecated = true];
 
-    /// Number of atoms to send.
+    /**
+    The amount to send expressed in atoms.
+
+    The fields amt and amt_m_atoms are mutually exclusive.
+    */
     int64 amt = 3;
+
+    /**
+    The amount to send expressed in milliatoms.
+
+    The fields amt and amt_m_atoms are mutually exclusive.
+    */
+    int64 amt_m_atoms = 13;
 
     /**
     The hash to use within the payment's HTLC. When using REST, this field
@@ -1794,8 +1816,19 @@ message QueryRoutesRequest {
     /// The 33-byte hex-encoded public key for the payment destination
     string pub_key = 1;
 
-    /// The amount to send expressed in atoms
+    /**
+    The amount to send expressed in atoms.
+
+    The fields amt and amt_m_atoms are mutually exclusive.
+    */
     int64 amt = 2;
+
+    /**
+    The amount to send expressed in milliatoms.
+
+    The fields amt and amt_m_atoms are mutually exclusive.
+    */
+    int64 amt_m_atoms = 12;
 
     reserved 3;
 

@@ -3081,15 +3081,19 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 		// We override the amount to pay with the amount provided from
 		// the payment request.
 		if payReq.MilliAt == nil {
-			if rpcPayReq.Amt == 0 {
+			amt, err := lnrpc.UnmarshallAmt(
+				rpcPayReq.Amt, rpcPayReq.AmtMAtoms,
+			)
+			if err != nil {
+				return payIntent, err
+			}
+			if amt == 0 {
 				return payIntent, errors.New("amount must be " +
 					"specified when paying a zero amount " +
 					"invoice")
 			}
 
-			payIntent.mat = lnwire.NewMAtomsFromAtoms(
-				dcrutil.Amount(rpcPayReq.Amt),
-			)
+			payIntent.mat = amt
 		} else {
 			payIntent.mat = *payReq.MilliAt
 		}
@@ -3130,9 +3134,12 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 	// Otherwise, If the payment request field was not specified
 	// (and a custom route wasn't specified), construct the payment
 	// from the other fields.
-	payIntent.mat = lnwire.NewMAtomsFromAtoms(
-		dcrutil.Amount(rpcPayReq.Amt),
+	payIntent.mat, err = lnrpc.UnmarshallAmt(
+		rpcPayReq.Amt, rpcPayReq.AmtMAtoms,
 	)
+	if err != nil {
+		return payIntent, err
+	}
 
 	// Calculate the fee limit that should be used for this payment.
 	payIntent.feeLimit = lnrpc.CalculateFeeLimit(
