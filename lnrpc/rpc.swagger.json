@@ -3552,7 +3552,17 @@
         "max_htlc_m_atoms": {
           "type": "string",
           "format": "uint64",
-          "description": "/ If set, the maximum HTLC size in milli-satoshis. If unset, the maximum HTLC will be unchanged."
+          "description": "/ If set, the maximum HTLC size in milli-atoms. If unset, the maximum HTLC will be unchanged."
+        },
+        "min_htlc_m_atoms": {
+          "type": "string",
+          "format": "uint64",
+          "description": "/ The minimum HTLC size in milli-atoms. Only applied if min_htlc_msat_specified is true."
+        },
+        "min_htlc_m_atoms_specified": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "/ If true, min_htlc_m_atoms is applied."
         }
       }
     },

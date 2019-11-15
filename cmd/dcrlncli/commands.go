@@ -3461,6 +3461,12 @@ var updateChannelPolicyCommand = cli.Command{
 				"forwarded HTLCs",
 		},
 		cli.Uint64Flag{
+			Name: "min_htlc_m_atoms",
+			Usage: "if set, the min HTLC size that will be applied " +
+				"to all forwarded HTLCs. If unset, the min HTLC " +
+				"is left unchanged.",
+		},
+		cli.Uint64Flag{
 			Name: "max_htlc_m_atoms",
 			Usage: "if set, the max HTLC size that will be applied " +
 				"to all forwarded HTLCs. If unset, the max HTLC " +
@@ -3580,6 +3586,11 @@ func updateChannelPolicy(ctx *cli.Context) error {
 		FeeRate:       feeRate,
 		TimeLockDelta: uint32(timeLockDelta),
 		MaxHtlcMAtoms: ctx.Uint64("max_htlc_m_atoms"),
+	}
+
+	if ctx.IsSet("min_htlc_m_atoms") {
+		req.MinHtlcMAtoms = ctx.Uint64("min_htlc_m_atoms")
+		req.MinHtlcMAtomsSpecified = true
 	}
 
 	if chanPoint != nil {
