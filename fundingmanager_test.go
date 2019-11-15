@@ -343,11 +343,12 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 			return nil, fmt.Errorf("unable to find channel")
 		},
 		DefaultRoutingPolicy: htlcswitch.ForwardingPolicy{
-			MinHTLC:       5,
+			MinHTLCOut:    5,
 			BaseFee:       100,
 			FeeRate:       1000,
 			TimeLockDelta: 10,
 		},
+		DefaultMinHtlcIn: 5,
 		NumRequiredConfs: func(chanAmt dcrutil.Amount,
 			pushAmt lnwire.MilliAtom) uint16 {
 			return 3
@@ -471,11 +472,12 @@ func recreateAliceFundingManager(t *testing.T, alice *testNode) {
 		TempChanIDSeed: oldCfg.TempChanIDSeed,
 		FindChannel:    oldCfg.FindChannel,
 		DefaultRoutingPolicy: htlcswitch.ForwardingPolicy{
-			MinHTLC:       5,
+			MinHTLCOut:    5,
 			BaseFee:       100,
 			FeeRate:       1000,
 			TimeLockDelta: 10,
 		},
+		DefaultMinHtlcIn:       5,
 		RequiredRemoteMaxValue: oldCfg.RequiredRemoteMaxValue,
 		PublishTransaction: func(txn *wire.MsgTx) error {
 			publishChan <- txn
@@ -933,7 +935,7 @@ func assertChannelAnnouncements(t *testing.T, alice, bob *testNode,
 				// _other_ node.
 				other := (j + 1) % 2
 				minHtlc := nodes[other].fundingMgr.cfg.
-					DefaultRoutingPolicy.MinHTLC
+					DefaultMinHtlcIn
 
 				// We might expect a custom MinHTLC value.
 				if len(customMinHtlc) > 0 {
@@ -2332,7 +2334,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 
 	// This is the custom parameters we'll use.
 	const csvDelay = 67
-	const minHtlc = 1234
+	const minHtlcIn = 1234
 
 	// We will consume the channel updates as we go, so no buffering is
 	// needed.
@@ -2351,7 +2353,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		localFundingAmt: localAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(pushAmt),
 		private:         false,
-		minHtlc:         minHtlc,
+		minHtlcIn:       minHtlcIn,
 		remoteCsvDelay:  csvDelay,
 		updates:         updateChan,
 		err:             errChan,
@@ -2388,9 +2390,9 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	}
 
 	// Check that the custom minHTLC value is sent.
-	if openChannelReq.HtlcMinimum != minHtlc {
+	if openChannelReq.HtlcMinimum != minHtlcIn {
 		t.Fatalf("expected OpenChannel to have minHtlc %v, got %v",
-			minHtlc, openChannelReq.HtlcMinimum)
+			minHtlcIn, openChannelReq.HtlcMinimum)
 	}
 
 	chanID := openChannelReq.PendingChannelID
@@ -2475,7 +2477,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 
 	// The minimum HTLC value Alice can offer should be 5, and the minimum
 	// Bob can offer should be 1234.
-	if err := assertMinHtlc(resCtx, 5, minHtlc); err != nil {
+	if err := assertMinHtlc(resCtx, 5, minHtlcIn); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2489,7 +2491,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := assertMinHtlc(resCtx, minHtlc, 5); err != nil {
+	if err := assertMinHtlc(resCtx, minHtlcIn, 5); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2550,7 +2552,7 @@ func TestFundingManagerCustomChannelParameters(t *testing.T) {
 	// announcements. Alice should advertise the default MinHTLC value of
 	// 5, while bob should advertise the value minHtlc, since Alice
 	// required him to use it.
-	assertChannelAnnouncements(t, alice, bob, capacity, 5, minHtlc)
+	assertChannelAnnouncements(t, alice, bob, capacity, 5, minHtlcIn)
 
 	// The funding transaction is now confirmed, wait for the
 	// OpenStatusUpdate_ChanOpen update

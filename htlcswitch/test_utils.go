@@ -1077,7 +1077,7 @@ func newHopNetwork() *hopNetwork {
 	defaultDelta := uint32(6)
 
 	globalPolicy := ForwardingPolicy{
-		MinHTLC:       lnwire.NewMAtomsFromAtoms(5),
+		MinHTLCOut:    lnwire.NewMAtomsFromAtoms(5),
 		BaseFee:       lnwire.NewMAtomsFromAtoms(1),
 		TimeLockDelta: defaultDelta,
 	}

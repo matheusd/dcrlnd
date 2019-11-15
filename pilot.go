@@ -92,7 +92,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 	}
 
 	// TODO(halseth): make configurable?
-	minHtlc := lnwire.NewMAtomsFromAtoms(1)
+	minHtlcIn := lnwire.NewMAtomsFromAtoms(1)
 
 	// Construct the open channel request and send it to the server to begin
 	// the funding workflow.
@@ -102,7 +102,7 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 		subtractFees:    true,
 		localFundingAmt: amt,
 		pushAmt:         0,
-		minHtlc:         minHtlc,
+		minHtlcIn:       minHtlcIn,
 		fundingFeePerKB: feePerKB,
 		private:         c.private,
 		remoteCsvDelay:  0,

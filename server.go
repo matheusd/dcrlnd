@@ -981,17 +981,16 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 			return nil, fmt.Errorf("unable to find channel")
 		},
 		DefaultRoutingPolicy: cc.routingPolicy,
+		DefaultMinHtlcIn:     cc.minHtlcIn,
 		NumRequiredConfs: func(chanAmt dcrutil.Amount,
 			pushAmt lnwire.MilliAtom) uint16 {
-			// For large channels we increase the number
-			// of confirmations we require for the
-			// channel to be considered open. As it is
-			// always the responder that gets to choose
-			// value, the pushAmt is value being pushed
-			// to us. This means we have more to lose
-			// in the case this gets re-orged out, and
-			// we will require more confirmations before
-			// we consider it open.
+			// For large channels we increase the number of
+			// confirmations we require for the channel to be
+			// considered open. As it is always the responder that
+			// gets to choose value, the pushAmt is value being
+			// pushed to us. This means we have more to lose in the
+			// case this gets re-orged out, and we will require
+			// more confirmations before we consider it open.
 
 			// In case the user has explicitly specified
 			// a default value for the number of
@@ -3122,8 +3121,8 @@ type openChanReq struct {
 
 	private bool
 
-	// minHtlc is the minimum incoming htlc that we accept.
-	minHtlc lnwire.MilliAtom
+	// minHtlcIn is the minimum incoming htlc that we accept.
+	minHtlcIn lnwire.MilliAtom
 
 	remoteCsvDelay uint16
 

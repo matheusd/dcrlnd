@@ -270,6 +270,10 @@ type fundingConfig struct {
 	// initially announcing channels.
 	DefaultRoutingPolicy htlcswitch.ForwardingPolicy
 
+	// DefaultMinHtlcIn is the default minimum incoming htlc value that is
+	// set as a channel parameter.
+	DefaultMinHtlcIn lnwire.MilliAtom
+
 	// NumRequiredConfs is a function closure that helps the funding
 	// manager decide how many confirmations it should require for a
 	// channel extended to it. The function is able to take into account
@@ -1291,7 +1295,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	chanReserve := f.cfg.RequiredRemoteChanReserve(amt, msg.DustLimit)
 	maxValue := f.cfg.RequiredRemoteMaxValue(amt)
 	maxHtlcs := f.cfg.RequiredRemoteMaxHTLCs(amt)
-	minHtlc := f.cfg.DefaultRoutingPolicy.MinHTLC
+	minHtlc := f.cfg.DefaultMinHtlcIn
 
 	// Once the reservation has been created successfully, we add it to
 	// this peer's map of pending reservations to track this particular
@@ -2797,7 +2801,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	var (
 		peerKey        = msg.peer.IdentityKey()
 		localAmt       = msg.localFundingAmt
-		minHtlc        = msg.minHtlc
+		minHtlcIn      = msg.minHtlcIn
 		remoteCsvDelay = msg.remoteCsvDelay
 	)
 
@@ -2918,8 +2922,8 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	}
 
 	// If no minimum HTLC value was specified, use the default one.
-	if minHtlc == 0 {
-		minHtlc = f.cfg.DefaultRoutingPolicy.MinHTLC
+	if minHtlcIn == 0 {
+		minHtlcIn = f.cfg.DefaultMinHtlcIn
 	}
 
 	// If a pending channel map for this peer isn't already created, then
@@ -2934,7 +2938,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	resCtx := &reservationWithCtx{
 		chanAmt:        capacity,
 		remoteCsvDelay: remoteCsvDelay,
-		remoteMinHtlc:  minHtlc,
+		remoteMinHtlc:  minHtlcIn,
 		reservation:    reservation,
 		peer:           msg.peer,
 		updates:        msg.updates,
@@ -2968,7 +2972,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		DustLimit:             ourContribution.DustLimit,
 		MaxValueInFlight:      maxValue,
 		ChannelReserve:        chanReserve,
-		HtlcMinimum:           minHtlc,
+		HtlcMinimum:           minHtlcIn,
 		FeePerKiloByte:        uint32(commitFeePerKB),
 		CsvDelay:              remoteCsvDelay,
 		MaxAcceptedHTLCs:      maxHtlcs,

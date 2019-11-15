@@ -1698,7 +1698,7 @@ func newSingleLinkTestHarness(chanAmt, chanReserve dcrutil.Amount) (
 			quit:     make(chan struct{}),
 		}
 		globalPolicy = ForwardingPolicy{
-			MinHTLC:       lnwire.NewMAtomsFromAtoms(5),
+			MinHTLCOut:    lnwire.NewMAtomsFromAtoms(5),
 			MaxHTLC:       lnwire.NewMAtomsFromAtoms(chanAmt),
 			BaseFee:       lnwire.NewMAtomsFromAtoms(1),
 			TimeLockDelta: 6,
@@ -4257,7 +4257,7 @@ func (h *persistentLinkHarness) restartLink(
 		}
 
 		globalPolicy = ForwardingPolicy{
-			MinHTLC:       lnwire.NewMAtomsFromAtoms(5),
+			MinHTLCOut:    lnwire.NewMAtomsFromAtoms(5),
 			BaseFee:       lnwire.NewMAtomsFromAtoms(1),
 			TimeLockDelta: 6,
 		}
@@ -5516,7 +5516,7 @@ func TestCheckHtlcForward(t *testing.T) {
 		cfg: ChannelLinkConfig{
 			FwrdingPolicy: ForwardingPolicy{
 				TimeLockDelta: 20,
-				MinHTLC:       500,
+				MinHTLCOut:    500,
 				MaxHTLC:       1000,
 				BaseFee:       10,
 			},

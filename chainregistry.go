@@ -134,6 +134,8 @@ type chainControl struct {
 	wallet *lnwallet.LightningWallet
 
 	routingPolicy htlcswitch.ForwardingPolicy
+
+	minHtlcIn lnwire.MilliAtom
 }
 
 // newChainControlFromConfig attempts to create a chainControl instance
@@ -155,11 +157,12 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	switch registeredChains.PrimaryChain() {
 	case decredChain:
 		cc.routingPolicy = htlcswitch.ForwardingPolicy{
-			MinHTLC:       cfg.MinHTLC,
+			MinHTLCOut:    cfg.MinHTLC,
 			BaseFee:       cfg.BaseFee,
 			FeeRate:       cfg.FeeRate,
 			TimeLockDelta: cfg.TimeLockDelta,
 		}
+		cc.minHtlcIn = cfg.MinHTLC
 		cc.feeEstimator = chainfee.NewStaticEstimator(
 			defaultDecredStaticFeePerKB, 0,
 		)
