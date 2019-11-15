@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 
-	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntypes"
@@ -261,10 +260,15 @@ func (s *Server) AddHoldInvoice(ctx context.Context,
 		return nil, err
 	}
 
+	value, err := lnrpc.UnmarshallAmt(invoice.Value, invoice.ValueMAtoms)
+	if err != nil {
+		return nil, err
+	}
+
 	addInvoiceData := &AddInvoiceData{
 		Memo:            invoice.Memo,
 		Hash:            &hash,
-		Value:           dcrutil.Amount(invoice.Value),
+		Value:           value,
 		DescriptionHash: invoice.DescriptionHash,
 		Expiry:          invoice.Expiry,
 		FallbackAddr:    invoice.FallbackAddr,

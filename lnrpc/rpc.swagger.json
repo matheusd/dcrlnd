@@ -2658,7 +2658,12 @@
         "value": {
           "type": "string",
           "format": "int64",
-          "title": "/ The value of this invoice in atoms"
+          "description": "*\nThe value of this invoice in atoms.\n\nThe fields value and value_msat are mutually exclusive."
+        },
+        "value_m_atoms": {
+          "type": "string",
+          "format": "int64",
+          "description": "*\nThe value of this invoice in milliatoms.\n\nThe fields value and value_msat are mutually exclusive."
         },
         "settled": {
           "type": "boolean",

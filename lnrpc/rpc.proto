@@ -2258,8 +2258,19 @@ message Invoice {
     */
     bytes r_hash = 4 [json_name = "r_hash"];
 
-    /// The value of this invoice in atoms
+    /**
+    The value of this invoice in atoms.
+
+    The fields value and value_msat are mutually exclusive.
+    */
     int64 value = 5 [json_name = "value"];
+
+    /**
+    The value of this invoice in milliatoms.
+
+    The fields value and value_msat are mutually exclusive.
+    */
+    int64 value_m_atoms = 23 [json_name = "value_m_atoms"];
 
     /// Whether this invoice has been fulfilled
     bool settled = 6 [json_name = "settled", deprecated = true];

@@ -71,8 +71,8 @@ type AddInvoiceData struct {
 	// htlc will be accepted and held until the preimage becomes known.
 	Hash *lntypes.Hash
 
-	// The value of this invoice in atoms.
-	Value dcrutil.Amount
+	// The value of this invoice in milliatoms.
+	Value lnwire.MilliAtom
 
 	// Hash (SHA-256) of a description of the payment. Used if the
 	// description of payment (memo) is too long to naturally fit within the
@@ -169,7 +169,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 			"are not allowed, value is %v", invoice.Value)
 	}
 
-	amtMAtoms := lnwire.NewMAtomsFromAtoms(invoice.Value)
+	amtMAtoms := invoice.Value
 
 	// The value of the invoice must also not exceed the current soft-limit
 	// on the largest payment within the network.
