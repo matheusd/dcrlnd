@@ -32,9 +32,20 @@ import (
 const (
 	// TODO(decred) verify these amounts
 
-	// defaultDecredMinHTLCAtoms is the default minimum amount of a
-	// forwarded HTLC.
-	defaultDecredMinHTLCMAtoms = lnwire.MilliAtom(1000)
+	// defaultDecredMinHTLCInMAtoms is the default smallest value htlc this
+	// node will accept. This value is proposed in the channel open
+	// sequence and cannot be changed during the life of the channel.
+	//
+	// All forwarded payments are subjected to the min htlc constraint of
+	// the routing policy of the outgoing channel. This implicitly controls
+	// the minimum htlc value on the incoming channel too.
+	defaultDecredMinHTLCInMAtoms = lnwire.MilliAtom(1000)
+
+	// defaultDecredMinHTLCOutMAtoms is the default minimum htlc value that
+	// we require for sending out htlcs. Our channel peer may have a lower
+	// min htlc channel parameter, but we - by default - don't forward
+	// anything under the value defined here.
+	defaultDecredMinHTLCOutMAtoms = lnwire.MilliAtom(1000)
 
 	// DefaultDecredBaseFeeMAtoms is the default forwarding base fee.
 	DefaultDecredBaseFeeMAtoms = lnwire.MilliAtom(1000)
@@ -157,12 +168,12 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	switch registeredChains.PrimaryChain() {
 	case decredChain:
 		cc.routingPolicy = htlcswitch.ForwardingPolicy{
-			MinHTLCOut:    cfg.MinHTLC,
+			MinHTLCOut:    cfg.MinHTLCOut,
 			BaseFee:       cfg.BaseFee,
 			FeeRate:       cfg.FeeRate,
 			TimeLockDelta: cfg.TimeLockDelta,
 		}
-		cc.minHtlcIn = cfg.MinHTLC
+		cc.minHtlcIn = cfg.MinHTLCIn
 		cc.feeEstimator = chainfee.NewStaticEstimator(
 			defaultDecredStaticFeePerKB, 0,
 		)
