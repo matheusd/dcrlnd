@@ -31,6 +31,7 @@ import (
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/peernotifier"
 	"github.com/decred/dcrlnd/routing"
+	"github.com/decred/dcrlnd/routing/localchans"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
@@ -100,6 +101,7 @@ func init() {
 	addSubLogger("CHFD", chanfunding.UseLogger)
 
 	addSubLogger(routing.Subsystem, routing.UseLogger)
+	addSubLogger(routing.Subsystem, localchans.UseLogger)
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
 	addSubLogger(wtclientrpc.Subsystem, wtclientrpc.UseLogger)
 	addSubLogger(chanfitness.Subsystem, chanfitness.UseLogger)
