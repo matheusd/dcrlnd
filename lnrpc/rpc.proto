@@ -950,6 +950,11 @@ message SendRequest {
     */
     bool ignore_max_outbound_amt = 9;
 
+    /**
+    The pubkey of the last hop of the route. If empty, any hop may be used.
+    */
+    bytes last_hop_pubkey = 14;
+
     /** 
     An optional maximum total time lock for the route. This should not exceed
     lnd's `--max-cltv-expiry` setting. If zero, then the value of
