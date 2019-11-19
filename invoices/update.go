@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -74,6 +75,7 @@ type invoiceUpdateCtx struct {
 	expiry               uint32
 	currentHeight        int32
 	finalCltvRejectDelta int32
+	customRecords        hop.CustomRecordSet
 }
 
 // updateInvoice is a callback for DB.UpdateInvoice that contains the invoice
@@ -125,9 +127,10 @@ func updateInvoice(ctx *invoiceUpdateCtx, inv *channeldb.Invoice) (
 	// Record HTLC in the invoice database.
 	newHtlcs := map[channeldb.CircuitKey]*channeldb.HtlcAcceptDesc{
 		ctx.circuitKey: {
-			Amt:          ctx.amtPaid,
-			Expiry:       ctx.expiry,
-			AcceptHeight: ctx.currentHeight,
+			Amt:           ctx.amtPaid,
+			Expiry:        ctx.expiry,
+			AcceptHeight:  ctx.currentHeight,
+			CustomRecords: ctx.customRecords,
 		},
 	}
 

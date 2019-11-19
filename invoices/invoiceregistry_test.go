@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
@@ -677,4 +678,8 @@ type mockPayload struct {
 
 func (p *mockPayload) MultiPath() *record.MPP {
 	return p.mpp
+}
+
+func (p *mockPayload) CustomRecords() hop.CustomRecordSet {
+	return make(hop.CustomRecordSet)
 }
