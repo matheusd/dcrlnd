@@ -4635,13 +4635,25 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 			return nil, err
 		}
 
+		htlcs := make([]*lnrpc.HTLCAttempt, 0, len(payment.HTLCs))
+		for _, dbHTLC := range payment.HTLCs {
+			htlc, err := r.routerBackend.MarshalHTLCAttempt(dbHTLC)
+			if err != nil {
+				return nil, err
+			}
+
+			htlcs = append(htlcs, htlc)
+		}
+
 		paymentHash := payment.Info.PaymentHash
+		creationTimeNS := routerrpc.MarshalTimeNano(payment.Info.CreationTime)
 		paymentsResp.Payments = append(paymentsResp.Payments, &lnrpc.Payment{
 			PaymentHash:     hex.EncodeToString(paymentHash[:]),
 			Value:           atomsValue,
 			ValueMAtoms:     mAtomsValue,
 			ValueAtoms:      atomsValue,
 			CreationDate:    payment.Info.CreationTime.Unix(),
+			CreationTimeNs:  creationTimeNS,
 			Path:            path,
 			Fee:             int64(route.TotalFees().ToAtoms()),
 			FeeAtoms:        int64(route.TotalFees().ToAtoms()),
@@ -4649,6 +4661,7 @@ func (r *rpcServer) ListPayments(ctx context.Context,
 			PaymentPreimage: hex.EncodeToString(preimage[:]),
 			PaymentRequest:  string(payment.Info.PaymentRequest),
 			Status:          status,
+			Htlcs:           htlcs,
 		})
 	}
 
