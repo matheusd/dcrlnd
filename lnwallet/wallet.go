@@ -1069,6 +1069,10 @@ func (l *LightningWallet) verifyFundingInputs(fundingTx *wire.MsgTx,
 			// TODO(roasbeef): when dual funder pass actual
 			// height-hint
 			//
+			// TODO(roasbeef): this fails for neutrino always as it
+			// treats the height hint as an exact birthday of the
+			// utxo rather than a lower bound
+			//
 			// TODO(decred): The pkscript is only used on neutrino
 			// clients and is overwritten by the current GetUTXO()
 			// implementations, so we can ignore this for now.
