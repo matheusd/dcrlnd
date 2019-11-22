@@ -11,6 +11,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
@@ -115,6 +116,12 @@ var (
 			// Add invoice htlc and cltv delta fields.
 			number:    11,
 			migration: migration_01_to_11.MigrateInvoices,
+		},
+		{
+			// Migrate to TLV invoice bodies, add payment address
+			// and features, remove receipt.
+			number:    12,
+			migration: migration12.MigrateInvoiceTLV,
 		},
 	}
 

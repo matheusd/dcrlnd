@@ -561,6 +561,9 @@ func generatePaymentWithPreimage(invoiceAmt, htlcAmt lnwire.MilliAtom,
 		Terms: channeldb.ContractTerm{
 			Value:           invoiceAmt,
 			PaymentPreimage: preimage,
+			Features: lnwire.NewFeatureVector(
+				nil, lnwire.Features,
+			),
 		},
 		FinalCltvDelta: testInvoiceCltvExpiry,
 	}
