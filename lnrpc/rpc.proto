@@ -969,6 +969,9 @@ message SendRequest {
     values must be encoded as base64.
     */
     map<uint64, bytes> dest_tlv = 12;
+
+    /// If set, circular payments to self are permitted.
+    bool allow_self_payment = 15;
 }
 
 message SendResponse {

@@ -486,6 +486,9 @@ type rpcServer struct {
 	// macService is the macaroon service that we need to mint new
 	// macaroons.
 	macService *macaroons.Service
+
+	// selfNode is our own pubkey.
+	selfNode route.Vertex
 }
 
 // A compile time check to ensure that rpcServer fully implements the
@@ -661,6 +664,7 @@ func newRPCServer(s *server, macService *macaroons.Service,
 		chanPredicate:   chanPredicate,
 		quit:            make(chan struct{}, 1),
 		macService:      macService,
+		selfNode:        selfNode.PubKeyBytes,
 	}
 	lnrpc.RegisterLightningServer(grpcServer, rootRPCServer)
 
@@ -3075,7 +3079,7 @@ type rpcPaymentIntent struct {
 // dispatch a client from the information presented by an RPC client. There are
 // three ways a client can specify their payment details: a payment request,
 // via manual details, or via a complete route.
-func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error) {
+func (r *rpcServer) extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error) {
 	payIntent := rpcPaymentIntent{
 		ignoreMaxOutboundAmt: rpcPayReq.IgnoreMaxOutboundAmt,
 	}
@@ -3137,6 +3141,18 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 		}
 	}
 
+	validateDest := func(dest route.Vertex) error {
+		if rpcPayReq.AllowSelfPayment {
+			return nil
+		}
+
+		if dest == r.selfNode {
+			return errors.New("self-payments not allowed")
+		}
+
+		return nil
+	}
+
 	// If the payment request field isn't blank, then the details of the
 	// invoice are encoded entirely within the encoded payReq.  So we'll
 	// attempt to decode it, populating the payment accordingly.
@@ -3192,6 +3208,10 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 		payIntent.routeHints = payReq.RouteHints
 		payIntent.payReq = []byte(rpcPayReq.PaymentRequest)
 
+		if err := validateDest(payIntent.dest); err != nil {
+			return payIntent, err
+		}
+
 		return payIntent, nil
 	}
 
@@ -3212,6 +3232,10 @@ func extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPaymentIntent, error
 		return payIntent, errors.New("invalid key length")
 	}
 	copy(payIntent.dest[:], pubBytes)
+
+	if err := validateDest(payIntent.dest); err != nil {
+		return payIntent, err
+	}
 
 	// Otherwise, If the payment request field was not specified
 	// (and a custom route wasn't specified), construct the payment
@@ -3507,7 +3531,9 @@ func (r *rpcServer) sendPayment(stream *paymentStream) error {
 				// fields. If the payment proto wasn't well
 				// formed, then we'll send an error reply and
 				// wait for the next payment.
-				payIntent, err := extractPaymentIntent(nextPayment)
+				payIntent, err := r.extractPaymentIntent(
+					nextPayment,
+				)
 				if err != nil {
 					if err := stream.send(&lnrpc.SendResponse{
 						PaymentError: err.Error(),
@@ -3646,7 +3672,7 @@ func (r *rpcServer) sendPaymentSync(ctx context.Context,
 
 	// First we'll attempt to map the proto describing the next payment to
 	// an intent that we can pass to local sub-systems.
-	payIntent, err := extractPaymentIntent(nextPayment)
+	payIntent, err := r.extractPaymentIntent(nextPayment)
 	if err != nil {
 		return nil, err
 	}

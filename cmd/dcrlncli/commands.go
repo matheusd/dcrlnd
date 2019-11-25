@@ -2077,6 +2077,10 @@ func paymentFlags() []cli.Flag {
 			Name:  "force, f",
 			Usage: "will skip payment request confirmation",
 		},
+		cli.BoolFlag{
+			Name:  "allow_self_payment",
+			Usage: "allow sending a circular payment to self",
+		},
 	}
 }
 
@@ -2295,6 +2299,8 @@ func sendPaymentRequest(ctx *cli.Context, req *lnrpc.SendRequest) error {
 	}
 
 	req.CltvLimit = uint32(ctx.Int(cltvLimitFlag.Name))
+
+	req.AllowSelfPayment = ctx.Bool("allow_self_payment")
 
 	amt := req.Amt
 
