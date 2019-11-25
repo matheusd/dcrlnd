@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -724,6 +725,55 @@ func TestMaxInvoiceLength(t *testing.T) {
 			return
 		}
 	}
+}
+
+// TestInvoiceChecksumMalleability ensures that the malleability of the
+// checksum in bech32 strings cannot cause a signature to become valid and
+// therefore cause a wrong destination to be decoded for invoices where the
+// destination is extracted from the signature.
+func TestInvoiceChecksumMalleability(t *testing.T) {
+	privKeyHex := "7f9f2872307ba178b75434250da5fcac12e9d47fe47d90c1f0cb0641a450cff8"
+	privKeyBytes, _ := hex.DecodeString(privKeyHex)
+	chain := chaincfg.RegNetParams()
+	var payHash [32]byte
+	ts := time.Unix(0, 0)
+	privKey, _ := secp256k1.PrivKeyFromBytes(privKeyBytes)
+	msgSigner := MessageSigner{
+		SignCompact: func(hash []byte) ([]byte, error) {
+			return secp256k1.SignCompact(privKey, hash, true)
+		},
+	}
+	opts := []func(*Invoice){Description("test")}
+	invoice, err := NewInvoice(chain, payHash, ts, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encoded, err := invoice.Encode(msgSigner)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Changing a bech32 string which checksum ends in "p" to "(q*)p" can
+	// cause the checksum to return as a valid bech32 string _but_ the
+	// signature field immediately preceding it would be mutaded.  In rare
+	// cases (about 3%) it is still seen as a valid signature and public
+	// key recovery causes a different node than the originally intended
+	// one to be derived.
+	//
+	// We thus modify the checksum here and verify the invoice gets broken
+	// enough that it fails to decode.
+	if !strings.HasSuffix(encoded, "p") {
+		t.Logf("Invoice: %s", encoded)
+		t.Fatalf("Generated invoice checksum does not end in 'p'")
+	}
+	encoded = encoded[:len(encoded)-1] + "qp"
+
+	_, err = Decode(encoded, chain)
+	if err == nil {
+		t.Fatalf("Did not get expected error when decoding invoice")
+	}
+
 }
 
 func compareInvoices(expected, actual *Invoice) error {
