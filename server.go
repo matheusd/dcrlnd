@@ -30,6 +30,7 @@ import (
 	"github.com/decred/dcrlnd/chanfitness"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/channelnotifier"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/feature"
@@ -384,8 +385,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	registryConfig := invoices.RegistryConfig{
 		FinalCltvRejectDelta: defaultFinalCltvRejectDelta,
 		HtlcHoldDuration:     invoices.DefaultHtlcHoldDuration,
-		Now:                  time.Now,
-		TickAfter:            time.After,
+		Clock:                clock.NewDefaultClock(),
 	}
 
 	s := &server{
