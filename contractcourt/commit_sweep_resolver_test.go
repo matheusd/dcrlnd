@@ -94,13 +94,15 @@ func (i *commitSweepResolverTestContext) waitForResult() {
 }
 
 type mockSweeper struct {
-	sweptInputs chan input.Input
-	sweepErr    error
+	sweptInputs   chan input.Input
+	updatedInputs chan wire.OutPoint
+	sweepErr      error
 }
 
 func newMockSweeper() *mockSweeper {
 	return &mockSweeper{
-		sweptInputs: make(chan input.Input),
+		sweptInputs:   make(chan input.Input),
+		updatedInputs: make(chan wire.OutPoint),
 	}
 }
 
@@ -125,6 +127,18 @@ func (s *mockSweeper) CreateSweepTx(inputs []input.Input, feePref sweep.FeePrefe
 
 func (s *mockSweeper) RelayFeePerKB() chainfee.AtomPerKByte {
 	return 1e4
+}
+
+func (s *mockSweeper) UpdateParams(input wire.OutPoint,
+	params sweep.ParamsUpdate) (chan sweep.Result, error) {
+
+	s.updatedInputs <- input
+
+	result := make(chan sweep.Result, 1)
+	result <- sweep.Result{
+		Tx: &wire.MsgTx{},
+	}
+	return result, nil
 }
 
 var _ UtxoSweeper = &mockSweeper{}
