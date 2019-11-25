@@ -70,10 +70,11 @@ func validateAtplCfg(cfg *autoPilotConfig) ([]*autopilot.WeightedHeuristic,
 // chanController is an implementation of the autopilot.ChannelController
 // interface that's backed by a running lnd instance.
 type chanController struct {
-	server     *server
-	private    bool
-	minConfs   int32
-	confTarget uint32
+	server        *server
+	private       bool
+	minConfs      int32
+	confTarget    uint32
+	chanMinHtlcIn lnwire.MilliAtom
 }
 
 // OpenChannel opens a channel to a target peer, with a capacity of the
@@ -91,18 +92,15 @@ func (c *chanController) OpenChannel(target *secp256k1.PublicKey,
 		return err
 	}
 
-	// TODO(halseth): make configurable?
-	minHtlcIn := lnwire.NewMAtomsFromAtoms(1)
-
-	// Construct the open channel request and send it to the server to begin
-	// the funding workflow.
+	// Construct the open channel request and send it to the server to
+	// begin the funding workflow.
 	req := &openChanReq{
 		targetPubkey:    target,
 		chainHash:       activeNetParams.GenesisHash,
 		subtractFees:    true,
 		localFundingAmt: amt,
 		pushAmt:         0,
-		minHtlcIn:       minHtlcIn,
+		minHtlcIn:       c.chanMinHtlcIn,
 		fundingFeePerKB: feePerKB,
 		private:         c.private,
 		remoteCsvDelay:  0,
@@ -136,11 +134,13 @@ func (c *chanController) SpliceOut(chanPoint *wire.OutPoint,
 // autopilot.ChannelController interface.
 var _ autopilot.ChannelController = (*chanController)(nil)
 
-// initAutoPilot initializes a new autopilot.ManagerCfg to manage an
-// autopilot.Agent instance based on the passed configuration struct. The agent
-// and all interfaces needed to drive it won't be launched before the Manager's
+// initAutoPilot initializes a new autopilot.ManagerCfg to manage an autopilot.
+// Agent instance based on the passed configuration structs. The agent and all
+// interfaces needed to drive it won't be launched before the Manager's
 // StartAgent method is called.
-func initAutoPilot(svr *server, cfg *autoPilotConfig) (*autopilot.ManagerCfg, error) {
+func initAutoPilot(svr *server, cfg *autoPilotConfig, c *config) (
+	*autopilot.ManagerCfg, error) {
+
 	atplLog.Infof("Instantiating autopilot with max_channels=%d, allocation=%f, "+
 		"min_chan_size=%d, max_chan_size=%d, private=%t, min_confs=%d, "+
 		"conf_target=%d", cfg.MaxChannels, cfg.Allocation, cfg.MinChannelSize,
@@ -173,10 +173,11 @@ func initAutoPilot(svr *server, cfg *autoPilotConfig) (*autopilot.ManagerCfg, er
 		Self:      self,
 		Heuristic: weightedAttachment,
 		ChanController: &chanController{
-			server:     svr,
-			private:    cfg.Private,
-			minConfs:   cfg.MinConfs,
-			confTarget: cfg.ConfTarget,
+			server:        svr,
+			private:       cfg.Private,
+			minConfs:      cfg.MinConfs,
+			confTarget:    cfg.ConfTarget,
+			chanMinHtlcIn: c.MinHTLCIn,
 		},
 		WalletBalance: func() (dcrutil.Amount, error) {
 			return svr.cc.wallet.ConfirmedBalance(cfg.MinConfs)
