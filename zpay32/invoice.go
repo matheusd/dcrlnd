@@ -87,6 +87,10 @@ var (
 
 	// ErrInvoiceTooLarge is returned when an invoice exceeds maxInvoiceLength.
 	ErrInvoiceTooLarge = errors.New("invoice is too large")
+
+	// ErrInvalidFieldLength is returned when a tagged field was specified
+	// with a length larger than the left over bytes of the data field.
+	ErrInvalidFieldLength = errors.New("invalid field length")
 )
 
 // decredHRPPrefixes are the prefixes that should be present on the HRP (human
@@ -613,7 +617,7 @@ func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) er
 		// If we don't have enough field data left to read this length,
 		// return error.
 		if len(fields) < index+3+int(dataLength) {
-			return fmt.Errorf("invalid field length")
+			return ErrInvalidFieldLength
 		}
 		base32Data := fields[index+3 : index+3+int(dataLength)]
 
