@@ -1484,22 +1484,25 @@ func testPaymentFollowingChannelOpen(net *lntest.NetworkHarness, t *harnessTest)
 
 	// We first establish a channel between Alice and Bob.
 	const paymentAmt = dcrutil.Amount(100)
-	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	channelCapacity := dcrutil.Amount(paymentAmt * 1000)
+
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	pendingUpdate, err := net.OpenPendingChannel(ctxt, net.Alice, net.Bob,
 		channelCapacity, 0)
 	if err != nil {
 		t.Fatalf("unable to open channel: %v", err)
 	}
 
-	// At this point, the channel's funding transaction will have
-	// been broadcast, but not confirmed. Alice and Bob's nodes
+	// At this point, the channel's funding transaction will have been
+	// broadcast, but not confirmed. Alice and Bob's nodes
 	// should reflect this when queried via RPC.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	assertNumOpenChannelsPending(ctxt, t, net.Alice, net.Bob, 1)
 
-	// We are restarting Bob's node to let the link be created for the pending
-	// channel.
+	// We are restarting Bob's node to let the link be created for the
+	// pending channel.
 	if err := net.RestartNode(net.Bob, nil); err != nil {
 		t.Fatalf("Bob restart failed: %v", err)
 	}
@@ -1514,12 +1517,12 @@ func testPaymentFollowingChannelOpen(net *lntest.NetworkHarness, t *harnessTest)
 	_ = mineBlocks(t, net, 6, 1)[0]
 
 	// We verify that the chanel is open from both nodes point of view.
-	time.Sleep(time.Millisecond * 300)
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	assertNumOpenChannelsPending(ctxt, t, net.Alice, net.Bob, 0)
 
-	// With the channel open, we'll create invoices for Bob that Alice
-	// will pay to in order to advance the state of the channel.
+	// With the channel open, we'll create invoices for Bob that Alice will
+	// pay to in order to advance the state of the channel.
 	bobPayReqs, _, _, err := createPayReqs(
 		net.Bob, paymentAmt, 1,
 	)
@@ -1527,16 +1530,24 @@ func testPaymentFollowingChannelOpen(net *lntest.NetworkHarness, t *harnessTest)
 		t.Fatalf("unable to create pay reqs: %v", err)
 	}
 
-	// Send payment to Bob so there a chanel update to disk will be executed.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	_, err = net.Alice.SendPaymentSync(ctxt,
-		&lnrpc.SendRequest{PaymentRequest: bobPayReqs[0]})
+	// Send payment to Bob so there a chanel update to disk will be
+	// executed.
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
+	_, err = net.Alice.SendPaymentSync(
+		ctxt,
+		&lnrpc.SendRequest{
+			PaymentRequest: bobPayReqs[0],
+		},
+	)
 	if err != nil {
 		t.Fatalf("unable to create payment stream for alice: %v", err)
 	}
 
-	// At this point we want to make sure the channel is opened and not pending.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	// At this point we want to make sure the channel is opened and not
+	// pending.
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	res, err := net.Bob.ListChannels(ctxt, &lnrpc.ListChannelsRequest{})
 	if err != nil {
 		t.Fatalf("unable to list bob channels: %v", err)
@@ -1554,7 +1565,8 @@ func testPaymentFollowingChannelOpen(net *lntest.NetworkHarness, t *harnessTest)
 		},
 		OutputIndex: pendingUpdate.OutputIndex,
 	}
-	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
