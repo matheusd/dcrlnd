@@ -816,6 +816,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 
 	s.chainArb = contractcourt.NewChainArbitrator(contractcourt.ChainArbitratorConfig{
 		ChainHash:              activeNetParams.GenesisHash,
+		NetParams:              activeNetParams.Params,
 		IncomingBroadcastDelta: DefaultIncomingBroadcastDelta,
 		OutgoingBroadcastDelta: DefaultOutgoingBroadcastDelta,
 		NewSweepAddr:           newSweepPkScriptGen(cc.wallet),

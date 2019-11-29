@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -286,7 +287,8 @@ func createTestChannelArbitrator(t *testing.T, log ArbitratorLog) (*chanArbTestC
 
 	chainIO := &mockChainIO{}
 	chainArbCfg := ChainArbitratorConfig{
-		ChainIO: chainIO,
+		NetParams: chaincfg.RegNetParams(),
+		ChainIO:   chainIO,
 		PublishTx: func(*wire.MsgTx) error {
 			return nil
 		},

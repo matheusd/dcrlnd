@@ -351,8 +351,9 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 
 	chainArb := contractcourt.NewChainArbitrator(
 		contractcourt.ChainArbitratorConfig{
-			Notifier: notifier,
-			ChainIO:  chainIO,
+			NetParams: chainParams,
+			Notifier:  notifier,
+			ChainIO:   chainIO,
 		}, dbAlice,
 	)
 	chainArb.WatchNewChannel(aliceChannelState)

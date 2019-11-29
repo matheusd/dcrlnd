@@ -136,6 +136,9 @@ type ChainEventSubscription struct {
 // chainWatcherConfig encapsulates all the necessary functions and interfaces
 // needed to watch and act on on-chain events for a particular channel.
 type chainWatcherConfig struct {
+	// netParams are the network parameters for the current chain.
+	netParams *chaincfg.Params
+
 	// chanState is a snapshot of the persistent state of the channel that
 	// we're watching. In the event of an on-chain event, we'll query the
 	// database to ensure that we act using the most up to date state.
@@ -665,9 +668,7 @@ func (c *chainWatcher) toSelfAmount(tx *wire.MsgTx) dcrutil.Amount {
 	for _, txOut := range tx.TxOut {
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
 			// Doesn't matter what net we actually pass in.
-			//
-			// TODO(decred) Actually pass the correct params.
-			txOut.Version, txOut.PkScript, chaincfg.TestNet3Params(),
+			txOut.Version, txOut.PkScript, c.cfg.netParams,
 		)
 		if err != nil {
 			continue

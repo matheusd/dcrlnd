@@ -3,6 +3,7 @@ package contractcourt
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/decred/dcrd/dcrutil/v2"
@@ -125,9 +126,7 @@ func (h *htlcIncomingContestResolver) Resolve() (ContractResolver, error) {
 				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript, preimage[:],
 			)
 			if err != nil {
-				// TODO(decred) Panic? Modify applyPreimage to return an error?
-				log.Error("%T(%v): error replacing preimage in txin: %v", h,
-					h.htlcResolution.ClaimOutpoint, err)
+				return fmt.Errorf("error replacing preimage in txin: %v", err)
 			} else {
 				h.htlcResolution.SignedSuccessTx.TxIn[0].SignatureScript = newSigScript
 			}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -72,8 +73,9 @@ func TestChainArbitratorRepublishCommitment(t *testing.T) {
 	published := make(map[chainhash.Hash]struct{})
 
 	chainArbCfg := ChainArbitratorConfig{
-		ChainIO:  &mockChainIO{},
-		Notifier: &mockNotifier{},
+		NetParams: chaincfg.RegNetParams(),
+		ChainIO:   &mockChainIO{},
+		Notifier:  &mockNotifier{},
 		PublishTx: func(tx *wire.MsgTx) error {
 			published[tx.TxHash()] = struct{}{}
 			return nil

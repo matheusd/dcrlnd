@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
@@ -65,6 +66,8 @@ func (m *mockWitnessBeacon) AddPreimages(preimages ...lntypes.Preimage) error {
 // variations of possible local+remote spends.
 func TestHtlcTimeoutResolver(t *testing.T) {
 	t.Parallel()
+
+	netParams := chaincfg.RegNetParams()
 
 	fakePreimageBytes := bytes.Repeat([]byte{1}, lntypes.HashSize)
 
@@ -232,6 +235,7 @@ func TestHtlcTimeoutResolver(t *testing.T) {
 
 		chainCfg := ChannelArbitratorConfig{
 			ChainArbitratorConfig: ChainArbitratorConfig{
+				NetParams:  netParams,
 				Notifier:   notifier,
 				PreimageDB: witnessBeacon,
 				IncubateOutputs: func(wire.OutPoint,

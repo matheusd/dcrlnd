@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -51,6 +52,9 @@ type ResolutionMsg struct {
 type ChainArbitratorConfig struct {
 	// ChainHash is the chain that this arbitrator is to operate within.
 	ChainHash chainhash.Hash
+
+	// NetParams are the network parameters for the current chain.
+	NetParams *chaincfg.Params
 
 	// IncomingBroadcastDelta is the delta that we'll use to decide when to
 	// broadcast our commitment transaction if we have incoming htlcs. This
@@ -397,6 +401,7 @@ func (c *ChainArbitrator) Start() error {
 					return c.cfg.ContractBreach(chanPoint, retInfo)
 				},
 				extractStateNumHint: lnwallet.GetStateNumHint,
+				netParams:           c.cfg.NetParams,
 			},
 		)
 		if err != nil {
@@ -772,6 +777,7 @@ func (c *ChainArbitrator) WatchNewChannel(newChan *channeldb.OpenChannel) error 
 				return c.cfg.ContractBreach(chanPoint, retInfo)
 			},
 			extractStateNumHint: lnwallet.GetStateNumHint,
+			netParams:           c.cfg.NetParams,
 		},
 	)
 	if err != nil {
