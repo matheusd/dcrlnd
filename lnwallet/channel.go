@@ -4929,13 +4929,13 @@ func (lc *LightningChannel) ShortChanID() lnwire.ShortChannelID {
 // LocalUpfrontShutdownScript returns the local upfront shutdown script for the
 // channel. If it was not set, an empty byte array is returned.
 func (lc *LightningChannel) LocalUpfrontShutdownScript() lnwire.DeliveryAddress {
-	return nil
+	return lc.channelState.LocalShutdownScript
 }
 
 // RemoteUpfrontShutdownScript returns the remote upfront shutdown script for the
 // channel. If it was not set, an empty byte array is returned.
 func (lc *LightningChannel) RemoteUpfrontShutdownScript() lnwire.DeliveryAddress {
-	return nil
+	return lc.channelState.RemoteShutdownScript
 }
 
 // genHtlcScript generates the proper P2SH public key scripts for the HTLC
