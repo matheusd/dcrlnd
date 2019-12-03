@@ -82,12 +82,6 @@ func New(cfg Config) (*DcrWallet, error) {
 	// Obtain the root master priv key from which all LN-related
 	// keys are derived. By convention, this is a special branch in
 	// the default account.
-	//
-	// TODO(decred) ensure the account matches the one previously recorded
-	// in the local (dcrlnd) database.
-	//
-	// TODO(decred): switch to a bip32 purpose branch instead of an account
-	// branch for most keyfamilies.
 	ctxb := context.Background()
 	wallet := pb.NewWalletServiceClient(cfg.Conn)
 	req := &pb.GetAccountExtendedPrivKeyRequest{
@@ -214,13 +208,6 @@ func (b *DcrWallet) NewAddress(t lnwallet.AddressType, change bool) (dcrutil.Add
 	switch t {
 	case lnwallet.PubKeyHash:
 		// nop
-	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
-	case lnwallet.WitnessPubKey:
-		// TODO(decred): this should fail so we can remove lnwallet.WitnessPubKey
-		panic("remove witnessPubKey address requests")
-	case lnwallet.NestedWitnessPubKey:
-		// TODO(matheusd) this is likely to be changed to a p2sh
-		panic("remove nestedWitnessPubKey address requests")
 	default:
 		return nil, fmt.Errorf("unknown address type")
 	}
@@ -258,13 +245,6 @@ func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
 	switch addrType {
 	case lnwallet.PubKeyHash:
 		// nop
-	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
-	case lnwallet.WitnessPubKey:
-		// TODO(decred): this should fail so we can remove lnwallet.WitnessPubKey
-		panic("remove witnessPubKey address requests")
-	case lnwallet.NestedWitnessPubKey:
-		// TODO(matheusd) this is likely to be changed to a p2sh
-		panic("remove nestedWitnessPubKey address requests")
 	default:
 		return nil, fmt.Errorf("unknown address type")
 	}

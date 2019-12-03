@@ -198,13 +198,6 @@ func (b *DcrWallet) NewAddress(t lnwallet.AddressType, change bool) (dcrutil.Add
 	switch t {
 	case lnwallet.PubKeyHash:
 		// nop
-	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
-	case lnwallet.WitnessPubKey:
-		// TODO(decred): this should fail so we can remove lnwallet.WitnessPubKey
-		panic("remove witnessPubKey address requests")
-	case lnwallet.NestedWitnessPubKey:
-		// TODO(matheusd) this is likely to be changed to a p2sh
-		panic("remove nestedWitnessPubKey address requests")
 	default:
 		return nil, fmt.Errorf("unknown address type")
 	}
@@ -239,13 +232,6 @@ func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
 	switch addrType {
 	case lnwallet.PubKeyHash:
 		// nop
-	// lnwallet.{WitnessPubKey,PubKeyHash} are both as p2pkh in decred
-	case lnwallet.WitnessPubKey:
-		// TODO(decred): this should fail so we can remove lnwallet.WitnessPubKey
-		panic("remove witnessPubKey address requests")
-	case lnwallet.NestedWitnessPubKey:
-		// TODO(matheusd) this is likely to be changed to a p2sh
-		panic("remove nestedWitnessPubKey address requests")
 	default:
 		return nil, fmt.Errorf("unknown address type")
 	}
