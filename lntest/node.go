@@ -95,7 +95,7 @@ func nextAvailablePort() int {
 		if err == nil {
 			err := l.Close()
 			if err == nil {
-				return port
+				return int(port)
 			}
 			return int(port)
 		}
