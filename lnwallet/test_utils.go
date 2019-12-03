@@ -485,12 +485,6 @@ func calcStaticFee(numHTLCs int) dcrutil.Amount {
 // commitment, etc) is reasonably sane according to consensus and standardness
 // checks that don't require a full backing blockchain to verify.
 func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOut, netParams *chaincfg.Params) error {
-	scriptFlagsForTest := txscript.ScriptDiscourageUpgradableNops |
-		txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify |
-		txscript.ScriptVerifySHA256
-
 	err := blockchain.CheckTransactionSanity(tx, netParams)
 	if err != nil {
 		return fmt.Errorf("error checking tx sanity: %v", err)
@@ -526,7 +520,7 @@ func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOu
 		}
 
 		engine, err := txscript.NewEngine(utxo.PkScript, tx, i,
-			scriptFlagsForTest, utxo.Version, nil)
+			input.ScriptVerifyFlags, utxo.Version, nil)
 		if err != nil {
 			return fmt.Errorf("error creating engine to process input %d: %v",
 				i, err)

@@ -77,13 +77,6 @@ var (
 	netParams = chaincfg.SimNetParams()
 	chainHash = &netParams.GenesisHash
 
-	// TODO(matheusd) Are these all?
-	scriptFlagsForTest = txscript.ScriptDiscourageUpgradableNops |
-		txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify |
-		txscript.ScriptVerifySHA256
-
 	_, alicePub = secp256k1.PrivKeyFromBytes(testHdSeed[:])
 	_, bobPub   = secp256k1.PrivKeyFromBytes(bobsPrivKey)
 
@@ -1590,7 +1583,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 	// succeed if the wallet was able to properly generate the proper
 	// private key.
 	vm, err := txscript.NewEngine(
-		keyScript, tx1, 0, scriptFlagsForTest, tx.TxOut[outputIndex].Version, nil,
+		keyScript, tx1, 0, input.ScriptVerifyFlags, tx.TxOut[outputIndex].Version, nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create engine: %v", err)
@@ -1987,7 +1980,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// should succeed if the wallet was able to properly generate
 		// the proper private key.
 		vm, err := txscript.NewEngine(keyScript,
-			sweepTx, 0, scriptFlagsForTest, newOutput.Version, nil)
+			sweepTx, 0, input.ScriptVerifyFlags, newOutput.Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}

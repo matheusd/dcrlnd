@@ -37,13 +37,6 @@ var (
 		0x4f, 0x2f, 0x6f, 0x25, 0x88, 0xa3, 0xef, 0xb9,
 		0x6a, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
-
-	// TODO(matheusd) Are these all?
-	scriptFlagsForTest = txscript.ScriptDiscourageUpgradableNops |
-		txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify |
-		txscript.ScriptVerifySHA256
 )
 
 // MockSigner is a simple implementation of the Signer interface. Each one has

@@ -197,12 +197,6 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 		return nil, err
 	}
 
-	// TODO(decred) any others?
-	scriptVerifyFlags := txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify |
-		txscript.ScriptVerifySHA256
-
 	// Since the transaction inputs could have been reordered as a result
 	// of the BIP69 sort, create an index mapping each prevout to it's new
 	// index.
@@ -227,7 +221,7 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 		// for the breached inputs.
 		vm, err := txscript.NewEngine(
 			inp.txOut.PkScript, justiceTxn, i,
-			scriptVerifyFlags,
+			input.ScriptVerifyFlags,
 			inp.txOut.Version, nil,
 		)
 		if err != nil {

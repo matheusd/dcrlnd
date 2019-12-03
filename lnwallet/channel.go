@@ -17,7 +17,6 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/dcrutil/v2/txsort"
-	"github.com/decred/dcrd/mempool/v3"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
@@ -153,13 +152,6 @@ const (
 	// channelPendingPayment indicates that there a currently outstanding
 	// HTLCs within the channel.
 	channelPendingPayment // nolint:unused
-)
-
-const (
-	// scriptFlags defines the flags to use when validating the scripts
-	// including valid signatures have been provided by remote peers.
-	scriptFlags = mempool.BaseStandardVerifyFlags |
-		txscript.ScriptVerifySHA256
 )
 
 // PaymentHash represents the sha256 of a random value. This hash is used to
@@ -5946,7 +5938,7 @@ func (lc *LightningChannel) CompleteCooperativeClose(localSig, remoteSig []byte,
 	// properly met, and that the remote peer supplied a valid signature.
 	prevOut := lc.signDesc.Output
 	vm, err := txscript.NewEngine(prevOut.PkScript, closeTx, 0,
-		scriptFlags, prevOut.Version, nil)
+		input.ScriptVerifyFlags, prevOut.Version, nil)
 	if err != nil {
 		return nil, 0, err
 	}

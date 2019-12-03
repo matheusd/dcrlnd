@@ -305,7 +305,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, scriptFlagsForTest, htlcOutput.Version, nil)
+			sweepTx, 0, ScriptVerifyFlags, htlcOutput.Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}
@@ -580,7 +580,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, scriptFlagsForTest, scriptVersion,
+			sweepTx, 0, ScriptVerifyFlags, scriptVersion,
 			nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
@@ -810,7 +810,7 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 		}
 
 		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, scriptFlagsForTest, scriptVersion, nil)
+			sweepTx, 0, ScriptVerifyFlags, scriptVersion, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
 		}

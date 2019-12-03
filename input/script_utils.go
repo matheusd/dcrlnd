@@ -14,6 +14,15 @@ import (
 	"github.com/decred/dcrd/wire"
 )
 
+// ScriptVerifyFlags are the flags used in script VMs when testing LN-related
+// scripts. These need to correspond to the current state of consensus rules
+// necessary for LN operation and the overall standard mempool settings.
+const ScriptVerifyFlags = txscript.ScriptDiscourageUpgradableNops | // standardness
+	txscript.ScriptVerifyCleanStack | // consensus
+	txscript.ScriptVerifyCheckLockTimeVerify | // consensus
+	txscript.ScriptVerifyCheckSequenceVerify | // consensus (lnfeatures)
+	txscript.ScriptVerifySHA256 // consensus (lnfeatures)
+
 // LNTxVersion is the version that transactions need to be defined to use so
 // that they are usable as ln transactions.
 const LNTxVersion uint16 = 2

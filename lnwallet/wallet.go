@@ -1039,7 +1039,7 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 
 			// Ensure that the witness+sigScript combo is valid.
 			vm, err := txscript.NewEngine(output.PkScript,
-				fundingTx, i, scriptFlags, output.Version, nil)
+				fundingTx, i, input.ScriptVerifyFlags, output.Version, nil)
 			if err != nil {
 				msg.err <- fmt.Errorf("cannot create script "+
 					"engine: %s", err)

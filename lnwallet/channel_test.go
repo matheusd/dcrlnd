@@ -24,13 +24,6 @@ import (
 )
 
 var (
-	// TODO(matheusd) Are these all?
-	scriptFlagsForTest = txscript.ScriptDiscourageUpgradableNops |
-		txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify |
-		txscript.ScriptVerifySHA256
-
 	testChainParams = chaincfg.RegNetParams()
 )
 
@@ -649,7 +642,7 @@ func TestForceClose(t *testing.T) {
 	// that produces this HTLC.
 	timeoutTx := htlcResolution.SignedTimeoutTx
 	vm, err := txscript.NewEngine(senderHtlcPkScript, timeoutTx, 0,
-		scriptFlagsForTest, senderHtlcScriptVersion, nil)
+		input.ScriptVerifyFlags, senderHtlcScriptVersion, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -689,7 +682,7 @@ func TestForceClose(t *testing.T) {
 	// validate given the information within the htlc resolution struct.
 	vm, err = txscript.NewEngine(
 		htlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, scriptFlagsForTest,
+		sweepTx, 0, input.ScriptVerifyFlags,
 		htlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
@@ -727,7 +720,7 @@ func TestForceClose(t *testing.T) {
 		t.Fatalf("unable to replace preimage in sigScript: %v", err)
 	}
 	vm, err = txscript.NewEngine(receiverHtlcScript,
-		successTx, 0, scriptFlagsForTest, receiverHtlcScriptVersion, nil)
+		successTx, 0, input.ScriptVerifyFlags, receiverHtlcScriptVersion, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -761,7 +754,7 @@ func TestForceClose(t *testing.T) {
 	// should validate without any issues.
 	vm, err = txscript.NewEngine(
 		inHtlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, scriptFlagsForTest,
+		sweepTx, 0, input.ScriptVerifyFlags,
 		inHtlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
@@ -5106,7 +5099,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 
 	vm, err := txscript.NewEngine(
 		outHtlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, scriptFlagsForTest,
+		sweepTx, 0, input.ScriptVerifyFlags,
 		outHtlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
@@ -5145,7 +5138,7 @@ func TestChannelUnilateralCloseHtlcResolution(t *testing.T) {
 	// can properly sweep the output.
 	vm, err = txscript.NewEngine(
 		inHtlcResolution.SweepSignDesc.Output.PkScript,
-		sweepTx, 0, scriptFlagsForTest,
+		sweepTx, 0, input.ScriptVerifyFlags,
 		inHtlcResolution.SweepSignDesc.Output.Version, nil,
 	)
 	if err != nil {
@@ -5277,7 +5270,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 	// be fully valid.
 	vm, err := txscript.NewEngine(
 		aliceSignDesc.Output.PkScript,
-		sweepTx, 0, scriptFlagsForTest, aliceSignDesc.Output.Version, nil,
+		sweepTx, 0, input.ScriptVerifyFlags, aliceSignDesc.Output.Version, nil,
 	)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)

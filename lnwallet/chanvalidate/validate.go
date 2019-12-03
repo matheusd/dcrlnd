@@ -7,22 +7,10 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
-var (
-	// validateScriptFlags are the flags used to test whether the scripts
-	// used in validated transactions are valid and standard.
-	//
-	// These MUST correspond to the ones used by the current consensus
-	// rules active in Decred and need to be updated whenever new rules
-	// enter into effect.
-	validateScriptFlags = txscript.ScriptDiscourageUpgradableNops |
-		txscript.ScriptVerifyCleanStack |
-		txscript.ScriptVerifyCheckLockTimeVerify |
-		txscript.ScriptVerifyCheckSequenceVerify |
-		txscript.ScriptVerifySHA256
-)
 var (
 	// ErrInvalidOutPoint is returned when the ChanLocator is unable to
 	// find the target outpoint.
@@ -201,7 +189,7 @@ func Validate(ctx *Context) (*wire.OutPoint, error) {
 	// able to close the channel using this initial state.
 	vm, err := txscript.NewEngine(
 		ctx.MultiSigPkScript, ctx.CommitCtx.FullySignedCommitTx,
-		0, validateScriptFlags, fundingOutput.Version, nil,
+		0, input.ScriptVerifyFlags, fundingOutput.Version, nil,
 	)
 	if err != nil {
 		return nil, err

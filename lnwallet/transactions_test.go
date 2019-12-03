@@ -1146,7 +1146,7 @@ func testSpendValidation(t *testing.T, tweakless bool) {
 	}
 
 	vm, err := txscript.NewEngine(delayOutput.PkScript,
-		sweepTx, 0, scriptFlagsForTest, delayOutput.Version, nil)
+		sweepTx, 0, input.ScriptVerifyFlags, delayOutput.Version, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -1182,7 +1182,7 @@ func testSpendValidation(t *testing.T, tweakless bool) {
 	}
 
 	vm, err = txscript.NewEngine(delayOutput.PkScript,
-		sweepTx, 0, scriptFlagsForTest, delayOutput.Version, nil)
+		sweepTx, 0, input.ScriptVerifyFlags, delayOutput.Version, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
@@ -1233,7 +1233,7 @@ func testSpendValidation(t *testing.T, tweakless bool) {
 	}
 
 	vm, err = txscript.NewEngine(regularOutput.PkScript,
-		sweepTx, 0, scriptFlagsForTest, regularOutput.Version, nil)
+		sweepTx, 0, input.ScriptVerifyFlags, regularOutput.Version, nil)
 	if err != nil {
 		t.Fatalf("unable to create engine: %v", err)
 	}
