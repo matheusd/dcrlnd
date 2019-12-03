@@ -1662,7 +1662,8 @@ func (l *LightningWallet) ValidateChannel(channelState *channeldb.OpenChannel,
 
 	// First, we'll obtain a fully signed commitment transaction so we can
 	// pass into it on the chanvalidate package for verification.
-	channel, err := NewLightningChannel(l.Cfg.Signer, channelState, nil)
+	channel, err := NewLightningChannel(l.Cfg.Signer, channelState, nil,
+		&l.Cfg.NetParams)
 	if err != nil {
 		return err
 	}

@@ -335,7 +335,7 @@ func CreateTestChannels(tweaklessCommits bool) (
 
 	alicePool := NewSigPool(1, aliceSigner)
 	channelAlice, err := NewLightningChannel(
-		aliceSigner, aliceChannelState, alicePool,
+		aliceSigner, aliceChannelState, alicePool, netParams,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -345,7 +345,7 @@ func CreateTestChannels(tweaklessCommits bool) (
 	}
 	bobPool := NewSigPool(1, bobSigner)
 	channelBob, err := NewLightningChannel(
-		bobSigner, bobChannelState, bobPool,
+		bobSigner, bobChannelState, bobPool, netParams,
 	)
 	if err != nil {
 		return nil, nil, nil, err

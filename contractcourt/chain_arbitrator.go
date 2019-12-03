@@ -262,7 +262,7 @@ func newActiveChannelArbitrator(channel *channeldb.OpenChannel,
 			// Finally, we'll force close the channel completing
 			// the force close workflow.
 			chanMachine, err := lnwallet.NewLightningChannel(
-				c.cfg.Signer, channel, nil,
+				c.cfg.Signer, channel, nil, c.cfg.NetParams,
 			)
 			if err != nil {
 				return nil, err

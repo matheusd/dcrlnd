@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"
@@ -29,6 +30,8 @@ var (
 		txscript.ScriptVerifyCheckLockTimeVerify |
 		txscript.ScriptVerifyCheckSequenceVerify |
 		txscript.ScriptVerifySHA256
+
+	testChainParams = chaincfg.RegNetParams()
 )
 
 // createHTLC is a utility function for generating an HTLC with a given
@@ -1507,6 +1510,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 
 	aliceChannelNew, err := NewLightningChannel(
 		aliceChannel.Signer, aliceChannels[0], aliceChannel.sigPool,
+		testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -1514,6 +1518,7 @@ func TestStateUpdatePersistence(t *testing.T) {
 
 	bobChannelNew, err := NewLightningChannel(
 		bobChannel.Signer, bobChannels[0], bobChannel.sigPool,
+		testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -2732,12 +2737,14 @@ func TestChanSyncFullySynced(t *testing.T) {
 
 	aliceChannelNew, err := NewLightningChannel(
 		aliceChannel.Signer, aliceChannels[0], aliceChannel.sigPool,
+		testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
 	}
 	bobChannelNew, err := NewLightningChannel(
 		bobChannel.Signer, bobChannels[0], bobChannel.sigPool,
+		testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -2760,7 +2767,7 @@ func restartChannel(channelOld *LightningChannel) (*LightningChannel, error) {
 
 	channelNew, err := NewLightningChannel(
 		channelOld.Signer, nodeChannels[0],
-		channelOld.sigPool,
+		channelOld.sigPool, testChainParams,
 	)
 	if err != nil {
 		return nil, err
@@ -6013,7 +6020,7 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 	// the update logs up to the correct state set up above.
 	newAliceChannel, err := NewLightningChannel(
 		aliceChannel.Signer, aliceChannel.channelState,
-		aliceChannel.sigPool,
+		aliceChannel.sigPool, testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -6021,7 +6028,7 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 
 	newBobChannel, err := NewLightningChannel(
 		bobChannel.Signer, bobChannel.channelState,
-		bobChannel.sigPool,
+		bobChannel.sigPool, testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -6095,7 +6102,7 @@ func restoreAndAssert(t *testing.T, channel *LightningChannel, numAddsLocal,
 
 	newChannel, err := NewLightningChannel(
 		channel.Signer, channel.channelState,
-		channel.sigPool,
+		channel.sigPool, testChainParams,
 	)
 	if err != nil {
 		t.Fatalf("unable to create new channel: %v", err)
@@ -6405,6 +6412,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 
 		newChannel, err := NewLightningChannel(
 			channel.Signer, channel.channelState, channel.sigPool,
+			testChainParams,
 		)
 		if err != nil {
 			t.Fatalf("unable to create new channel: %v", err)

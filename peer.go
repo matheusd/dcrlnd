@@ -440,6 +440,7 @@ func (p *peer) loadActiveChannels(chans []*channeldb.OpenChannel) (
 	for _, dbChan := range chans {
 		lnChan, err := lnwallet.NewLightningChannel(
 			p.server.cc.signer, dbChan, p.server.sigPool,
+			activeNetParams.Params,
 		)
 		if err != nil {
 			return nil, err
@@ -1804,6 +1805,7 @@ out:
 			// easily according to its channel ID.
 			lnChan, err := lnwallet.NewLightningChannel(
 				p.server.cc.signer, newChan, p.server.sigPool,
+				activeNetParams.Params,
 			)
 			if err != nil {
 				p.activeChanMtx.Unlock()

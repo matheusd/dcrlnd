@@ -315,7 +315,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 
 	alicePool := lnwallet.NewSigPool(1, aliceSigner)
 	channelAlice, err := lnwallet.NewLightningChannel(
-		aliceSigner, aliceChannelState, alicePool,
+		aliceSigner, aliceChannelState, alicePool, chainParams,
 	)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -324,7 +324,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier,
 
 	bobPool := lnwallet.NewSigPool(1, bobSigner)
 	channelBob, err := lnwallet.NewLightningChannel(
-		bobSigner, bobChannelState, bobPool,
+		bobSigner, bobChannelState, bobPool, chainParams,
 	)
 	if err != nil {
 		return nil, nil, nil, nil, err

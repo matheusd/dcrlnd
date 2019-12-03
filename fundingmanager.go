@@ -778,7 +778,7 @@ func (f *fundingManager) advanceFundingState(channel *channeldb.OpenChannel,
 
 	// We create the state-machine object which wraps the database state.
 	lnChannel, err := lnwallet.NewLightningChannel(
-		nil, channel, nil,
+		nil, channel, nil, activeNetParams.Params,
 	)
 	if err != nil {
 		fndgLog.Errorf("Unable to create LightningChannel(%v): %v",

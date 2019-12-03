@@ -1962,6 +1962,7 @@ func (r *rpcServer) fetchActiveChannel(chanPoint wire.OutPoint) (
 	// uses the db channel as backing storage.
 	return lnwallet.NewLightningChannel(
 		r.server.cc.wallet.Cfg.Signer, dbChan, nil,
+		activeNetParams.Params,
 	)
 }
 

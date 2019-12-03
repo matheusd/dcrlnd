@@ -780,7 +780,7 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate AtomPerKByte,
 	// generated so we can easily locate them within the commitment
 	// transaction in the future.
 	var (
-		ourP2WSH, theirP2WSH                 []byte // TODO(decred): P2SH
+		ourP2SH, theirP2SH                   []byte
 		ourWitnessScript, theirWitnessScript []byte
 		pd                                   PaymentDescriptor
 		err                                  error
@@ -794,7 +794,7 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate AtomPerKByte,
 	isDustLocal := htlcIsDust(htlc.Incoming, true, feeRate,
 		htlc.Amt.ToAtoms(), lc.channelState.LocalChanCfg.DustLimit)
 	if !isDustLocal && localCommitKeys != nil {
-		ourP2WSH, ourWitnessScript, err = genHtlcScript(
+		ourP2SH, ourWitnessScript, err = genHtlcScript(
 			htlc.Incoming, true, htlc.RefundTimeout, htlc.RHash,
 			localCommitKeys)
 		if err != nil {
@@ -804,7 +804,7 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate AtomPerKByte,
 	isDustRemote := htlcIsDust(htlc.Incoming, false, feeRate,
 		htlc.Amt.ToAtoms(), lc.channelState.RemoteChanCfg.DustLimit)
 	if !isDustRemote && remoteCommitKeys != nil {
-		theirP2WSH, theirWitnessScript, err = genHtlcScript(
+		theirP2SH, theirWitnessScript, err = genHtlcScript(
 			htlc.Incoming, false, htlc.RefundTimeout, htlc.RHash,
 			remoteCommitKeys)
 		if err != nil {
@@ -823,9 +823,9 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate AtomPerKByte,
 		HtlcIndex:          htlc.HtlcIndex,
 		LogIndex:           htlc.LogIndex,
 		OnionBlob:          htlc.OnionBlob,
-		ourPkScript:        ourP2WSH,
+		ourPkScript:        ourP2SH,
 		ourWitnessScript:   ourWitnessScript,
-		theirPkScript:      theirP2WSH,
+		theirPkScript:      theirP2SH,
 		theirWitnessScript: theirWitnessScript,
 	}
 
@@ -1404,7 +1404,8 @@ type LightningChannel struct {
 // manner.
 func NewLightningChannel(signer input.Signer,
 	state *channeldb.OpenChannel,
-	sigPool *SigPool) (*LightningChannel, error) {
+	sigPool *SigPool,
+	netParams *chaincfg.Params) (*LightningChannel, error) {
 
 	localCommit := state.LocalCommitment
 	remoteCommit := state.RemoteCommitment
@@ -1433,9 +1434,7 @@ func NewLightningChannel(signer input.Signer,
 		Capacity:          state.Capacity,
 		LocalFundingKey:   state.LocalChanCfg.MultiSigKey.PubKey,
 		RemoteFundingKey:  state.RemoteChanCfg.MultiSigKey.PubKey,
-
-		// TODO(decred) This needs to be fed in NewLightingChannel
-		netParams: chaincfg.SimNetParams(),
+		netParams:         netParams,
 	}
 
 	// With the main channel struct reconstructed, we'll now restore the
@@ -1555,7 +1554,7 @@ func (lc *LightningChannel) logUpdateToPayDesc(logUpdate *channeldb.LogUpdate,
 		isDustRemote := htlcIsDust(false, false, feeRate,
 			wireMsg.Amount.ToAtoms(), remoteDustLimit)
 		if !isDustRemote {
-			theirP2WSH, theirWitnessScript, err := genHtlcScript( // TODO(decred): P2SH
+			theirP2SH, theirWitnessScript, err := genHtlcScript(
 				false, false, wireMsg.Expiry, wireMsg.PaymentHash,
 				remoteCommitKeys,
 			)
@@ -1563,7 +1562,7 @@ func (lc *LightningChannel) logUpdateToPayDesc(logUpdate *channeldb.LogUpdate,
 				return nil, err
 			}
 
-			pd.theirPkScript = theirP2WSH
+			pd.theirPkScript = theirP2SH
 			pd.theirWitnessScript = theirWitnessScript
 		}
 
@@ -2042,14 +2041,15 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 		return nil, err
 	}
 
-	// TODO(decred): Tree?
 	// In order to fully populate the breach retribution struct, we'll need
 	// to find the exact index of the local+remote commitment outputs.
 	localOutpoint := wire.OutPoint{
 		Hash: commitHash,
+		Tree: wire.TxTreeRegular,
 	}
 	remoteOutpoint := wire.OutPoint{
 		Hash: commitHash,
+		Tree: wire.TxTreeRegular,
 	}
 	for i, txOut := range revokedSnapshot.CommitTx.TxOut {
 		switch {
@@ -2080,9 +2080,10 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 			KeyDesc:       chanState.LocalChanCfg.PaymentBasePoint,
 			WitnessScript: localPkScript,
 			Output: &wire.TxOut{
+				Version:  scriptVersion,
 				PkScript: localPkScript,
 				Value:    int64(localAmt),
-			}, // TODO(decred): Tree?
+			},
 			HashType: txscript.SigHashAll,
 		}
 
@@ -2101,9 +2102,10 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 			DoubleTweak:   commitmentSecret,
 			WitnessScript: remotePkScript,
 			Output: &wire.TxOut{
+				Version:  scriptVersion,
 				PkScript: remoteWitnessHash,
 				Value:    int64(remoteAmt),
-			}, // TODO(decred): Tree?
+			},
 			HashType: txscript.SigHashAll,
 		}
 	}
@@ -2176,6 +2178,7 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 				DoubleTweak:   commitmentSecret,
 				WitnessScript: htlcWitnessScript,
 				Output: &wire.TxOut{
+					Version:  scriptVersion,
 					PkScript: htlcPkScript,
 					Value:    int64(htlc.Amt.ToAtoms()),
 				},
@@ -2184,7 +2187,8 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 			OutPoint: wire.OutPoint{
 				Hash:  commitHash,
 				Index: uint32(htlc.OutputIndex),
-			}, // TODO(decred): Tree?
+				Tree:  wire.TxTreeRegular,
+			},
 			SecondLevelWitnessScript: secondLevelWitnessScript,
 			IsIncoming:               htlc.Incoming,
 		})
@@ -2858,7 +2862,8 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		op := wire.OutPoint{
 			Hash:  txHash,
 			Index: uint32(htlc.remoteOutputIndex),
-		} // TODO(decred): Tree?
+			Tree:  wire.TxTreeRegular,
+		}
 		sigJob.Tx, err = createHtlcTimeoutTx(
 			op, outputAmt, htlc.Timeout,
 			uint32(remoteChanCfg.CsvDelay),
@@ -2909,7 +2914,8 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		op := wire.OutPoint{
 			Hash:  txHash,
 			Index: uint32(htlc.remoteOutputIndex),
-		} // TODO(decred): Tree?
+			Tree:  wire.TxTreeRegular,
+		}
 		sigJob.Tx, err = createHtlcSuccessTx(
 			op, outputAmt, uint32(remoteChanCfg.CsvDelay),
 			keyRing.RevocationKey, keyRing.DelayKey,
