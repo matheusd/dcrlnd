@@ -317,9 +317,8 @@ func senderHtlcSpendRevoke(signer Signer, signDesc *SignDescriptor,
 		return nil, err
 	}
 
-	// TODO(decred): p2wkh -> p2pkh
 	// The stack required to sweep a revoke HTLC output consists simply of
-	// the exact witness stack as one of a regular p2wkh spend. The only
+	// the exact witness stack as one of a regular p2pkh spend. The only
 	// difference is that the keys used were derived in an adversarial
 	// manner in order to encode the revocation contract into a sig+key
 	// pair.

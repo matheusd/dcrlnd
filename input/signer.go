@@ -16,12 +16,10 @@ type Signer interface {
 	// NOTE: The resulting signature should be void of a sighash byte.
 	SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]byte, error)
 
-	// TODO(decred): p2wkh to p2pkh
 	// ComputeInputScript generates a complete InputIndex for the passed
 	// transaction with the signature as defined within the passed
 	// SignDescriptor. This method should be capable of generating the
-	// proper input script for both regular p2wkh output and p2wkh outputs
-	// nested within a regular p2sh output.
+	// proper input script for regular p2pkh.
 	//
 	// NOTE: This method will ignore any tweak parameters set within the
 	// passed SignDescriptor as it assumes a set of typical script
@@ -41,8 +39,8 @@ type Script struct {
 
 	//  SigScript contains the full signature script witness data.
 	//
-	// TODO(decred) Possibly remove this, since we use the invidual
-	// elements of Witness above and convert to the final sig script by
-	// using the WitnessStackToSigScript() function
+	// On Decred this is mostly unused since we use the invidual elements
+	// of Witness above and convert to the final sig script by using the
+	// WitnessStackToSigScript() function.
 	SigScript []byte
 }

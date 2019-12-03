@@ -59,7 +59,7 @@ type SignDescriptor struct {
 	// output. This field will only be populated if a p2sh
 	// output is being signed.
 	//
-	// TODO(decred): Rename to "redeemScript"
+	// On Decred this is usually referred to as the "redeemScript".
 	WitnessScript []byte
 
 	// Output is the target output which should be signed. The PkScript and
@@ -71,9 +71,10 @@ type SignDescriptor struct {
 	// generating the final sighash, and signature.
 	HashType txscript.SigHashType
 
-	// TODO(decred): Fix...
 	// SigHashes is the pre-computed sighash midstate to be used when
 	// generating the final sighash for signing.
+	//
+	// Note: Decred doesn't currently use a sighash cache.
 	//SigHashes *txscript.TxSigHashes
 
 	// InputIndex is the target input within the transaction that should be

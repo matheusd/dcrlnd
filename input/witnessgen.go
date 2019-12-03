@@ -10,7 +10,7 @@ import (
 // default commitmentTimeLock type will generate a witness that will allow
 // spending of a time-locked transaction enforced by CheckSequenceVerify.
 //
-// TODO(decred) rename from WitnessType to SigScriptType
+// NOTE(decred): This would ordinarily be called 'SigScriptType'.
 type WitnessType uint16
 
 const (
@@ -85,7 +85,7 @@ const (
 	// that sends to a standard p2pkh script that pays to a key solely
 	// under the control of the backing wallet.
 	//
-	// NODE(decred): The value was chosen so that it won't conflict with
+	// NOTE(decred): The value was chosen so that it won't conflict with
 	// future new types added to the upstream lnd project.
 	PublicKeyHash WitnessType = 901
 
