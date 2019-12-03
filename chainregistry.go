@@ -30,15 +30,18 @@ import (
 
 const (
 	// TODO(decred) verify these amounts
+
+	// defaultDecredMinHTLCAtoms is the default minimum amount of a
+	// forwarded HTLC.
 	defaultDecredMinHTLCMAtoms = lnwire.MilliAtom(1000)
 
 	// DefaultDecredBaseFeeMAtoms is the default forwarding base fee.
 	DefaultDecredBaseFeeMAtoms = lnwire.MilliAtom(1000)
 
-	// DefaultBitcoinFeeRate is the default forwarding fee rate.
+	// DefaultDecredFeeRate is the default forwarding fee rate.
 	DefaultDecredFeeRate = lnwire.MilliAtom(1)
 
-	// DefaultBitcoinTimeLockDelta is the default forwarding time lock
+	// DefaultDecredTimeLockDelta is the default forwarding time lock
 	// delta.
 	DefaultDecredTimeLockDelta = 80
 
