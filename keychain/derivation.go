@@ -177,10 +177,6 @@ type KeyRing interface {
 	// passed KeyLocator. This may be used in several recovery scenarios,
 	// or when manually rotating something like our current default node
 	// key.
-	//
-	// TODO(decred) Clarify whether addresses associated with keys returned by
-	// this call should be watched for transactions or not (seems they don't
-	// based on the current call stack).
 	DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error)
 }
 
