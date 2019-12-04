@@ -2350,6 +2350,9 @@ func (f *fundingManager) annAfterSixConfs(completeChan *channeldb.OpenChannel,
 		if fwdMaxHTLC > capacityMAtoms {
 			fwdMaxHTLC = capacityMAtoms
 		}
+		if fwdMaxHTLC > MaxPaymentMAtoms {
+			fwdMaxHTLC = MaxPaymentMAtoms
+		}
 
 		// Create and broadcast the proofs required to make this channel
 		// public and usable for other nodes for routing.
