@@ -501,7 +501,7 @@ func (c *channelCloser) ProcessCloseMsg(msg lnwire.Message) ([]lnwire.Message, b
 		// Before publishing the closing tx, we persist it to the
 		// database, such that it can be republished if something goes
 		// wrong.
-		err = c.cfg.channel.MarkCommitmentBroadcasted(closeTx)
+		err = c.cfg.channel.MarkCoopBroadcasted(closeTx)
 		if err != nil {
 			return nil, false, err
 		}
@@ -549,7 +549,6 @@ func (c *channelCloser) ProcessCloseMsg(msg lnwire.Message) ([]lnwire.Message, b
 // transaction for a channel based on the prior fee negotiations and our
 // current compromise fee.
 func (c *channelCloser) proposeCloseSigned(fee dcrutil.Amount) (*lnwire.ClosingSigned, error) {
-
 	rawSig, _, _, err := c.cfg.channel.CreateCloseProposal(
 		fee, c.localDeliveryScript, c.remoteDeliveryScript,
 	)
