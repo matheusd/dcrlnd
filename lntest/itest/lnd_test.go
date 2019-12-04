@@ -31,6 +31,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/chanbackup"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
@@ -362,10 +363,33 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 	}
 	chanPointStr := fmt.Sprintf("%v:%v", txid, fundingChanPoint.OutputIndex)
 
+	// If the channel appears in list channels, ensure that its state
+	// contains ChanStatusCoopBroadcasted.
+	ctxt, _ := context.WithTimeout(ctx, defaultTimeout)
+	listChansRequest := &lnrpc.ListChannelsRequest{}
+	listChansResp, err := node.ListChannels(ctxt, listChansRequest)
+	if err != nil {
+		t.Fatalf("unable to query for list channels: %v", err)
+	}
+	for _, channel := range listChansResp.Channels {
+		// Skip other channels.
+		if channel.ChannelPoint != chanPointStr {
+			continue
+		}
+
+		// Assert that the channel is in coop broadcasted.
+		if !strings.Contains(channel.ChanStatusFlags,
+			channeldb.ChanStatusCoopBroadcasted.String()) {
+			t.Fatalf("channel not coop broadcasted, "+
+				"got: %v", channel.ChanStatusFlags)
+		}
+	}
+
 	// At this point, the channel should now be marked as being in the
 	// state of "waiting close".
+	ctxt, _ = context.WithTimeout(ctx, defaultTimeout)
 	pendingChansRequest := &lnrpc.PendingChannelsRequest{}
-	pendingChanResp, err := node.PendingChannels(ctx, pendingChansRequest)
+	pendingChanResp, err := node.PendingChannels(ctxt, pendingChansRequest)
 	if err != nil {
 		t.Fatalf("unable to query for pending channels: %v", err)
 	}
