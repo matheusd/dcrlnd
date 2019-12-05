@@ -1447,8 +1447,8 @@ func create(ctx *cli.Context) error {
 				restoreSCB = true
 				break warningLoop
 			case "n":
-				restoreSCB = false
-				break warningLoop
+				fmt.Println("Aborting SCB recovery")
+				return nil
 			}
 		}
 	}
