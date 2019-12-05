@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -20,12 +21,13 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
+	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/walletunlocker"
 	"github.com/lightninglabs/protobuf-hex-display/json"
 	"github.com/lightninglabs/protobuf-hex-display/jsonpb"
 	"github.com/lightninglabs/protobuf-hex-display/proto"
-
 	"github.com/urfave/cli"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -2157,6 +2159,10 @@ var sendPaymentCommand = cli.Command{
 			Name:  "final_cltv_delta",
 			Usage: "the number of blocks the last hop has to reveal the preimage",
 		},
+		cli.BoolFlag{
+			Name:  "key_send",
+			Usage: "will generate a pre-image and encode it in the sphinx packet, a dest must be set [experimental]",
+		},
 	),
 	Action: sendPayment,
 }
@@ -2262,14 +2268,32 @@ func sendPayment(ctx *cli.Context) error {
 
 	var rHash []byte
 
-	switch {
-	case ctx.IsSet("payment_hash"):
-		rHash, err = hex.DecodeString(ctx.String("payment_hash"))
-	case args.Present():
-		rHash, err = hex.DecodeString(args.First())
-		args = args.Tail()
-	default:
-		return fmt.Errorf("payment hash argument missing")
+	if ctx.Bool("key_send") {
+		if ctx.IsSet("payment_hash") {
+			return errors.New("cannot set payment hash when using " +
+				"key send")
+		}
+		var preimage lntypes.Preimage
+		if _, err := rand.Read(preimage[:]); err != nil {
+			return err
+		}
+
+		req.DestCustomRecords = map[uint64][]byte{
+			record.KeySendType: preimage[:],
+		}
+
+		hash := preimage.Hash()
+		rHash = hash[:]
+	} else {
+		switch {
+		case ctx.IsSet("payment_hash"):
+			rHash, err = hex.DecodeString(ctx.String("payment_hash"))
+		case args.Present():
+			rHash, err = hex.DecodeString(args.First())
+			args = args.Tail()
+		default:
+			return fmt.Errorf("payment hash argument missing")
+		}
 	}
 
 	if err != nil {
