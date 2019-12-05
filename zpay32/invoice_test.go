@@ -25,7 +25,19 @@ var (
 	testMilliAt25mDCR   = lnwire.MilliAtom(2500000000)
 	testMilliAt20mDCR   = lnwire.MilliAtom(2000000000)
 
-	testPaymentHashSlice, _ = hex.DecodeString("0001020304050607080900010203040506070809000102030405060708090102")
+	testPaymentHash = [32]byte{
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+		0x06, 0x07, 0x08, 0x09, 0x00, 0x01, 0x02, 0x03,
+		0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x01, 0x02,
+	}
+
+	testPaymentAddr = [32]byte{
+		0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x01, 0x02,
+		0x06, 0x07, 0x08, 0x09, 0x00, 0x01, 0x02, 0x03,
+		0x08, 0x09, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+	}
 
 	testEmptyString    = ""
 	testCupOfCoffee    = "1 cup coffee"
@@ -88,12 +100,10 @@ var (
 	}
 
 	// Must be initialized in init().
-	testPaymentHash     [32]byte
 	testDescriptionHash [32]byte
 )
 
 func init() {
-	copy(testPaymentHash[:], testPaymentHashSlice)
 	copy(testDescriptionHash[:], testDescriptionHashSlice)
 }
 
@@ -519,6 +529,25 @@ func TestDecodeEncode(t *testing.T) {
 					Description(testCupOfCoffee),
 					Destination(testPubKey),
 					CLTVExpiry(144),
+				)
+
+				return i
+			},
+		},
+		{
+			// Send 2500uDCR for a cup of coffee with a payment
+			// address.
+			encodedInvoice: "lndcr2500u1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsnp4q0n326hr8v9zprg8gsvezcch06gfaqqhde2aj730yg0durunfhv66sp5qszsvpcgpyqsyps8pqysqqgzqvyqjqqpqgpsgpgqqypqxpq9qcrsaug6v235r6p6pmyv4gkk8rddnjwryap5vfgl843425p9ng8lttvxr2rvk7690qjpy60qvu6d32l4f06uezh6ahywuh3cu0p0wyrmeksptmu700",
+			valid:          true,
+			decodedInvoice: func() *Invoice {
+				i, _ := NewInvoice(
+					chaincfg.MainNetParams(),
+					testPaymentHash,
+					time.Unix(1496314658, 0),
+					Amount(testMilliAt2500uDCR),
+					Description(testCupOfCoffee),
+					Destination(testPubKey),
+					PaymentAddr(testPaymentAddr),
 				)
 
 				return i
