@@ -4799,6 +4799,12 @@ func (r *rpcServer) DecodePayReq(ctx context.Context,
 		amt = int64(payReq.MilliAt.ToAtoms())
 	}
 
+	// Extract the payment address from the payment request, if present.
+	var paymentAddr []byte
+	if payReq.PaymentAddr != nil {
+		paymentAddr = payReq.PaymentAddr[:]
+	}
+
 	dest := payReq.Destination.SerializeCompressed()
 	return &lnrpc.PayReq{
 		Destination:     hex.EncodeToString(dest),
@@ -4811,6 +4817,7 @@ func (r *rpcServer) DecodePayReq(ctx context.Context,
 		Expiry:          expiry,
 		CltvExpiry:      int64(payReq.MinFinalCLTVExpiry()),
 		RouteHints:      routeHints,
+		PaymentAddr:     paymentAddr,
 	}, nil
 }
 
