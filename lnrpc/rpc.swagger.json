@@ -3267,6 +3267,10 @@
         "payment_addr": {
           "type": "string",
           "format": "byte"
+        },
+        "num_m_atoms": {
+          "type": "string",
+          "format": "int64"
         }
       }
     },
