@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
@@ -796,6 +797,7 @@ func newMockRegistry(minDelta uint32) *mockInvoiceRegistry {
 
 	registry := invoices.NewRegistry(
 		cdb,
+		invoices.NewInvoiceExpiryWatcher(clock.NewDefaultClock()),
 		&invoices.RegistryConfig{
 			FinalCltvRejectDelta: 5,
 		},
