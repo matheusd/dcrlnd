@@ -203,6 +203,12 @@ message PendingSweep {
 
     // The requested fee rate, expressed in atoms/byte, for this output.
     uint32 requested_atoms_per_byte = 9 [json_name = "requested_atoms_per_byte"];
+
+    /**
+    Whether this input must be force-swept. This means that it is swept even
+    if it has a negative yield.
+    */
+    bool force = 7 [json_name = "force"];
 }
 
 message PendingSweepsRequest {
@@ -227,6 +233,12 @@ message BumpFeeRequest {
     with.
     */
     uint32 atoms_per_byte = 3 [json_name = "atoms_per_byte"];
+
+    /**
+    Whether this input must be force-swept. This means that it is swept even
+    if it has a negative yield.
+    */
+    bool force = 4 [json_name = "force"];
 }
 
 message BumpFeeResponse {
