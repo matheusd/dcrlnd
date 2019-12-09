@@ -26,7 +26,7 @@ var (
 
 	testMaxInputsPerTx = 3
 
-	defaultFeePref = FeePreference{ConfTarget: 1}
+	defaultFeePref = Params{Fee: FeePreference{ConfTarget: 1}}
 )
 
 type sweeperTestContext struct {
@@ -359,7 +359,7 @@ func TestSuccess(t *testing.T) {
 	ctx := createSweeperTestContext(t)
 
 	// Sweeping an input without a fee preference should result in an error.
-	_, err := ctx.sweeper.SweepInput(spendableInputs[0], FeePreference{})
+	_, err := ctx.sweeper.SweepInput(spendableInputs[0], Params{})
 	if err != ErrNoFeePreference {
 		t.Fatalf("expected ErrNoFeePreference, got %v", err)
 	}
@@ -1031,17 +1031,23 @@ func TestDifferentFeePreferences(t *testing.T) {
 	ctx.estimator.blocksToFee[highFeePref.ConfTarget] = highFeeRate
 
 	input1 := spendableInputs[0]
-	resultChan1, err := ctx.sweeper.SweepInput(input1, highFeePref)
+	resultChan1, err := ctx.sweeper.SweepInput(
+		input1, Params{Fee: highFeePref},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	input2 := spendableInputs[1]
-	resultChan2, err := ctx.sweeper.SweepInput(input2, highFeePref)
+	resultChan2, err := ctx.sweeper.SweepInput(
+		input2, Params{Fee: highFeePref},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	input3 := spendableInputs[2]
-	resultChan3, err := ctx.sweeper.SweepInput(input3, lowFeePref)
+	resultChan3, err := ctx.sweeper.SweepInput(
+		input3, Params{Fee: lowFeePref},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1095,16 +1101,23 @@ func TestPendingInputs(t *testing.T) {
 	ctx.estimator.blocksToFee[highFeePref.ConfTarget] = highFeeRate
 
 	input1 := spendableInputs[0]
-	resultChan1, err := ctx.sweeper.SweepInput(input1, highFeePref)
+	resultChan1, err := ctx.sweeper.SweepInput(
+		input1, Params{Fee: highFeePref},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	input2 := spendableInputs[1]
-	if _, err := ctx.sweeper.SweepInput(input2, highFeePref); err != nil {
+	_, err = ctx.sweeper.SweepInput(
+		input2, Params{Fee: highFeePref},
+	)
+	if err != nil {
 		t.Fatal(err)
 	}
 	input3 := spendableInputs[2]
-	resultChan3, err := ctx.sweeper.SweepInput(input3, lowFeePref)
+	resultChan3, err := ctx.sweeper.SweepInput(
+		input3, Params{Fee: lowFeePref},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1160,7 +1173,9 @@ func TestBumpFeeRBF(t *testing.T) {
 	input := createTestInput(
 		dcrutil.AtomsPerCoin, input.CommitmentTimeLock,
 	)
-	sweepResult, err := ctx.sweeper.SweepInput(&input, lowFeePref)
+	sweepResult, err := ctx.sweeper.SweepInput(
+		&input, Params{Fee: lowFeePref},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
