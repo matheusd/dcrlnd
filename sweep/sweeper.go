@@ -211,9 +211,8 @@ type UtxoSweeperConfig struct {
 	// transaction.
 	FeeEstimator chainfee.Estimator
 
-	// PublishTransaction facilitates the process of broadcasting a signed
-	// transaction to the appropriate network.
-	PublishTransaction func(*wire.MsgTx) error
+	// Wallet contains the wallet functions that sweeper requires.
+	Wallet Wallet
 
 	// NewBatchTimer creates a channel that will be sent on when a certain
 	// time window has passed. During this time window, new inputs can still
@@ -326,7 +325,7 @@ func (s *UtxoSweeper) Start() error {
 
 		// Error can be ignored. Because we are starting up, there are
 		// no pending inputs to update based on the publish result.
-		err := s.cfg.PublishTransaction(lastTx)
+		err := s.cfg.Wallet.PublishTransaction(lastTx)
 		if err != nil && err != lnwallet.ErrDoubleSpend {
 			log.Errorf("last tx publish: %v", err)
 		}
@@ -891,7 +890,7 @@ func (s *UtxoSweeper) sweep(inputs inputSet, feeRate chainfee.AtomPerKByte,
 		}),
 	)
 
-	err = s.cfg.PublishTransaction(tx)
+	err = s.cfg.Wallet.PublishTransaction(tx)
 
 	// In case of an unexpected error, don't try to recover.
 	if err != nil && err != lnwallet.ErrDoubleSpend {

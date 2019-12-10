@@ -99,14 +99,13 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 
 	store := NewMockSweeperStore()
 
-	backend := newMockBackend(notifier)
+	backend := newMockBackend(t, notifier)
 
 	estimator := newMockFeeEstimator(10000, chainfee.FeePerKBFloor)
 
-	publishChan := make(chan wire.MsgTx, 2)
 	ctx := &sweeperTestContext{
 		notifier:    notifier,
-		publishChan: publishChan,
+		publishChan: backend.publishChan,
 		t:           t,
 		estimator:   estimator,
 		backend:     backend,
@@ -117,16 +116,7 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 	var outputScriptCount byte
 	ctx.sweeper = New(&UtxoSweeperConfig{
 		Notifier: notifier,
-		PublishTransaction: func(tx *wire.MsgTx) error {
-			testLog.Tracef("Publishing tx %v", tx.TxHash())
-			err := backend.publishTransaction(tx)
-			select {
-			case publishChan <- *tx:
-			case <-time.After(defaultTestTimeout):
-				t.Fatalf("unexpected tx published")
-			}
-			return err
-		},
+		Wallet:   backend,
 		NewBatchTimer: func() <-chan time.Time {
 			c := make(chan time.Time, 1)
 			ctx.timeoutChan <- c
