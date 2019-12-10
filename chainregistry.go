@@ -59,6 +59,10 @@ const (
 
 	// defaultDecredStaticFeePerKB is the fee rate of 10000 atom/kB
 	defaultDecredStaticFeePerKB = chainfee.AtomPerKByte(1e4)
+
+	// defaultDecredStaticMinRelayFeeRate is the min relay fee used for
+	// static estimators.
+	defaultDecredStaticMinRelayFeeRate = chainfee.FeePerKBFloor
 )
 
 // defaultDcrChannelConstraints is the default set of channel constraints that are
@@ -175,7 +179,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		}
 		cc.minHtlcIn = cfg.MinHTLCIn
 		cc.feeEstimator = chainfee.NewStaticEstimator(
-			defaultDecredStaticFeePerKB, 0,
+			defaultDecredStaticFeePerKB,
+			defaultDecredStaticMinRelayFeeRate,
 		)
 	default:
 		return nil, fmt.Errorf("default routing policy for "+
