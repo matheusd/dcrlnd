@@ -100,6 +100,12 @@ func createSweeperTestContext(t *testing.T) *sweeperTestContext {
 	store := NewMockSweeperStore()
 
 	backend := newMockBackend(t, notifier)
+	backend.walletUtxos = []*lnwallet.Utxo{
+		{
+			Value:       dcrutil.Amount(10000),
+			AddressType: lnwallet.PubKeyHash,
+		},
+	}
 
 	estimator := newMockFeeEstimator(10000, chainfee.FeePerKBFloor)
 
@@ -427,7 +433,9 @@ func TestDust(t *testing.T) {
 
 	// No sweep transaction is expected now. The sweeper should recognize
 	// that the sweep output will not be relayed and not generate the tx.
-	ctx.assertNoNewTimer()
+	// It isn't possible to attach a wallet utxo either, because the added
+	// size would create a negatively yielding transaction at this fee
+	// rate.
 
 	// Sweep another input that brings the tx output above the dust limit.
 	// We'll create an output with 10 times the maximum considered dust -
@@ -454,6 +462,50 @@ func TestDust(t *testing.T) {
 
 	ctx.backend.mine()
 
+	ctx.finish(1)
+}
+
+// TestWalletUtxo asserts that inputs that are not big enough to raise above the
+// dust limit are accompanied by a wallet utxo to make them sweepable.
+func TestWalletUtxo(t *testing.T) {
+	ctx := createSweeperTestContext(t)
+
+	// Sweeping a single output produces a tx of 217 bytes. At the fee
+	// floor, the sweep tx will pay 217*1e4/1000 = 2070 atoms in fees.
+	//
+	// Create an input so that the output after paying fees is still
+	// positive (1730 atoms), but less than the dust limit (6030 atoms) for
+	// the sweep tx output script (P2PKH).
+	//
+	// What we now expect is that the sweeper will attach a utxo from the
+	// wallet. This increases the tx size to 383 bytes with a fee of 3830
+	// atoms.  The tx yield becomes then 3900+10000-3830 = 10070 atoms.
+	dustInput := createTestInput(3900, input.PublicKeyHash)
+
+	_, err := ctx.sweeper.SweepInput(
+		&dustInput,
+		Params{Fee: FeePreference{FeeRate: chainfee.FeePerKBFloor}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx.tick()
+
+	sweepTx := ctx.receiveTx()
+	if len(sweepTx.TxIn) != 2 {
+		t.Fatalf("Expected tx to sweep 2 inputs, but contains %v "+
+			"inputs instead", len(sweepTx.TxIn))
+	}
+
+	// Calculate expected output value based on wallet utxo of 10000 sats.
+	expectedOutputValue := int64(3900 + 10000 - 3830)
+	if sweepTx.TxOut[0].Value != expectedOutputValue {
+		t.Fatalf("Expected output value of %v, but got %v",
+			expectedOutputValue, sweepTx.TxOut[0].Value)
+	}
+
+	ctx.backend.mine()
 	ctx.finish(1)
 }
 
