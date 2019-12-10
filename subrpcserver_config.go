@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
 	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
+	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
@@ -92,7 +93,8 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 	sweeper *sweep.UtxoSweeper,
 	tower *watchtower.Standalone,
 	towerClient wtclient.Client,
-	tcpResolver lncfg.TCPResolver) error {
+	tcpResolver lncfg.TCPResolver,
+	genInvoiceFeatures func() *lnwire.FeatureVector) error {
 
 	// First, we'll use reflect to obtain a version of the config struct
 	// that allows us to programmatically inspect its fields.
@@ -206,6 +208,9 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			)
 			subCfgValue.FieldByName("ChanDB").Set(
 				reflect.ValueOf(chanDB),
+			)
+			subCfgValue.FieldByName("GenInvoiceFeatures").Set(
+				reflect.ValueOf(genInvoiceFeatures),
 			)
 
 		case *routerrpc.Config:

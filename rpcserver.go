@@ -32,6 +32,7 @@ import (
 	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
+	"github.com/decred/dcrlnd/feature"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
@@ -548,6 +549,10 @@ func newRPCServer(s *server, macService *macaroons.Service,
 		MaxTotalTimelock: cfg.MaxOutgoingCltvExpiry,
 	}
 
+	genInvoiceFeatures := func() *lnwire.FeatureVector {
+		return s.featureMgr.Get(feature.SetInvoice)
+	}
+
 	var (
 		subServers     []lnrpc.SubServer
 		subServerPerms []lnrpc.MacaroonPerms
@@ -560,7 +565,7 @@ func newRPCServer(s *server, macService *macaroons.Service,
 		s.cc, networkDir, macService, atpl, invoiceRegistry,
 		s.htlcSwitch, activeNetParams.Params, s.chanRouter,
 		routerBackend, s.nodeSigner, s.chanDB, s.sweeper, tower,
-		s.towerClient, cfg.net.ResolveTCPAddr,
+		s.towerClient, cfg.net.ResolveTCPAddr, genInvoiceFeatures,
 	)
 	if err != nil {
 		return nil, err
@@ -3830,6 +3835,9 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 		MaxPaymentMAtoms:  MaxPaymentMAtoms,
 		DefaultCLTVExpiry: defaultDelta,
 		ChanDB:            r.server.chanDB,
+		GenInvoiceFeatures: func() *lnwire.FeatureVector {
+			return r.server.featureMgr.Get(feature.SetInvoice)
+		},
 	}
 
 	value, err := lnrpc.UnmarshallAmt(invoice.Value, invoice.ValueMAtoms)
