@@ -4826,6 +4826,20 @@ func (r *rpcServer) DecodePayReq(ctx context.Context,
 		paymentAddr = payReq.PaymentAddr[:]
 	}
 
+	// Convert any features on the payment request into a descriptive format
+	// for the rpc.
+	invFeatures := payReq.Features.Features()
+	features := make([]*lnrpc.Feature, 0, len(invFeatures))
+	for bit := range invFeatures {
+		name := payReq.Features.Name(bit)
+		features = append(features, &lnrpc.Feature{
+			Bit:        uint32(bit),
+			Name:       name,
+			IsRequired: bit.IsRequired(),
+			IsKnown:    name != "unknown",
+		})
+	}
+
 	dest := payReq.Destination.SerializeCompressed()
 	return &lnrpc.PayReq{
 		Destination:     hex.EncodeToString(dest),
@@ -4840,6 +4854,7 @@ func (r *rpcServer) DecodePayReq(ctx context.Context,
 		CltvExpiry:      int64(payReq.MinFinalCLTVExpiry()),
 		RouteHints:      routeHints,
 		PaymentAddr:     paymentAddr,
+		Features:        features,
 	}, nil
 }
 
