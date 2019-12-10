@@ -10,12 +10,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnwire"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 )
@@ -375,4 +377,85 @@ func (s *Server) ComputeInputScript(ctx context.Context,
 	}
 
 	return resp, nil
+}
+
+// SignMessage signs a message with the key specified in the key locator. The
+// returned signature is fixed-size LN wire format encoded.
+func (s *Server) SignMessage(ctx context.Context,
+	in *SignMessageReq) (*SignMessageResp, error) {
+
+	if in.Msg == nil {
+		return nil, fmt.Errorf("a message to sign MUST be passed in")
+	}
+	if in.KeyLoc == nil {
+		return nil, fmt.Errorf("a key locator MUST be passed in")
+	}
+
+	// Derive the private key we'll be using for signing.
+	keyLocator := keychain.KeyLocator{
+		Family: keychain.KeyFamily(in.KeyLoc.KeyFamily),
+		Index:  uint32(in.KeyLoc.KeyIndex),
+	}
+	privKey, err := s.cfg.KeyRing.DerivePrivKey(keychain.KeyDescriptor{
+		KeyLocator: keyLocator,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("can't derive private key: %v", err)
+	}
+
+	// The signature is over the blake256 hash of the message.
+	digest := chainhash.HashB(in.Msg)
+
+	// Create the raw ECDSA signature first and convert it to the final wire
+	// format after.
+	sig, err := privKey.Sign(digest)
+	if err != nil {
+		return nil, fmt.Errorf("can't sign the hash: %v", err)
+	}
+	wireSig, err := lnwire.NewSigFromSignature(sig)
+	if err != nil {
+		return nil, fmt.Errorf("can't convert to wire format: %v", err)
+	}
+	return &SignMessageResp{
+		Signature: wireSig.ToSignatureBytes(),
+	}, nil
+}
+
+// VerifyMessage verifies a signature over a message using the public key
+// provided. The signature must be fixed-size LN wire format encoded.
+func (s *Server) VerifyMessage(ctx context.Context,
+	in *VerifyMessageReq) (*VerifyMessageResp, error) {
+
+	if in.Msg == nil {
+		return nil, fmt.Errorf("a message to verify MUST be passed in")
+	}
+	if in.Signature == nil {
+		return nil, fmt.Errorf("a signature to verify MUST be passed " +
+			"in")
+	}
+	if in.Pubkey == nil {
+		return nil, fmt.Errorf("a pubkey to verify MUST be passed in")
+	}
+	pubkey, err := secp256k1.ParsePubKey(in.Pubkey)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse pubkey: %v", err)
+	}
+
+	// The signature must be fixed-size LN wire format encoded.
+	wireSig, err := lnwire.NewSigFromRawSignature(in.Signature)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode signature: %v", err)
+	}
+	sig, err := wireSig.ToSignature()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert from wire format: %v",
+			err)
+	}
+
+	// The signature is over the blake256 hash of the message.
+	digest := chainhash.HashB(in.Msg)
+	valid := sig.Verify(digest, pubkey)
+	return &VerifyMessageResp{
+		Valid: valid,
+	}, nil
 }
