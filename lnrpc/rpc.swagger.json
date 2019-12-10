@@ -2255,6 +2255,26 @@
         }
       }
     },
+    "lnrpcFeature": {
+      "type": "object",
+      "properties": {
+        "bit": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "is_required": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "is_known": {
+          "type": "boolean",
+          "format": "boolean"
+        }
+      }
+    },
     "lnrpcFeeLimit": {
       "type": "object",
       "properties": {
@@ -3286,6 +3306,12 @@
         "num_m_atoms": {
           "type": "string",
           "format": "int64"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/lnrpcFeature"
+          }
         }
       }
     },
