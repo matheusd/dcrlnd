@@ -13,7 +13,6 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
@@ -385,9 +384,9 @@ func UnmarshallCustomRecords(rpcRecords map[uint64][]byte) ([]tlv.Record,
 
 	// tlvRecords is sorted, so we only need to check that the first
 	// element is within the custom range.
-	if uint64(tlvRecords[0].Type()) < hop.CustomTypeStart {
+	if uint64(tlvRecords[0].Type()) < record.CustomTypeStart {
 		return nil, fmt.Errorf("no custom records with types "+
-			"below %v allowed", hop.CustomTypeStart)
+			"below %v allowed", record.CustomTypeStart)
 	}
 
 	return tlvRecords, nil

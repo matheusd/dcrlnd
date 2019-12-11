@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 )
@@ -104,7 +103,7 @@ type invoiceUpdateCtx struct {
 	expiry               uint32
 	currentHeight        int32
 	finalCltvRejectDelta int32
-	customRecords        hop.CustomRecordSet
+	customRecords        record.CustomSet
 	mpp                  *record.MPP
 }
 

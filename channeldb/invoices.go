@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
 	bolt "go.etcd.io/bbolt"
 )
@@ -317,7 +318,7 @@ type InvoiceHTLC struct {
 
 	// CustomRecords contains the custom key/value pairs that accompanied
 	// the htlc.
-	CustomRecords hop.CustomRecordSet
+	CustomRecords record.CustomSet
 }
 
 // HtlcAcceptDesc describes the details of a newly accepted htlc.
@@ -337,7 +338,7 @@ type HtlcAcceptDesc struct {
 
 	// CustomRecords contains the custom key/value pairs that accompanied
 	// the htlc.
-	CustomRecords hop.CustomRecordSet
+	CustomRecords record.CustomSet
 }
 
 // InvoiceUpdateDesc describes the changes that should be applied to the

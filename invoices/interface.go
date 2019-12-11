@@ -1,7 +1,6 @@
 package invoices
 
 import (
-	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/record"
 )
 
@@ -14,5 +13,5 @@ type Payload interface {
 
 	// CustomRecords returns the custom tlv type records that were parsed
 	// from the payload.
-	CustomRecords() hop.CustomRecordSet
+	CustomRecords() record.CustomSet
 }
