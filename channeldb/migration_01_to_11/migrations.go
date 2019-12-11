@@ -7,10 +7,8 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/routing/route"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -820,14 +818,14 @@ func MigrateOutgoingPayments(tx *bolt.Tx) error {
 
 		// Do the same for the PaymentAttemptInfo.
 		totalAmt := payment.Terms.Value + payment.Fee
-		rt := route.Route{
+		rt := Route{
 			TotalTimeLock: payment.TimeLockLength,
 			TotalAmount:   totalAmt,
 			SourcePubKey:  sourcePubKey,
-			Hops:          []*route.Hop{},
+			Hops:          []*Hop{},
 		}
 		for _, hop := range payment.Path {
-			rt.Hops = append(rt.Hops, &route.Hop{
+			rt.Hops = append(rt.Hops, &Hop{
 				PubKeyBytes:  hop,
 				AmtToForward: totalAmt,
 			})

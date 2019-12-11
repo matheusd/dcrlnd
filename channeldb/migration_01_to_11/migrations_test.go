@@ -14,7 +14,6 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/routing/route"
 	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
 )
@@ -714,25 +713,25 @@ func makeRandPaymentCreationInfo() (*PaymentCreationInfo, error) {
 func TestPaymentRouteSerialization(t *testing.T) {
 	t.Parallel()
 
-	legacyHop1 := &route.Hop{
-		PubKeyBytes:      route.NewVertex(pub),
+	legacyHop1 := &Hop{
+		PubKeyBytes:      NewVertex(pub),
 		ChannelID:        12345,
 		OutgoingTimeLock: 111,
 		LegacyPayload:    true,
 		AmtToForward:     555,
 	}
-	legacyHop2 := &route.Hop{
-		PubKeyBytes:      route.NewVertex(pub),
+	legacyHop2 := &Hop{
+		PubKeyBytes:      NewVertex(pub),
 		ChannelID:        12345,
 		OutgoingTimeLock: 111,
 		LegacyPayload:    true,
 		AmtToForward:     555,
 	}
-	legacyRoute := route.Route{
+	legacyRoute := Route{
 		TotalTimeLock: 123,
 		TotalAmount:   1234567,
-		SourcePubKey:  route.NewVertex(pub),
-		Hops:          []*route.Hop{legacyHop1, legacyHop2},
+		SourcePubKey:  NewVertex(pub),
+		Hops:          []*Hop{legacyHop1, legacyHop2},
 	}
 
 	const numPayments = 4
