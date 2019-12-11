@@ -288,10 +288,9 @@ type RestrictParams struct {
 	// all cltv expiry heights with the required final cltv delta.
 	CltvLimit uint32
 
-	// DestPayloadTLV should be set to true if we need to drop off a TLV
-	// payload at the final hop in order to properly complete this payment
-	// attempt.
-	DestPayloadTLV bool
+	// DestCustomRecords contains the custom records to drop off at the
+	// final hop, if any.
+	DestCustomRecords record.CustomSet
 }
 
 // PathFindingConfig defines global parameters that control the trade-off in
@@ -395,7 +394,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 		defer tx.Rollback()
 	}
 
-	if r.DestPayloadTLV {
+	if len(r.DestCustomRecords) > 0 {
 		// Check if the target has TLV enabled
 
 		targetKey, err := secp256k1.ParsePubKey(target[:])
