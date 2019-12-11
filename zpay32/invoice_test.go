@@ -99,6 +99,8 @@ var (
 		},
 	}
 
+	emptyFeatures = lnwire.NewFeatureVector(nil, lnwire.Features)
+
 	// Must be initialized in init().
 	testDescriptionHash [32]byte
 )
@@ -171,6 +173,7 @@ func TestDecodeEncode(t *testing.T) {
 					Timestamp:       time.Unix(1496314658, 0),
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
+					Features:        emptyFeatures,
 				}
 			},
 		},
@@ -187,6 +190,7 @@ func TestDecodeEncode(t *testing.T) {
 					Description:     &testPleaseConsider,
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
+					Features:        emptyFeatures,
 				}
 			},
 		},
@@ -201,6 +205,7 @@ func TestDecodeEncode(t *testing.T) {
 					Timestamp:   time.Unix(1496314658, 0),
 					PaymentHash: &testPaymentHash,
 					Destination: testPubKey,
+					Features:    emptyFeatures,
 				}
 			},
 		},
@@ -216,6 +221,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash: &testPaymentHash,
 					Description: &testPleaseConsider,
 					Destination: testPubKey,
+					Features:    emptyFeatures,
 				}
 			},
 			skipEncoding: true, // Skip encoding since we don't have the unknown fields to encode.
@@ -232,6 +238,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
+					Features:        emptyFeatures,
 				}
 			},
 			skipEncoding: true, // Skip encoding since we don't have the unknown fields to encode.
@@ -248,6 +255,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash:     &testPaymentHash,
 					Destination:     testPubKey,
 					DescriptionHash: &testDescriptionHash,
+					Features:        emptyFeatures,
 				}
 			},
 			skipEncoding: true, // Skip encoding since we don't have the unknown fields to encode.
@@ -263,6 +271,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash: &testPaymentHash,
 					Description: &testCupOfCoffee,
 					Destination: testPubKey,
+					Features:    emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -283,6 +292,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash: &testPaymentHash,
 					Description: &testPleaseConsider,
 					Destination: testPubKey,
+					Features:    emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -304,6 +314,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash: &testPaymentHash,
 					Destination: testPubKey,
 					Description: &testEmptyString,
+					Features:    emptyFeatures,
 				}
 			},
 		},
@@ -363,6 +374,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash:     &testPaymentHash,
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
+					Features:        emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -385,6 +397,7 @@ func TestDecodeEncode(t *testing.T) {
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
 					FallbackAddr:    testAddrTestnet,
+					Features:        emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -408,6 +421,7 @@ func TestDecodeEncode(t *testing.T) {
 					Destination:     testPubKey,
 					FallbackAddr:    testRustyAddr,
 					RouteHints:      [][]HopHint{testSingleHop},
+					Features:        emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -431,6 +445,7 @@ func TestDecodeEncode(t *testing.T) {
 					Destination:     testPubKey,
 					FallbackAddr:    testRustyAddr,
 					RouteHints:      [][]HopHint{testDoubleHop},
+					Features:        emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -453,6 +468,7 @@ func TestDecodeEncode(t *testing.T) {
 					DescriptionHash: &testDescriptionHash,
 					Destination:     testPubKey,
 					FallbackAddr:    testAddrMainnetP2SH,
+					Features:        emptyFeatures,
 				}
 			},
 			beforeEncoding: func(i *Invoice) {
@@ -565,6 +581,7 @@ func TestDecodeEncode(t *testing.T) {
 					PaymentHash: &testPaymentHash,
 					Destination: testPubKey,
 					Description: &testEmptyString,
+					Features:    emptyFeatures,
 				}
 			},
 			skipEncoding: true, // Skip encoding since we were given the wrong net
@@ -865,7 +882,7 @@ func compareInvoices(expected, actual *Invoice) error {
 
 	if !reflect.DeepEqual(expected.Features, actual.Features) {
 		return fmt.Errorf("expected features %v, got %v",
-			expected.Features.RawFeatureVector, actual.Features.RawFeatureVector)
+			expected.Features, actual.Features)
 	}
 
 	return nil
