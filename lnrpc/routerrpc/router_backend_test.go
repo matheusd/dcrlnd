@@ -8,9 +8,9 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
-	"github.com/decred/dcrlnd/tlv"
 
 	"github.com/decred/dcrlnd/lnrpc"
 )
@@ -92,7 +92,7 @@ func testQueryRoutes(t *testing.T, useMissionControl bool, useMAtoms bool) {
 
 	findRoute := func(source, target route.Vertex,
 		amt lnwire.MilliAtom, restrictions *routing.RestrictParams,
-		_ []tlv.Record,
+		_ record.CustomSet,
 		finalExpiry ...uint16) (*route.Route, error) {
 
 		if int64(amt) != amtAtoms*1000 {

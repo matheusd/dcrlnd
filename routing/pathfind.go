@@ -10,8 +10,8 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
-	"github.com/decred/dcrlnd/tlv"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -100,7 +100,7 @@ type edgePolicyWithSource struct {
 func newRoute(amtToSend lnwire.MilliAtom, sourceVertex route.Vertex,
 	pathEdges []*channeldb.ChannelEdgePolicy, currentHeight uint32,
 	finalCLTVDelta uint16,
-	finalDestRecords []tlv.Record) (*route.Route, error) {
+	destCustomRecords record.CustomSet) (*route.Route, error) {
 
 	var (
 		hops []*route.Hop
@@ -198,8 +198,8 @@ func newRoute(amtToSend lnwire.MilliAtom, sourceVertex route.Vertex,
 
 		// If this is the last hop, then we'll populate any TLV records
 		// destined for it.
-		if i == len(pathEdges)-1 && len(finalDestRecords) != 0 {
-			currentHop.TLVRecords = finalDestRecords
+		if i == len(pathEdges)-1 && len(destCustomRecords) != 0 {
+			currentHop.CustomRecords = destCustomRecords
 		}
 
 		hops = append([]*route.Hop{currentHop}, hops...)

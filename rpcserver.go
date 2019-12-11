@@ -46,11 +46,11 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/monitoring"
+	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/signal"
 	"github.com/decred/dcrlnd/sweep"
-	"github.com/decred/dcrlnd/tlv"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
 	"github.com/decred/dcrwallet/wallet/v3/txauthor"
@@ -3099,7 +3099,7 @@ type rpcPaymentIntent struct {
 	ignoreMaxOutboundAmt bool
 	payReq               []byte
 
-	destTLV []tlv.Record
+	destCustomRecords record.CustomSet
 
 	route *route.Route
 }
@@ -3160,12 +3160,13 @@ func (r *rpcServer) extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPayme
 	}
 	payIntent.cltvLimit = cltvLimit
 
-	payIntent.destTLV, err = routerrpc.UnmarshallCustomRecords(
+	err = routerrpc.ValidateCustomRecords(
 		rpcPayReq.DestCustomRecords,
 	)
 	if err != nil {
 		return payIntent, err
 	}
+	payIntent.destCustomRecords = rpcPayReq.DestCustomRecords
 
 	validateDest := func(dest route.Vertex) error {
 		if rpcPayReq.AllowSelfPayment {
@@ -3458,7 +3459,7 @@ func (r *rpcServer) dispatchPaymentIntent(
 			LastHop:           payIntent.lastHop,
 			PaymentRequest:    payIntent.payReq,
 			PayAttemptTimeout: routing.DefaultPayAttemptTimeout,
-			FinalDestRecords:  payIntent.destTLV,
+			DestCustomRecords: payIntent.destCustomRecords,
 		}
 
 		preImage, route, routerErr = r.server.chanRouter.SendPayment(
