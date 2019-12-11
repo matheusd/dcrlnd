@@ -13,7 +13,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
-	sphinx "github.com/decred/lightning-onion/v2"
+	sphinx "github.com/decred/lightning-onion/v3"
 )
 
 // VertexSize is the size of the array to store a vertex.

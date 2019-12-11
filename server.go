@@ -59,7 +59,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtclient"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
-	sphinx "github.com/decred/lightning-onion/v2"
+	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
 )

@@ -30,7 +30,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
-	"github.com/decred/lightning-onion/v2"
+	"github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
 )
 

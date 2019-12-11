@@ -33,7 +33,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 	"github.com/decred/dcrlnd/ticker"
-	sphinx "github.com/decred/lightning-onion/v2"
+	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
 )

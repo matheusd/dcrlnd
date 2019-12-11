@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/decred/dcrlnd/chainntnfs"
-	sphinx "github.com/decred/lightning-onion/v2"
+	sphinx "github.com/decred/lightning-onion/v3"
 	bolt "go.etcd.io/bbolt"
 )
 

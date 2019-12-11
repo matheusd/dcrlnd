@@ -30,7 +30,7 @@ require (
 	github.com/decred/dcrwallet/errors/v2 v2.0.0
 	github.com/decred/dcrwallet/rpc/walletrpc v0.3.0
 	github.com/decred/dcrwallet/wallet/v3 v3.0.0
-	github.com/decred/lightning-onion/v2 v2.0.0
+	github.com/decred/lightning-onion/v3 v3.0.0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/golang/protobuf v1.3.2
@@ -66,3 +66,5 @@ require (
 	gopkg.in/macaroon.v2 v2.0.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
+
+replace github.com/decred/lightning-onion/v3 => github.com/matheusd/lightning-onion/v3 v3.0.0-20191226145537-57496f770150
