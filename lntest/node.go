@@ -162,6 +162,8 @@ type nodeConfig struct {
 	RESTPort    int
 	ProfilePort int
 	WalletPort  int
+
+	AcceptKeySend bool
 }
 
 func (cfg nodeConfig) P2PAddr() string {
@@ -235,6 +237,10 @@ func (cfg nodeConfig) genArgs() []string {
 
 	if cfg.ExtraArgs != nil {
 		args = append(args, cfg.ExtraArgs...)
+	}
+
+	if cfg.AcceptKeySend {
+		args = append(args, "--accept-key-send")
 	}
 
 	return args
@@ -355,6 +361,11 @@ func newNode(cfg nodeConfig) (*HarnessNode, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Run all tests with accept key send. The key send code is very
+	// isolated and it is highly unlikely that it would affect regular
+	// itests when enabled.
+	cfg.AcceptKeySend = true
 
 	return &HarnessNode{
 		cfg:               &cfg,
