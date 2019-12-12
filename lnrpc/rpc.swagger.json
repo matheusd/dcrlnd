@@ -2817,6 +2817,13 @@
           "type": "boolean",
           "format": "boolean",
           "description": "*\nWhether to forgo checking for the current max inbound amount before \ncreating the invoice. This is only applicable during invoice creation.\n\nWhen creating an invoice, the node will check if there is enough inbound\nbandwidth in at least one of its directly connected channels (after \naccounting for the required reserves) before allowing the invoice to be\ncreated. Specifying this parameter as true will make the node ignore those\nchecks and create the invoice even if it could not possibly have it settled."
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/lnrpcFeature"
+          },
+          "description": "/ List of features advertised on the invoice."
         }
       }
     },

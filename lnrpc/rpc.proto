@@ -2411,6 +2411,9 @@ message Invoice {
     checks and create the invoice even if it could not possibly have it settled.
     */
     bool ignore_max_inbound_amt = 1001 [json_name = "ignore_max_inbound_amt"];
+
+    /// List of features advertised on the invoice.
+    repeated Feature features = 24 [json_name = "features"];
 }
 
 enum InvoiceHTLCState {
