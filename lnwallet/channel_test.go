@@ -545,13 +545,36 @@ func TestCooperativeChannelClosure(t *testing.T) {
 // force close generates HTLC resolutions that are capable of sweeping both
 // incoming and outgoing HTLC's.
 func TestForceClose(t *testing.T) {
+	t.Run("tweakless", func(t *testing.T) {
+		testForceClose(t, &forceCloseTestCase{
+			chanType:           channeldb.SingleFunderTweaklessBit,
+			expectedCommitSize: input.CommitmentTxSize,
+		})
+	})
+	t.Run("anchors", func(t *testing.T) {
+		testForceClose(t, &forceCloseTestCase{
+			chanType: channeldb.SingleFunderTweaklessBit |
+				channeldb.AnchorOutputsBit,
+			expectedCommitSize: input.CommitmentWithAnchorsTxSize,
+			anchorAmt:          anchorSize * 2,
+		})
+	})
+}
+
+type forceCloseTestCase struct {
+	chanType           channeldb.ChannelType
+	expectedCommitSize int64
+	anchorAmt          dcrutil.Amount
+}
+
+func testForceClose(t *testing.T, testCase *forceCloseTestCase) {
 	t.Parallel()
 
 	// Create a test channel which will be used for the duration of this
 	// unittest. The channel will be funded evenly with Alice having 5 DCR,
 	// and Bob having 5 DCR.
 	aliceChannel, bobChannel, cleanUp, err := CreateTestChannels(
-		channeldb.SingleFunderTweaklessBit,
+		testCase.chanType,
 	)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
@@ -613,6 +636,36 @@ func TestForceClose(t *testing.T) {
 			1, len(closeSummary.HtlcResolutions.IncomingHTLCs))
 	}
 
+	// Verify the anchor resolutions for the anchor commitment format.
+	if testCase.chanType.HasAnchors() {
+		// Check the close summary resolution.
+		anchorRes := closeSummary.AnchorResolution
+		if anchorRes == nil {
+			t.Fatal("expected anchor resolution")
+		}
+		if anchorRes.CommitAnchor.Hash != closeSummary.CloseTx.TxHash() {
+			t.Fatal("commit tx not referenced by anchor res")
+		}
+		if anchorRes.AnchorSignDescriptor.Output.Value !=
+			int64(anchorSize) {
+
+			t.Fatal("unexpected anchor size")
+		}
+		if anchorRes.AnchorSignDescriptor.WitnessScript == nil {
+			t.Fatal("expected anchor witness script")
+		}
+
+		// Check the pre-confirmation resolutions.
+		resList, err := aliceChannel.NewAnchorResolutions()
+		if err != nil {
+			t.Fatalf("pre-confirmation resolution error: %v", err)
+		}
+
+		if len(resList) != 2 {
+			t.Fatal("expected two resolutions")
+		}
+	}
+
 	// The SelfOutputSignDesc should be non-nil since the output to-self is
 	// non-dust.
 	aliceCommitResolution := closeSummary.CommitResolution
@@ -631,10 +684,16 @@ func TestForceClose(t *testing.T) {
 
 	// Factoring in the fee rate, Alice's amount should properly reflect
 	// that we've added two additional HTLC to the commitment transaction.
-	totalCommitSize := input.CommitmentTxSize + (input.HTLCOutputSize * 2)
-	feePerKB := chainfee.AtomPerKByte(aliceChannel.channelState.LocalCommitment.FeePerKB)
+	totalCommitSize := testCase.expectedCommitSize +
+		(input.HTLCOutputSize * 2)
+	feePerKB := chainfee.AtomPerKByte(
+		aliceChannel.channelState.LocalCommitment.FeePerKB,
+	)
 	commitFee := feePerKB.FeeForSize(totalCommitSize)
-	expectedAmount := (aliceChannel.Capacity / 2) - htlcAmount.ToAtoms() - commitFee
+
+	expectedAmount := (aliceChannel.Capacity / 2) -
+		htlcAmount.ToAtoms() - commitFee - testCase.anchorAmt
+
 	if aliceCommitResolution.SelfOutputSignDesc.Output.Value != int64(expectedAmount) {
 		t.Fatalf("alice incorrect output value in SelfOutputSignDesc, "+
 			"expected %v, got %v", int64(expectedAmount),
