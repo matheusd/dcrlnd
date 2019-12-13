@@ -1,7 +1,6 @@
 package sweep
 
 import (
-	"fmt"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -94,8 +93,6 @@ func (t *txInputSet) add(input input.Input) bool {
 	// Calculate the output value if the current input would be
 	// added to the set.
 	newOutputValue := newInputTotal - fee
-
-	fmt.Println("XXXXXX", value, fee, newOutputValue-t.outputValue)
 
 	// If adding this input makes the total output value of the set
 	// decrease, this is a negative yield input. We don't add the input to
