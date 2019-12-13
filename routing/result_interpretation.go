@@ -27,7 +27,7 @@ type pairResult struct {
 }
 
 // failPairResult creates a new result struct for a failure.
-func failPairResult(minPenalizeAmt lnwire.MilliSatoshi) pairResult {
+func failPairResult(minPenalizeAmt lnwire.MilliAtom) pairResult {
 	return pairResult{
 		minPenalizeAmt: minPenalizeAmt,
 	}
