@@ -8,17 +8,17 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/zpay32"
-	bbolt "go.etcd.io/bbbolt"
 )
 
 // MigrateInvoices adds invoice htlcs and a separate cltv delta field to the
 // invoices.
-func MigrateInvoices(tx *bbolt.Tx) error {
+func MigrateInvoices(tx kvdb.RwTx) error {
 	log.Infof("Migrating invoices to new invoice format")
 
-	invoiceB := tx.Bucket(invoiceBucket)
+	invoiceB := tx.ReadWriteBucket(invoiceBucket)
 	if invoiceB == nil {
 		return nil
 	}

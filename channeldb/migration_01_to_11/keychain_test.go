@@ -3,7 +3,7 @@ package migration_01_to_11
 import (
 	"testing"
 
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 // TestSaneNextKeyFamilyIndex tests that the generation of key family indices

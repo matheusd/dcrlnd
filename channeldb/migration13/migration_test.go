@@ -3,8 +3,8 @@ package migration13
 import (
 	"testing"
 
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/channeldb/migtest"
-	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -111,10 +111,10 @@ func TestMigrateMpp(t *testing.T) {
 
 	migtest.ApplyMigration(
 		t,
-		func(tx *bbolt.Tx) error {
+		func(tx kvdb.RwTx) error {
 			return migtest.RestoreDB(tx, paymentsRootBucket, pre)
 		},
-		func(tx *bbolt.Tx) error {
+		func(tx kvdb.RwTx) error {
 			return migtest.VerifyDB(tx, paymentsRootBucket, post)
 		},
 		MigrateMPP,
