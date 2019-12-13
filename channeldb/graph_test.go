@@ -18,9 +18,9 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bbolt "go.etcd.io/bbbolt"
 )
 
 func modNScalar(b []byte) *secp256k1.ModNScalar {
@@ -903,7 +903,7 @@ func TestGraphTraversal(t *testing.T) {
 
 	// Iterate over each node as returned by the graph, if all nodes are
 	// reached, then the map created above should be empty.
-	err = graph.ForEachNode(nil, func(_ *bbolt.Tx, node *LightningNode) error {
+	err = graph.ForEachNode(nil, func(_ kvdb.ReadTx, node *LightningNode) error {
 		delete(nodeIndex, node.Alias)
 		return nil
 	})
@@ -999,7 +999,7 @@ func TestGraphTraversal(t *testing.T) {
 	// Finally, we want to test the ability to iterate over all the
 	// outgoing channels for a particular node.
 	numNodeChans := 0
-	err = firstNode.ForEachChannel(nil, func(_ *bbolt.Tx, _ *ChannelEdgeInfo,
+	err = firstNode.ForEachChannel(nil, func(_ kvdb.ReadTx, _ *ChannelEdgeInfo,
 		outEdge, inEdge *ChannelEdgePolicy) error {
 
 		// All channels between first and second node should have fully
@@ -1072,7 +1072,7 @@ func assertNumChans(t *testing.T, graph *ChannelGraph, n int) {
 
 func assertNumNodes(t *testing.T, graph *ChannelGraph, n int) {
 	numNodes := 0
-	err := graph.ForEachNode(nil, func(_ *bbolt.Tx, _ *LightningNode) error {
+	err := graph.ForEachNode(nil, func(_ kvdb.ReadTx, _ *LightningNode) error {
 		numNodes++
 		return nil
 	})
@@ -2118,10 +2118,9 @@ func TestIncompleteChannelPolicies(t *testing.T) {
 	}
 
 	// Ensure that channel is reported with unknown policies.
-
 	checkPolicies := func(node *LightningNode, expectedIn, expectedOut bool) {
 		calls := 0
-		node.ForEachChannel(nil, func(_ *bbolt.Tx, _ *ChannelEdgeInfo,
+		err := node.ForEachChannel(nil, func(_ kvdb.ReadTx, _ *ChannelEdgeInfo,
 			outEdge, inEdge *ChannelEdgePolicy) error {
 
 			if !expectedOut && outEdge != nil {
@@ -2144,6 +2143,9 @@ func TestIncompleteChannelPolicies(t *testing.T) {
 
 			return nil
 		})
+		if err != nil {
+			t.Fatalf("unable to scan channels: %v", err)
+		}
 
 		if calls != 1 {
 			t.Fatalf("Expected only one callback call")
@@ -2254,17 +2256,27 @@ func TestChannelEdgePruningUpdateIndexDeletion(t *testing.T) {
 			timestampSet[t] = struct{}{}
 		}
 
-		err := db.View(func(tx *bbolt.Tx) error {
-			edges := tx.Bucket(edgeBucket)
+		err := kvdb.View(db, func(tx kvdb.ReadTx) error {
+			edges := tx.ReadBucket(edgeBucket)
 			if edges == nil {
 				return ErrGraphNoEdgesFound
 			}
-			edgeUpdateIndex := edges.Bucket(edgeUpdateIndexBucket)
+			edgeUpdateIndex := edges.NestedReadBucket(
+				edgeUpdateIndexBucket,
+			)
 			if edgeUpdateIndex == nil {
 				return ErrGraphNoEdgesFound
 			}
 
-			numEntries := edgeUpdateIndex.Stats().KeyN
+			var numEntries int
+			err := edgeUpdateIndex.ForEach(func(k, v []byte) error {
+				numEntries++
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+
 			expectedEntries := len(timestampSet)
 			if numEntries != expectedEntries {
 				return fmt.Errorf("expected %v entries in the "+
@@ -2853,8 +2865,8 @@ func TestEdgePolicyMissingMaxHtcl(t *testing.T) {
 
 	// Attempting to deserialize these bytes should return an error.
 	r := bytes.NewReader(stripped)
-	err = db.View(func(tx *bbolt.Tx) error {
-		nodes := tx.Bucket(nodeBucket)
+	err = kvdb.View(db, func(tx kvdb.ReadTx) error {
+		nodes := tx.ReadBucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNotFound
 		}
@@ -2873,13 +2885,13 @@ func TestEdgePolicyMissingMaxHtcl(t *testing.T) {
 	}
 
 	// Put the stripped bytes in the DB.
-	err = db.Update(func(tx *bbolt.Tx) error {
-		edges := tx.Bucket(edgeBucket)
+	err = kvdb.Update(db, func(tx kvdb.RwTx) error {
+		edges := tx.ReadWriteBucket(edgeBucket)
 		if edges == nil {
 			return ErrEdgeNotFound
 		}
 
-		edgeIndex := edges.Bucket(edgeIndexBucket)
+		edgeIndex := edges.NestedReadWriteBucket(edgeIndexBucket)
 		if edgeIndex == nil {
 			return ErrEdgeNotFound
 		}

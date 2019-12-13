@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/tlv"
-	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -252,8 +252,8 @@ func validateInvoice(i *Invoice) error {
 func (d *DB) FetchAllInvoices(pendingOnly bool) ([]Invoice, error) {
 	var invoices []Invoice
 
-	err := d.View(func(tx *bbolt.Tx) error {
-		invoiceB := tx.Bucket(invoiceBucket)
+	err := kvdb.View(d, func(tx kvdb.ReadTx) error {
+		invoiceB := tx.ReadBucket(invoiceBucket)
 		if invoiceB == nil {
 			return ErrNoInvoicesCreated
 		}
