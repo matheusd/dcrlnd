@@ -3,7 +3,7 @@ package channeldb
 import (
 	"testing"
 
-	bbolt "go.etcd.io/bbbolt"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 )
 
 // TestSaneNextKeyFamilyIndex tests that the generation of key family indices
@@ -54,8 +54,8 @@ func TestSaneNextKeyFamilyIndex(t *testing.T) {
 	}
 
 	// Manually change the db to simulate exhausting a key family
-	err = db.Update(func(tx *bbolt.Tx) error {
-		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
+	err = kvdb.Update(db, func(tx kvdb.RwTx) error {
+		keychain, err := tx.CreateTopLevelBucket(keychainBucket)
 		if err != nil {
 			return err
 		}

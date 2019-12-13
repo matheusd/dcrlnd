@@ -3,7 +3,8 @@ package channeldb
 import (
 	"bytes"
 	"errors"
-	bbolt "go.etcd.io/bbbolt"
+
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 )
 
 const (
@@ -69,8 +70,8 @@ func (d *DB) NextKeyFamilyIndex(keyFamily uint32) (uint32, error) {
 		return 0, errInvalidKeyFamily
 	}
 
-	err := d.Update(func(tx *bbolt.Tx) error {
-		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
+	err := kvdb.Update(d, func(tx kvdb.RwTx) error {
+		keychain, err := tx.CreateTopLevelBucket(keychainBucket)
 		if err != nil {
 			return err
 		}
@@ -113,8 +114,8 @@ func (d *DB) NextKeyFamilyIndex(keyFamily uint32) (uint32, error) {
 // given parameter if the ID exists in the database and returns an error if the
 // IDs don't match. If the database is empty, then the ID is stored.
 func (d *DB) CompareAndStoreAccountID(id []byte) error {
-	return d.Update(func(tx *bbolt.Tx) error {
-		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
+	return kvdb.Update(d, func(tx kvdb.RwTx) error {
+		keychain, err := tx.CreateTopLevelBucket(keychainBucket)
 		if err != nil {
 			return err
 		}
