@@ -2258,10 +2258,6 @@
     "lnrpcFeature": {
       "type": "object",
       "properties": {
-        "bit": {
-          "type": "integer",
-          "format": "int64"
-        },
         "name": {
           "type": "string"
         },
@@ -2819,8 +2815,8 @@
           "description": "*\nWhether to forgo checking for the current max inbound amount before \ncreating the invoice. This is only applicable during invoice creation.\n\nWhen creating an invoice, the node will check if there is enough inbound\nbandwidth in at least one of its directly connected channels (after \naccounting for the required reserves) before allowing the invoice to be\ncreated. Specifying this parameter as true will make the node ignore those\nchecks and create the invoice even if it could not possibly have it settled."
         },
         "features": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "$ref": "#/definitions/lnrpcFeature"
           },
           "description": "/ List of features advertised on the invoice."
@@ -2930,8 +2926,8 @@
           "type": "string"
         },
         "features": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "$ref": "#/definitions/lnrpcFeature"
           }
         }
@@ -3326,8 +3322,8 @@
           "format": "int64"
         },
         "features": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "$ref": "#/definitions/lnrpcFeature"
           }
         }
@@ -3454,8 +3450,8 @@
           "description": "The type of sync we are currently performing with this peer."
         },
         "features": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "$ref": "#/definitions/lnrpcFeature"
           },
           "description": "/ Features advertised by the remote peer in their init message."
