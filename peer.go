@@ -1337,8 +1337,10 @@ func messageSummary(msg lnwire.Message) string {
 			msg.Complete)
 
 	case *lnwire.ReplyChannelRange:
-		return fmt.Sprintf("complete=%v, encoding=%v, num_chans=%v",
-			msg.Complete, msg.EncodingType, len(msg.ShortChanIDs))
+		return fmt.Sprintf("start_height=%v, end_height=%v, "+
+			"num_chans=%v, encoding=%v", msg.FirstBlockHeight,
+			msg.LastBlockHeight(), len(msg.ShortChanIDs),
+			msg.EncodingType)
 
 	case *lnwire.QueryShortChanIDs:
 		return fmt.Sprintf("chain_hash=%v, encoding=%v, num_chans=%v",
@@ -1346,8 +1348,8 @@ func messageSummary(msg lnwire.Message) string {
 
 	case *lnwire.QueryChannelRange:
 		return fmt.Sprintf("chain_hash=%v, start_height=%v, "+
-			"num_blocks=%v", msg.ChainHash, msg.FirstBlockHeight,
-			msg.NumBlocks)
+			"end_height=%v", msg.ChainHash, msg.FirstBlockHeight,
+			msg.LastBlockHeight())
 
 	case *lnwire.GossipTimestampRange:
 		return fmt.Sprintf("chain_hash=%v, first_stamp=%v, "+
