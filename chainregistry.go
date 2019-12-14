@@ -146,7 +146,6 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 	// Set the RPC config from the "home" chain. Multi-chain isn't yet
 	// active, so we'll restrict usage to a particular chain for now.
-	homeChainConfig := cfg.Decred
 	ltndLog.Infof("Primary chain is set to: %v",
 		registeredChains.PrimaryChain())
 
@@ -155,10 +154,10 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	switch registeredChains.PrimaryChain() {
 	case decredChain:
 		cc.routingPolicy = htlcswitch.ForwardingPolicy{
-			MinHTLC:       cfg.Decred.MinHTLC,
-			BaseFee:       cfg.Decred.BaseFee,
-			FeeRate:       cfg.Decred.FeeRate,
-			TimeLockDelta: cfg.Decred.TimeLockDelta,
+			MinHTLC:       cfg.MinHTLC,
+			BaseFee:       cfg.BaseFee,
+			FeeRate:       cfg.FeeRate,
+			TimeLockDelta: cfg.TimeLockDelta,
 		}
 		cc.feeEstimator = lnwallet.NewStaticFeeEstimator(
 			defaultDecredStaticFeePerKB, 0,
@@ -180,7 +179,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			"cache: %v", err)
 	}
 
-	switch homeChainConfig.Node {
+	switch cfg.Node {
 	case "dcrd":
 		// Otherwise, we'll be speaking directly via RPC to a node.
 		//
@@ -264,7 +263,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 
 		// If we're not in simnet or regtest mode, then we'll attempt
 		// to use a proper fee estimator for testnet.
-		if !cfg.Decred.SimNet && !cfg.Decred.RegTest {
+		if !cfg.SimNet && !cfg.RegTest {
 			ltndLog.Infof("Initializing dcrd backed fee estimator")
 
 			// Finally, we'll re-initialize the fee estimator, as
@@ -286,7 +285,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		}
 	default:
 		return nil, fmt.Errorf("unknown node type: %s",
-			homeChainConfig.Node)
+			cfg.Node)
 	}
 
 	var secretKeyRing keychain.SecretKeyRing
@@ -338,7 +337,7 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			PublicPass:     publicWalletPw,
 			Birthday:       birthday,
 			RecoveryWindow: recoveryWindow,
-			DataDir:        homeChainConfig.ChainDir,
+			DataDir:        cfg.ChainDir,
 			NetParams:      activeNetParams.Params,
 			Wallet:         wallet,
 			Loader:         loader,
