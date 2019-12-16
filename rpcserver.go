@@ -2984,6 +2984,27 @@ func createRPCOpenChannel(r *rpcServer, graph *channeldb.ChannelGraph,
 	}
 	channel.Uptime = int64(uptime.Seconds())
 
+	if len(dbChannel.LocalShutdownScript) > 0 {
+		// TODO(decred): Store version along with LocalShutdownScript?
+		scriptVersion := uint16(0)
+		_, addresses, _, err := txscript.ExtractPkScriptAddrs(
+			scriptVersion, dbChannel.LocalShutdownScript, activeNetParams.Params,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// We only expect one upfront shutdown address for a channel. If
+		// LocalShutdownScript is non-zero, there should be one payout address
+		// set.
+		if len(addresses) != 1 {
+			return nil, fmt.Errorf("expected one upfront shutdown address, "+
+				"got: %v", len(addresses))
+		}
+
+		channel.CloseAddress = addresses[0].String()
+	}
+
 	return channel, nil
 }
 
@@ -3062,6 +3083,7 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 						OpenChannel: channel,
 					},
 				}
+
 			case channelnotifier.ClosedChannelEvent:
 				closedChannel := createRPCClosedChannel(event.CloseSummary)
 				update = &lnrpc.ChannelEventUpdate{
@@ -3070,6 +3092,7 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 						ClosedChannel: closedChannel,
 					},
 				}
+
 			case channelnotifier.ActiveChannelEvent:
 				update = &lnrpc.ChannelEventUpdate{
 					Type: lnrpc.ChannelEventUpdate_ACTIVE_CHANNEL,
@@ -3082,6 +3105,7 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 						},
 					},
 				}
+
 			case channelnotifier.InactiveChannelEvent:
 				update = &lnrpc.ChannelEventUpdate{
 					Type: lnrpc.ChannelEventUpdate_INACTIVE_CHANNEL,
@@ -3094,6 +3118,7 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 						},
 					},
 				}
+
 			default:
 				return fmt.Errorf("unexpected channel event update: %v", event)
 			}
