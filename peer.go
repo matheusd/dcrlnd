@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/contractcourt"
+	"github.com/decred/dcrlnd/feature"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -2476,6 +2477,14 @@ func (p *peer) handleInitMsg(msg *lnwire.Init) error {
 		err := fmt.Errorf("peer set unknown feature bits: %v",
 			unknownFeatures)
 		return err
+	}
+
+	// Ensure the remote party's feature vector contains all transistive
+	// dependencies. We know ours are are correct since they are validated
+	// during the feature manager's instantiation.
+	err = feature.ValidateDeps(p.remoteFeatures)
+	if err != nil {
+		return fmt.Errorf("peer set invalid feature vector: %v", err)
 	}
 
 	// Now that we know we understand their requirements, we'll check to
