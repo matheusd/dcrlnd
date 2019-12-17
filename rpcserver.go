@@ -1520,6 +1520,11 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	rpcsLog.Debugf("[openchannel]: using fee of %v atom/kB for funding tx",
 		int64(feeRate))
 
+	script, err := parseUpfrontShutdownAddress(in.CloseAddress)
+	if err != nil {
+		return fmt.Errorf("error parsing upfront shutdown: %v", err)
+	}
+
 	// Instruct the server to trigger the necessary events to attempt to
 	// open a new channel. A stream is returned in place, this stream will
 	// be used to consume updates of the state of the pending channel.
@@ -1533,6 +1538,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		private:         in.Private,
 		remoteCsvDelay:  remoteCsvDelay,
 		minConfs:        minConfs,
+		shutdownScript:  script,
 	}
 
 	updateChan, errChan := r.server.OpenChannel(req)
@@ -1665,6 +1671,11 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	rpcsLog.Tracef("[openchannel] target atom/kB for funding tx: %v",
 		int64(feeRate))
 
+	script, err := parseUpfrontShutdownAddress(in.CloseAddress)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing upfront shutdown: %v", err)
+	}
+
 	req := &openChanReq{
 		targetPubkey:    nodepubKey,
 		chainHash:       activeNetParams.GenesisHash,
@@ -1675,6 +1686,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 		private:         in.Private,
 		remoteCsvDelay:  remoteCsvDelay,
 		minConfs:        minConfs,
+		shutdownScript:  script,
 	}
 
 	updateChan, errChan := r.server.OpenChannel(req)
@@ -1706,6 +1718,24 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	case <-r.quit:
 		return nil, nil
 	}
+}
+
+// parseUpfrontShutdownScript attempts to parse an upfront shutdown address.
+// If the address is empty, it returns nil. If it successfully decoded the
+// address, it returns a script that pays out to the address.
+func parseUpfrontShutdownAddress(address string) (lnwire.DeliveryAddress, error) {
+	if len(address) == 0 {
+		return nil, nil
+	}
+
+	addr, err := dcrutil.DecodeAddress(
+		address, activeNetParams.Params,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("invalid address: %v", err)
+	}
+
+	return txscript.PayToAddrScript(addr)
 }
 
 // GetChanPointFundingTxid returns the given channel point's funding txid in
