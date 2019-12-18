@@ -7,7 +7,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/feature"
 	"github.com/decred/dcrlnd/lnwire"
@@ -446,12 +445,7 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 	// we have for the target node from our graph.
 	features := r.DestFeatures
 	if features == nil {
-		targetKey, err := secp256k1.ParsePubKey(target[:])
-		if err != nil {
-			return nil, err
-		}
-
-		targetNode, err := g.graph.FetchLightningNode(targetKey)
+		targetNode, err := g.graph.FetchLightningNode(target)
 		switch {
 
 		// If the node exists and has features, use them directly.

@@ -3405,7 +3405,12 @@ func computeNextBackoff(currBackoff time.Duration) time.Duration {
 
 // fetchNodeAdvertisedAddr attempts to fetch an advertised address of a node.
 func (s *server) fetchNodeAdvertisedAddr(pub *secp256k1.PublicKey) (net.Addr, error) {
-	node, err := s.chanDB.ChannelGraph().FetchLightningNode(pub)
+	vertex, err := route.NewVertexFromBytes(pub.SerializeCompressed())
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := s.chanDB.ChannelGraph().FetchLightningNode(vertex)
 	if err != nil {
 		return nil, err
 	}

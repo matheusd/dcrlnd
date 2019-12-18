@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing/route"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -145,7 +146,14 @@ func (d *databaseChannelGraph) addRandChannel(node1, node2 *secp256k1.PublicKey,
 
 	fetchNode := func(pub *secp256k1.PublicKey) (*channeldb.LightningNode, error) {
 		if pub != nil {
-			dbNode, err := d.db.FetchLightningNode(pub)
+			vertex, err := route.NewVertexFromBytes(
+				pub.SerializeCompressed(),
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			dbNode, err := d.db.FetchLightningNode(vertex)
 			switch {
 			case err == channeldb.ErrGraphNodeNotFound:
 				fallthrough

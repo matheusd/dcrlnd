@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/routing/route"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -35,6 +36,8 @@ var (
 	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
 
 	testFeatures = lnwire.NewFeatureVector(nil, lnwire.Features)
+
+	testPub = route.Vertex{2, 202, 4}
 )
 
 func createLightningNode(db *DB, priv *secp256k1.PrivateKey) (*LightningNode, error) {
@@ -78,7 +81,6 @@ func TestNodeInsertionAndDeletion(t *testing.T) {
 
 	// We'd like to test basic insertion/deletion for vertexes from the
 	// graph, so we'll create a test vertex to start with.
-	_, testPub := secp256k1.PrivKeyFromBytes(key[:])
 	node := &LightningNode{
 		HaveNodeAnnouncement: true,
 		AuthSigBytes:         testSig.Serialize(),
@@ -88,9 +90,9 @@ func TestNodeInsertionAndDeletion(t *testing.T) {
 		Features:             testFeatures,
 		Addresses:            testAddrs,
 		ExtraOpaqueData:      []byte("extra new data"),
+		PubKeyBytes:          testPub,
 		db:                   db,
 	}
-	copy(node.PubKeyBytes[:], testPub.SerializeCompressed())
 
 	// First, insert the node into the graph DB. This should succeed
 	// without any errors.
@@ -145,11 +147,10 @@ func TestPartialNode(t *testing.T) {
 
 	// We want to be able to insert nodes into the graph that only has the
 	// PubKey set.
-	_, testPub := secp256k1.PrivKeyFromBytes(key[:])
 	node := &LightningNode{
 		HaveNodeAnnouncement: false,
+		PubKeyBytes:          testPub,
 	}
-	copy(node.PubKeyBytes[:], testPub.SerializeCompressed())
 
 	if err := graph.AddLightningNode(node); err != nil {
 		t.Fatalf("unable to add node: %v", err)
@@ -173,9 +174,9 @@ func TestPartialNode(t *testing.T) {
 	node = &LightningNode{
 		HaveNodeAnnouncement: false,
 		LastUpdate:           time.Unix(0, 0),
+		PubKeyBytes:          testPub,
 		db:                   db,
 	}
-	copy(node.PubKeyBytes[:], testPub.SerializeCompressed())
 
 	if err := compareNodes(node, dbNode); err != nil {
 		t.Fatalf("nodes don't match: %v", err)
@@ -2400,11 +2401,7 @@ func TestPruneGraphNodes(t *testing.T) {
 
 	// Finally, we'll ensure that node3, the only fully unconnected node as
 	// properly deleted from the graph and not another node in its place.
-	node3Pub, err := node3.PubKey()
-	if err != nil {
-		t.Fatalf("unable to fetch the pubkey of node3: %v", err)
-	}
-	if _, err := graph.FetchLightningNode(node3Pub); err == nil {
+	if _, err := graph.FetchLightningNode(node3.PubKeyBytes); err == nil {
 		t.Fatalf("node 3 should have been deleted!")
 	}
 }
@@ -2444,18 +2441,9 @@ func TestAddChannelEdgeShellNodes(t *testing.T) {
 		t.Fatalf("unable to add edge: %v", err)
 	}
 
-	node1Pub, err := node1.PubKey()
-	if err != nil {
-		t.Fatalf("unable to parse node 1 pub: %v", err)
-	}
-	node2Pub, err := node2.PubKey()
-	if err != nil {
-		t.Fatalf("unable to parse node 2 pub: %v", err)
-	}
-
 	// Ensure that node1 was inserted as a full node, while node2 only has
 	// a shell node present.
-	node1, err = graph.FetchLightningNode(node1Pub)
+	node1, err = graph.FetchLightningNode(node1.PubKeyBytes)
 	if err != nil {
 		t.Fatalf("unable to fetch node1: %v", err)
 	}
@@ -2463,7 +2451,7 @@ func TestAddChannelEdgeShellNodes(t *testing.T) {
 		t.Fatalf("have shell announcement for node1, shouldn't")
 	}
 
-	node2, err = graph.FetchLightningNode(node2Pub)
+	node2, err = graph.FetchLightningNode(node2.PubKeyBytes)
 	if err != nil {
 		t.Fatalf("unable to fetch node2: %v", err)
 	}
@@ -2518,8 +2506,7 @@ func TestNodePruningUpdateIndexDeletion(t *testing.T) {
 
 	// We'll now delete the node from the graph, this should result in it
 	// being removed from the update index as well.
-	nodePub, _ := node1.PubKey()
-	if err := graph.DeleteLightningNode(nodePub); err != nil {
+	if err := graph.DeleteLightningNode(node1.PubKeyBytes); err != nil {
 		t.Fatalf("unable to delete node: %v", err)
 	}
 

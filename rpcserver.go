@@ -4439,11 +4439,7 @@ func (r *rpcServer) GetNodeInfo(ctx context.Context,
 
 	// First, parse the hex-encoded public key into a full in-memory public
 	// key object we can work with for querying.
-	pubKeyBytes, err := hex.DecodeString(in.PubKey)
-	if err != nil {
-		return nil, err
-	}
-	pubKey, err := secp256k1.ParsePubKey(pubKeyBytes)
+	pubKey, err := route.NewVertexFromStr(in.PubKey)
 	if err != nil {
 		return nil, err
 	}
