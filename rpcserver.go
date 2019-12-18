@@ -435,6 +435,10 @@ func mainRPCServerPermissions() map[string][]bakery.Op {
 			Entity: "macaroon",
 			Action: "generate",
 		}},
+		"/lnrpc.Lightning/SubscribePeerEvents": {{
+			Entity: "peers",
+			Action: "read",
+		}},
 	}
 }
 
