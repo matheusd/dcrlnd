@@ -3933,6 +3933,48 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 }
 
+// assertAmountSent generates a closure which queries listchannels for sndr and
+// rcvr, and asserts that sndr sent amt satoshis, and that rcvr received amt
+// satoshis.
+//
+// NOTE: This method assumes that each node only has one channel, and it is the
+// channel used to send the payment.
+func assertAmountSent(amt dcrutil.Amount, sndr, rcvr *lntest.HarnessNode) func() error {
+	return func() error {
+		// Both channels should also have properly accounted from the
+		// amount that has been sent/received over the channel.
+		listReq := &lnrpc.ListChannelsRequest{}
+		ctxb := context.Background()
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		sndrListChannels, err := sndr.ListChannels(ctxt, listReq)
+		if err != nil {
+			return fmt.Errorf("unable to query for %s's channel "+
+				"list: %v", sndr.Name(), err)
+		}
+		sndrSatoshisSent := sndrListChannels.Channels[0].TotalAtomsSent
+		if sndrSatoshisSent != int64(amt) {
+			return fmt.Errorf("%s's atoms sent is incorrect "+
+				"got %v, expected %v", sndr.Name(),
+				sndrSatoshisSent, amt)
+		}
+
+		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		rcvrListChannels, err := rcvr.ListChannels(ctxt, listReq)
+		if err != nil {
+			return fmt.Errorf("unable to query for %s's channel "+
+				"list: %v", rcvr.Name(), err)
+		}
+		rcvrSatoshisReceived := rcvrListChannels.Channels[0].TotalAtomsReceived
+		if rcvrSatoshisReceived != int64(amt) {
+			return fmt.Errorf("%s's atoms received is "+
+				"incorrect got %v, expected %v", rcvr.Name(),
+				rcvrSatoshisReceived, amt)
+		}
+
+		return nil
+	}
+}
+
 // testSphinxReplayPersistence verifies that replayed onion packets are rejected
 // by a remote peer after a restart. We use a combination of unsafe
 // configuration arguments to force Carol to replay the same sphinx packet after
@@ -3981,33 +4023,6 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 			Amt: chanAmt,
 		},
 	)
-
-	assertAmountSent := func(amt dcrutil.Amount) {
-		// Both channels should also have properly accounted from the
-		// amount that has been sent/received over the channel.
-		listReq := &lnrpc.ListChannelsRequest{}
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-		carolListChannels, err := carol.ListChannels(ctxt, listReq)
-		if err != nil {
-			t.Fatalf("unable to query for alice's channel list: %v", err)
-		}
-		carolSatoshisSent := carolListChannels.Channels[0].TotalAtomsSent
-		if carolSatoshisSent != int64(amt) {
-			t.Fatalf("Carol's atoms sent is incorrect got %v, expected %v",
-				carolSatoshisSent, amt)
-		}
-
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-		daveListChannels, err := dave.ListChannels(ctxt, listReq)
-		if err != nil {
-			t.Fatalf("unable to query for Dave's channel list: %v", err)
-		}
-		daveSatoshisReceived := daveListChannels.Channels[0].TotalAtomsReceived
-		if daveSatoshisReceived != int64(amt) {
-			t.Fatalf("Dave's atoms received is incorrect got %v, expected %v",
-				daveSatoshisReceived, amt)
-		}
-	}
 
 	// Now that the channel is open, create an invoice for Dave which
 	// expects a payment of 1000 atoms from Carol paid via a particular
@@ -4073,8 +4088,12 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// With the payment sent but hedl, all balance related stats should not
 	// have changed.
-	time.Sleep(time.Millisecond * 200)
-	assertAmountSent(0)
+	err = wait.InvariantNoError(
+		assertAmountSent(0, carol, dave), 3*time.Second,
+	)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
 	// With the first payment sent, restart dave to make sure he is
 	// persisting the information required to detect replayed sphinx
@@ -4103,7 +4122,12 @@ func testSphinxReplayPersistence(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Since the payment failed, the balance should still be left
 	// unaltered.
-	assertAmountSent(0)
+	err = wait.InvariantNoError(
+		assertAmountSent(0, carol, dave), 3*time.Second,
+	)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
 	closeChannelAndAssert(ctxt, t, net, carol, chanPoint, true)
@@ -4125,33 +4149,6 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 			Amt: chanAmt,
 		},
 	)
-
-	assertAmountSent := func(amt dcrutil.Amount) {
-		// Both channels should also have properly accounted from the
-		// amount that has been sent/received over the channel.
-		listReq := &lnrpc.ListChannelsRequest{}
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-		aliceListChannels, err := net.Alice.ListChannels(ctxt, listReq)
-		if err != nil {
-			t.Fatalf("unable to query for alice's channel list: %v", err)
-		}
-		aliceSatoshisSent := aliceListChannels.Channels[0].TotalAtomsSent
-		if aliceSatoshisSent != int64(amt) {
-			t.Fatalf("Alice's atoms sent is incorrect got %v, expected %v",
-				aliceSatoshisSent, amt)
-		}
-
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-		bobListChannels, err := net.Bob.ListChannels(ctxt, listReq)
-		if err != nil {
-			t.Fatalf("unable to query for bob's channel list: %v", err)
-		}
-		bobSatoshisReceived := bobListChannels.Channels[0].TotalAtomsReceived
-		if bobSatoshisReceived != int64(amt) {
-			t.Fatalf("Bob's atoms received is incorrect got %v, expected %v",
-				bobSatoshisReceived, amt)
-		}
-	}
 
 	// Now that the channel is open, create an invoice for Bob which
 	// expects a payment of 20000 atoms from Alice paid via a particular
@@ -4218,8 +4215,13 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// With the payment completed all balance related stats should be
 	// properly updated.
-	time.Sleep(time.Millisecond * 200)
-	assertAmountSent(paymentAmt)
+	err = wait.NoError(
+		assertAmountSent(paymentAmt, net.Alice, net.Bob),
+		3*time.Second,
+	)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
 	// Create another invoice for Bob, this time leaving off the preimage
 	// to one will be randomly generated. We'll test the proper
@@ -4250,8 +4252,13 @@ func testSingleHopInvoice(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// The second payment should also have succeeded, with the balances
 	// being update accordingly.
-	time.Sleep(time.Millisecond * 200)
-	assertAmountSent(paymentAmt * 2)
+	err = wait.NoError(
+		assertAmountSent(2*paymentAmt, net.Alice, net.Bob),
+		3*time.Second,
+	)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
