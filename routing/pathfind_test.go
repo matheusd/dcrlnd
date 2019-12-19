@@ -318,6 +318,7 @@ type testChannelPolicy struct {
 	LastUpdate    time.Time
 	Disabled      bool
 	Direction     bool
+	Features      *lnwire.FeatureVector
 }
 
 type testChannelEnd struct {
@@ -409,8 +410,11 @@ func createTestGraphFromChannels(testChannels []*testChannel, source string) (
 	privKeyMap := make(map[string]*secp256k1.PrivateKey)
 
 	nodeIndex := byte(0)
-	addNodeWithAlias := func(alias string) (*channeldb.LightningNode, error) {
-		keyBytes := []byte{
+	addNodeWithAlias := func(alias string, features *lnwire.FeatureVector) (
+		*channeldb.LightningNode, error) {
+
+		keyBytes := make([]byte, 32)
+		keyBytes = []byte{
 			0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0,
@@ -419,13 +423,17 @@ func createTestGraphFromChannels(testChannels []*testChannel, source string) (
 
 		privKey, pubKey := secp256k1.PrivKeyFromBytes(keyBytes)
 
+		if features == nil {
+			features = lnwire.EmptyFeatureVector()
+		}
+
 		dbNode := &channeldb.LightningNode{
 			HaveNodeAnnouncement: true,
 			AuthSigBytes:         testSig.Serialize(),
 			LastUpdate:           testTime,
 			Addresses:            testAddrs,
 			Alias:                alias,
-			Features:             testFeatures,
+			Features:             features,
 		}
 
 		copy(dbNode.PubKeyBytes[:], pubKey.SerializeCompressed())
@@ -445,7 +453,7 @@ func createTestGraphFromChannels(testChannels []*testChannel, source string) (
 	}
 
 	// Add the source node.
-	dbNode, err := addNodeWithAlias(source)
+	dbNode, err := addNodeWithAlias(source, lnwire.EmptyFeatureVector())
 	if err != nil {
 		return nil, err
 	}
@@ -459,12 +467,19 @@ func createTestGraphFromChannels(testChannels []*testChannel, source string) (
 	nextUnassignedChannelID := uint64(100000)
 
 	for _, testChannel := range testChannels {
-		for _, alias := range []string{
-			testChannel.Node1.Alias, testChannel.Node2.Alias} {
+		for _, node := range []*testChannelEnd{
+			testChannel.Node1, testChannel.Node2} {
 
-			_, exists := aliasMap[alias]
+			_, exists := aliasMap[node.Alias]
 			if !exists {
-				_, err := addNodeWithAlias(alias)
+				var features *lnwire.FeatureVector
+				if node.testChannelPolicy != nil {
+					features =
+						node.testChannelPolicy.Features
+				}
+				_, err := addNodeWithAlias(
+					node.Alias, features,
+				)
 				if err != nil {
 					return nil, err
 				}
