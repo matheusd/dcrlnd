@@ -9,6 +9,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/feature"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
@@ -425,6 +426,17 @@ func findPath(g *graphParams, r *RestrictParams, cfg *PathFindingConfig,
 			features = lnwire.EmptyFeatureVector()
 		}
 	}
+
+	// With the destination's feature vector selected, ensure that all
+	// transitive depdencies are set.
+	err = feature.ValidateDeps(features)
+	if err != nil {
+		return nil, err
+	}
+
+	// Now that we know the feature vector is well formed, we'll proceed in
+	// checking that it supports the features we need, given our
+	// restrictions on the final hop.
 
 	// If the caller needs to send custom records, check that our
 	// destination feature vector supports TLV.
