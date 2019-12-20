@@ -2805,7 +2805,14 @@ func testSingleFunderExternalFundingTx(miner *rpctest.Harness,
 	bobShimIntent, err := chanfunding.NewCannedAssembler(
 		*chanPoint, dcrutil.Amount(chanAmt), &bobFundingKey,
 		aliceFundingKey.PubKey, false,
-	).ProvisionChannel(nil)
+	).ProvisionChannel(&chanfunding.Request{
+		LocalAmt: dcrutil.Amount(chanAmt),
+		MinConfs: 1,
+		FeeRate:  253,
+		ChangeAddr: func() (dcrutil.Address, error) {
+			return bob.NewAddress(lnwallet.PubKeyHash, true)
+		},
+	})
 	if err != nil {
 		t.Fatalf("unable to create shim intent for bob: %v", err)
 	}
