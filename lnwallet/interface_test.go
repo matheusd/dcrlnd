@@ -602,7 +602,8 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		PushMAtoms:       0,
 		Flags:            lnwire.FFAnnounceChannel,
 	}
-	if _, err := alice.InitChannelReservation(req); err != nil {
+	chanReservation, err := alice.InitChannelReservation(req)
+	if err != nil {
 		t.Fatalf("unable to initialize funding reservation 1: %v", err)
 	}
 
@@ -633,6 +634,11 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 	}
 	if failedReservation != nil {
 		t.Fatalf("reservation should be nil")
+	}
+
+	// Cancel the older reservation so it won't affect other tests.
+	if err := chanReservation.Cancel(); err != nil {
+		t.Fatalf("unable to cancel reservation: %v", err)
 	}
 }
 
