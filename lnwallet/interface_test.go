@@ -2959,8 +2959,10 @@ func TestLightningWallet(t *testing.T) {
 				t.Fatalf("unable to start notifier: %v", err)
 			}
 
-			runTests(t, walletDriver, backEnd, miningNode,
-				rpcConfig, chainNotifier, votingWallet)
+			if !runTests(t, walletDriver, backEnd, miningNode,
+				rpcConfig, chainNotifier, votingWallet) {
+				return
+			}
 
 			// Tear down this mining node so it won't interfere
 			// with the next set of tests.
@@ -2997,7 +2999,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	backEnd string, miningNode *rpctest.Harness,
 	rpcConfig rpcclient.ConnConfig,
 	chainNotifier *dcrdnotify.DcrdNotifier,
-	votingWallet *rpctest.VotingWallet) {
+	votingWallet *rpctest.VotingWallet) bool {
 	var (
 		aliceBio lnwallet.BlockChainIO
 		bobBio   lnwallet.BlockChainIO
@@ -3231,7 +3233,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			walletTest.test(miningNode, votingWallet, alice, bob, t)
 		})
 		if !success {
-			break
+			return false
 		}
 
 		// TODO(roasbeef): possible reset mining
@@ -3242,4 +3244,6 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 			t.Fatalf("unable to wipe wallet state: %v", err)
 		}
 	}
+
+	return true
 }
