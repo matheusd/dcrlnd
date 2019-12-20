@@ -75,7 +75,7 @@ func (x PaymentState) String() string {
 	return proto.EnumName(PaymentState_name, int32(x))
 }
 func (PaymentState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{0}
+	return fileDescriptor_router_eb60ea329970898e, []int{0}
 }
 
 type Failure_FailureCode int32
@@ -176,7 +176,7 @@ func (x Failure_FailureCode) String() string {
 	return proto.EnumName(Failure_FailureCode_name, int32(x))
 }
 func (Failure_FailureCode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{7, 0}
+	return fileDescriptor_router_eb60ea329970898e, []int{7, 0}
 }
 
 type SendPaymentRequest struct {
@@ -255,7 +255,9 @@ type SendPaymentRequest struct {
 	// *
 	// Features assumed to be supported by the final node. All transitive feature
 	// depdencies must also be set properly. For a given feature bit pair, either
-	// optional or remote may be set, but not both.
+	// optional or remote may be set, but not both. If this field is nil or empty,
+	// the router will try to load destination features from the graph as a
+	// fallback.
 	DestFeatures         []lnrpc.FeatureBit `protobuf:"varint,16,rep,packed,name=dest_features,json=destFeatures,proto3,enum=lnrpc.FeatureBit" json:"dest_features,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
@@ -266,7 +268,7 @@ func (m *SendPaymentRequest) Reset()         { *m = SendPaymentRequest{} }
 func (m *SendPaymentRequest) String() string { return proto.CompactTextString(m) }
 func (*SendPaymentRequest) ProtoMessage()    {}
 func (*SendPaymentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{0}
+	return fileDescriptor_router_eb60ea329970898e, []int{0}
 }
 func (m *SendPaymentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SendPaymentRequest.Unmarshal(m, b)
@@ -410,7 +412,7 @@ func (m *TrackPaymentRequest) Reset()         { *m = TrackPaymentRequest{} }
 func (m *TrackPaymentRequest) String() string { return proto.CompactTextString(m) }
 func (*TrackPaymentRequest) ProtoMessage()    {}
 func (*TrackPaymentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{1}
+	return fileDescriptor_router_eb60ea329970898e, []int{1}
 }
 func (m *TrackPaymentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TrackPaymentRequest.Unmarshal(m, b)
@@ -458,7 +460,7 @@ func (m *PaymentStatus) Reset()         { *m = PaymentStatus{} }
 func (m *PaymentStatus) String() string { return proto.CompactTextString(m) }
 func (*PaymentStatus) ProtoMessage()    {}
 func (*PaymentStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{2}
+	return fileDescriptor_router_eb60ea329970898e, []int{2}
 }
 func (m *PaymentStatus) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PaymentStatus.Unmarshal(m, b)
@@ -522,7 +524,7 @@ func (m *RouteFeeRequest) Reset()         { *m = RouteFeeRequest{} }
 func (m *RouteFeeRequest) String() string { return proto.CompactTextString(m) }
 func (*RouteFeeRequest) ProtoMessage()    {}
 func (*RouteFeeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{3}
+	return fileDescriptor_router_eb60ea329970898e, []int{3}
 }
 func (m *RouteFeeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RouteFeeRequest.Unmarshal(m, b)
@@ -575,7 +577,7 @@ func (m *RouteFeeResponse) Reset()         { *m = RouteFeeResponse{} }
 func (m *RouteFeeResponse) String() string { return proto.CompactTextString(m) }
 func (*RouteFeeResponse) ProtoMessage()    {}
 func (*RouteFeeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{4}
+	return fileDescriptor_router_eb60ea329970898e, []int{4}
 }
 func (m *RouteFeeResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RouteFeeResponse.Unmarshal(m, b)
@@ -623,7 +625,7 @@ func (m *SendToRouteRequest) Reset()         { *m = SendToRouteRequest{} }
 func (m *SendToRouteRequest) String() string { return proto.CompactTextString(m) }
 func (*SendToRouteRequest) ProtoMessage()    {}
 func (*SendToRouteRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{5}
+	return fileDescriptor_router_eb60ea329970898e, []int{5}
 }
 func (m *SendToRouteRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SendToRouteRequest.Unmarshal(m, b)
@@ -671,7 +673,7 @@ func (m *SendToRouteResponse) Reset()         { *m = SendToRouteResponse{} }
 func (m *SendToRouteResponse) String() string { return proto.CompactTextString(m) }
 func (*SendToRouteResponse) ProtoMessage()    {}
 func (*SendToRouteResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{6}
+	return fileDescriptor_router_eb60ea329970898e, []int{6}
 }
 func (m *SendToRouteResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SendToRouteResponse.Unmarshal(m, b)
@@ -733,7 +735,7 @@ func (m *Failure) Reset()         { *m = Failure{} }
 func (m *Failure) String() string { return proto.CompactTextString(m) }
 func (*Failure) ProtoMessage()    {}
 func (*Failure) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{7}
+	return fileDescriptor_router_eb60ea329970898e, []int{7}
 }
 func (m *Failure) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Failure.Unmarshal(m, b)
@@ -876,7 +878,7 @@ func (m *ChannelUpdate) Reset()         { *m = ChannelUpdate{} }
 func (m *ChannelUpdate) String() string { return proto.CompactTextString(m) }
 func (*ChannelUpdate) ProtoMessage()    {}
 func (*ChannelUpdate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{8}
+	return fileDescriptor_router_eb60ea329970898e, []int{8}
 }
 func (m *ChannelUpdate) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ChannelUpdate.Unmarshal(m, b)
@@ -990,7 +992,7 @@ func (m *ResetMissionControlRequest) Reset()         { *m = ResetMissionControlR
 func (m *ResetMissionControlRequest) String() string { return proto.CompactTextString(m) }
 func (*ResetMissionControlRequest) ProtoMessage()    {}
 func (*ResetMissionControlRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{9}
+	return fileDescriptor_router_eb60ea329970898e, []int{9}
 }
 func (m *ResetMissionControlRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ResetMissionControlRequest.Unmarshal(m, b)
@@ -1020,7 +1022,7 @@ func (m *ResetMissionControlResponse) Reset()         { *m = ResetMissionControl
 func (m *ResetMissionControlResponse) String() string { return proto.CompactTextString(m) }
 func (*ResetMissionControlResponse) ProtoMessage()    {}
 func (*ResetMissionControlResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{10}
+	return fileDescriptor_router_eb60ea329970898e, []int{10}
 }
 func (m *ResetMissionControlResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ResetMissionControlResponse.Unmarshal(m, b)
@@ -1050,7 +1052,7 @@ func (m *QueryMissionControlRequest) Reset()         { *m = QueryMissionControlR
 func (m *QueryMissionControlRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryMissionControlRequest) ProtoMessage()    {}
 func (*QueryMissionControlRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{11}
+	return fileDescriptor_router_eb60ea329970898e, []int{11}
 }
 func (m *QueryMissionControlRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryMissionControlRequest.Unmarshal(m, b)
@@ -1083,7 +1085,7 @@ func (m *QueryMissionControlResponse) Reset()         { *m = QueryMissionControl
 func (m *QueryMissionControlResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryMissionControlResponse) ProtoMessage()    {}
 func (*QueryMissionControlResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{12}
+	return fileDescriptor_router_eb60ea329970898e, []int{12}
 }
 func (m *QueryMissionControlResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryMissionControlResponse.Unmarshal(m, b)
@@ -1126,7 +1128,7 @@ func (m *PairHistory) Reset()         { *m = PairHistory{} }
 func (m *PairHistory) String() string { return proto.CompactTextString(m) }
 func (*PairHistory) ProtoMessage()    {}
 func (*PairHistory) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{13}
+	return fileDescriptor_router_eb60ea329970898e, []int{13}
 }
 func (m *PairHistory) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PairHistory.Unmarshal(m, b)
@@ -1193,7 +1195,7 @@ func (m *PairData) Reset()         { *m = PairData{} }
 func (m *PairData) String() string { return proto.CompactTextString(m) }
 func (*PairData) ProtoMessage()    {}
 func (*PairData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{14}
+	return fileDescriptor_router_eb60ea329970898e, []int{14}
 }
 func (m *PairData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PairData.Unmarshal(m, b)
@@ -1271,7 +1273,7 @@ func (m *QueryProbabilityRequest) Reset()         { *m = QueryProbabilityRequest
 func (m *QueryProbabilityRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryProbabilityRequest) ProtoMessage()    {}
 func (*QueryProbabilityRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{15}
+	return fileDescriptor_router_eb60ea329970898e, []int{15}
 }
 func (m *QueryProbabilityRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryProbabilityRequest.Unmarshal(m, b)
@@ -1326,7 +1328,7 @@ func (m *QueryProbabilityResponse) Reset()         { *m = QueryProbabilityRespon
 func (m *QueryProbabilityResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryProbabilityResponse) ProtoMessage()    {}
 func (*QueryProbabilityResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{16}
+	return fileDescriptor_router_eb60ea329970898e, []int{16}
 }
 func (m *QueryProbabilityResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryProbabilityResponse.Unmarshal(m, b)
@@ -1386,7 +1388,7 @@ func (m *BuildRouteRequest) Reset()         { *m = BuildRouteRequest{} }
 func (m *BuildRouteRequest) String() string { return proto.CompactTextString(m) }
 func (*BuildRouteRequest) ProtoMessage()    {}
 func (*BuildRouteRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{17}
+	return fileDescriptor_router_eb60ea329970898e, []int{17}
 }
 func (m *BuildRouteRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BuildRouteRequest.Unmarshal(m, b)
@@ -1447,7 +1449,7 @@ func (m *BuildRouteResponse) Reset()         { *m = BuildRouteResponse{} }
 func (m *BuildRouteResponse) String() string { return proto.CompactTextString(m) }
 func (*BuildRouteResponse) ProtoMessage()    {}
 func (*BuildRouteResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_router_277733a4476163ac, []int{18}
+	return fileDescriptor_router_eb60ea329970898e, []int{18}
 }
 func (m *BuildRouteResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BuildRouteResponse.Unmarshal(m, b)
@@ -1911,9 +1913,9 @@ var _Router_serviceDesc = grpc.ServiceDesc{
 	Metadata: "routerrpc/router.proto",
 }
 
-func init() { proto.RegisterFile("routerrpc/router.proto", fileDescriptor_router_277733a4476163ac) }
+func init() { proto.RegisterFile("routerrpc/router.proto", fileDescriptor_router_eb60ea329970898e) }
 
-var fileDescriptor_router_277733a4476163ac = []byte{
+var fileDescriptor_router_eb60ea329970898e = []byte{
 	// 2088 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x58, 0xdb, 0x76, 0xda, 0xd8,
 	0x19, 0x1e, 0x19, 0x30, 0xf0, 0x73, 0xb0, 0xbc, 0xed, 0x71, 0x08, 0x8e, 0x13, 0x46, 0x99, 0x66,
