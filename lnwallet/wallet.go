@@ -1051,6 +1051,18 @@ func (l *LightningWallet) verifyFundingInputs(fundingTx *wire.MsgTx,
 			// Attach the input scripts so we can verify it below.
 			txin.SignatureScript = inputScripts[sigIndex].SigScript
 
+			// If the SigScript field is empty but Witness is
+			// filled, calculate the correct SigScript.
+			if len(txin.SignatureScript) == 0 && len(inputScripts[sigIndex].Witness) > 0 {
+				sigScript, err := input.WitnessStackToSigScript(inputScripts[sigIndex].Witness)
+				if err != nil {
+					return fmt.Errorf("error assembling "+
+						"final sigScript for remote "+
+						"txin %d: %v", i, err)
+				}
+				txin.SignatureScript = sigScript
+			}
+
 			// Fetch the alleged previous output along with the
 			// pkscript referenced by this input.
 			//
