@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 
@@ -31,34 +30,7 @@ func queryMissionControl(ctx *cli.Context) error {
 		return err
 	}
 
-	type displayPairHistory struct {
-		NodeFrom, NodeTo                  string
-		SuccessTime, FailTime             int64
-		FailAmtAtoms, FailAmtMAtoms       int64
-		SuccessAmtAtoms, SuccessAmtMAtoms int64
-	}
-
-	displayResp := struct {
-		Pairs []displayPairHistory
-	}{}
-
-	for _, n := range snapshot.Pairs {
-		displayResp.Pairs = append(
-			displayResp.Pairs,
-			displayPairHistory{
-				NodeFrom:         hex.EncodeToString(n.NodeFrom),
-				NodeTo:           hex.EncodeToString(n.NodeTo),
-				FailTime:         n.History.FailTime,
-				SuccessTime:      n.History.SuccessTime,
-				FailAmtAtoms:     n.History.FailAmtAtoms,
-				FailAmtMAtoms:    n.History.FailAmtMAtoms,
-				SuccessAmtAtoms:  n.History.SuccessAmtAtoms,
-				SuccessAmtMAtoms: n.History.SuccessAmtMAtoms,
-			},
-		)
-	}
-
-	printJSON(displayResp)
+	printRespJSON(snapshot)
 
 	return nil
 }
