@@ -3,6 +3,7 @@ package keychain
 import (
 	"crypto/sha256"
 	"errors"
+	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/hdkeychain/v2"
@@ -101,6 +102,9 @@ func (kr *HDKeyRing) DeriveNextKey(keyFam KeyFamily) (KeyDescriptor, error) {
 // NOTE: This is part of the keychain.KeyRing interface.
 func (kr HDKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 	masterPub := kr.masterPubs[keyLoc.Family]
+	if masterPub == nil {
+		return KeyDescriptor{}, fmt.Errorf("masterpub for keyfamily %d does not exist", keyLoc.Family)
+	}
 	key, err := masterPub.Child(keyLoc.Index)
 	if err != nil {
 		return KeyDescriptor{}, err
