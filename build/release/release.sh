@@ -16,6 +16,35 @@ if [[ $1x = x ]]; then
     TAG=$DATE-$VERSION
 else
     TAG=$1
+
+    # If a tag is specified, ensure that that tag is present and checked out.
+    if [[ $TAG != $(git tag -l --points-at HEAD) ]]; then
+        echo "tag $TAG not checked out"
+        exit 1
+    fi
+
+    # Build dcrlnd to extract version.
+    go build github.com/decred/dcrlnd/cmd/dcrlnd
+
+    # Extract version command output.
+    LND_VERSION_OUTPUT=`./dcrlnd --version`
+
+    # Use a regex to isolate the version string.
+    LND_VERSION_REGEX="dcrlnd version (.+) commit"
+    if [[ $LND_VERSION_OUTPUT =~ $LND_VERSION_REGEX ]]; then
+        # Prepend 'v' to match git tag naming scheme.
+        LND_VERSION="v${BASH_REMATCH[1]}"
+        echo "version: $LND_VERSION"
+
+        # Match git tag with lnd version.
+        if [[ $TAG != $LND_VERSION ]]; then
+            echo "dcrlnd version $LND_VERSION does not match tag $TAG"
+            exit 1
+        fi
+    else
+        echo "malformed dcrlnd version output"
+        exit 1
+    fi
 fi
 
 go mod vendor
