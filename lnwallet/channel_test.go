@@ -626,7 +626,7 @@ func TestForceClose(t *testing.T) {
 	// Alice's listed CSV delay should also match the delay that was
 	// pre-committed to at channel opening.
 	if aliceCommitResolution.MaturityDelay !=
-		uint32(aliceChannel.localChanCfg.CsvDelay) {
+		uint32(aliceChannel.channelState.LocalChanCfg.CsvDelay) {
 
 		t.Fatalf("alice: incorrect local CSV delay in ForceCloseSummary, "+
 			"expected %v, got %v",
@@ -842,10 +842,10 @@ func TestForceCloseDustOutput(t *testing.T) {
 	// We set both node's channel reserves to 0, to make sure
 	// they can create small dust ouputs without going under
 	// their channel reserves.
-	aliceChannel.localChanCfg.ChanReserve = 0
-	bobChannel.localChanCfg.ChanReserve = 0
-	aliceChannel.remoteChanCfg.ChanReserve = 0
-	bobChannel.remoteChanCfg.ChanReserve = 0
+	aliceChannel.channelState.LocalChanCfg.ChanReserve = 0
+	bobChannel.channelState.LocalChanCfg.ChanReserve = 0
+	aliceChannel.channelState.RemoteChanCfg.ChanReserve = 0
+	bobChannel.channelState.RemoteChanCfg.ChanReserve = 0
 
 	htlcAmount := lnwire.NewMAtomsFromAtoms(500)
 
@@ -1298,8 +1298,8 @@ func TestChannelBalanceDustLimit(t *testing.T) {
 
 	// To allow Alice's balance to get beneath her dust limit, set the
 	// channel reserve to be 0.
-	aliceChannel.localChanCfg.ChanReserve = 0
-	bobChannel.remoteChanCfg.ChanReserve = 0
+	aliceChannel.channelState.LocalChanCfg.ChanReserve = 0
+	bobChannel.channelState.RemoteChanCfg.ChanReserve = 0
 
 	// Figure out how much it will cost to add an HTLC to the channel.
 	htlcFee := calcStaticFee(1) - calcStaticFee(0)
@@ -2620,7 +2620,7 @@ func TestAddHTLCNegativeBalance(t *testing.T) {
 
 	// We set the channel reserve to 0, such that we can add HTLCs all the
 	// way to a negative balance.
-	aliceChannel.localChanCfg.ChanReserve = 0
+	aliceChannel.channelState.LocalChanCfg.ChanReserve = 0
 
 	// First, we'll add 3 HTLCs of 1 DCR each to Alice's commitment.
 	const numHTLCs = 3
@@ -5418,14 +5418,14 @@ func TestMaxAcceptedHTLCs(t *testing.T) {
 
 	// Set the remote's required MaxAcceptedHtlcs. This means that alice
 	// can only offer the remote up to numHTLCs HTLCs.
-	aliceChannel.localChanCfg.MaxAcceptedHtlcs = numHTLCs
-	bobChannel.remoteChanCfg.MaxAcceptedHtlcs = numHTLCs
+	aliceChannel.channelState.LocalChanCfg.MaxAcceptedHtlcs = numHTLCs
+	bobChannel.channelState.RemoteChanCfg.MaxAcceptedHtlcs = numHTLCs
 
 	// Similarly, set the remote config's MaxAcceptedHtlcs. This means
 	// that the remote will be aware that Alice will only accept up to
 	// numHTLCsRecevied at a time.
-	aliceChannel.remoteChanCfg.MaxAcceptedHtlcs = numHTLCsReceived
-	bobChannel.localChanCfg.MaxAcceptedHtlcs = numHTLCsReceived
+	aliceChannel.channelState.RemoteChanCfg.MaxAcceptedHtlcs = numHTLCsReceived
+	bobChannel.channelState.LocalChanCfg.MaxAcceptedHtlcs = numHTLCsReceived
 
 	// Each HTLC amount is 0.1 DCR.
 	htlcAmt := lnwire.NewMAtomsFromAtoms(0.1 * dcrutil.AtomsPerCoin)
@@ -5481,8 +5481,8 @@ func TestMaxPendingAmount(t *testing.T) {
 	// We set the max pending amount of Alice's config. This mean that she
 	// cannot offer Bob HTLCs with a total value above this limit at a given
 	// time.
-	aliceChannel.localChanCfg.MaxPendingAmount = maxPending
-	bobChannel.remoteChanCfg.MaxPendingAmount = maxPending
+	aliceChannel.channelState.LocalChanCfg.MaxPendingAmount = maxPending
+	bobChannel.channelState.RemoteChanCfg.MaxPendingAmount = maxPending
 
 	// First, we'll add 2 HTLCs of 1.5 DCR each to Alice's commitment.
 	// This won't trigger Alice's ErrMaxPendingAmount error.
@@ -5568,20 +5568,20 @@ func TestChanReserve(t *testing.T) {
 
 		// Alice will need to keep her reserve above aliceMinReserve,
 		// so set this limit to here local config.
-		aliceChannel.localChanCfg.ChanReserve = aliceMinReserve
+		aliceChannel.channelState.LocalChanCfg.ChanReserve = aliceMinReserve
 
 		// During channel opening Bob will also get to know Alice's
 		// minimum reserve, and this will be found in his remote
 		// config.
-		bobChannel.remoteChanCfg.ChanReserve = aliceMinReserve
+		bobChannel.channelState.RemoteChanCfg.ChanReserve = aliceMinReserve
 
 		// We set Bob's channel reserve to a value that is larger than
 		// his current balance in the channel. This will ensure that
 		// after a channel is first opened, Bob can still receive HTLCs
 		// even though his balance is less than his channel reserve.
 		bobMinReserve := dcrutil.Amount(6 * dcrutil.AtomsPerCoin)
-		bobChannel.localChanCfg.ChanReserve = bobMinReserve
-		aliceChannel.remoteChanCfg.ChanReserve = bobMinReserve
+		bobChannel.channelState.LocalChanCfg.ChanReserve = bobMinReserve
+		aliceChannel.channelState.RemoteChanCfg.ChanReserve = bobMinReserve
 
 		return aliceChannel, bobChannel, cleanUp
 	}
@@ -5777,8 +5777,8 @@ func TestMinHTLC(t *testing.T) {
 
 	// Setting the min value in Alice's local config means that the
 	// remote will not accept any HTLCs of value less than specified.
-	aliceChannel.localChanCfg.MinHTLC = minValue
-	bobChannel.remoteChanCfg.MinHTLC = minValue
+	aliceChannel.channelState.LocalChanCfg.MinHTLC = minValue
+	bobChannel.channelState.RemoteChanCfg.MinHTLC = minValue
 
 	// First, we will add an HTLC of 0.5 DCR. This will not trigger
 	// ErrBelowMinHTLC.
