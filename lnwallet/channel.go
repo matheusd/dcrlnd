@@ -2248,8 +2248,8 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 	return c, nil
 }
 
-func (lc *LightningChannel) fundingTxIn() wire.TxIn {
-	return *wire.NewTxIn(&lc.channelState.FundingOutpoint, 0, nil) // TODO(decred): Need correct input value
+func fundingTxIn(chanState *channeldb.OpenChannel) wire.TxIn {
+	return *wire.NewTxIn(&chanState.FundingOutpoint, 0, nil) // TODO(decred): Need correct input value
 }
 
 // evaluateHTLCView processes all update entries in both HTLC update logs,
@@ -5551,7 +5551,7 @@ func (lc *LightningChannel) CreateCloseProposal(proposedFee dcrutil.Amount,
 	}
 
 	closeTx := CreateCooperativeCloseTx(
-		lc.fundingTxIn(), lc.channelState.LocalChanCfg.DustLimit,
+		fundingTxIn(lc.channelState), lc.channelState.LocalChanCfg.DustLimit,
 		lc.channelState.RemoteChanCfg.DustLimit, ourBalance, theirBalance,
 		localDeliveryScript, remoteDeliveryScript,
 	)
@@ -5620,7 +5620,7 @@ func (lc *LightningChannel) CompleteCooperativeClose(localSig, remoteSig []byte,
 	// on this active channel back to both parties. In this current model,
 	// the initiator pays full fees for the cooperative close transaction.
 	closeTx := CreateCooperativeCloseTx(
-		lc.fundingTxIn(), lc.channelState.LocalChanCfg.DustLimit,
+		fundingTxIn(lc.channelState), lc.channelState.LocalChanCfg.DustLimit,
 		lc.channelState.RemoteChanCfg.DustLimit, ourBalance, theirBalance,
 		localDeliveryScript, remoteDeliveryScript,
 	)
