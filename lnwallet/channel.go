@@ -2443,23 +2443,27 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	}
 
 	var (
-		delay                      uint32
-		delayBalance, p2wkhBalance dcrutil.Amount
+		commitTx *wire.MsgTx
+		err      error
 	)
-	if c.isOurs {
-		delay = uint32(lc.channelState.LocalChanCfg.CsvDelay)
-		delayBalance = ourBalance.ToAtoms()
-		p2wkhBalance = theirBalance.ToAtoms()
-	} else {
-		delay = uint32(lc.channelState.RemoteChanCfg.CsvDelay)
-		delayBalance = theirBalance.ToAtoms()
-		p2wkhBalance = ourBalance.ToAtoms()
-	}
 
-	// Generate a new commitment transaction with all the latest
-	// unsettled/un-timed out HTLCs.
-	commitTx, err := CreateCommitTx(lc.fundingTxIn(), keyRing, delay,
-		delayBalance, p2wkhBalance, c.dustLimit)
+	// Depending on whether the transaction is ours or not, we call
+	// CreateCommitTx with parameters mathcing the perspective, to generate
+	// a new commitment transaction with all the latest unsettled/un-timed
+	// out HTLCs.
+	if c.isOurs {
+		commitTx, err = CreateCommitTx(
+			lc.fundingTxIn(), keyRing, &lc.channelState.LocalChanCfg,
+			&lc.channelState.RemoteChanCfg, ourBalance.ToAtoms(),
+			theirBalance.ToAtoms(),
+		)
+	} else {
+		commitTx, err = CreateCommitTx(
+			lc.fundingTxIn(), keyRing, &lc.channelState.RemoteChanCfg,
+			&lc.channelState.LocalChanCfg, theirBalance.ToAtoms(),
+			ourBalance.ToAtoms(),
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -6236,32 +6240,39 @@ func (lc *LightningChannel) generateRevocation(height uint64) (*lnwire.RevokeAnd
 }
 
 // CreateCommitTx creates a commitment transaction, spending from specified
-// funding output. The commitment transaction contains two outputs: one paying
-// to the "owner" of the commitment transaction which can be spent after a
-// relative block delay or revocation event, and the other paying the
-// counterparty within the channel, which can be spent immediately.
-func CreateCommitTx(fundingOutput wire.TxIn,
-	keyRing *CommitmentKeyRing, csvTimeout uint32,
-	amountToSelf, amountToThem, dustLimit dcrutil.Amount) (*wire.MsgTx, error) {
+// funding output. The commitment transaction contains two outputs: one local
+// output paying to the "owner" of the commitment transaction which can be
+// spent after a relative block delay or revocation event, and a remote output
+// paying the counterparty within the channel, which can be spent immediately
+// or after a delay depending on the commitment type..
+func CreateCommitTx(fundingOutput wire.TxIn, keyRing *CommitmentKeyRing,
+	localChanCfg, remoteChanCfg *channeldb.ChannelConfig,
+	amountToLocal, amountToRemote dcrutil.Amount) (*wire.MsgTx, error) {
 
 	// First, we create the script for the delayed "pay-to-self" output.
 	// This output has 2 main redemption clauses: either we can redeem the
 	// output after a relative block delay, or the remote node can claim
 	// the funds with the revocation key if we broadcast a revoked
 	// commitment transaction.
-	ourRedeemScript, err := input.CommitScriptToSelf(csvTimeout, keyRing.DelayKey,
-		keyRing.RevocationKey)
+	toLocalRedeemScript, err := input.CommitScriptToSelf(
+		uint32(localChanCfg.CsvDelay), keyRing.DelayKey,
+		keyRing.RevocationKey,
+	)
 	if err != nil {
 		return nil, err
 	}
-	payToUsScriptHash, err := input.ScriptHashPkScript(ourRedeemScript)
+	toLocalScriptHash, err := input.ScriptHashPkScript(
+		toLocalRedeemScript,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Next, we create the script paying to them. This is just a regular
-	// P2PKH output, without any added CSV delay.
-	theirWitnessKeyHash, err := input.CommitScriptUnencumbered(keyRing.NoDelayKey)
+	// Next, we create the script paying to the remote. This is just a
+	// regular P2PKH output, without any added CSV delay.
+	toRemoteWitnessKeyHash, err := input.CommitScriptUnencumbered(
+		keyRing.NoDelayKey,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -6274,17 +6285,17 @@ func CreateCommitTx(fundingOutput wire.TxIn,
 	commitTx.AddTxIn(&fundingOutput)
 
 	// Avoid creating dust outputs within the commitment transaction.
-	if amountToSelf >= dustLimit {
+	if amountToLocal >= localChanCfg.DustLimit {
 		commitTx.AddTxOut(&wire.TxOut{
-			PkScript: payToUsScriptHash,
-			Value:    int64(amountToSelf),
+			PkScript: toLocalScriptHash,
+			Value:    int64(amountToLocal),
 			Version:  scriptVersion,
 		})
 	}
-	if amountToThem >= dustLimit {
+	if amountToRemote >= localChanCfg.DustLimit {
 		commitTx.AddTxOut(&wire.TxOut{
-			PkScript: theirWitnessKeyHash,
-			Value:    int64(amountToThem),
+			PkScript: toRemoteWitnessKeyHash,
+			Value:    int64(amountToRemote),
 			Version:  scriptVersion,
 		})
 	}

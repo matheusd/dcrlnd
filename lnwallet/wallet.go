@@ -782,9 +782,10 @@ func CreateCommitmentTxns(localBalance, remoteBalance dcrutil.Amount,
 		theirChanCfg,
 	)
 
-	ourCommitTx, err := CreateCommitTx(fundingTxIn, localCommitmentKeys,
-		uint32(ourChanCfg.CsvDelay), localBalance, remoteBalance,
-		ourChanCfg.DustLimit)
+	ourCommitTx, err := CreateCommitTx(
+		fundingTxIn, localCommitmentKeys, ourChanCfg, theirChanCfg,
+		localBalance, remoteBalance,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -794,9 +795,10 @@ func CreateCommitmentTxns(localBalance, remoteBalance dcrutil.Amount,
 		return nil, nil, err
 	}
 
-	theirCommitTx, err := CreateCommitTx(fundingTxIn, remoteCommitmentKeys,
-		uint32(theirChanCfg.CsvDelay), remoteBalance, localBalance,
-		theirChanCfg.DustLimit)
+	theirCommitTx, err := CreateCommitTx(
+		fundingTxIn, remoteCommitmentKeys, theirChanCfg, ourChanCfg,
+		remoteBalance, localBalance,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
