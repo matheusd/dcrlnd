@@ -430,15 +430,15 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 	// Construct a LightningChannel manually because we don't have nor need all
 	// of the dependencies.
 	channel := LightningChannel{
-		channelState: &channelState,
-		Signer:       signer,
-		netParams:    tc.netParams,
+		channelState:  &channelState,
+		Signer:        signer,
+		commitBuilder: NewCommitmentBuilder(&channelState, tc.netParams),
+		netParams:     tc.netParams,
 	}
 	err = channel.createSignDesc()
 	if err != nil {
 		t.Fatalf("Failed to generate channel sign descriptor: %v", err)
 	}
-	channel.createStateHintObfuscator()
 
 	// The commitmentPoint is technically hidden in the spec, but we need it to
 	// generate the correct tweak.
@@ -816,7 +816,7 @@ func TestCommitmentAndHTLCTransactions(t *testing.T) {
 			dustLimit:    tc.dustLimit,
 			isOurs:       true,
 		}
-		err = channel.createCommitmentTx(
+		err = channel.commitBuilder.createCommitmentTx(
 			commitmentView, theHTLCView, keys,
 		)
 		if err != nil {

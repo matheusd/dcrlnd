@@ -341,9 +341,10 @@ func CreateTestChannels(tweaklessCommits bool) (
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if err = alicePool.Start(); err != nil {
-		return nil, nil, nil, err
-	}
+	alicePool.Start()
+
+	obfuscator := createStateHintObfuscator(aliceChannelState)
+
 	bobPool := NewSigPool(1, bobSigner)
 	channelBob, err := NewLightningChannel(
 		bobSigner, bobChannelState, bobPool, netParams,
@@ -355,13 +356,13 @@ func CreateTestChannels(tweaklessCommits bool) (
 		return nil, nil, nil, err
 	}
 	err = SetStateNumHint(
-		aliceCommitTx, 0, channelAlice.stateHintObfuscator,
+		aliceCommitTx, 0, obfuscator,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	err = SetStateNumHint(
-		bobCommitTx, 0, channelAlice.stateHintObfuscator,
+		bobCommitTx, 0, obfuscator,
 	)
 	if err != nil {
 		return nil, nil, nil, err

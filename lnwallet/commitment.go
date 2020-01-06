@@ -3,7 +3,8 @@ package lnwallet
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/blockchain"
+	"github.com/decred/dcrd/blockchain/v2"
+	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
@@ -127,27 +128,52 @@ func DeriveCommitmentKeys(commitPoint *secp256k1.PublicKey,
 	return keyRing
 }
 
+// CommitmentBuilder is a type that wraps the type of channel we are dealing
+// with, and abstracts the various ways of constructing commitment
+// transactions.
+type CommitmentBuilder struct {
+	// chanState is the underlying channels's state struct, used to
+	// determine the type of channel we are dealing with, and relevant
+	// parameters.
+	chanState *channeldb.OpenChannel
+
+	// obfuscator is a 48-bit state hint that's used to obfuscate the
+	// current state number on the commitment transactions.
+	obfuscator [StateHintSize]byte
+
+	// netParams are the chain parameters for which commitments are built.
+	netParams *chaincfg.Params
+}
+
+// NewCommitmentBuilder creates a new CommitmentBuilder from chanState.
+func NewCommitmentBuilder(chanState *channeldb.OpenChannel, netParams *chaincfg.Params) *CommitmentBuilder {
+	return &CommitmentBuilder{
+		chanState:  chanState,
+		obfuscator: createStateHintObfuscator(chanState),
+		netParams:  netParams,
+	}
+}
+
 // createStateHintObfuscator derives and assigns the state hint obfuscator for
 // the channel, which is used to encode the commitment height in the sequence
 // number of commitment transaction inputs.
-func (lc *LightningChannel) createStateHintObfuscator() {
-	state := lc.channelState
+func createStateHintObfuscator(state *channeldb.OpenChannel) [StateHintSize]byte {
 	if state.IsInitiator {
-		lc.stateHintObfuscator = DeriveStateHintObfuscator(
+		return DeriveStateHintObfuscator(
 			state.LocalChanCfg.PaymentBasePoint.PubKey,
 			state.RemoteChanCfg.PaymentBasePoint.PubKey,
-		)
-	} else {
-		lc.stateHintObfuscator = DeriveStateHintObfuscator(
-			state.RemoteChanCfg.PaymentBasePoint.PubKey,
-			state.LocalChanCfg.PaymentBasePoint.PubKey,
 		)
 	}
+
+	return DeriveStateHintObfuscator(
+		state.RemoteChanCfg.PaymentBasePoint.PubKey,
+		state.LocalChanCfg.PaymentBasePoint.PubKey,
+	)
 }
 
 // createCommitmentTx generates the unsigned commitment transaction for a
 // commitment view and assigns to txn field.
-func (lc *LightningChannel) createCommitmentTx(c *commitment,
+func (cb *CommitmentBuilder) createCommitmentTx(c *commitment,
 	filteredHTLCView *htlcView, keyRing *CommitmentKeyRing) error {
 
 	ourBalance := c.ourBalance
@@ -189,16 +215,16 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// initiator. If the initiator is unable to pay the fee fully, then
 	// their entire output is consumed.
 	switch {
-	case lc.channelState.IsInitiator && commitFee > ourBalance.ToAtoms():
+	case cb.chanState.IsInitiator && commitFee > ourBalance.ToAtoms():
 		ourBalance = 0
 
-	case lc.channelState.IsInitiator:
+	case cb.chanState.IsInitiator:
 		ourBalance -= commitFeeMAtoms
 
-	case !lc.channelState.IsInitiator && commitFee > theirBalance.ToAtoms():
+	case !cb.chanState.IsInitiator && commitFee > theirBalance.ToAtoms():
 		theirBalance = 0
 
-	case !lc.channelState.IsInitiator:
+	case !cb.chanState.IsInitiator:
 		theirBalance -= commitFeeMAtoms
 	}
 
@@ -208,19 +234,19 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	)
 
 	// Depending on whether the transaction is ours or not, we call
-	// CreateCommitTx with parameters mathcing the perspective, to generate
+	// CreateCommitTx with parameters matching the perspective, to generate
 	// a new commitment transaction with all the latest unsettled/un-timed
 	// out HTLCs.
 	if c.isOurs {
 		commitTx, err = CreateCommitTx(
-			fundingTxIn(lc.channelState), keyRing, &lc.channelState.LocalChanCfg,
-			&lc.channelState.RemoteChanCfg, ourBalance.ToAtoms(),
+			fundingTxIn(cb.chanState), keyRing, &cb.chanState.LocalChanCfg,
+			&cb.chanState.RemoteChanCfg, ourBalance.ToAtoms(),
 			theirBalance.ToAtoms(),
 		)
 	} else {
 		commitTx, err = CreateCommitTx(
-			fundingTxIn(lc.channelState), keyRing, &lc.channelState.RemoteChanCfg,
-			&lc.channelState.LocalChanCfg, theirBalance.ToAtoms(),
+			fundingTxIn(cb.chanState), keyRing, &cb.chanState.RemoteChanCfg,
+			&cb.chanState.LocalChanCfg, theirBalance.ToAtoms(),
 			ourBalance.ToAtoms(),
 		)
 	}
@@ -266,7 +292,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// Set the state hint of the commitment transaction to facilitate
 	// quickly recovering the necessary penalty state in the case of an
 	// uncooperative broadcast.
-	err = SetStateNumHint(commitTx, c.height, lc.stateHintObfuscator)
+	err = SetStateNumHint(commitTx, c.height, cb.obfuscator)
 	if err != nil {
 		return err
 	}
@@ -279,7 +305,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	// Next, we'll ensure that we don't accidentally create a commitment
 	// transaction which would be invalid by consensus.
 	uTx := dcrutil.NewTx(commitTx)
-	if err := blockchain.CheckTransactionSanity(uTx.MsgTx(), lc.netParams); err != nil {
+	if err := blockchain.CheckTransactionSanity(uTx.MsgTx(), cb.netParams); err != nil {
 		return err
 	}
 
@@ -289,11 +315,11 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 	for _, txOut := range commitTx.TxOut {
 		totalOut += dcrutil.Amount(txOut.Value)
 	}
-	if totalOut > lc.channelState.Capacity {
+	if totalOut > cb.chanState.Capacity {
 		return fmt.Errorf("height=%v, for ChannelPoint(%v) attempts "+
 			"to consume %v while channel capacity is %v",
-			c.height, lc.channelState.FundingOutpoint,
-			totalOut, lc.channelState.Capacity)
+			c.height, cb.chanState.FundingOutpoint,
+			totalOut, cb.chanState.Capacity)
 	}
 
 	c.txn = commitTx
