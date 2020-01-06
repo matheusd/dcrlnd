@@ -2482,7 +2482,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 			continue
 		}
 
-		err := lc.addHTLC(commitTx, c.isOurs, false, htlc, keyRing)
+		err := addHTLC(commitTx, c.isOurs, false, htlc, keyRing)
 		if err != nil {
 			return err
 		}
@@ -2494,7 +2494,7 @@ func (lc *LightningChannel) createCommitmentTx(c *commitment,
 			continue
 		}
 
-		err := lc.addHTLC(commitTx, c.isOurs, true, htlc, keyRing)
+		err := addHTLC(commitTx, c.isOurs, true, htlc, keyRing)
 		if err != nil {
 			return err
 		}
@@ -5003,7 +5003,7 @@ func genHtlcScript(isIncoming, ourCommit bool, timeout uint32, rHash [32]byte,
 // locate the added HTLC on the commitment transaction from the
 // PaymentDescriptor that generated it, the generated script is stored within
 // the descriptor itself.
-func (lc *LightningChannel) addHTLC(commitTx *wire.MsgTx, ourCommit bool,
+func addHTLC(commitTx *wire.MsgTx, ourCommit bool,
 	isIncoming bool, paymentDesc *PaymentDescriptor,
 	keyRing *CommitmentKeyRing) error {
 
