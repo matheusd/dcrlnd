@@ -1972,12 +1972,12 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	coreLink.cfg.HodlMask = hodl.MaskFromFlags(hodl.ExitSettle)
 
 	estimator := chainfee.NewStaticEstimator(1e4, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(input.HTLCOutputSize),
+		feePerKB.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2392,7 +2392,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	)
 
 	estimator := chainfee.NewStaticEstimator(1e4, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
@@ -2468,7 +2468,7 @@ func TestChannelLinkBandwidthConsistencyOverflow(t *testing.T) {
 	time.Sleep(time.Second * 1)
 	commitSize := input.CommitmentTxSize + input.HTLCOutputSize*numHTLCs
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(commitSize),
+		feePerKB.FeeForSize(commitSize),
 	)
 	expectedBandwidth := aliceStartingBandwidth - totalHtlcAmt - htlcFee
 	expectedBandwidth += lnwire.NewMAtomsFromAtoms(defaultCommitFee)
@@ -2643,14 +2643,14 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
 	estimator := chainfee.NewStaticEstimator(1e4, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(input.HTLCOutputSize),
+		feePerKB.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -2922,14 +2922,14 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 	// Compute the static fees that will be used to determine the
 	// correctness of Alice's bandwidth when forwarding HTLCs.
 	estimator := chainfee.NewStaticEstimator(1e4, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 
 	defaultCommitFee := alice.channel.StateSnapshot().CommitFee
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(input.HTLCOutputSize),
+		feePerKB.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
@@ -3180,12 +3180,12 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 	)
 
 	estimator := chainfee.NewStaticEstimator(1e4, 0)
-	feePerKw, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to query fee estimator: %v", err)
 	}
 	htlcFee := lnwire.NewMAtomsFromAtoms(
-		feePerKw.FeeForSize(input.HTLCOutputSize),
+		feePerKB.FeeForSize(input.HTLCOutputSize),
 	)
 
 	// The starting bandwidth of the channel should be exactly the amount
