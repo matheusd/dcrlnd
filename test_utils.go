@@ -200,7 +200,8 @@ func createTestPeer(notifier chainntnfs.ChainNotifier, publTx chan *wire.MsgTx,
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(
 		channelBal, channelBal, &aliceCfg, &bobCfg, aliceCommitPoint,
-		bobCommitPoint, *fundingTxIn, chainParams, true,
+		bobCommitPoint, *fundingTxIn, channeldb.SingleFunderTweaklessBit,
+		chainParams,
 	)
 	if err != nil {
 		return nil, nil, nil, nil, err

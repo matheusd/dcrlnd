@@ -1816,7 +1816,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 
 	aliceCommitTx, bobCommitTx, err := lnwallet.CreateCommitmentTxns(
 		channelBal-initiatorFee, channelBal, &aliceCfg, &bobCfg, aliceCommitPoint,
-		bobCommitPoint, *fundingTxIn, chainParams, true,
+		bobCommitPoint, *fundingTxIn, channeldb.SingleFunderTweaklessBit,
+		chainParams,
 	)
 	if err != nil {
 		return nil, nil, nil, err
