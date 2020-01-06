@@ -60,18 +60,30 @@ type CommitmentKeyRing struct {
 	// of whether this is our commit or not.
 	RemoteHtlcKey *secp256k1.PublicKey
 
-	// DelayKey is the commitment transaction owner's key which is included
-	// in HTLC success and timeout transaction scripts.
-	DelayKey *secp256k1.PublicKey
+	// ToLocalKey is the commitment transaction owner's key which is
+	// included in HTLC success and timeout transaction scripts. This is
+	// the public key used for the to_local output of the commitment
+	// transaction.
+	//
+	// NOTE: Who's key this is depends on the current perspective. If this
+	// is our commitment this will be our key.
+	ToLocalKey *secp256k1.PublicKey
 
-	// NoDelayKey is the other party's payment key in the commitment tx.
-	// This is the key used to generate the unencumbered output within the
+	// ToRemoteKey is the non-owner's payment key in the commitment tx.
+	// This is the key used to generate the to_remote output within the
 	// commitment transaction.
-	NoDelayKey *secp256k1.PublicKey
+	//
+	// NOTE: Who's key this is depends on the current perspective. If this
+	// is our commitment this will be their key.
+	ToRemoteKey *secp256k1.PublicKey
 
 	// RevocationKey is the key that can be used by the other party to
 	// redeem outputs from a revoked commitment transaction if it were to
 	// be published.
+	//
+	// NOTE: Who can sign for this key depends on the current perspective.
+	// If this is our commitment, it means the remote node can sign for
+	// this key in case of a breach.
 	RevocationKey *secp256k1.PublicKey
 }
 
@@ -101,29 +113,29 @@ func DeriveCommitmentKeys(commitPoint *secp256k1.PublicKey,
 		),
 	}
 
-	// We'll now compute the delay, no delay, and revocation key based on
-	// the current commitment point. All keys are tweaked each state in
+	// We'll now compute the to_local, to_remote, and revocation key based
+	// on the current commitment point. All keys are tweaked each state in
 	// order to ensure the keys from each state are unlinkable. To create
 	// the revocation key, we take the opposite party's revocation base
 	// point and combine that with the current commitment point.
 	var (
-		delayBasePoint      *secp256k1.PublicKey
-		noDelayBasePoint    *secp256k1.PublicKey
+		toLocalBasePoint    *secp256k1.PublicKey
+		toRemoteBasePoint   *secp256k1.PublicKey
 		revocationBasePoint *secp256k1.PublicKey
 	)
 	if isOurCommit {
-		delayBasePoint = localChanCfg.DelayBasePoint.PubKey
-		noDelayBasePoint = remoteChanCfg.PaymentBasePoint.PubKey
+		toLocalBasePoint = localChanCfg.DelayBasePoint.PubKey
+		toRemoteBasePoint = remoteChanCfg.PaymentBasePoint.PubKey
 		revocationBasePoint = remoteChanCfg.RevocationBasePoint.PubKey
 	} else {
-		delayBasePoint = remoteChanCfg.DelayBasePoint.PubKey
-		noDelayBasePoint = localChanCfg.PaymentBasePoint.PubKey
+		toLocalBasePoint = remoteChanCfg.DelayBasePoint.PubKey
+		toRemoteBasePoint = localChanCfg.PaymentBasePoint.PubKey
 		revocationBasePoint = localChanCfg.RevocationBasePoint.PubKey
 	}
 
 	// With the base points assigned, we can now derive the actual keys
 	// using the base point, and the current commitment tweak.
-	keyRing.DelayKey = input.TweakPubKey(delayBasePoint, commitPoint)
+	keyRing.ToLocalKey = input.TweakPubKey(toLocalBasePoint, commitPoint)
 	keyRing.RevocationKey = input.DeriveRevocationPubkey(
 		revocationBasePoint, commitPoint,
 	)
@@ -131,10 +143,10 @@ func DeriveCommitmentKeys(commitPoint *secp256k1.PublicKey,
 	// If this commitment should omit the tweak for the remote point, then
 	// we'll use that directly, and ignore the commitPoint tweak.
 	if tweaklessCommit {
-		keyRing.NoDelayKey = noDelayBasePoint
+		keyRing.ToRemoteKey = toRemoteBasePoint
 	} else {
-		keyRing.NoDelayKey = input.TweakPubKey(
-			noDelayBasePoint, commitPoint,
+		keyRing.ToRemoteKey = input.TweakPubKey(
+			toRemoteBasePoint, commitPoint,
 		)
 	}
 
@@ -381,7 +393,7 @@ func CreateCommitTx(fundingOutput wire.TxIn, keyRing *CommitmentKeyRing,
 	// the funds with the revocation key if we broadcast a revoked
 	// commitment transaction.
 	toLocalRedeemScript, err := input.CommitScriptToSelf(
-		uint32(localChanCfg.CsvDelay), keyRing.DelayKey,
+		uint32(localChanCfg.CsvDelay), keyRing.ToLocalKey,
 		keyRing.RevocationKey,
 	)
 	if err != nil {
@@ -397,7 +409,7 @@ func CreateCommitTx(fundingOutput wire.TxIn, keyRing *CommitmentKeyRing,
 	// Next, we create the script paying to the remote. This is just a
 	// regular P2PKH output, without any added CSV delay.
 	toRemoteWitnessKeyHash, err := input.CommitScriptUnencumbered(
-		keyRing.NoDelayKey,
+		keyRing.ToRemoteKey,
 	)
 	if err != nil {
 		return nil, err
