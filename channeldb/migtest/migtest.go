@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/channeldb"
+	bolt "go.etcd.io/bbolt"
 )
 
 // MakeDB creates a new instance of the ChannelDB for testing purposes. A

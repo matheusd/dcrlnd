@@ -10,8 +10,8 @@ import (
 	"bytes"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/go-errors/errors"
 	"github.com/decred/dcrlnd/tlv"
+	"github.com/go-errors/errors"
 )
 
 // FailureMessage represents the onion failure object identified by its unique

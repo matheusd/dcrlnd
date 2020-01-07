@@ -896,7 +896,8 @@ func (l *LightningWallet) handleContributionMsg(req *addContributionMsg) {
 			// stack.
 			witness, err := input.SigScriptToWitnessStack(txIn.SignatureScript)
 			if err != nil {
-				fmt.Errorf("unable to re-split witness stack: %v", err)
+				req.err <- fmt.Errorf("unable to re-split witness stack: %v", err)
+				return
 			}
 			pendingReservation.ourFundingInputScripts = append(
 				pendingReservation.ourFundingInputScripts,

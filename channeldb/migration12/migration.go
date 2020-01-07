@@ -3,8 +3,8 @@ package migration12
 import (
 	"bytes"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/lnwire"
+	bolt "go.etcd.io/bbolt"
 )
 
 var emptyFeatures = lnwire.NewFeatureVector(nil, nil)

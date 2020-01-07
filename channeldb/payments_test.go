@@ -3,7 +3,6 @@ package channeldb
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -13,16 +12,13 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
-	"github.com/decred/dcrlnd/tlv"
 )
 
 var (
 	priv, _ = secp256k1.GeneratePrivateKey()
 	pub     = priv.PubKey()
 
-	tlvBytes   = []byte{1, 2, 3}
-	tlvEncoder = tlv.StubEncoder(tlvBytes)
-	testHop1   = &route.Hop{
+	testHop1 = &route.Hop{
 		PubKeyBytes:      route.NewVertex(pub),
 		ChannelID:        12345,
 		OutgoingTimeLock: 111,
@@ -72,18 +68,6 @@ func makeFakeInfo() (*PaymentCreationInfo, *PaymentAttemptInfo) {
 		Route:      testRoute,
 	}
 	return c, a
-}
-
-// randomBytes creates random []byte with length in range [minLen, maxLen)
-func randomBytes(minLen, maxLen int) ([]byte, error) {
-	randBuf := make([]byte, minLen+rand.Intn(maxLen-minLen))
-
-	if _, err := rand.Read(randBuf); err != nil {
-		return nil, fmt.Errorf("Internal error. "+
-			"Cannot generate random string: %v", err)
-	}
-
-	return randBuf, nil
 }
 
 func TestSentPaymentSerialization(t *testing.T) {

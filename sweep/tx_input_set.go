@@ -102,7 +102,7 @@ func (t *txInputSet) add(input input.Input, fromWallet bool) bool {
 	newInputTotal := t.inputTotal + value
 
 	size = newSizeEstimate.Size()
-	fee := t.feePerKB.FeeForSize(int64(size))
+	fee := t.feePerKB.FeeForSize(size)
 
 	// Calculate the output value if the current input would be
 	// added to the set.

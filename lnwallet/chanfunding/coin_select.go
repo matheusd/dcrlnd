@@ -102,7 +102,7 @@ func CoinSelect(feeRate chainfee.AtomPerKByte, amt dcrutil.Amount,
 		// amount isn't enough to pay fees, then increase the requested
 		// coin amount by the estimate required fee, performing another
 		// round of coin selection.
-		totalSize := int64(sizeEstimate.Size())
+		totalSize := sizeEstimate.Size()
 		requiredFee := feeRate.FeeForSize(totalSize)
 		if overShootAmt < requiredFee {
 			amtNeeded = amt + requiredFee
@@ -153,7 +153,7 @@ func CoinSelectSubtractFees(feeRate chainfee.AtomPerKByte, amt,
 	//
 	// Estimate the fee required for a transaction without a change
 	// output.
-	totalSize := int64(sizeEstimate.Size())
+	totalSize := sizeEstimate.Size()
 	requiredFee := feeRate.FeeForSize(totalSize)
 
 	// For a transaction without a change output, we'll let everything go
@@ -177,7 +177,7 @@ func CoinSelectSubtractFees(feeRate chainfee.AtomPerKByte, amt,
 
 	// Now that we have added the change output, redo the fee
 	// estimate.
-	totalSize = int64(sizeEstimate.Size())
+	totalSize = sizeEstimate.Size()
 	requiredFee = feeRate.FeeForSize(totalSize)
 
 	// For a transaction with a change output, everything we don't spend

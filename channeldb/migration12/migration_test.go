@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migtest"
 	"github.com/decred/dcrlnd/lntypes"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

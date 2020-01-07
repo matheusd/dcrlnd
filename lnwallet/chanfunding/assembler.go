@@ -1,8 +1,8 @@
 package chanfunding
 
 import (
-	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 

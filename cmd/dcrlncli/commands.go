@@ -1917,11 +1917,6 @@ var getInfoCommand = cli.Command{
 	Action: actionDecorator(getInfo),
 }
 
-type chain struct {
-	Chain   string `json:"chain"`
-	Network string `json:"network"`
-}
-
 func getInfo(ctx *cli.Context) error {
 	ctxb := context.Background()
 	client, cleanUp := getClient(ctx)
