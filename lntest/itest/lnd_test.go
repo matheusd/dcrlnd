@@ -7356,7 +7356,7 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	// We must let Bob communicate with Carol before they are able to open
 	// channel, so we connect Bob and Carol,
 	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
-	if err := net.ConnectNodes(ctxt, carol, net.Bob); err != nil {
+	if err := net.EnsureConnected(ctxt, carol, net.Bob); err != nil {
 		t.Fatalf("unable to connect dave to carol: %v", err)
 	}
 
