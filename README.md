@@ -97,6 +97,13 @@ https://decred.org/community
 ## Docker
   To run lnd from Docker, please see the main [Docker instructions](docs/DOCKER.md)
 
+## Safety
+
+When operating a mainnet `lnd` node, please refer to our [operational safety
+guildelines](docs/safety.md). It is important to note that `lnd` is still
+**beta** software and that ignoring these operational guidelines can lead to
+loss of funds.
+
 ## Security
 
 `dcrlnd` is now part of Decred's [Bug Bounty Program](https://bounty.decred.org)
