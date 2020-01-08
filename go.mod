@@ -68,4 +68,4 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
 
-replace github.com/decred/lightning-onion/v3 => github.com/matheusd/lightning-onion/v3 v3.0.0-20191226145537-57496f770150
+replace github.com/decred/lightning-onion/v3 => github.com/matheusd/lightning-onion/v3 v3.0.0-20200108130659-ce91c24fe0c2
