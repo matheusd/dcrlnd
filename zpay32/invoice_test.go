@@ -515,9 +515,8 @@ func TestDecodeEncode(t *testing.T) {
 		{
 			// On mainnet, please send $30 coffee beans supporting
 			// features 9, 15, 99, and 100, using secret 0x11...
-			encodedInvoice: "lndcr25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q4psqqqqqqqqqqqqqqqpqqq2l8jc3sz8xrtd39kp0qpnvr0dt57kdghre5kheyjq4ey0z4xg7xqwtcn3sk34ux6dyjje3c97khq994z0653mxxg9azztc6zmy4043cqwr3p6e",
-			valid:          false,
-			skipEncoding:   true,
+			encodedInvoice: "lndcr25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q4psqqqqqqqqqqqqqqqpqsqh82n8qrqmvqkkqjajnv0xgrlfhf02u7j7872t00narrlf33e60cx9dctzd59v7smeuykdtxg6sx2z5a2k0qyakyjhneysc37ghfs6hgqrrjdpu",
+			valid:          true,
 			decodedInvoice: func() *Invoice {
 				return &Invoice{
 					Net:         chaincfg.MainNetParams(),
@@ -612,8 +611,7 @@ func TestDecodeEncode(t *testing.T) {
 		}
 
 		if test.valid {
-			if err := compareInvoices(test.decodedInvoice(), invoice); err != nil {
-
+			if err := compareInvoices(decodedInvoice, invoice); err != nil {
 				t.Errorf("Invoice decoding result %d not as expected: %v", i, err)
 				return
 			}
