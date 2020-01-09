@@ -1594,6 +1594,12 @@ message GetInfoResponse {
     announcements and invoices.
     */
     map<uint32, Feature> features = 19 [json_name = "features"];
+
+    /**
+    Whether all server sub-processes have started and the node is ready to be 
+    used.
+    **/
+    bool server_active = 901 [json_name = "server_active"];
 }
 
 message Chain {

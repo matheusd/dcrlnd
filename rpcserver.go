@@ -2345,6 +2345,7 @@ func (r *rpcServer) GetInfo(ctx context.Context,
 		Version:             build.Version(),
 		SyncedToGraph:       isGraphSynced,
 		Features:            features,
+		ServerActive:        r.server.Started() && !r.server.Stopped(),
 	}, nil
 }
 

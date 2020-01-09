@@ -2599,6 +2599,11 @@
             "$ref": "#/definitions/lnrpcFeature"
           },
           "description": "Features that our node has advertised in our init message, node\nannouncements and invoices."
+        },
+        "server_active": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "*\nWhether all server sub-processes have started and the node is ready to be \nused."
         }
       }
     },
