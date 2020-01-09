@@ -147,6 +147,9 @@ type PendingInput struct {
 	// NextBroadcastHeight is the next height of the chain at which we'll
 	// attempt to broadcast a transaction sweeping the input.
 	NextBroadcastHeight uint32
+
+	// Params contains the sweep parameters for this pending request.
+	Params Params
 }
 
 // bumpFeeReq is an internal message we'll use to represent an external caller's
@@ -1062,6 +1065,7 @@ func (s *UtxoSweeper) handlePendingSweepsReq(
 			LastFeeRate:         pendingInput.lastFeeRate,
 			BroadcastAttempts:   pendingInput.publishAttempts,
 			NextBroadcastHeight: uint32(pendingInput.minPublishHeight),
+			Params:              pendingInput.params,
 		}
 	}
 
