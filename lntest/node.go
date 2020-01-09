@@ -816,6 +816,17 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 			err)
 	}
 
+	// Wait until the node has started all subservices.
+	ctxb := context.Background()
+	wait.Predicate(func() bool {
+		info, err := hn.GetInfo(ctxb, &lnrpc.GetInfoRequest{})
+		if err != nil {
+			return false
+		}
+
+		return info.ServerActive
+	}, 30*time.Second)
+
 	// Due to a race condition between the ChannelRouter starting and us
 	// making the subscription request, it's possible for our graph
 	// subscription to fail. To ensure we don't start listening for updates
