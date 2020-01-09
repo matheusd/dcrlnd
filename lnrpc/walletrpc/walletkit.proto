@@ -197,6 +197,12 @@ message PendingSweep {
     sweep transaction of the output.
     */
     uint32 next_broadcast_height = 6 [json_name = "next_broadcast_height"];
+
+    // The requested confirmation target for this output.
+    uint32 requested_conf_target = 8 [json_name = "requested_conf_target"];
+
+    // The requested fee rate, expressed in atoms/byte, for this output.
+    uint32 requested_atoms_per_byte = 9 [json_name = "requested_atoms_per_byte"];
 }
 
 message PendingSweepsRequest {
@@ -217,7 +223,7 @@ message BumpFeeRequest {
     uint32 target_conf = 2 [json_name = "target_conf"];
 
     /*
-    The fee rate, expressed in sat/byte, that should be used to spend the input
+    The fee rate, expressed in atoms/byte, that should be used to spend the input
     with.
     */
     uint32 atoms_per_byte = 3 [json_name = "atoms_per_byte"];
