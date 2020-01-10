@@ -11,8 +11,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
-	bbolt "go.etcd.io/bbolt"
 )
 
 func createTestMessageStore(t *testing.T) (*MessageStore, func()) {
@@ -236,8 +236,8 @@ func TestMessageStoreUnsupportedMessage(t *testing.T) {
 	if _, err := lnwire.WriteMessage(&rawMsg, unsupportedMsg, 0); err != nil {
 		t.Fatalf("unable to serialize message: %v", err)
 	}
-	err = msgStore.db.Update(func(tx *bbolt.Tx) error {
-		messageStore := tx.Bucket(messageStoreBucket)
+	err = kvdb.Update(msgStore.db, func(tx kvdb.RwTx) error {
+		messageStore := tx.ReadWriteBucket(messageStoreBucket)
 		return messageStore.Put(msgKey, rawMsg.Bytes())
 	})
 	if err != nil {
