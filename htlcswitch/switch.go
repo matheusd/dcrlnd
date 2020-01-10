@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lntypes"
@@ -20,7 +21,6 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
-	bbolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -1419,7 +1419,7 @@ func (s *Switch) closeCircuit(pkt *htlcPacket) (*PaymentCircuit, error) {
 // we're the originator of the payment, so the link stops attempting to
 // re-broadcast.
 func (s *Switch) ackSettleFail(settleFailRefs ...channeldb.SettleFailRef) error {
-	return s.cfg.DB.Batch(func(tx *bbolt.Tx) error {
+	return kvdb.Batch(s.cfg.DB.Backend, func(tx kvdb.RwTx) error {
 		return s.cfg.SwitchPackager.AckSettleFails(tx, settleFailRefs...)
 	})
 }
@@ -1481,7 +1481,7 @@ func (s *Switch) teardownCircuit(pkt *htlcPacket) error {
 
 // CloseLink creates and sends the close channel command to the target link
 // directing the specified closure type. If the closure type is CloseRegular,
-// targetFeePerKw parameter should be the ideal fee-per-kb that will be used as
+// targetFeePerKB parameter should be the ideal fee-per-kb that will be used as
 // a starting point for close negotiation. The deliveryScript parameter is an
 // optional parameter which sets a user specified script to close out to.
 func (s *Switch) CloseLink(chanPoint *wire.OutPoint,
@@ -1865,7 +1865,7 @@ func (s *Switch) reforwardResponses() error {
 func (s *Switch) loadChannelFwdPkgs(source lnwire.ShortChannelID) ([]*channeldb.FwdPkg, error) {
 
 	var fwdPkgs []*channeldb.FwdPkg
-	if err := s.cfg.DB.Update(func(tx *bbolt.Tx) error {
+	if err := kvdb.Update(s.cfg.DB, func(tx kvdb.RwTx) error {
 		var err error
 		fwdPkgs, err = s.cfg.SwitchPackager.LoadChannelFwdPkgs(
 			tx, source,

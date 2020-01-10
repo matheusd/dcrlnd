@@ -326,7 +326,7 @@ func newBoltArbitratorLog(db kvdb.Backend, cfg ChannelArbitratorConfig,
 		return nil, err
 	}
 
-	return &bboltArbitratorLog{
+	return &boltArbitratorLog{
 		db:       db,
 		cfg:      cfg,
 		scopeKey: *scope,
