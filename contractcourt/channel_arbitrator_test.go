@@ -16,11 +16,11 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
-	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -396,7 +396,7 @@ func createTestChannelArbitrator(t *testing.T, log ArbitratorLog,
 			return nil, err
 		}
 		dbPath := filepath.Join(dbDir, "testdb")
-		db, err := bbolt.Open(dbPath, 0600, nil)
+		db, err := kvdb.Create(kvdb.BoltBackendName, dbPath, true)
 		if err != nil {
 			return nil, err
 		}
