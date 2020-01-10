@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/decred/dcrlnd/channeldb"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 var (

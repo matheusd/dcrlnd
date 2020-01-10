@@ -8,7 +8,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 var (
