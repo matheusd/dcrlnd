@@ -29,6 +29,7 @@ import (
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/chanfitness"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/contractcourt"
@@ -63,7 +64,6 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -709,7 +709,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	routingConfig := routerrpc.GetRoutingConfig(cfg.SubRPCServers.RouterRPC)
 
 	s.missionControl, err = routing.NewMissionControl(
-		chanDB.DB,
+		chanDB,
 		&routing.MissionControlConfig{
 			AprioriHopProbability: routingConfig.AprioriHopProbability,
 			PenaltyHalfLife:       routingConfig.PenaltyHalfLife,
@@ -821,7 +821,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		sweep.DefaultBatchWindowDuration)
 
 	sweeperStore, err := sweep.NewSweeperStore(
-		chanDB.DB, &activeNetParams.GenesisHash,
+		chanDB, &activeNetParams.GenesisHash,
 	)
 	if err != nil {
 		srvrLog.Errorf("unable to create sweeper store: %v", err)
@@ -2153,7 +2153,7 @@ func (s *server) establishPersistentConnections() error {
 	// each of the nodes.
 	selfPub := s.identityPriv.PubKey().SerializeCompressed()
 	err = sourceNode.ForEachChannel(nil, func(
-		tx *bbolt.Tx,
+		tx kvdb.ReadTx,
 		chanInfo *channeldb.ChannelEdgeInfo,
 		policy, _ *channeldb.ChannelEdgePolicy) error {
 
