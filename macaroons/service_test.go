@@ -8,8 +8,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/macaroons"
-	bbolt "go.etcd.io/bbolt"
 	"google.golang.org/grpc/metadata"
 	"gopkg.in/macaroon-bakery.v2/bakery"
 	"gopkg.in/macaroon-bakery.v2/bakery/checkers"
@@ -33,8 +33,9 @@ func setupTestRootKeyStorage(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("Error creating temp dir: %v", err)
 	}
-	db, err := bbolt.Open(path.Join(tempDir, "macaroons.db"), 0600,
-		bbolt.DefaultOptions)
+	db, err := kvdb.Create(
+		kvdb.BoltBackendName, path.Join(tempDir, "macaroons.db"), true,
+	)
 	if err != nil {
 		t.Fatalf("Error opening store DB: %v", err)
 	}
