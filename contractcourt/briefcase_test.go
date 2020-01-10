@@ -16,9 +16,9 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
-	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -104,7 +104,7 @@ var (
 	}
 )
 
-func makeTestDB() (*bbolt.DB, func(), error) {
+func makeTestDB() (kvdb.Backend, func(), error) {
 	// First, create a temporary directory to be used for the duration of
 	// this test.
 	tempDirName, err := ioutil.TempDir("", "arblog")
@@ -112,7 +112,7 @@ func makeTestDB() (*bbolt.DB, func(), error) {
 		return nil, nil, err
 	}
 
-	db, err := bbolt.Open(tempDirName+"/test.db", 0600, nil)
+	db, err := kvdb.Create(kvdb.BoltBackendName, tempDirName+"/test.db", true)
 	if err != nil {
 		return nil, nil, err
 	}
