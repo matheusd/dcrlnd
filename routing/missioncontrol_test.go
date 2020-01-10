@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bbolt "go.etcd.io/bbolt"
 )
 
 var (
@@ -44,7 +44,7 @@ type mcTestContext struct {
 	mc  *MissionControl
 	now time.Time
 
-	db     *bbolt.DB
+	db     kvdb.Backend
 	dbPath string
 
 	pid uint64
@@ -63,7 +63,7 @@ func createMcTestContext(t *testing.T) *mcTestContext {
 
 	ctx.dbPath = file.Name()
 
-	ctx.db, err = bbolt.Open(ctx.dbPath, 0600, nil)
+	ctx.db, err = kvdb.Open(kvdb.BoltBackendName, ctx.dbPath, true)
 	if err != nil {
 		t.Fatal(err)
 	}

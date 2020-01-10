@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bbolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -173,7 +173,7 @@ type paymentResult struct {
 }
 
 // NewMissionControl returns a new instance of missionControl.
-func NewMissionControl(db *bbolt.DB, cfg *MissionControlConfig) (
+func NewMissionControl(db kvdb.Backend, cfg *MissionControlConfig) (
 	*MissionControl, error) {
 
 	log.Debugf("Instantiating mission control with config: "+

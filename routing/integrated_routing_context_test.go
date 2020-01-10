@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bbolt "go.etcd.io/bbolt"
 )
 
 // integratedRoutingContext defines the context in which integrated routing
@@ -82,7 +82,7 @@ func (c *integratedRoutingContext) testPayment(expectedNofAttempts int) {
 	dbPath := file.Name()
 	defer os.Remove(dbPath)
 
-	db, err := bbolt.Open(dbPath, 0600, nil)
+	db, err := kvdb.Open(kvdb.BoltBackendName, dbPath, true)
 	if err != nil {
 		c.t.Fatal(err)
 	}

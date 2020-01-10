@@ -14,9 +14,9 @@ import (
 	"github.com/decred/dcrd/wire"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
@@ -2112,7 +2112,7 @@ func (r *ChannelRouter) FetchLightningNode(node route.Vertex) (*channeldb.Lightn
 //
 // NOTE: This method is part of the ChannelGraphSource interface.
 func (r *ChannelRouter) ForEachNode(cb func(*channeldb.LightningNode) error) error {
-	return r.cfg.Graph.ForEachNode(nil, func(_ *bbolt.Tx, n *channeldb.LightningNode) error {
+	return r.cfg.Graph.ForEachNode(nil, func(_ kvdb.ReadTx, n *channeldb.LightningNode) error {
 		return cb(n)
 	})
 }
@@ -2123,15 +2123,16 @@ func (r *ChannelRouter) ForEachNode(cb func(*channeldb.LightningNode) error) err
 // NOTE: This method is part of the ChannelGraphSource interface.
 func (r *ChannelRouter) ForAllOutgoingChannels(cb func(*channeldb.ChannelEdgeInfo,
 	*channeldb.ChannelEdgePolicy) error) error {
-	return r.selfNode.ForEachChannel(nil,
-		func(_ *bbolt.Tx, c *channeldb.ChannelEdgeInfo, e,
-			_ *channeldb.ChannelEdgePolicy) error {
-			if e == nil {
-				return fmt.Errorf("channel from self node has no policy")
-			}
 
-			return cb(c, e)
-		})
+	return r.selfNode.ForEachChannel(nil, func(_ kvdb.ReadTx, c *channeldb.ChannelEdgeInfo,
+		e, _ *channeldb.ChannelEdgePolicy) error {
+
+		if e == nil {
+			return fmt.Errorf("Channel from self node has no policy")
+		}
+
+		return cb(c, e)
+	})
 }
 
 // ForEachChannel is used to iterate over every known edge (channel) within our
@@ -2264,7 +2265,7 @@ func generateBandwidthHints(sourceNode *channeldb.LightningNode,
 	// First, we'll collect the set of outbound edges from the target
 	// source node.
 	var localChans []*channeldb.ChannelEdgeInfo
-	err := sourceNode.ForEachChannel(nil, func(tx *bbolt.Tx,
+	err := sourceNode.ForEachChannel(nil, func(tx kvdb.ReadTx,
 		edgeInfo *channeldb.ChannelEdgeInfo,
 		_, _ *channeldb.ChannelEdgePolicy) error {
 
