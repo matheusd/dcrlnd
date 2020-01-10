@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/multimutex"
-	bbolt "go.etcd.io/bbolt"
 )
 
 var (
@@ -137,8 +137,8 @@ func (store *networkResultStore) storeResult(paymentID uint64,
 	var paymentIDBytes [8]byte
 	binary.BigEndian.PutUint64(paymentIDBytes[:], paymentID)
 
-	err := store.db.Batch(func(tx *bbolt.Tx) error {
-		networkResults, err := tx.CreateBucketIfNotExists(
+	err := kvdb.Batch(store.db.Backend, func(tx kvdb.RwTx) error {
+		networkResults, err := tx.CreateTopLevelBucket(
 			networkResultStoreBucketKey,
 		)
 		if err != nil {
@@ -180,7 +180,7 @@ func (store *networkResultStore) subscribeResult(paymentID uint64) (
 		resultChan = make(chan *networkResult, 1)
 	)
 
-	err := store.db.View(func(tx *bbolt.Tx) error {
+	err := kvdb.View(store.db, func(tx kvdb.ReadTx) error {
 		var err error
 		result, err = fetchResult(tx, paymentID)
 		switch {
@@ -226,7 +226,7 @@ func (store *networkResultStore) getResult(pid uint64) (
 	*networkResult, error) {
 
 	var result *networkResult
-	err := store.db.View(func(tx *bbolt.Tx) error {
+	err := kvdb.View(store.db, func(tx kvdb.ReadTx) error {
 		var err error
 		result, err = fetchResult(tx, pid)
 		return err
@@ -238,11 +238,11 @@ func (store *networkResultStore) getResult(pid uint64) (
 	return result, nil
 }
 
-func fetchResult(tx *bbolt.Tx, pid uint64) (*networkResult, error) {
+func fetchResult(tx kvdb.ReadTx, pid uint64) (*networkResult, error) {
 	var paymentIDBytes [8]byte
 	binary.BigEndian.PutUint64(paymentIDBytes[:], pid)
 
-	networkResults := tx.Bucket(networkResultStoreBucketKey)
+	networkResults := tx.ReadBucket(networkResultStoreBucketKey)
 	if networkResults == nil {
 		return nil, ErrPaymentIDNotFound
 	}
