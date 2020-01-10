@@ -10,8 +10,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/lnwire"
 
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/routing/route"
-	bbolt "go.etcd.io/bbolt"
 )
 
 const testMaxRecords = 2
@@ -31,7 +31,7 @@ func TestMissionControlStore(t *testing.T) {
 
 	dbPath := file.Name()
 
-	db, err := bbolt.Open(dbPath, 0600, nil)
+	db, err := kvdb.Create(kvdb.BoltBackendName, dbPath, true)
 	if err != nil {
 		t.Fatal(err)
 	}
