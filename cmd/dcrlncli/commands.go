@@ -2078,6 +2078,14 @@ var (
 		Usage: "pubkey of the last hop (penultimate node in the path) " +
 			"to route through for this payment",
 	}
+
+	dataFlag = cli.StringFlag{
+		Name: "data",
+		Usage: "attach custom data to the payment. The required " +
+			"format is: <record_id>=<hex_value>,<record_id>=" +
+			"<hex_value>,.. For example: --data 3438382=0a21ff. " +
+			"Custom record ids start from 65536.",
+	}
 )
 
 // paymentFlags returns common flags for sendpayment and payinvoice.
@@ -2114,6 +2122,7 @@ func paymentFlags() []cli.Flag {
 			Name:  "allow_self_payment",
 			Usage: "allow sending a circular payment to self",
 		},
+		dataFlag,
 	}
 }
 
@@ -2259,6 +2268,7 @@ func sendPayment(ctx *cli.Context) error {
 	req := &lnrpc.SendRequest{
 		Dest:                 destNode,
 		Amt:                  amount,
+		DestCustomRecords:    make(map[uint64][]byte),
 		IgnoreMaxOutboundAmt: ctx.Bool("ignore_max_outbound_amt"),
 	}
 
@@ -2274,9 +2284,10 @@ func sendPayment(ctx *cli.Context) error {
 			return err
 		}
 
-		req.DestCustomRecords = map[uint64][]byte{
-			record.KeySendType: preimage[:],
-		}
+		// Set the preimage. If the user supplied a preimage with the
+		// data flag, the preimage that is set here will be overwritten
+		// later.
+		req.DestCustomRecords[record.KeySendType] = preimage[:]
 
 		hash := preimage.Hash()
 		rHash = hash[:]
@@ -2342,6 +2353,33 @@ func sendPaymentRequest(ctx *cli.Context, req *lnrpc.SendRequest) error {
 	req.CltvLimit = uint32(ctx.Int(cltvLimitFlag.Name))
 
 	req.AllowSelfPayment = ctx.Bool("allow_self_payment")
+
+	// Parse custom data records.
+	data := ctx.String(dataFlag.Name)
+	if data != "" {
+		records := strings.Split(data, ",")
+		for _, r := range records {
+			kv := strings.Split(r, "=")
+			if len(kv) != 2 {
+				return errors.New("invalid data format: " +
+					"multiple equal signs in record")
+			}
+
+			recordID, err := strconv.ParseUint(kv[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid data format: %v",
+					err)
+			}
+
+			hexValue, err := hex.DecodeString(kv[1])
+			if err != nil {
+				return fmt.Errorf("invalid data format: %v",
+					err)
+			}
+
+			req.DestCustomRecords[recordID] = hexValue
+		}
+	}
 
 	amt := req.Amt
 
@@ -2422,8 +2460,9 @@ func payInvoice(ctx *cli.Context) error {
 	}
 
 	req := &lnrpc.SendRequest{
-		PaymentRequest: payReq,
-		Amt:            ctx.Int64("amt"),
+		PaymentRequest:    payReq,
+		Amt:               ctx.Int64("amt"),
+		DestCustomRecords: make(map[uint64][]byte),
 	}
 
 	return sendPaymentRequest(ctx, req)
