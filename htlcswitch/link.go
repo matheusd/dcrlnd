@@ -2136,16 +2136,17 @@ func (l *channelLink) UpdateForwardingPolicy(newPolicy ForwardingPolicy) {
 	l.cfg.FwrdingPolicy = newPolicy
 }
 
-// CheckHtlcForward should return a nil error if the passed HTLC details satisfy
-// the current forwarding policy fo the target link.  Otherwise, a valid
-// protocol failure message should be returned in order to signal to the source
-// of the HTLC, the policy consistency issue.
+// CheckHtlcForward should return a nil error if the passed HTLC details
+// satisfy the current forwarding policy fo the target link. Otherwise,
+// a LinkError with a valid protocol failure message should be returned
+// in order to signal to the source of the HTLC, the policy consistency
+// issue.
 //
 // NOTE: Part of the ChannelLink interface.
 func (l *channelLink) CheckHtlcForward(payHash [32]byte,
 	incomingHtlcAmt, amtToForward lnwire.MilliAtom,
 	incomingTimeout, outgoingTimeout uint32,
-	heightNow uint32) lnwire.FailureMessage {
+	heightNow uint32) *LinkError {
 
 	l.RLock()
 	policy := l.cfg.FwrdingPolicy
@@ -2177,14 +2178,14 @@ func (l *channelLink) CheckHtlcForward(payHash [32]byte,
 
 		// As part of the returned error, we'll send our latest routing
 		// policy so the sending node obtains the most up to date data.
-
-		return l.createFailureWithUpdate(
+		failure := l.createFailureWithUpdate(
 			func(upd *lnwire.ChannelUpdate) lnwire.FailureMessage {
 				return lnwire.NewFeeInsufficient(
 					amtToForward, *upd,
 				)
 			},
 		)
+		return NewLinkError(failure)
 	}
 
 	// Finally, we'll ensure that the time-lock on the outgoing HTLC meets
@@ -2199,26 +2200,27 @@ func (l *channelLink) CheckHtlcForward(payHash [32]byte,
 
 		// Grab the latest routing policy so the sending node is up to
 		// date with our current policy.
-		return l.createFailureWithUpdate(
+		failure := l.createFailureWithUpdate(
 			func(upd *lnwire.ChannelUpdate) lnwire.FailureMessage {
 				return lnwire.NewIncorrectCltvExpiry(
 					incomingTimeout, *upd,
 				)
 			},
 		)
+		return NewLinkError(failure)
 	}
 
 	return nil
 }
 
 // CheckHtlcTransit should return a nil error if the passed HTLC details
-// satisfy the current channel policy.  Otherwise, a valid protocol failure
-// message should be returned in order to signal the violation. This call is
-// intended to be used for locally initiated payments for which there is no
-// corresponding incoming htlc.
+// satisfy the current channel policy.  Otherwise, a LinkError with a valid
+// protocol failure message should be returned in order to signal the
+// violation. This call is intended to be used for locally initiated payments
+// for which there is no corresponding incoming htlc.
 func (l *channelLink) CheckHtlcTransit(payHash [32]byte,
 	amt lnwire.MilliAtom, timeout uint32,
-	heightNow uint32) lnwire.FailureMessage {
+	heightNow uint32) *LinkError {
 
 	l.RLock()
 	policy := l.cfg.FwrdingPolicy
@@ -2233,7 +2235,7 @@ func (l *channelLink) CheckHtlcTransit(payHash [32]byte,
 // the channel's amount and time lock constraints.
 func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 	payHash [32]byte, amt lnwire.MilliAtom, timeout uint32,
-	heightNow uint32) lnwire.FailureMessage {
+	heightNow uint32) *LinkError {
 
 	// As our first sanity check, we'll ensure that the passed HTLC isn't
 	// too small for the next hop. If so, then we'll cancel the HTLC
@@ -2245,13 +2247,14 @@ func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 
 		// As part of the returned error, we'll send our latest routing
 		// policy so the sending node obtains the most up to date data.
-		return l.createFailureWithUpdate(
+		failure := l.createFailureWithUpdate(
 			func(upd *lnwire.ChannelUpdate) lnwire.FailureMessage {
 				return lnwire.NewAmountBelowMinimum(
 					amt, *upd,
 				)
 			},
 		)
+		return NewLinkError(failure)
 	}
 
 	// Next, ensure that the passed HTLC isn't too large. If so, we'll
@@ -2262,11 +2265,12 @@ func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 
 		// As part of the returned error, we'll send our latest routing
 		// policy so the sending node obtains the most up-to-date data.
-		return l.createFailureWithUpdate(
+		failure := l.createFailureWithUpdate(
 			func(upd *lnwire.ChannelUpdate) lnwire.FailureMessage {
 				return lnwire.NewTemporaryChannelFailure(upd)
 			},
 		)
+		return NewDetailedLinkError(failure, FailureDetailHTLCExceedsMax)
 	}
 
 	// We want to avoid offering an HTLC which will expire in the near
@@ -2276,12 +2280,12 @@ func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 		l.log.Errorf("htlc(%x) has an expiry that's too soon: "+
 			"outgoing_expiry=%v, best_height=%v", payHash[:],
 			timeout, heightNow)
-
-		return l.createFailureWithUpdate(
+		failure := l.createFailureWithUpdate(
 			func(upd *lnwire.ChannelUpdate) lnwire.FailureMessage {
 				return lnwire.NewExpiryTooSoon(*upd)
 			},
 		)
+		return NewLinkError(failure)
 	}
 
 	// Check absolute max delta.
@@ -2290,15 +2294,18 @@ func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 			"the future: got %v, but maximum is %v", payHash[:],
 			timeout-heightNow, l.cfg.MaxOutgoingCltvExpiry)
 
-		return &lnwire.FailExpiryTooFar{}
+		return NewLinkError(&lnwire.FailExpiryTooFar{})
 	}
 
 	// Check to see if there is enough balance in this channel.
 	if amt > l.Bandwidth() {
-		return l.createFailureWithUpdate(
+		failure := l.createFailureWithUpdate(
 			func(upd *lnwire.ChannelUpdate) lnwire.FailureMessage {
 				return lnwire.NewTemporaryChannelFailure(upd)
 			},
+		)
+		return NewDetailedLinkError(
+			failure, FailureDetailInsufficientBalance,
 		)
 	}
 

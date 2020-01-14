@@ -5545,7 +5545,7 @@ func TestCheckHtlcForward(t *testing.T) {
 	t.Run("below minhtlc", func(t *testing.T) {
 		result := link.CheckHtlcForward(hash, 100, 50,
 			200, 150, 0)
-		if _, ok := result.(*lnwire.FailAmountBelowMinimum); !ok {
+		if _, ok := result.WireMessage().(*lnwire.FailAmountBelowMinimum); !ok {
 			t.Fatalf("expected FailAmountBelowMinimum failure code")
 		}
 	})
@@ -5553,7 +5553,7 @@ func TestCheckHtlcForward(t *testing.T) {
 	t.Run("above maxhtlc", func(t *testing.T) {
 		result := link.CheckHtlcForward(hash, 1500, 1200,
 			200, 150, 0)
-		if _, ok := result.(*lnwire.FailTemporaryChannelFailure); !ok {
+		if _, ok := result.WireMessage().(*lnwire.FailTemporaryChannelFailure); !ok {
 			t.Fatalf("expected FailTemporaryChannelFailure failure code")
 		}
 	})
@@ -5561,7 +5561,7 @@ func TestCheckHtlcForward(t *testing.T) {
 	t.Run("insufficient fee", func(t *testing.T) {
 		result := link.CheckHtlcForward(hash, 1005, 1000,
 			200, 150, 0)
-		if _, ok := result.(*lnwire.FailFeeInsufficient); !ok {
+		if _, ok := result.WireMessage().(*lnwire.FailFeeInsufficient); !ok {
 			t.Fatalf("expected FailFeeInsufficient failure code")
 		}
 	})
@@ -5569,7 +5569,7 @@ func TestCheckHtlcForward(t *testing.T) {
 	t.Run("expiry too soon", func(t *testing.T) {
 		result := link.CheckHtlcForward(hash, 1500, 1000,
 			200, 150, 190)
-		if _, ok := result.(*lnwire.FailExpiryTooSoon); !ok {
+		if _, ok := result.WireMessage().(*lnwire.FailExpiryTooSoon); !ok {
 			t.Fatalf("expected FailExpiryTooSoon failure code")
 		}
 	})
@@ -5577,7 +5577,7 @@ func TestCheckHtlcForward(t *testing.T) {
 	t.Run("incorrect cltv expiry", func(t *testing.T) {
 		result := link.CheckHtlcForward(hash, 1500, 1000,
 			200, 190, 0)
-		if _, ok := result.(*lnwire.FailIncorrectCltvExpiry); !ok {
+		if _, ok := result.WireMessage().(*lnwire.FailIncorrectCltvExpiry); !ok {
 			t.Fatalf("expected FailIncorrectCltvExpiry failure code")
 		}
 
@@ -5587,7 +5587,7 @@ func TestCheckHtlcForward(t *testing.T) {
 		// Check that expiry isn't too far in the future.
 		result := link.CheckHtlcForward(hash, 1500, 1000,
 			10200, 10100, 0)
-		if _, ok := result.(*lnwire.FailExpiryTooFar); !ok {
+		if _, ok := result.WireMessage().(*lnwire.FailExpiryTooFar); !ok {
 			t.Fatalf("expected FailExpiryTooFar failure code")
 		}
 	})
