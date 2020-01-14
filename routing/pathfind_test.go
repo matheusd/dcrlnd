@@ -2100,6 +2100,7 @@ func TestPathFindSpecExample(t *testing.T) {
 	const amt lnwire.MilliAtom = 4999999
 	route, err := ctx.router.FindRoute(
 		bobNode.PubKeyBytes, carol, amt, noRestrictions, nil, nil,
+		zpay32.DefaultFinalCLTVDelta,
 	)
 	if err != nil {
 		t.Fatalf("unable to find route: %v", err)
@@ -2155,6 +2156,7 @@ func TestPathFindSpecExample(t *testing.T) {
 	// We'll now request a route from A -> B -> C.
 	route, err = ctx.router.FindRoute(
 		source.PubKeyBytes, carol, amt, noRestrictions, nil, nil,
+		zpay32.DefaultFinalCLTVDelta,
 	)
 	if err != nil {
 		t.Fatalf("unable to find routes: %v", err)
