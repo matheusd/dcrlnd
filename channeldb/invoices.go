@@ -1348,7 +1348,7 @@ func (d *DB) updateInvoice(hash lntypes.Hash, invoices, settleIndex *bolt.Bucket
 		return &invoice, nil
 	}
 
-	now := d.Now()
+	now := d.clock.Now()
 
 	// Update invoice state if the update descriptor indicates an invoice
 	// state change.
