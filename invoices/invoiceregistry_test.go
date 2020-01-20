@@ -323,7 +323,7 @@ func TestCancelInvoice(t *testing.T) {
 func TestSettleHoldInvoice(t *testing.T) {
 	defer timeout()()
 
-	cdb, cleanup, err := newTestChannelDB()
+	cdb, cleanup, err := newTestChannelDB(clock.NewTestClock(time.Time{}))
 	if err != nil {
 		t.Fatalf("unable to create db: %v", err)
 	}
@@ -506,7 +506,7 @@ func TestSettleHoldInvoice(t *testing.T) {
 func TestCancelHoldInvoice(t *testing.T) {
 	defer timeout()()
 
-	cdb, cleanup, err := newTestChannelDB()
+	cdb, cleanup, err := newTestChannelDB(clock.NewTestClock(time.Time{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -807,7 +807,7 @@ func TestMppPayment(t *testing.T) {
 func TestInvoiceExpiryWithRegistry(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanup, err := newTestChannelDB()
+	cdb, cleanup, err := newTestChannelDB(clock.NewTestClock(time.Time{}))
 	defer cleanup()
 
 	if err != nil {

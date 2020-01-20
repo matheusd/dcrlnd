@@ -108,7 +108,7 @@ var (
 	}
 )
 
-func newTestChannelDB() (*channeldb.DB, func(), error) {
+func newTestChannelDB(clock clock.Clock) (*channeldb.DB, func(), error) {
 	// First, create a temporary directory to be used for the duration of
 	// this test.
 	tempDirName, err := ioutil.TempDir("", "channeldb")
@@ -117,7 +117,9 @@ func newTestChannelDB() (*channeldb.DB, func(), error) {
 	}
 
 	// Next, create channeldb for the first time.
-	cdb, err := channeldb.Open(tempDirName)
+	cdb, err := channeldb.Open(
+		tempDirName, channeldb.OptionClock(clock),
+	)
 	if err != nil {
 		os.RemoveAll(tempDirName)
 		return nil, nil, err
@@ -143,11 +145,10 @@ type testContext struct {
 func newTestContext(t *testing.T) *testContext {
 	clock := clock.NewTestClock(testTime)
 
-	cdb, cleanup, err := newTestChannelDB()
+	cdb, cleanup, err := newTestChannelDB(clock)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cdb.Now = clock.Now
 
 	expiryWatcher := NewInvoiceExpiryWatcher(clock)
 
