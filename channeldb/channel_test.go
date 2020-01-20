@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
@@ -69,6 +70,8 @@ var (
 	privKey, pubKey = secp256k1.PrivKeyFromBytes(key[:])
 
 	wireSig, _ = lnwire.NewSigFromSignature(testSig)
+
+	testClock = clock.NewTestClock(testNow)
 )
 
 // makeTestDB creates a new instance of the ChannelDB for testing purposes. A
@@ -83,7 +86,7 @@ func makeTestDB() (*DB, func(), error) {
 	}
 
 	// Next, create channeldb for the first time.
-	cdb, err := Open(tempDirName)
+	cdb, err := Open(tempDirName, OptionClock(testClock))
 	if err != nil {
 		return nil, nil, err
 	}

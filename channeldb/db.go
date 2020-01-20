@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
 	bolt "go.etcd.io/bbolt"
@@ -137,8 +138,7 @@ type DB struct {
 	*bolt.DB
 	dbPath string
 	graph  *ChannelGraph
-
-	Now func() time.Time
+	clock  clock.Clock
 }
 
 // Open opens an existing channeldb. Any necessary schemas migrations due to
@@ -172,7 +172,7 @@ func Open(dbPath string, modifiers ...OptionModifier) (*DB, error) {
 	chanDB := &DB{
 		DB:     bdb,
 		dbPath: dbPath,
-		Now:    time.Now,
+		clock:  opts.clock,
 	}
 	chanDB.graph = newChannelGraph(
 		chanDB, opts.RejectCacheSize, opts.ChannelCacheSize,
