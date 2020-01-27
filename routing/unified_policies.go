@@ -1,11 +1,10 @@
 package routing
 
 import (
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
 )
 
 // unifiedPolicies holds all unified policies for connections towards a node.
@@ -69,10 +68,8 @@ func (u *unifiedPolicies) addPolicy(fromNode route.Vertex,
 
 // addGraphPolicies adds all policies that are known for the toNode in the
 // graph.
-func (u *unifiedPolicies) addGraphPolicies(g *channeldb.ChannelGraph,
-	tx *bolt.Tx) error {
-
-	cb := func(_ *bolt.Tx, edgeInfo *channeldb.ChannelEdgeInfo, _,
+func (u *unifiedPolicies) addGraphPolicies(g routingGraph) error {
+	cb := func(edgeInfo *channeldb.ChannelEdgeInfo, _,
 		inEdge *channeldb.ChannelEdgePolicy) error {
 
 		// If there is no edge policy for this candidate node, skip.
@@ -95,7 +92,7 @@ func (u *unifiedPolicies) addGraphPolicies(g *channeldb.ChannelGraph,
 	}
 
 	// Iterate over all channels of the to node.
-	return g.ForEachNodeChannel(tx, u.toNode[:], cb)
+	return g.forEachNodeChannel(u.toNode, cb)
 }
 
 // unifiedPolicyEdge is the individual channel data that is kept inside an
