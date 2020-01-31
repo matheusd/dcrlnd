@@ -1414,7 +1414,7 @@ func (n *TxNotifier) filterTx(tx *dcrutil.Tx, blockHash *chainhash.Hash,
 			// requests.
 			prevOut := txIn.PreviousOutPoint
 			pkScript, err := chainscan.ComputePkScript(
-				0, txIn.SignatureScript, n.chainParams,
+				0, txIn.SignatureScript,
 			)
 			if err != nil {
 				continue

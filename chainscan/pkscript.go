@@ -187,7 +187,7 @@ func (s PkScript) Equal(o *PkScript) bool {
 //
 // NOTE: Only P2PKH and P2SH redeem scripts are supported. Only the standard
 // secp256k1 keys are supported (alternative suites are not).
-func ComputePkScript(scriptVersion uint16, sigScript []byte, addrParams dcrutil.AddressParams) (PkScript, error) {
+func ComputePkScript(scriptVersion uint16, sigScript []byte) (PkScript, error) {
 
 	var pkScript PkScript
 
@@ -223,8 +223,7 @@ func ComputePkScript(scriptVersion uint16, sigScript []byte, addrParams dcrutil.
 	}
 
 	var scriptClass txscript.ScriptClass
-	var address dcrutil.Address
-	var err error
+	var script [maxLen]byte
 
 	// The last opcode of a sigscript will either be a pubkey (for p2kh
 	// pkscripts) or a redeem script (for p2sh pkscripts). Further, a
@@ -238,26 +237,26 @@ func ComputePkScript(scriptVersion uint16, sigScript []byte, addrParams dcrutil.
 		// The sigScript has the correct structure for spending a
 		// p2pkh, therefore assume it is one.
 		scriptClass = txscript.PubKeyHashTy
-		address, err = dcrutil.NewAddressPubKeyHash(
-			lastDataHash, addrParams, dcrec.STEcdsaSecp256k1,
-		)
+		script = [maxLen]byte{
+			0: txscript.OP_DUP,
+			1: txscript.OP_HASH160,
+			2: txscript.OP_DATA_20,
+			// 3-23: pubkey hash
+			23: txscript.OP_EQUALVERIFY,
+			24: txscript.OP_CHECKSIG,
+		}
+		copy(script[3:23], lastDataHash)
 	} else {
 		// Assume it's a p2sh.
 		scriptClass = txscript.ScriptHashTy
-		address, err = dcrutil.NewAddressScriptHashFromHash(
-			lastDataHash, addrParams,
-		)
+		script = [maxLen]byte{
+			0: txscript.OP_HASH160,
+			1: txscript.OP_DATA_20,
+			// 2-22: script hash
+			22: txscript.OP_EQUAL,
+		}
+		copy(script[2:22], lastDataHash)
 	}
-	if err != nil {
-		return pkScript, err
-	}
-
-	scriptSlice, err := txscript.PayToAddrScript(address)
-	if err != nil {
-		return pkScript, err
-	}
-	var script [maxLen]byte
-	copy(script[:], scriptSlice)
 
 	return PkScript{
 		class:         scriptClass,
