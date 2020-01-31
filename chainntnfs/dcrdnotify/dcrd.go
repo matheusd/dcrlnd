@@ -853,7 +853,6 @@ func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest,
 		// match.
 		pkScript, _ := chainscan.ComputePkScript(
 			spendRequest.PkScript.ScriptVersion(), in.SignatureScript,
-			addrParams,
 		)
 		if spendRequest.PkScript.Equal(&pkScript) {
 			return i
