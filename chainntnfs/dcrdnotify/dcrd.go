@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/queue"
 )
 
@@ -825,7 +826,7 @@ func txSpendsSpendRequest(tx *wire.MsgTx, spendRequest *chainntnfs.SpendRequest,
 	for i, in := range tx.TxIn {
 		// Ignore the errors here, due to them definitely not being a
 		// match.
-		pkScript, _ := chainntnfs.ComputePkScript(
+		pkScript, _ := chainscan.ComputePkScript(
 			spendRequest.PkScript.ScriptVersion(), in.SignatureScript,
 			addrParams,
 		)

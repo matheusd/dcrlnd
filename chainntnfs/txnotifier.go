@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/channeldb"
 )
 
@@ -155,7 +156,7 @@ type ConfRequest struct {
 
 	// PkScript is the public key script of an outpoint created in this
 	// transaction.
-	PkScript PkScript
+	PkScript chainscan.PkScript
 }
 
 // NewConfRequest creates a request for a confirmation notification of either a
@@ -164,7 +165,7 @@ type ConfRequest struct {
 func NewConfRequest(txid *chainhash.Hash, pkScript []byte) (ConfRequest, error) {
 	var r ConfRequest
 	scriptVersion := uint16(0)
-	outputScript, err := ParsePkScript(scriptVersion, pkScript)
+	outputScript, err := chainscan.ParsePkScript(scriptVersion, pkScript)
 	if err != nil {
 		return r, err
 	}
@@ -301,7 +302,7 @@ type SpendRequest struct {
 
 	// PkScript is the script of the outpoint. If a zero outpoint is set,
 	// then this can be an arbitrary script.
-	PkScript PkScript
+	PkScript chainscan.PkScript
 }
 
 // NewSpendRequest creates a request for a spend notification of either an
@@ -310,7 +311,7 @@ type SpendRequest struct {
 func NewSpendRequest(op *wire.OutPoint, pkScript []byte) (SpendRequest, error) {
 	var r SpendRequest
 	scriptVersion := uint16(0)
-	outputScript, err := ParsePkScript(scriptVersion, pkScript)
+	outputScript, err := chainscan.ParsePkScript(scriptVersion, pkScript)
 	if err != nil {
 		return r, err
 	}
@@ -1412,7 +1413,7 @@ func (n *TxNotifier) filterTx(tx *dcrutil.Tx, blockHash *chainhash.Hash,
 			// to determine if the inputs spends any registered
 			// requests.
 			prevOut := txIn.PreviousOutPoint
-			pkScript, err := ComputePkScript(
+			pkScript, err := chainscan.ComputePkScript(
 				0, txIn.SignatureScript, n.chainParams,
 			)
 			if err != nil {
@@ -1461,7 +1462,7 @@ func (n *TxNotifier) filterTx(tx *dcrutil.Tx, blockHash *chainhash.Hash,
 			// We'll parse the script of the output to determine if
 			// we have any registered requests for it or the
 			// transaction itself.
-			pkScript, err := ParsePkScript(0, txOut.PkScript)
+			pkScript, err := chainscan.ParsePkScript(0, txOut.PkScript)
 			if err != nil {
 				continue
 			}

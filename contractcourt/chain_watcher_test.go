@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -288,7 +289,7 @@ func TestChainWatcherCorrectSpendNtnf(t *testing.T) {
 			ntnfReq.outpoint)
 	}
 
-	_, err = chainntnfs.ParsePkScript(0, ntnfReq.pkScript)
+	_, err = chainscan.ParsePkScript(0, ntnfReq.pkScript)
 	if err != nil {
 		t.Fatalf("unable to parse watched pkscript: %v", err)
 	}
