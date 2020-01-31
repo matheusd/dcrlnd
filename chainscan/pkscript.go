@@ -1,7 +1,7 @@
 // Adapted from the upstream decred/dcrd file contained in the txscript
 // package.
 
-package chainntnfs
+package chainscan
 
 import (
 	"bytes"

@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/compat"
 )
@@ -308,7 +309,7 @@ func TestInneficientRescan(t *testing.T) {
 
 	// Store some helper constants.
 	endHeight := minedHeight + 20
-	pkScript, err := chainntnfs.ParsePkScript(txout.Version, txout.PkScript)
+	pkScript, err := chainscan.ParsePkScript(txout.Version, txout.PkScript)
 	if err != nil {
 		t.Fatalf("unable to parse pkscript: %v", err)
 	}

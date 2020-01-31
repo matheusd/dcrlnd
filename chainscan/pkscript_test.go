@@ -1,4 +1,4 @@
-package chainntnfs
+package chainscan
 
 import (
 	"bytes"

@@ -25,6 +25,7 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/chanacceptor"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/discovery"
@@ -120,7 +121,7 @@ func (m *mockNotifier) confirmTx(t *testing.T, tx *wire.MsgTx) {
 func (m *mockNotifier) RegisterConfirmationsNtfn(txid *chainhash.Hash,
 	pkScript []byte, numConfs, heightHint uint32) (*chainntnfs.ConfirmationEvent, error) {
 
-	_, err := chainntnfs.ParsePkScript(0, pkScript)
+	_, err := chainscan.ParsePkScript(0, pkScript)
 	if err != nil {
 		return nil, err
 	}
