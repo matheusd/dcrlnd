@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
@@ -85,6 +86,7 @@ func TestChainArbitratorRepublishCloses(t *testing.T) {
 			published[tx.TxHash()]++
 			return nil
 		},
+		Clock: clock.NewDefaultClock(),
 	}
 	chainArb := NewChainArbitrator(
 		chainArbCfg, db,
@@ -173,6 +175,7 @@ func TestResolveContract(t *testing.T) {
 		PublishTx: func(tx *wire.MsgTx) error {
 			return nil
 		},
+		Clock: clock.NewDefaultClock(),
 	}
 	chainArb := NewChainArbitrator(
 		chainArbCfg, db,

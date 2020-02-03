@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
@@ -365,6 +366,12 @@ func createTestPeer(notifier chainntnfs.ChainNotifier, publTx chan *wire.MsgTx,
 			NetParams: chainParams,
 			Notifier:  notifier,
 			ChainIO:   chainIO,
+			IsForwardedHTLC: func(chanID lnwire.ShortChannelID,
+				htlcIndex uint64) bool {
+
+				return true
+			},
+			Clock: clock.NewDefaultClock(),
 		}, dbAlice,
 	)
 	chainArb.WatchNewChannel(aliceChannelState)
