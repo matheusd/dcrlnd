@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 )
@@ -169,6 +170,7 @@ func (u ResolutionResult) String() string {
 // invoiceUpdateCtx is an object that describes the context for the invoice
 // update to be carried out.
 type invoiceUpdateCtx struct {
+	hash                 lntypes.Hash
 	circuitKey           channeldb.CircuitKey
 	amtPaid              lnwire.MilliAtom
 	expiry               uint32
