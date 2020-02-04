@@ -694,8 +694,7 @@ func (i *InvoiceRegistry) cancelSingleHtlc(hash lntypes.Hash,
 
 // processKeySend just-in-time inserts an invoice if this htlc is a keysend
 // htlc.
-func (i *InvoiceRegistry) processKeySend(ctx invoiceUpdateCtx,
-	hash lntypes.Hash) error {
+func (i *InvoiceRegistry) processKeySend(ctx invoiceUpdateCtx) error {
 
 	// Retrieve keysend record if present.
 	preimageSlice, ok := ctx.customRecords[record.KeySendType]
@@ -705,7 +704,7 @@ func (i *InvoiceRegistry) processKeySend(ctx invoiceUpdateCtx,
 
 	// Cancel htlc is preimage is invalid.
 	preimage, err := lntypes.MakePreimage(preimageSlice)
-	if err != nil || preimage.Hash() != hash {
+	if err != nil || preimage.Hash() != ctx.hash {
 		return errors.New("invalid keysend preimage")
 	}
 
@@ -752,7 +751,7 @@ func (i *InvoiceRegistry) processKeySend(ctx invoiceUpdateCtx,
 
 	// Insert invoice into database. Ignore duplicates, because this
 	// may be a replay.
-	_, err = i.AddInvoice(invoice, hash)
+	_, err = i.AddInvoice(invoice, ctx.hash)
 	if err != nil && err != channeldb.ErrDuplicateInvoice {
 		return err
 	}
@@ -790,6 +789,7 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 	// Create the update context containing the relevant details of the
 	// incoming htlc.
 	updateCtx := invoiceUpdateCtx{
+		hash:                 rHash,
 		circuitKey:           circuitKey,
 		amtPaid:              amtPaid,
 		expiry:               expiry,
@@ -803,7 +803,7 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 	// AddInvoice obtains its own lock. This is no problem, because the
 	// operation is idempotent.
 	if i.cfg.AcceptKeySend {
-		err := i.processKeySend(updateCtx, rHash)
+		err := i.processKeySend(updateCtx)
 		if err != nil {
 			debugLog(fmt.Sprintf("keysend error: %v", err))
 
