@@ -781,11 +781,6 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 
 	mpp := payload.MultiPath()
 
-	debugLog := func(s string) {
-		log.Debugf("Invoice(%x): %v, amt=%v, expiry=%v, circuit=%v, "+
-			"mpp=%v", rHash[:], s, amtPaid, expiry, circuitKey, mpp)
-	}
-
 	// Create the update context containing the relevant details of the
 	// incoming htlc.
 	updateCtx := invoiceUpdateCtx{
@@ -805,7 +800,7 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 	if i.cfg.AcceptKeySend {
 		err := i.processKeySend(updateCtx)
 		if err != nil {
-			debugLog(fmt.Sprintf("keysend error: %v", err))
+			updateCtx.log(fmt.Sprintf("keysend error: %v", err))
 
 			return NewFailureResolution(
 				circuitKey, currentHeight, ResultKeySendError,
@@ -853,11 +848,11 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 	case nil:
 
 	default:
-		debugLog(err.Error())
+		updateCtx.log(err.Error())
 		return nil, err
 	}
 
-	debugLog(result.String())
+	updateCtx.log(result.String())
 
 	if updateSubscribers {
 		i.notifyClients(rHash, invoice, invoice.State)
