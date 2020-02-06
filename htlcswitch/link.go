@@ -2285,7 +2285,7 @@ func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 				return lnwire.NewTemporaryChannelFailure(upd)
 			},
 		)
-		return NewDetailedLinkError(failure, FailureDetailHTLCExceedsMax)
+		return NewDetailedLinkError(failure, OutgoingFailureHTLCExceedsMax)
 	}
 
 	// We want to avoid offering an HTLC which will expire in the near
@@ -2320,7 +2320,7 @@ func (l *channelLink) canSendHtlc(policy ForwardingPolicy,
 			},
 		)
 		return NewDetailedLinkError(
-			failure, FailureDetailInsufficientBalance,
+			failure, OutgoingFailureInsufficientBalance,
 		)
 	}
 
