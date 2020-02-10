@@ -351,7 +351,7 @@ type fundingConfig struct {
 
 	// NotifyPendingOpenChannelEvent informs the ChannelNotifier when channels
 	// enter a pending state.
-	NotifyPendingOpenChannelEvent func(wire.OutPoint)
+	NotifyPendingOpenChannelEvent func(wire.OutPoint, *channeldb.OpenChannel)
 }
 
 // fundingManager acts as an orchestrator/bridge between the wallet's
@@ -1696,7 +1696,7 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 
 	// Inform the ChannelNotifier that the channel has entered
 	// pending open state.
-	f.cfg.NotifyPendingOpenChannelEvent(fundingOut)
+	f.cfg.NotifyPendingOpenChannelEvent(fundingOut, completeChan)
 
 	// At this point we have sent our last funding message to the
 	// initiating peer before the funding transaction will be broadcast.
@@ -1844,7 +1844,7 @@ func (f *fundingManager) handleFundingSigned(fmsg *fundingSignedMsg) {
 	case resCtx.updates <- upd:
 		// Inform the ChannelNotifier that the channel has entered
 		// pending open state.
-		f.cfg.NotifyPendingOpenChannelEvent(*fundingPoint)
+		f.cfg.NotifyPendingOpenChannelEvent(*fundingPoint, completeChan)
 	case <-f.quit:
 		return
 	}
