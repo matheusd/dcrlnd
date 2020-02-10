@@ -3215,7 +3215,7 @@ func TestChanSyncOweCommitmentPendingRemote(t *testing.T) {
 	}
 
 	// Bob signs the commitment he owes.
-	_, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobCommit, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -3223,6 +3223,20 @@ func TestChanSyncOweCommitmentPendingRemote(t *testing.T) {
 	// This commitment is expected to contain no htlcs anymore.
 	if len(bobHtlcSigs) != 0 {
 		t.Fatalf("no htlcs expected, but got %v", len(bobHtlcSigs))
+	}
+
+	// Get Alice to revoke and trigger Bob to compact his logs.
+	err = aliceChannel.ReceiveNewCommitment(bobCommit, bobHtlcSigs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	aliceRevoke, _, err := aliceChannel.RevokeCurrentCommitment()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, _, err = bobChannel.ReceiveRevocation(aliceRevoke)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
