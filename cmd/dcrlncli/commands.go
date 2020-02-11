@@ -55,6 +55,7 @@ func printJSON(resp interface{}) {
 func printRespJSON(resp proto.Message) {
 	jsonMarshaler := &jsonpb.Marshaler{
 		EmitDefaults: true,
+		OrigName:     true,
 		Indent:       "    ",
 	}
 
