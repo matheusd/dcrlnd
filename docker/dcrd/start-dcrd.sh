@@ -58,7 +58,7 @@ PARAMS=$(echo $PARAMS \
     "--logdir=/data" \
     "--rpccert=/rpc/rpc.cert" \
     "--rpckey=/rpc/rpc.key" \
-    "--rpclisten=" \
+    "--rpclisten=0.0.0.0" \
     "--txindex"
 )
 

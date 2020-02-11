@@ -52,12 +52,15 @@ fi
 
 PARAMS=$(echo $PARAMS \
     --noseedbackup \
-    --logdir="/data" \
-    "--node"="dcrd" \
+    --logdir=/data \
+    --node=dcrd \
     "--$BACKEND.rpccert"="/rpc/rpc.cert" \
     "--$BACKEND.rpchost"="dcrd" \
     "--$BACKEND.rpcuser"="$RPCUSER" \
     "--$BACKEND.rpcpass"="$RPCPASS" \
+    --rpclisten=0.0.0.0 \
+    --restlisten=0.0.0.0 \
+    --listen=0.0.0.0 \
     --debuglevel="$DEBUG" \
     "$@"
 )

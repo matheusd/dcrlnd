@@ -50,7 +50,7 @@ exec dcrwallet \
     --rpckey="/rpc/rpc.key" \
     --username="$RPCUSER" \
     --password="$RPCPASS" \
-    --rpclisten= \
+    --rpclisten=0.0.0.0 \
     --rpcconnect="dcrd" \
     --enablevoting \
     --enableticketbuyer \
