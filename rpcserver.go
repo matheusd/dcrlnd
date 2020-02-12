@@ -939,7 +939,7 @@ func (r *rpcServer) ListUnspent(ctx context.Context,
 		}
 
 		utxoResp := lnrpc.Utxo{
-			Type:          addrType,
+			AddressType:   addrType,
 			AmountAtoms:   int64(utxo.Value),
 			PkScript:      hex.EncodeToString(utxo.PkScript),
 			Outpoint:      outpoint,
@@ -5351,7 +5351,7 @@ func (r *rpcServer) FeeReport(ctx context.Context,
 		// TODO(roasbeef): also add stats for revenue for each channel
 		feeReports = append(feeReports, &lnrpc.ChannelFeeReport{
 			ChanId:        chanInfo.ChannelID,
-			ChanPoint:     chanInfo.ChannelPoint.String(),
+			ChannelPoint:  chanInfo.ChannelPoint.String(),
 			BaseFeeMAtoms: int64(edgePolicy.FeeBaseMAtoms),
 			FeePerMil:     int64(feeRateFixedPoint),
 			FeeRate:       feeRate,
