@@ -637,6 +637,7 @@ func (p *peer) addLink(chanPoint *wire.OutPoint,
 		MaxFeeAllocation:        cfg.MaxChannelFeeAllocation,
 		NotifyActiveChannel:     p.server.channelNotifier.NotifyActiveChannelEvent,
 		NotifyInactiveChannel:   p.server.channelNotifier.NotifyInactiveChannelEvent,
+		HtlcNotifier:            p.server.htlcNotifier,
 	}
 
 	link := htlcswitch.NewChannelLink(linkCfg, lnChan)
