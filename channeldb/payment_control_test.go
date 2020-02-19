@@ -50,7 +50,7 @@ func genInfo() (*PaymentCreationInfo, *PaymentAttemptInfo,
 	return &PaymentCreationInfo{
 			PaymentHash:    rhash,
 			Value:          1,
-			CreationDate:   time.Unix(time.Now().Unix(), 0),
+			CreationTime:   time.Unix(time.Now().Unix(), 0),
 			PaymentRequest: []byte("hola"),
 		},
 		&PaymentAttemptInfo{
