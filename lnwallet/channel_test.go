@@ -2137,7 +2137,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	}
 
 	if chainfee.AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) == fee {
-		t.Fatalf("bob's feePerKw was unexpectedly locked in")
+		t.Fatalf("bob's feePerKB was unexpectedly locked in")
 	}
 
 	// Bob can revoke the prior commitment he had. This should lock in the
@@ -2148,7 +2148,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	}
 
 	if chainfee.AtomPerKByte(bobChannel.channelState.LocalCommitment.FeePerKB) != fee {
-		t.Fatalf("bob's feePerKw was not locked in")
+		t.Fatalf("bob's feePerKB was not locked in")
 	}
 }
 
@@ -4668,6 +4668,10 @@ func TestChanAvailableBandwidth(t *testing.T) {
 	}
 	defer cleanUp()
 
+	aliceReserve := lnwire.NewMAtomsFromAtoms(
+		aliceChannel.channelState.LocalChanCfg.ChanReserve,
+	)
+
 	assertBandwidthEstimateCorrect := func(aliceInitiate bool) {
 		// With the HTLC's added, we'll now query the AvailableBalance
 		// method for the current available channel bandwidth from
@@ -4694,11 +4698,14 @@ func TestChanAvailableBandwidth(t *testing.T) {
 		// Now, we'll obtain the current available bandwidth in Alice's
 		// latest commitment and compare that to the prior estimate.
 		aliceBalance := aliceChannel.channelState.LocalCommitment.LocalBalance
-		if aliceBalance != aliceAvailableBalance {
+
+		// The balance we have available for new HTLCs should be the
+		// current local commitment balance, minus the channel reserve.
+		expBalance := aliceBalance - aliceReserve
+		if expBalance != aliceAvailableBalance {
 			_, _, line, _ := runtime.Caller(1)
 			t.Fatalf("line: %v, incorrect balance: expected %v, "+
-				"got %v", line, aliceBalance,
-				aliceAvailableBalance)
+				"got %v", line, expBalance, aliceAvailableBalance)
 		}
 	}
 
