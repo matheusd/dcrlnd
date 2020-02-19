@@ -3776,7 +3776,7 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 	// view will only have Add entries left, making it easy to compare the
 	// channel constraints to the final commitment state. If any fee
 	// updates are found in the logs, the commitment fee rate should be
-	// changed, so we'll also set the feePerKw to this new value.
+	// changed, so we'll also set the feePerKB to this new value.
 	filteredHTLCView, err := lc.evaluateHTLCView(view, &ourBalance,
 		&theirBalance, nextHeight, remoteChain, updateState)
 	if err != nil {
@@ -6079,6 +6079,17 @@ func (lc *LightningChannel) availableCommitmentBalance(view *htlcView) (
 		return 0, 0
 	}
 
+	// We can never spend from the channel reserve, so we'll subtract it
+	// from our available balance.
+	ourReserve := lnwire.NewMAtomsFromAtoms(
+		lc.channelState.LocalChanCfg.ChanReserve,
+	)
+	if ourReserve <= ourBalance {
+		ourBalance -= ourReserve
+	} else {
+		ourBalance = 0
+	}
+
 	// Given the commitment weight, find the commitment fee in case of no
 	// added HTLC output.
 	feePerKB := filteredView.feePerKB
@@ -6089,6 +6100,9 @@ func (lc *LightningChannel) availableCommitmentBalance(view *htlcView) (
 	// If we are the channel initiator, we must to subtract the commitment
 	// fee from our available balance.
 	if lc.channelState.IsInitiator {
+		if ourBalance < baseCommitFee {
+			return 0, commitSize
+		}
 		ourBalance -= baseCommitFee
 	}
 
@@ -6300,13 +6314,14 @@ func (lc *LightningChannel) MaxFeeRate(maxAllocation float64) chainfee.AtomPerKB
 
 	// The maximum fee depends of the available balance that can be
 	// committed towards fees.
-	balance, weight := lc.availableBalance()
+	commit := lc.channelState.LocalCommitment
 	feeBalance := float64(
-		balance.ToAtoms() + lc.channelState.LocalCommitment.CommitFee,
+		commit.LocalBalance.ToAtoms() + commit.CommitFee,
 	)
 	maxFee := feeBalance * maxAllocation
 
 	// Ensure the fee rate doesn't dip below the fee floor.
+	_, weight := lc.availableBalance()
 	maxFeeRate := maxFee / (float64(weight) / 1000)
 	return chainfee.AtomPerKByte(
 		math.Max(maxFeeRate, float64(chainfee.FeePerKBFloor)),
