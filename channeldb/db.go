@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb/migration12"
+	"github.com/decred/dcrlnd/channeldb/migration13"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/lnwire"
@@ -123,6 +124,11 @@ var (
 			// and features, remove receipt.
 			number:    12,
 			migration: migration12.MigrateInvoiceTLV,
+		},
+		{
+			// Migrate to multi-path payments.
+			number:    13,
+			migration: migration13.MigrateMPP,
 		},
 	}
 
