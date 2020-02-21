@@ -22,6 +22,14 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+const (
+	defaultTimeout = time.Second * 5
+
+	// stateTimeout is the timeout we allow when waiting for state
+	// transitions.
+	stateTimeout = time.Second * 15
+)
+
 type mockArbitratorLog struct {
 	state           ArbitratorState
 	newStates       chan ArbitratorState
@@ -222,7 +230,7 @@ func (c *chanArbTestCtx) AssertStateTransitions(expectedStates ...ArbitratorStat
 		var state ArbitratorState
 		select {
 		case state = <-newStatesChan:
-		case <-time.After(5 * time.Second):
+		case <-time.After(defaultTimeout):
 			c.t.Fatalf("new state not received")
 		}
 
@@ -443,7 +451,7 @@ func TestChannelArbitratorCooperativeClose(t *testing.T) {
 		if c.CloseType != channeldb.CooperativeClose {
 			t.Fatalf("expected cooperative close, got %v", c.CloseType)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("timeout waiting for channel close")
 	}
 
@@ -451,7 +459,7 @@ func TestChannelArbitratorCooperativeClose(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -506,7 +514,7 @@ func TestChannelArbitratorRemoteForceClose(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -568,7 +576,7 @@ func TestChannelArbitratorLocalForceClose(t *testing.T) {
 		if state != StateBroadcastCommit {
 			t.Fatalf("state during PublishTx was %v", state)
 		}
-	case <-time.After(15 * time.Second):
+	case <-time.After(stateTimeout):
 		t.Fatalf("did not get state update")
 	}
 
@@ -578,7 +586,7 @@ func TestChannelArbitratorLocalForceClose(t *testing.T) {
 
 	select {
 	case <-respChan:
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -587,7 +595,7 @@ func TestChannelArbitratorLocalForceClose(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error force closing channel: %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -612,7 +620,7 @@ func TestChannelArbitratorLocalForceClose(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -656,7 +664,7 @@ func TestChannelArbitratorBreachClose(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -740,7 +748,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 	)
 	select {
 	case <-respChan:
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -749,7 +757,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error force closing channel: %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -827,7 +835,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 			t.Fatalf("wrong htlc index: expected %v, got %v",
 				outgoingDustHtlc.HtlcIndex, msgs[0].HtlcIndex)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("resolution msgs not sent")
 	}
 
@@ -889,7 +897,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 	// htlcTimeoutResolver and should send the contract off for incubation.
 	select {
 	case <-chanArbCtx.incubationRequests:
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -909,7 +917,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 			t.Fatalf("wrong htlc index: expected %v, got %v",
 				htlc.HtlcIndex, msgs[0].HtlcIndex)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("resolution msgs not sent")
 	}
 
@@ -929,7 +937,7 @@ func TestChannelArbitratorLocalForceClosePendingHtlc(t *testing.T) {
 	chanArbCtxNew.AssertStateTransitions(StateFullyResolved)
 	select {
 	case <-chanArbCtxNew.resolvedChan:
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -991,7 +999,7 @@ func TestChannelArbitratorLocalForceCloseRemoteConfirmed(t *testing.T) {
 		if state != StateBroadcastCommit {
 			t.Fatalf("state during PublishTx was %v", state)
 		}
-	case <-time.After(15 * time.Second):
+	case <-time.After(stateTimeout):
 		t.Fatalf("no state update received")
 	}
 
@@ -1002,7 +1010,7 @@ func TestChannelArbitratorLocalForceCloseRemoteConfirmed(t *testing.T) {
 	// Wait for a response to the force close.
 	select {
 	case <-respChan:
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -1011,7 +1019,7 @@ func TestChannelArbitratorLocalForceCloseRemoteConfirmed(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error force closing channel: %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -1037,7 +1045,7 @@ func TestChannelArbitratorLocalForceCloseRemoteConfirmed(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(15 * time.Second):
+	case <-time.After(stateTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -1099,7 +1107,7 @@ func TestChannelArbitratorLocalForceDoubleSpend(t *testing.T) {
 		if state != StateBroadcastCommit {
 			t.Fatalf("state during PublishTx was %v", state)
 		}
-	case <-time.After(15 * time.Second):
+	case <-time.After(stateTimeout):
 		t.Fatalf("no state update received")
 	}
 
@@ -1110,7 +1118,7 @@ func TestChannelArbitratorLocalForceDoubleSpend(t *testing.T) {
 	// Wait for a response to the force close.
 	select {
 	case <-respChan:
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -1119,7 +1127,7 @@ func TestChannelArbitratorLocalForceDoubleSpend(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error force closing channel: %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -1145,7 +1153,7 @@ func TestChannelArbitratorLocalForceDoubleSpend(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(15 * time.Second):
+	case <-time.After(stateTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -1266,7 +1274,7 @@ func TestChannelArbitratorPersistence(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -1330,7 +1338,7 @@ func TestChannelArbitratorForceCloseBreachedChannel(t *testing.T) {
 		if state != StateBroadcastCommit {
 			t.Fatalf("state during PublishTx was %v", state)
 		}
-	case <-time.After(15 * time.Second):
+	case <-time.After(stateTimeout):
 		t.Fatalf("no state update received")
 	}
 
@@ -1341,7 +1349,7 @@ func TestChannelArbitratorForceCloseBreachedChannel(t *testing.T) {
 			t.Fatalf("unexpected error force closing channel: %v",
 				err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("no response received")
 	}
 
@@ -1365,7 +1373,7 @@ func TestChannelArbitratorForceCloseBreachedChannel(t *testing.T) {
 	select {
 	case <-chanArbCtx.resolvedChan:
 		// Expected.
-	case <-time.After(5 * time.Second):
+	case <-time.After(defaultTimeout):
 		t.Fatalf("contract was not resolved")
 	}
 }
@@ -1469,7 +1477,7 @@ func TestChannelArbitratorCommitFailure(t *testing.T) {
 
 		select {
 		case <-closed:
-		case <-time.After(5 * time.Second):
+		case <-time.After(defaultTimeout):
 			t.Fatalf("channel was not marked closed")
 		}
 
@@ -1503,7 +1511,7 @@ func TestChannelArbitratorCommitFailure(t *testing.T) {
 		select {
 		case <-chanArbCtx.resolvedChan:
 			// Expected.
-		case <-time.After(5 * time.Second):
+		case <-time.After(defaultTimeout):
 			t.Fatalf("contract was not resolved")
 		}
 	}
@@ -1807,7 +1815,7 @@ func TestChannelArbitratorDanglingCommitForceClose(t *testing.T) {
 					t.Fatalf("wrong htlc index: expected %v, got %v",
 						htlcIndex, msgs[0].HtlcIndex)
 				}
-			case <-time.After(5 * time.Second):
+			case <-time.After(defaultTimeout):
 				t.Fatalf("resolution msgs not sent")
 			}
 
