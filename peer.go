@@ -2096,6 +2096,7 @@ func (p *peer) fetchActiveChanCloser(chanID lnwire.ChannelID) (*channelCloser, e
 			feePerKB,
 			uint32(startingHeight),
 			nil,
+			false,
 		)
 		p.activeChanCloses[chanID] = chanCloser
 	}
@@ -2208,6 +2209,7 @@ func (p *peer) handleLocalCloseReq(req *htlcswitch.ChanClose) {
 			req.TargetFeePerKB,
 			uint32(startingHeight),
 			req,
+			true,
 		)
 		p.activeChanCloses[chanID] = chanCloser
 
