@@ -6,33 +6,31 @@ import (
 	"os"
 	"testing"
 
-	"github.com/decred/dcrlnd/channeldb"
 	bolt "go.etcd.io/bbolt"
 )
 
 // MakeDB creates a new instance of the ChannelDB for testing purposes. A
 // callback which cleans up the created temporary directories is also returned
 // and intended to be executed after the test completes.
-func MakeDB() (*channeldb.DB, func(), error) {
-	// First, create a temporary directory to be used for the duration of
-	// this test.
-	tempDirName, err := ioutil.TempDir("", "channeldb")
+func MakeDB() (*bolt.DB, func(), error) {
+	// Create temporary database for mission control.
+	file, err := ioutil.TempFile("", "*.db")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Next, create channeldb for the first time.
-	cdb, err := channeldb.Open(tempDirName)
+	dbPath := file.Name()
+	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	cleanUp := func() {
-		cdb.Close()
-		os.RemoveAll(tempDirName)
+		db.Close()
+		os.RemoveAll(dbPath)
 	}
 
-	return cdb, cleanUp, nil
+	return db, cleanUp, nil
 }
 
 // ApplyMigration is a helper test function that encapsulates the general steps
