@@ -26,7 +26,8 @@ IOS_BUILD := $(IOS_BUILD_DIR)/Lndmobile.framework
 ANDROID_BUILD_DIR := $(MOBILE_BUILD_DIR)/android
 ANDROID_BUILD := $(ANDROID_BUILD_DIR)/Lndmobile.aar
 
-COMMIT := $(shell git describe --abbrev=40 --dirty)
+WTDIRTY := $(shell git diff-index --quiet HEAD -- || echo "-dirty" || echo "")
+COMMIT := $(shell git log -1 --format="%H$(WTDIRTY)")
 LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
 
 DCRD_COMMIT := $(shell cat go.mod | \
