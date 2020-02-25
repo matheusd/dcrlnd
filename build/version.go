@@ -43,7 +43,7 @@ var (
 	// '-ldflags "-X github.com/decred/dcrlnd/build.BuildMetadata=foo"'
 	// if needed.  It MUST only contain characters from semanticBuildAlphabet
 	// per the semantic versioning spec.
-	BuildMetadata = "dev"
+	BuildMetadata = ""
 
 	// Commit is defined as a variable so it can be overriden during the
 	// build process with:
