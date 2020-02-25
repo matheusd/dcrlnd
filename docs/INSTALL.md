@@ -78,29 +78,20 @@ related dependencies run the following commands:
 ```
 go get -d github.com/decred/dcrlnd
 cd $GOPATH/src/github.com/decred/dcrlnd
-make && make install
+go install ./cmd/dcrlnd
+go install ./cmd/dcrlncli
 ```
 
 **NOTE**: Our instructions still use the `$GOPATH` directory from prior
 versions of Go, but with go 1.11, it's now possible for `dcrlnd` to live
 _anywhere_ on your file system.
 
-For Windows WSL users, make will need to be referenced directly via
-/usr/bin/make/, or alternatively by wrapping quotation marks around make,
-like so:
+Alternatively, if you want to automatically include commit metadata on your
+binary (which might help debugging issues or keeping track of things when
+running multiple versions simultaneously) you can use `make`:
 
 ```
-/usr/bin/make && /usr/bin/make install
-
-"make" && "make" install
-```
-
-On FreeBSD, use gmake instead of make.
-
-Alternatively, if one doesn't wish to use `make`, then the `go` commands can be
-used directly:
-```
-GO111MODULE=on go install -v ./...
+make install
 ```
 
 **Updating**
@@ -110,17 +101,8 @@ commands:
 ```
 cd $GOPATH/src/github.com/decred/dcrlnd
 git pull
-make clean && make && make install
-```
-
-On FreeBSD, use gmake instead of make.
-
-Alternatively, if one doesn't wish to use `make`, then the `go` commands can be
-used directly:
-```
-cd $GOPATH/src/github.com/decred/dcrlnd
-git pull
-GO111MODULE=on go install -v ./...
+go install ./cmd/dcrlnd
+go install ./cmd/dcrlncli
 ```
 
 **Tests**
@@ -154,17 +136,16 @@ dcrd:
 
 ### Installing dcrd
 
-On FreeBSD, use gmake instead of make.
+Use the official [dcrd install
+instructions](https://github.com/decred/dcrd/#installing-and-updating),
+preferably with one of the release-worthy builds.
 
-To install dcrd, run the following commands:
+Alternatively, when setting up a new machine for testing you can use `make` to
+install a dcrd version that is compatible with dcrlnd:
 
-Install **dcrd**:
 ```
 make dcrd
 ```
-
-Alternatively, you can install [`dcrd` directly from its
-repo](https://github.com/decred/dcrd).
 
 ### Starting dcrd
 

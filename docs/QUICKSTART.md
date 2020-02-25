@@ -2,9 +2,11 @@
 
 Super quick start, for knowledgeable individuals.
 
-- Use Go >= 1.11
+- Use Go >= 1.13
 - Git clone as usual
-- `make install`
+- Install as usual:
+  - `go install ./cmd/dcrlnd`
+  - `go install ./cmd/dcrlncli`
 - These should now work:
   - `dcrlnd --version`
   - `dcrlncli --version`
