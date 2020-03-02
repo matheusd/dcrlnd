@@ -5339,6 +5339,7 @@ func (r *rpcServer) FeeReport(ctx context.Context,
 
 		// TODO(roasbeef): also add stats for revenue for each channel
 		feeReports = append(feeReports, &lnrpc.ChannelFeeReport{
+			ChanId:        chanInfo.ChannelID,
 			ChanPoint:     chanInfo.ChannelPoint.String(),
 			BaseFeeMAtoms: int64(edgePolicy.FeeBaseMAtoms),
 			FeePerMil:     int64(feeRateFixedPoint),
