@@ -149,7 +149,7 @@ const _ = grpc.SupportPackageIsVersion4
 type WatchtowerClient interface {
 	//* lncli: tower info
 	//GetInfo returns general information concerning the companion watchtower
-	//including it's public key and URIs where the server is currently
+	//including its public key and URIs where the server is currently
 	//listening for clients.
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 }
@@ -175,7 +175,7 @@ func (c *watchtowerClient) GetInfo(ctx context.Context, in *GetInfoRequest, opts
 type WatchtowerServer interface {
 	//* lncli: tower info
 	//GetInfo returns general information concerning the companion watchtower
-	//including it's public key and URIs where the server is currently
+	//including its public key and URIs where the server is currently
 	//listening for clients.
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 }
