@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -122,8 +121,15 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 	}
 
 	// At this point, Carol should broadcast her active commitment
-	// transaction in order to go to the chain and sweep her HTLC.
-	txids, err := waitForNTxsInMempool(net.Miner.Node, 1, minerMempoolTimeout)
+	// transaction in order to go to the chain and sweep her HTLC. If there
+	// are anchors, Carol also sweeps hers.
+	expectedTxes := 1
+	if c == commitTypeAnchors {
+		expectedTxes = 2
+	}
+	txes, err := getNTxsFromMempool(
+		net.Miner.Node, expectedTxes, minerMempoolTimeout,
+	)
 	if err != nil {
 		t.Fatalf("expected transaction not found in mempool: %v", err)
 	}
@@ -140,20 +146,13 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 
 	// The commitment transaction should be spending from the funding
 	// transaction.
-	commitHash := txids[0]
-	tx, err := net.Miner.Node.GetRawTransaction(commitHash)
-	if err != nil {
-		t.Fatalf("unable to get txn: %v", err)
-	}
-	commitTx := tx.MsgTx()
-
-	if commitTx.TxIn[0].PreviousOutPoint != carolFundingPoint {
-		t.Fatalf("commit transaction not spending from expected "+
-			"outpoint: %v", spew.Sdump(commitTx))
-	}
+	closingTx := getSpendingTxInMempool(
+		t, net.Miner.Node, minerMempoolTimeout, carolFundingPoint,
+	)
+	closingTxid := closingTx.TxHash()
 
 	// Confirm the commitment.
-	mineBlocks(t, net, 1, 1)
+	mineBlocks(t, net, 1, expectedTxes)
 
 	// Restart bob again.
 	if err := restartBob(); err != nil {
@@ -163,30 +162,26 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 	// After the force close transaction is mined, Carol should broadcast
 	// her second level HTLC transaction. Bob will broadcast a sweep tx to
 	// sweep his output in the channel with Carol. When Bob notices Carol's
-	// second level transaction in the mempool, he will extract the
-	// preimage and settle the HTLC back off-chain.
-	secondLevelHashes, err := waitForNTxsInMempool(net.Miner.Node, 2,
-		minerMempoolTimeout)
+	// second level transaction in the mempool, he will extract the preimage
+	// and settle the HTLC back off-chain. Bob will also sweep his anchor,
+	// if present.
+	expectedTxes = 2
+	if c == commitTypeAnchors {
+		// Note(decred): in lnd due to a large difference in fees, two
+		// transactions are expected at this point: one sweeping the
+		// commitment output and one the anchor output. In decred,
+		// since fees are all using the default relay fee only a single
+		// transaction sweeping both outputs is expected.
+		expectedTxes = 2
+	}
+	txes, err = getNTxsFromMempool(net.Miner.Node,
+		expectedTxes, minerMempoolTimeout)
 	if err != nil {
 		t.Fatalf("transactions not found in mempool: %v", err)
 	}
 
-	// Carol's second level transaction should be spending from
-	// the commitment transaction.
-	var secondLevelHash *chainhash.Hash
-	for _, txid := range secondLevelHashes {
-		tx, err := net.Miner.Node.GetRawTransaction(txid)
-		if err != nil {
-			t.Fatalf("unable to get txn: %v", err)
-		}
-
-		if tx.MsgTx().TxIn[0].PreviousOutPoint.Hash == *commitHash {
-			secondLevelHash = txid
-		}
-	}
-	if secondLevelHash == nil {
-		t.Fatalf("Carol's second level tx not found")
-	}
+	// All transactions should be spending from the commitment transaction.
+	assertAllTxesSpendFrom(t, txes, closingTxid)
 
 	// We'll now mine an additional block which should confirm both the
 	// second layer transactions.
@@ -309,5 +304,8 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 	// We'll close out the channel between Alice and Bob, then shutdown
 	// carol to conclude the test.
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
-	closeChannelAndAssert(ctxt, t, net, alice, aliceChanPoint, false)
+	closeChannelAndAssertType(
+		ctxt, t, net, alice, aliceChanPoint,
+		false, false,
+	)
 }

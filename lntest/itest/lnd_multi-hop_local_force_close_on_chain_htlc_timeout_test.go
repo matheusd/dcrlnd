@@ -78,7 +78,9 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// force close the Bob -> Carol channel. This should trigger contract
 	// resolution mode for both of them.
 	ctxt, _ := context.WithTimeout(ctxb, channelCloseTimeout)
-	closeChannelAndAssert(ctxt, t, net, bob, bobChanPoint, true)
+	closeChannelAndAssertType(
+		ctxt, t, net, bob, bobChanPoint, c == commitTypeAnchors, true,
+	)
 
 	// At this point, Bob should have a pending force close channel as he
 	// just went to chain.
@@ -112,8 +114,16 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 		t.Fatalf(predErr.Error())
 	}
 
-	// We'll mine defaultCSV blocks in order to generate the sweep transaction
-	// of Bob's funding output.
+	// We'll mine defaultCSV blocks in order to generate the sweep
+	// transaction of Bob's funding output. If there are anchors, mine
+	// Carol's anchor sweep too.
+	if c == commitTypeAnchors {
+		_, err = waitForTxInMempool(net.Miner.Node, minerMempoolTimeout)
+		if err != nil {
+			t.Fatalf("unable to find carol's anchor sweep tx: %v", err)
+		}
+	}
+
 	if _, err := net.Generate(defaultCSV - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -270,6 +280,9 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 		t.Fatalf(predErr.Error())
 	}
 
+	// Coop close, no anchors.
 	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
-	closeChannelAndAssert(ctxt, t, net, alice, aliceChanPoint, false)
+	closeChannelAndAssertType(
+		ctxt, t, net, alice, aliceChanPoint, false, false,
+	)
 }
