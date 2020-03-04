@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	prand "math/rand"
 	"net"
 	"os"
@@ -17,7 +16,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -36,12 +36,6 @@ var (
 		Port: 9000}
 	testAddrs    = []net.Addr{testAddr}
 	testFeatures = lnwire.NewRawFeatureVector()
-	testSig      = &secp256k1.Signature{
-		R: new(big.Int),
-		S: new(big.Int),
-	}
-	_, _ = testSig.R.SetString("63724406601629180062774974542967536251589935445068131219452686511677818569431", 10)
-	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
 
 	decredKeyPriv1, _ = secp256k1.GeneratePrivateKey()
 	decredKeyPub1     = decredKeyPriv1.PubKey()
@@ -95,17 +89,14 @@ type mockSigner struct {
 }
 
 func (n *mockSigner) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*secp256k1.Signature, error) {
+	msg []byte) (*ecdsa.Signature, error) {
 
 	if !pubKey.IsEqual(n.privKey.PubKey()) {
 		return nil, fmt.Errorf("unknown public key")
 	}
 
 	digest := chainhash.HashB(msg)
-	sign, err := n.privKey.Sign(digest)
-	if err != nil {
-		return nil, fmt.Errorf("can't sign the message: %v", err)
-	}
+	sign := ecdsa.Sign(n.privKey, digest)
 
 	return sign, nil
 }

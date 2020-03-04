@@ -1,11 +1,11 @@
 package dcrwallet
 
 import (
+	"decred.org/dcrwallet/chain"
+	base "decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/udb"
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	"github.com/decred/dcrwallet/chain/v3"
-	base "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 	"github.com/decred/slog"
 )
 

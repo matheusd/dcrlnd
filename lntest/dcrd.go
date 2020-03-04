@@ -7,11 +7,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"testing"
 
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/rpctest"
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
+	"github.com/decred/dcrlnd/compat"
 )
 
 // logDir is the name of the temporary log directory.
@@ -93,7 +95,7 @@ func (b DcrdBackendConfig) ConnectMiner() error {
 
 // DisconnectMiner disconnects the backend to the underlying miner.
 func (b DcrdBackendConfig) DisconnectMiner() error {
-	return rpctest.RemoveNode(b.harness, b.miner)
+	return rpctest.RemoveNode(context.Background(), b.harness, b.miner)
 }
 
 // Name returns the name of the backend type.
@@ -103,7 +105,7 @@ func (b DcrdBackendConfig) Name() string {
 
 // NewBackend starts a new rpctest.Harness and returns a DcrdBackendConfig for
 // that node.
-func NewBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
+func NewBackend(t *testing.T, miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
 	args := []string{
 		// rejectnonstd cannot be used in decred due to votes in simnet
 		// using a non-standard signature script.
@@ -114,7 +116,7 @@ func NewBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
 		"--logdir=" + logDir,
 	}
 	netParams := chaincfg.SimNetParams()
-	chainBackend, err := rpctest.New(netParams, nil, args)
+	chainBackend, err := rpctest.New(t, compat.Params2to3(netParams), nil, args)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create dcrd node: %v", err)
 	}

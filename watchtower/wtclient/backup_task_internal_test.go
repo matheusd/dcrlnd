@@ -9,9 +9,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	txscript2 "github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -86,6 +87,11 @@ type backupTaskTest struct {
 	tweakless        bool
 }
 
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	p := secp256k1.PrivKeyFromBytes(b)
+	return p, p.PubKey()
+}
+
 // genTaskTest creates a instance of a backupTaskTest using the passed
 // parameters. This method handles generating a breach transaction and its
 // corresponding BreachInfo, as well as setting the wtpolicy.Policy of the given
@@ -104,13 +110,13 @@ func genTaskTest(
 	tweakless bool) backupTaskTest {
 
 	// Parse the key pairs for all keys used in the test.
-	revSK, revPK := secp256k1.PrivKeyFromBytes(
+	revSK, revPK := privKeyFromBytes(
 		revPrivBytes,
 	)
-	_, toLocalPK := secp256k1.PrivKeyFromBytes(
+	_, toLocalPK := privKeyFromBytes(
 		toLocalPrivBytes,
 	)
-	toRemoteSK, toRemotePK := secp256k1.PrivKeyFromBytes(
+	toRemoteSK, toRemotePK := privKeyFromBytes(
 		toRemotePrivBytes,
 	)
 
@@ -251,7 +257,7 @@ var (
 		chaincfg.TestNet3Params(),
 	)
 
-	addrScript, _ = txscript.PayToAddrScript(addr)
+	addrScript, _ = txscript2.PayToAddrScript(addr)
 )
 
 // TestBackupTaskBind tests the initialization and binding of a backupTask to a

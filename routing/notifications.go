@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
@@ -324,7 +324,6 @@ func addToTopologyChange(graph *channeldb.ChannelGraph, update *TopologyChange,
 			Alias:       m.Alias,
 			Color:       EncodeHexColor(m.Color),
 		}
-		nodeUpdate.IdentityKey.Curve = nil
 
 		update.NodeUpdates = append(update.NodeUpdates, nodeUpdate)
 		return nil
@@ -377,8 +376,6 @@ func addToTopologyChange(graph *channeldb.ChannelGraph, update *TopologyChange,
 			ConnectingNode:  cNode,
 			Disabled:        m.ChannelFlags&lnwire.ChanUpdateDisabled != 0,
 		}
-		edgeUpdate.AdvertisingNode.Curve = nil
-		edgeUpdate.ConnectingNode.Curve = nil
 
 		// TODO(roasbeef): add bit to toggle
 		update.ChannelEdgeUpdates = append(update.ChannelEdgeUpdates,

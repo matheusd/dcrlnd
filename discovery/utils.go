@@ -1,7 +1,8 @@
 package discovery
 
 import (
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/channeldb"
 
 	"github.com/decred/dcrlnd/lnwallet"
@@ -113,7 +114,7 @@ func CreateChanAnnouncement(chanProof *channeldb.ChannelAuthProof,
 // SignAnnouncement is a helper function which is used to sign any outgoing
 // channel node node announcement messages.
 func SignAnnouncement(signer lnwallet.MessageSigner, pubKey *secp256k1.PublicKey,
-	msg lnwire.Message) (*secp256k1.Signature, error) {
+	msg lnwire.Message) (*ecdsa.Signature, error) {
 
 	var (
 		data []byte

@@ -5,7 +5,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/hdkeychain/v2"
+	"github.com/decred/dcrd/hdkeychain/v3"
 )
 
 var (

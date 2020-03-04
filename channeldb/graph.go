@@ -13,9 +13,10 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
@@ -2086,8 +2087,8 @@ func (l *LightningNode) PubKey() (*secp256k1.PublicKey, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (l *LightningNode) AuthSig() (*secp256k1.Signature, error) {
-	return secp256k1.ParseSignature(l.AuthSigBytes)
+func (l *LightningNode) AuthSig() (*ecdsa.Signature, error) {
+	return ecdsa.ParseDERSignature(l.AuthSigBytes)
 }
 
 // AddPubKey is a setter-link method that can be used to swap out the public
@@ -2623,28 +2624,28 @@ func (c *ChannelEdgeInfo) FetchOtherNode(tx *bolt.Tx, thisNodeKey []byte) (*Ligh
 // features.
 type ChannelAuthProof struct {
 	// nodeSig1 is a cached instance of the first node signature.
-	nodeSig1 *secp256k1.Signature
+	nodeSig1 *ecdsa.Signature
 
 	// NodeSig1Bytes are the raw bytes of the first node signature encoded
 	// in DER format.
 	NodeSig1Bytes []byte
 
 	// nodeSig2 is a cached instance of the second node signature.
-	nodeSig2 *secp256k1.Signature
+	nodeSig2 *ecdsa.Signature
 
 	// NodeSig2Bytes are the raw bytes of the second node signature
 	// encoded in DER format.
 	NodeSig2Bytes []byte
 
 	// decredSig1 is a cached instance of the first decred signature.
-	decredSig1 *secp256k1.Signature
+	decredSig1 *ecdsa.Signature
 
 	// DecredSig1Bytes are the raw bytes of the first decred signature
 	// encoded in DER format.
 	DecredSig1Bytes []byte
 
 	// decredSig2 is a cached instance of the second decred signature.
-	decredSig2 *secp256k1.Signature
+	decredSig2 *ecdsa.Signature
 
 	// DecredSig2Bytes are the raw bytes of the second decred signature
 	// encoded in DER format.
@@ -2657,12 +2658,12 @@ type ChannelAuthProof struct {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) Node1Sig() (*secp256k1.Signature, error) {
+func (c *ChannelAuthProof) Node1Sig() (*ecdsa.Signature, error) {
 	if c.nodeSig1 != nil {
 		return c.nodeSig1, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.NodeSig1Bytes)
+	sig, err := ecdsa.ParseDERSignature(c.NodeSig1Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2678,12 +2679,12 @@ func (c *ChannelAuthProof) Node1Sig() (*secp256k1.Signature, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) Node2Sig() (*secp256k1.Signature, error) {
+func (c *ChannelAuthProof) Node2Sig() (*ecdsa.Signature, error) {
 	if c.nodeSig2 != nil {
 		return c.nodeSig2, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.NodeSig2Bytes)
+	sig, err := ecdsa.ParseDERSignature(c.NodeSig2Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2698,12 +2699,12 @@ func (c *ChannelAuthProof) Node2Sig() (*secp256k1.Signature, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) DecredSig1() (*secp256k1.Signature, error) {
+func (c *ChannelAuthProof) DecredSig1() (*ecdsa.Signature, error) {
 	if c.decredSig1 != nil {
 		return c.decredSig1, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.DecredSig1Bytes)
+	sig, err := ecdsa.ParseDERSignature(c.DecredSig1Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2718,12 +2719,12 @@ func (c *ChannelAuthProof) DecredSig1() (*secp256k1.Signature, error) {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelAuthProof) DecredSig2() (*secp256k1.Signature, error) {
+func (c *ChannelAuthProof) DecredSig2() (*ecdsa.Signature, error) {
 	if c.decredSig2 != nil {
 		return c.decredSig2, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.DecredSig2Bytes)
+	sig, err := ecdsa.ParseDERSignature(c.DecredSig2Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -2755,7 +2756,7 @@ type ChannelEdgePolicy struct {
 	SigBytes []byte
 
 	// sig is a cached fully parsed signature.
-	sig *secp256k1.Signature
+	sig *ecdsa.Signature
 
 	// ChannelID is the unique channel ID for the channel. The first 3
 	// bytes are the block height, the next 3 the index within the block,
@@ -2815,12 +2816,12 @@ type ChannelEdgePolicy struct {
 //
 // NOTE: By having this method to access an attribute, we ensure we only need
 // to fully deserialize the signature if absolutely necessary.
-func (c *ChannelEdgePolicy) Signature() (*secp256k1.Signature, error) {
+func (c *ChannelEdgePolicy) Signature() (*ecdsa.Signature, error) {
 	if c.sig != nil {
 		return c.sig, nil
 	}
 
-	sig, err := secp256k1.ParseSignature(c.SigBytes)
+	sig, err := ecdsa.ParseDERSignature(c.SigBytes)
 	if err != nil {
 		return nil, err
 	}

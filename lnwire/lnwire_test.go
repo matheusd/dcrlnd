@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"image/color"
 	"math"
-	"math/big"
 	"math/rand"
 	"net"
 	"reflect"
@@ -17,22 +16,26 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/tor"
 )
 
+func modNScalar(b []byte) *secp256k1.ModNScalar {
+	var m secp256k1.ModNScalar
+	m.SetByteSlice(b)
+	return &m
+}
+
 var (
 	shaHash1Bytes, _ = hex.DecodeString("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 	shaHash1, _      = chainhash.NewHash(shaHash1Bytes)
 	outpoint1        = wire.NewOutPoint(shaHash1, 0, wire.TxTreeRegular)
-	testSig          = &secp256k1.Signature{
-		R: new(big.Int),
-		S: new(big.Int),
-	}
-	_, _ = testSig.R.SetString("63724406601629180062774974542967536251589935445068131219452686511677818569431", 10)
-	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
+	rBytes, _        = hex.DecodeString("63724406601629180062774974542967536251589935445068131219452686511677818569431")
+	sBytes, _        = hex.DecodeString("18801056069249825825291287104931333862866033135609736119018462340006816851118")
+	testSig          = ecdsa.NewSignature(modNScalar(rBytes), modNScalar(sBytes))
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -52,7 +55,7 @@ func randPubKey() (*secp256k1.PublicKey, error) {
 		return nil, err
 	}
 
-	return (*secp256k1.PublicKey)(&priv.PublicKey), nil
+	return priv.PubKey(), nil
 }
 
 func randRawKey() ([33]byte, error) {
@@ -63,7 +66,7 @@ func randRawKey() ([33]byte, error) {
 		return n, err
 	}
 
-	copy(n[:], (*secp256k1.PublicKey)(&priv.PublicKey).SerializeCompressed())
+	copy(n[:], priv.PubKey().SerializeCompressed())
 
 	return n, nil
 }

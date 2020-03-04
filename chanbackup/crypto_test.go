@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/keychain"
 )
 
@@ -30,7 +30,7 @@ func (m *mockKeyRing) DeriveKey(keyLoc keychain.KeyLocator) (keychain.KeyDescrip
 		return keychain.KeyDescriptor{}, fmt.Errorf("fail")
 	}
 
-	_, pub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
+	pub := secp256k1.PrivKeyFromBytes(testWalletPrivKey).PubKey()
 	return keychain.KeyDescriptor{
 		PubKey: pub,
 	}, nil

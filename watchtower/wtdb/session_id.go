@@ -3,7 +3,7 @@ package wtdb
 import (
 	"encoding/hex"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 )
 
 // SessionIDSize is 33-bytes; it is a serialized, compressed public key.

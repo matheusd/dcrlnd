@@ -12,8 +12,9 @@ import (
 	"path/filepath"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -277,7 +278,7 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 		// parse that out now to ensure their input is properly signed.
 		var tweakPrivKey *secp256k1.PrivateKey
 		if len(signDesc.DoubleTweak) != 0 {
-			tweakPrivKey, _ = secp256k1.PrivKeyFromBytes(
+			tweakPrivKey = secp256k1.PrivKeyFromBytes(
 				signDesc.DoubleTweak,
 			)
 		}
@@ -425,10 +426,7 @@ func (s *Server) SignMessage(ctx context.Context,
 
 	// Create the raw ECDSA signature first and convert it to the final wire
 	// format after.
-	sig, err := privKey.Sign(digest)
-	if err != nil {
-		return nil, fmt.Errorf("can't sign the hash: %v", err)
-	}
+	sig := ecdsa.Sign(privKey, digest)
 	wireSig, err := lnwire.NewSigFromSignature(sig)
 	if err != nil {
 		return nil, fmt.Errorf("can't convert to wire format: %v", err)
@@ -527,11 +525,12 @@ func (s *Server) DeriveSharedKey(_ context.Context, in *SharedKeyRequest) (
 // ecdh performs an ECDH operation between pub and priv. The returned value is
 // the sha256 of the compressed shared point.
 func ecdh(pub *secp256k1.PublicKey, priv *secp256k1.PrivateKey) []byte {
-	s := &secp256k1.PublicKey{}
-	x, y := secp256k1.S256().ScalarMult(pub.X, pub.Y, priv.D.Bytes())
-	s.X = x
-	s.Y = y
+	x, y := secp256k1.S256().ScalarMult(pub.X(), pub.Y(), priv.Serialize())
+	var fx, fy secp256k1.FieldVal
+	fx.SetByteSlice(x.Bytes())
+	fy.SetByteSlice(y.Bytes())
 
+	s := secp256k1.NewPublicKey(&fx, &fy)
 	h := sha256.Sum256(s.SerializeCompressed())
 	return h[:]
 }

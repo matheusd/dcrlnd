@@ -11,9 +11,11 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
+	dcrutilv3 "github.com/decred/dcrd/dcrutil/v3"
+	jsontypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	"github.com/decred/dcrd/rpcclient/v6"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/queue"
@@ -37,8 +39,29 @@ var (
 		"after inneficient rescan")
 )
 
-// TODO(roasbeef): generalize struct below:
-//  * move chans to config, allow outside callers to handle send conditions
+type chainConnAdaptor struct {
+	c   *rpcclient.Client
+	ctx context.Context
+}
+
+func (cca *chainConnAdaptor) GetBlockHeader(blockHash *chainhash.Hash) (*wire.BlockHeader, error) {
+	return cca.c.GetBlockHeader(cca.ctx, blockHash)
+}
+
+func (cca *chainConnAdaptor) GetBlockHash(blockHeight int64) (*chainhash.Hash, error) {
+	return cca.c.GetBlockHash(cca.ctx, blockHeight)
+}
+
+func (cca *chainConnAdaptor) GetBlockVerbose(hash *chainhash.Hash, b bool) (*jsontypes.GetBlockVerboseResult, error) {
+	return cca.c.GetBlockVerbose(cca.ctx, hash, b)
+}
+
+func (cca *chainConnAdaptor) GetRawTransactionVerbose(hash *chainhash.Hash) (*jsontypes.TxRawResult, error) {
+	return cca.c.GetRawTransactionVerbose(cca.ctx, hash)
+}
+
+// TODO(roasbeef): generalize struct below: * move chans to config, allow
+// outside callers to handle send conditions
 
 // DcrdNotifier implements the ChainNotifier interface using dcrd's websockets
 // notifications. Multiple concurrent clients are supported. All notifications
@@ -50,6 +73,7 @@ type DcrdNotifier struct {
 	stopped int32 // To be used atomically.
 
 	chainConn   *rpcclient.Client
+	cca         *chainConnAdaptor
 	chainParams *chaincfg.Params
 
 	notificationCancels  chan interface{}
@@ -117,6 +141,7 @@ func New(config *rpcclient.ConnConfig, chainParams *chaincfg.Params,
 		return nil, err
 	}
 	notifier.chainConn = chainConn
+	notifier.cca = &chainConnAdaptor{c: chainConn, ctx: context.TODO()}
 
 	return notifier, nil
 }
@@ -141,12 +166,12 @@ func (n *DcrdNotifier) Start() error {
 		n.chainUpdates.Stop()
 		return err
 	}
-	if err := n.chainConn.NotifyBlocks(); err != nil {
+	if err := n.chainConn.NotifyBlocks(context.TODO()); err != nil {
 		n.chainUpdates.Stop()
 		return err
 	}
 
-	currentHash, currentHeight, err := n.chainConn.GetBestBlock()
+	currentHash, currentHeight, err := n.chainConn.GetBestBlock(context.TODO())
 	if err != nil {
 		n.chainUpdates.Stop()
 		return err
@@ -357,7 +382,7 @@ out:
 				// backlog of notifications from their best
 				// known block.
 				missedBlocks, err := chainntnfs.GetClientMissedBlocks(
-					n.chainConn, msg.bestBlock,
+					n.cca, msg.bestBlock,
 					n.bestBlock.Height, true,
 				)
 				if err != nil {
@@ -386,7 +411,7 @@ out:
 						"attempting to catch up")
 					newBestBlock, missedBlocks, err :=
 						chainntnfs.HandleMissedBlocks(
-							n.chainConn,
+							n.cca,
 							n.txNotifier,
 							n.bestBlock,
 							int32(header.Height),
@@ -439,7 +464,7 @@ out:
 			}
 
 			newBestBlock, err := chainntnfs.RewindChain(
-				n.chainConn, n.txNotifier, n.bestBlock,
+				n.cca, n.txNotifier, n.bestBlock,
 				int32(header.Height-1),
 			)
 			if err != nil {
@@ -482,7 +507,7 @@ func (n *DcrdNotifier) historicalConfDetails(confRequest chainntnfs.ConfRequest,
 	// txindex.
 	txNotFoundErr := "No information available about transaction"
 	txConf, txStatus, err := chainntnfs.ConfDetailsFromTxIndex(
-		n.chainConn, confRequest, txNotFoundErr,
+		n.cca, confRequest, txNotFoundErr,
 	)
 
 	// We'll then check the status of the transaction lookup returned to
@@ -538,7 +563,7 @@ func (n *DcrdNotifier) confDetailsManually(confRequest chainntnfs.ConfRequest,
 		default:
 		}
 
-		blockHash, err := n.chainConn.GetBlockHash(int64(height))
+		blockHash, err := n.chainConn.GetBlockHash(context.TODO(), int64(height))
 		if err != nil {
 			return nil, chainntnfs.TxNotFoundManually,
 				fmt.Errorf("unable to get hash from block "+
@@ -546,7 +571,7 @@ func (n *DcrdNotifier) confDetailsManually(confRequest chainntnfs.ConfRequest,
 		}
 
 		// TODO: fetch the neutrino filters instead.
-		block, err := n.chainConn.GetBlock(blockHash)
+		block, err := n.chainConn.GetBlock(context.TODO(), blockHash)
 		if err != nil {
 			return nil, chainntnfs.TxNotFoundManually,
 				fmt.Errorf("unable to get block with hash "+
@@ -616,7 +641,7 @@ func (n *DcrdNotifier) fetchFilteredBlock(epoch chainntnfs.BlockEpoch) (*filtere
 // block (including _all_ transactions, not just the watched ones) for the
 // block identified by the provided block hash.
 func (n *DcrdNotifier) fetchFilteredBlockForBlockHash(bh *chainhash.Hash) (*filteredBlock, error) {
-	rawBlock, err := n.chainConn.GetBlock(bh)
+	rawBlock, err := n.chainConn.GetBlock(context.TODO(), bh)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get block: %v", err)
 	}
@@ -697,7 +722,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// We'll then request the backend to notify us when it has detected the
 	// outpoint or a script was spent.
 	var ops []wire.OutPoint
-	var addrs []dcrutil.Address
+	var addrs []dcrutilv3.Address
 
 	// Otherwise, we'll determine when the output was spent by scanning the
 	// chain.  We'll begin by determining where to start our historical
@@ -718,7 +743,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 
 	// Ensure we'll receive any new notifications for either the outpoint
 	// or the address from now on.
-	if err := n.chainConn.LoadTxFilter(false, addrs, ops); err != nil {
+	if err := n.chainConn.LoadTxFilter(context.TODO(), false, addrs, ops); err != nil {
 		return nil, err
 	}
 
@@ -731,7 +756,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		// the outpoint has been spent. If it hasn't, we can return to the
 		// caller as well.
 		txOut, err := n.chainConn.GetTxOut(
-			&outpoint.Hash, outpoint.Index, true,
+			context.TODO(), &outpoint.Hash, outpoint.Index, true,
 		)
 		if err != nil {
 			return nil, err
@@ -754,7 +779,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 		// better rescan starting height. We can do this as the
 		// GetRawTransaction call will return the hash of the block it
 		// was included in within the chain.
-		tx, err := n.chainConn.GetRawTransactionVerbose(&outpoint.Hash)
+		tx, err := n.chainConn.GetRawTransactionVerbose(context.TODO(), &outpoint.Hash)
 		if err != nil {
 			// Avoid returning an error if the transaction was not found to
 			// proceed with fallback methods.
@@ -780,7 +805,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 			if err != nil {
 				return nil, err
 			}
-			blockHeader, err := n.chainConn.GetBlockHeader(blockHash)
+			blockHeader, err := n.chainConn.GetBlockHeader(context.TODO(), blockHash)
 			if err != nil {
 				return nil, fmt.Errorf("unable to get header for "+
 					"block %v: %v", blockHash, err)
@@ -850,14 +875,14 @@ func (n *DcrdNotifier) inefficientSpendRescan(startHeight uint32,
 	endHeight := int64(histDispatch.EndHeight)
 
 	for height := int64(startHeight); height <= endHeight; height++ {
-		scanHash, err := n.chainConn.GetBlockHash(height)
+		scanHash, err := n.chainConn.GetBlockHash(context.TODO(), height)
 		if err != nil {
 			chainntnfs.Log.Errorf("Error determining next block to scan for "+
 				"outpoint spender", err)
 			return nil, err
 		}
 
-		res, err := n.chainConn.Rescan([]chainhash.Hash{*scanHash})
+		res, err := n.chainConn.Rescan(context.TODO(), []chainhash.Hash{*scanHash})
 		if err != nil {
 			chainntnfs.Log.Errorf("Rescan to determine the spend "+
 				"details of %v failed: %v", histDispatch.SpendRequest.OutPoint, err)

@@ -5,14 +5,14 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 )
 
 var (
 	testPrivKeyBytes, _ = hex.DecodeString("e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734")
-	_, testPubKey       = secp256k1.PrivKeyFromBytes(testPrivKeyBytes)
+	testPubKey          = secp256k1.PrivKeyFromBytes(testPrivKeyBytes).PubKey()
 	testPubKeyBytes, _  = NewVertexFromBytes(testPubKey.SerializeCompressed())
 )
 

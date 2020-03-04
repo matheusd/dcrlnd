@@ -158,7 +158,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 
 	// The transaction should be spending from the funding transaction
 	commitHash := txids[0]
-	tx1, err := net.Miner.Node.GetRawTransaction(commitHash)
+	tx1, err := net.Miner.Node.GetRawTransaction(context.Background(), commitHash)
 	if err != nil {
 		t.Fatalf("unable to get txn: %v", err)
 	}
@@ -194,7 +194,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// Both Carol's second level transaction and Bob's sweep should be
 	// spending from the commitment transaction.
 	for _, txid := range commitSpends {
-		tx, err := net.Miner.Node.GetRawTransaction(txid)
+		tx, err := net.Miner.Node.GetRawTransaction(context.Background(), txid)
 		if err != nil {
 			t.Fatalf("unable to get txn: %v", err)
 		}
@@ -227,7 +227,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	}
 
 	// It should spend from the commitment in the channel with Alice.
-	tx, err := net.Miner.Node.GetRawTransaction(bobHtlcSweep)
+	tx, err := net.Miner.Node.GetRawTransaction(context.Background(), bobHtlcSweep)
 	if err != nil {
 		t.Fatalf("unable to get txn: %v", err)
 	}

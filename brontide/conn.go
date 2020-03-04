@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -282,5 +282,5 @@ func (c *Conn) RemotePub() *secp256k1.PublicKey {
 
 // LocalPub returns the local peer's static public key.
 func (c *Conn) LocalPub() *secp256k1.PublicKey {
-	return (*secp256k1.PublicKey)(&c.noise.localStatic.PublicKey)
+	return c.noise.localStatic.PubKey()
 }

@@ -4,10 +4,10 @@ package dcrlnd
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -18,7 +18,8 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 
@@ -60,7 +61,7 @@ var (
 		0x6a, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
 
-	alicePrivKey, alicePubKey = secp256k1.PrivKeyFromBytes(alicePrivKeyBytes[:])
+	alicePrivKey, alicePubKey = privKeyFromBytes(alicePrivKeyBytes[:])
 
 	aliceTCPAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.2:9001")
 
@@ -76,7 +77,7 @@ var (
 		0x1e, 0xb, 0x4c, 0xfd, 0x9e, 0xc5, 0x8c, 0xe9,
 	}
 
-	bobPrivKey, bobPubKey = secp256k1.PrivKeyFromBytes(bobPrivKeyBytes[:])
+	bobPrivKey, bobPubKey = privKeyFromBytes(bobPrivKeyBytes[:])
 
 	bobTCPAddr, _ = net.ResolveTCPAddr("tcp", "10.0.0.2:9000")
 
@@ -85,12 +86,12 @@ var (
 		Address:     bobTCPAddr,
 	}
 
-	testSig = &secp256k1.Signature{
-		R: new(big.Int),
-		S: new(big.Int),
-	}
-	_, _ = testSig.R.SetString("63724406601629180062774974542967536251589935445068131219452686511677818569431", 10)
-	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
+	rBytes, _ = hex.DecodeString("63724406601629180062774974542967536251589935445068131219452686511677818569431")
+	sBytes, _ = hex.DecodeString("18801056069249825825291287104931333862866033135609736119018462340006816851118")
+	testSig   = ecdsa.NewSignature(
+		modNScalar(rBytes),
+		modNScalar(sBytes),
+	)
 )
 
 type mockNotifier struct {
@@ -308,7 +309,7 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 		Wallet:       lnw,
 		Notifier:     chainNotifier,
 		FeeEstimator: estimator,
-		SignMessage: func(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error) {
+		SignMessage: func(pubKey *secp256k1.PublicKey, msg []byte) (*ecdsa.Signature, error) {
 			return testSig, nil
 		},
 		SendAnnouncement: func(msg lnwire.Message,
@@ -446,7 +447,7 @@ func recreateAliceFundingManager(t *testing.T, alice *testNode) {
 		Notifier:     oldCfg.Notifier,
 		FeeEstimator: oldCfg.FeeEstimator,
 		SignMessage: func(pubKey *secp256k1.PublicKey,
-			msg []byte) (*secp256k1.Signature, error) {
+			msg []byte) (*ecdsa.Signature, error) {
 			return testSig, nil
 		},
 		SendAnnouncement: func(msg lnwire.Message,

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
@@ -115,8 +115,6 @@ func TestSentPaymentSerialization(t *testing.T) {
 	s.Route = route.Route{}
 
 	if !reflect.DeepEqual(s, newAttemptInfo) {
-		s.SessionKey.Curve = nil
-		newAttemptInfo.SessionKey.Curve = nil
 		t.Fatalf("Payments do not match after "+
 			"serialization/deserialization %v vs %v",
 			spew.Sdump(s), spew.Sdump(newAttemptInfo),

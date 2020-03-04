@@ -15,7 +15,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
@@ -458,10 +459,7 @@ func TestChannelUpdateValidation(t *testing.T) {
 	}
 
 	digest := chainhash.HashB(chanUpdateMsg)
-	sig, err := testGraph.privKeyMap["b"].Sign(digest)
-	if err != nil {
-		t.Fatal(err)
-	}
+	sig := ecdsa.Sign(testGraph.privKeyMap["b"], digest)
 
 	errChanUpdate.Signature, err = lnwire.NewSigFromSignature(sig)
 	if err != nil {

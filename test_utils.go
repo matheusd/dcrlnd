@@ -13,7 +13,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -99,6 +99,17 @@ var (
 // call the setup code with no custom values on the channels set up.
 var noUpdate = func(a, b *channeldb.OpenChannel) {}
 
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	k := secp256k1.PrivKeyFromBytes(b)
+	return k, k.PubKey()
+}
+
+func modNScalar(b []byte) *secp256k1.ModNScalar {
+	var m secp256k1.ModNScalar
+	m.SetByteSlice(b)
+	return &m
+}
+
 // createTestPeer creates a channel between two nodes, and returns a peer for
 // one of the nodes, together with the channel seen from both nodes. It takes
 // an updateChan function which can be used to modify the default values on
@@ -109,8 +120,8 @@ func createTestPeer(notifier chainntnfs.ChainNotifier, publTx chan *wire.MsgTx,
 
 	chainParams := chaincfg.RegNetParams()
 
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicesPrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(alicesPrivKey)
+	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 
 	channelCapacity := dcrutil.Amount(10 * 1e8)
 	channelBal := channelCapacity / 2

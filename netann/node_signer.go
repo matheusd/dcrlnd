@@ -4,7 +4,8 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
@@ -17,13 +18,9 @@ type NodeSigner struct {
 // NewNodeSigner creates a new instance of the NodeSigner backed by the target
 // private key.
 func NewNodeSigner(key *secp256k1.PrivateKey) *NodeSigner {
-	priv := &secp256k1.PrivateKey{}
-	priv.Curve = secp256k1.S256()
-	priv.PublicKey.X = key.X
-	priv.PublicKey.Y = key.Y
-	priv.D = key.D
+	priv := *key
 	return &NodeSigner{
-		privKey: priv,
+		privKey: &priv,
 	}
 }
 
@@ -31,21 +28,17 @@ func NewNodeSigner(key *secp256k1.PrivateKey) *NodeSigner {
 // resident node's private key. If the target public key is _not_ the node's
 // private key, then an error will be returned.
 func (n *NodeSigner) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*secp256k1.Signature, error) {
+	msg []byte) (*ecdsa.Signature, error) {
 
 	// If this isn't our identity public key, then we'll exit early with an
 	// error as we can't sign with this key.
-	if !pubKey.IsEqual((*secp256k1.PublicKey)(&n.privKey.PublicKey)) {
+	if !pubKey.IsEqual(n.privKey.PubKey()) {
 		return nil, fmt.Errorf("unknown public key")
 	}
 
 	// Otherwise, we'll sign the chainhash of the target message.
 	digest := chainhash.HashB(msg)
-	sign, err := n.privKey.Sign(digest)
-	if err != nil {
-		return nil, fmt.Errorf("can't sign the message: %v", err)
-	}
-
+	sign := ecdsa.Sign(n.privKey, digest)
 	return sign, nil
 }
 
@@ -67,11 +60,7 @@ func (n *NodeSigner) SignDigestCompact(hash []byte) ([]byte, error) {
 	isCompressedKey := true
 
 	// secp256k1.SignCompact returns a pubkey-recoverable signature
-	sig, err := secp256k1.SignCompact(n.privKey, hash, isCompressedKey)
-	if err != nil {
-		return nil, fmt.Errorf("can't sign the hash: %v", err)
-	}
-
+	sig := ecdsa.SignCompact(n.privKey, hash, isCompressedKey)
 	return sig, nil
 }
 

@@ -1,15 +1,22 @@
 package migration_01_to_11
 
 import (
+	"encoding/hex"
 	"image/color"
-	"math/big"
 	prand "math/rand"
 	"net"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/lnwire"
 )
+
+func modNScalar(b []byte) *secp256k1.ModNScalar {
+	var m secp256k1.ModNScalar
+	m.SetByteSlice(b)
+	return &m
+}
 
 var (
 	testAddr = &net.TCPAddr{IP: (net.IP)([]byte{0xA, 0x0, 0x0, 0x1}),
@@ -17,12 +24,12 @@ var (
 	anotherAddr, _ = net.ResolveTCPAddr("tcp",
 		"[2001:db8:85a3:0:0:8a2e:370:7334]:80")
 	testAddrs = []net.Addr{testAddr, anotherAddr}
-	testSig   = &secp256k1.Signature{
-		R: new(big.Int),
-		S: new(big.Int),
-	}
-	_, _ = testSig.R.SetString("63724406601629180062774974542967536251589935445068131219452686511677818569431", 10)
-	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
+	rBytes, _ = hex.DecodeString("63724406601629180062774974542967536251589935445068131219452686511677818569431")
+	sBytes, _ = hex.DecodeString("18801056069249825825291287104931333862866033135609736119018462340006816851118")
+	testSig   = ecdsa.NewSignature(
+		modNScalar(rBytes),
+		modNScalar(sBytes),
+	)
 
 	testFeatures = lnwire.NewFeatureVector(nil, nil)
 )

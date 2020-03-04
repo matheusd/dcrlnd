@@ -10,14 +10,14 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 
+	"decred.org/dcrwallet/wallet"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet/v3"
 
 	// This is required to register bdb as a valid walletdb driver. In the
 	// init function of the package, it registers itself. The import is used
 	// to activate the side effects w/o actually binding the package name to
 	// a file-level variable.
-	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
+	_ "decred.org/dcrwallet/wallet/drivers/bdb"
 )
 
 // WalletSyncer is an exported interface for the available wallet sync backends

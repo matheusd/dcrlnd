@@ -4,16 +4,18 @@ package dcrdnotify
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/compat"
 )
 
 var (
@@ -55,7 +57,7 @@ func setUpNotifier(t *testing.T, h *rpctest.Harness) *DcrdNotifier {
 	hintCache := initHintCache(t)
 
 	rpcConfig := h.RPCConfig()
-	notifier, err := New(&rpcConfig, chainntnfs.NetParams, hintCache, hintCache)
+	notifier, err := New(&rpcConfig, compat.Params3to2(chainntnfs.NetParams), hintCache, hintCache)
 	if err != nil {
 		t.Fatalf("unable to create notifier: %v", err)
 	}
@@ -132,7 +134,7 @@ func TestHistoricalConfDetailsTxIndex(t *testing.T) {
 
 	// We'll now confirm this transaction and re-attempt to retrieve its
 	// confirmation details.
-	if _, err := harness.Node.Generate(1); err != nil {
+	if _, err := harness.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -267,7 +269,7 @@ func TestInneficientRescan(t *testing.T) {
 		t, outpoint, txout, privKey,
 	)
 	spenderTxHash := spenderTx.TxHash()
-	_, err := harness.Node.SendRawTransaction(spenderTx, true)
+	_, err := harness.Node.SendRawTransaction(context.TODO(), spenderTx, true)
 	if err != nil {
 		t.Fatalf("unable to publish tx: %v", err)
 	}
@@ -277,11 +279,11 @@ func TestInneficientRescan(t *testing.T) {
 
 	// We'll now confirm this transaction and attempt to retrieve its
 	// confirmation details.
-	bhs, err := harness.Node.Generate(1)
+	bhs, err := harness.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
-	block, err := harness.Node.GetBlock(bhs[0])
+	block, err := harness.Node.GetBlock(context.TODO(), bhs[0])
 	if err != nil {
 		t.Fatalf("unable to get block: %v", err)
 	}
@@ -300,7 +302,7 @@ func TestInneficientRescan(t *testing.T) {
 	prevOutputHeight := minedHeight - 1
 
 	// Generate a few blocks after mining to test some conditions.
-	if _, err := harness.Node.Generate(20); err != nil {
+	if _, err := harness.Node.Generate(context.TODO(), 20); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -387,7 +389,7 @@ func TestInneficientRescan(t *testing.T) {
 			// Load the tx filter with the appropriate outpoint or
 			// address as preparation for the tests.
 			err := notifier.chainConn.LoadTxFilter(
-				true, stc.addrs, stc.outpoints,
+				context.TODO(), true, stc.addrs, stc.outpoints,
 			)
 			if err != nil {
 				t.Fatalf("unable to build tx filter: %v", err)

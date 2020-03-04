@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 )
 
 const (
@@ -72,10 +72,11 @@ var (
 // ecdh performs an ECDH operation between pub and priv. The returned value is
 // the sha256 of the compressed shared point.
 func ecdh(pub *secp256k1.PublicKey, priv *secp256k1.PrivateKey) []byte {
-	s := &secp256k1.PublicKey{}
-	x, y := secp256k1.S256().ScalarMult(pub.X, pub.Y, priv.D.Bytes())
-	s.X = x
-	s.Y = y
+	x, y := secp256k1.S256().ScalarMult(pub.X(), pub.Y(), priv.Serialize())
+	var fx, fy secp256k1.FieldVal
+	fx.SetByteSlice(x.Bytes())
+	fy.SetByteSlice(y.Bytes())
+	s := secp256k1.NewPublicKey(&fx, &fy)
 
 	h := sha256.Sum256(s.SerializeCompressed())
 	return h[:]
@@ -323,7 +324,7 @@ func newHandshakeState(initiator bool, prologue []byte,
 	if initiator {
 		h.mixHash(remotePub.SerializeCompressed())
 	} else {
-		h.mixHash((*secp256k1.PublicKey)(&localPub.PublicKey).SerializeCompressed())
+		h.mixHash(localPub.PubKey().SerializeCompressed())
 	}
 
 	return h
@@ -464,7 +465,7 @@ func (b *Machine) GenActOne() ([ActOneSize]byte, error) {
 		return actOne, err
 	}
 
-	ephemeral := (*secp256k1.PublicKey)(&b.localEphemeral.PublicKey).SerializeCompressed()
+	ephemeral := b.localEphemeral.PubKey().SerializeCompressed()
 	b.mixHash(ephemeral)
 
 	// es
@@ -537,8 +538,8 @@ func (b *Machine) GenActTwo() ([ActTwoSize]byte, error) {
 		return actTwo, err
 	}
 
-	ephemeral := (*secp256k1.PublicKey)(&b.localEphemeral.PublicKey).SerializeCompressed()
-	b.mixHash((*secp256k1.PublicKey)(&b.localEphemeral.PublicKey).SerializeCompressed())
+	ephemeral := b.localEphemeral.PubKey().SerializeCompressed()
+	b.mixHash(b.localEphemeral.PubKey().SerializeCompressed())
 
 	// ee
 	s := ecdh(b.remoteEphemeral, b.localEphemeral)
@@ -599,7 +600,7 @@ func (b *Machine) RecvActTwo(actTwo [ActTwoSize]byte) error {
 func (b *Machine) GenActThree() ([ActThreeSize]byte, error) {
 	var actThree [ActThreeSize]byte
 
-	ourPubkey := (*secp256k1.PublicKey)(&b.localStatic.PublicKey).SerializeCompressed()
+	ourPubkey := b.localStatic.PubKey().SerializeCompressed()
 	ciphertext := b.EncryptAndHash(ourPubkey)
 
 	s := ecdh(b.remoteEphemeral, b.localStatic)

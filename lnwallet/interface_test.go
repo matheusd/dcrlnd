@@ -2,6 +2,7 @@ package lnwallet_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -21,21 +22,24 @@ import (
 	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 
-	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
+	_ "decred.org/dcrwallet/wallet/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
+	dcrutilv3 "github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/txscript/v2"
+	txscript3 "github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lntest"
@@ -79,8 +83,8 @@ var (
 	netParams = chaincfg.SimNetParams()
 	chainHash = &netParams.GenesisHash
 
-	_, alicePub = secp256k1.PrivKeyFromBytes(testHdSeed[:])
-	_, bobPub   = secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	alicePub = secp256k1.PrivKeyFromBytes(testHdSeed[:]).PubKey()
+	bobPub   = secp256k1.PrivKeyFromBytes(bobsPrivKey).PubKey()
 
 	// The number of confirmations required to consider any created channel
 	// open.
@@ -131,13 +135,13 @@ func mineAndAssertTxInBlock(t *testing.T, miner *rpctest.Harness,
 	}
 
 	// We'll mined a block to confirm it.
-	blockHashes, err := vw.GenerateBlocks(1)
+	blockHashes, err := vw.GenerateBlocks(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate new block: %v", err)
 	}
 
 	// Finally, we'll check it was actually mined in this block.
-	block, err := miner.Node.GetBlock(blockHashes[0])
+	block, err := miner.Node.GetBlock(context.TODO(), blockHashes[0])
 	if err != nil {
 		t.Fatalf("unable to get block %v: %v", blockHashes[0], err)
 	}
@@ -240,7 +244,7 @@ func assertTxInWallet(t *testing.T, w *lnwallet.LightningWallet,
 }
 
 func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
-	blockGenerator func(uint32) ([]*chainhash.Hash, error),
+	blockGenerator func(context.Context, uint32) ([]*chainhash.Hash, error),
 	numOutputs int, dcrPerOutput float64) error {
 
 	// Using the mining node, spend from a coinbase output numOutputs to
@@ -267,7 +271,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	// manager and underlying database. This is needed to prevent a possible
 	// deadlock condition in the wallet when generating new addresses while
 	// processing a transaction (see
-	// https://github.com/decred/dcrwallet/issues/1372). This isn't pretty,
+	// https://github.com/dcrwallet/issues/1372). This isn't pretty,
 	// but 200ms should be more than enough to prevent triggering this bug
 	// on most dev machines.
 	time.Sleep(time.Millisecond * 200)
@@ -293,7 +297,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	// Generate 10 blocks with the mining node, this should mine all
 	// numOutputs transactions created above. We generate 10 blocks here
 	// in order to give all the outputs a "sufficient" number of confirmations.
-	if _, err := blockGenerator(10); err != nil {
+	if _, err := blockGenerator(context.TODO(), 10); err != nil {
 		return err
 	}
 
@@ -550,11 +554,11 @@ func testDualFundingReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	blockHashes, err := vw.GenerateBlocks(1)
+	blockHashes, err := vw.GenerateBlocks(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
-	block, err := miner.Node.GetBlock(blockHashes[0])
+	block, err := miner.Node.GetBlock(context.TODO(), blockHashes[0])
 	if err != nil {
 		t.Fatalf("unable to find block: %v", err)
 	}
@@ -1050,11 +1054,11 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	blockHashes, err := vw.GenerateBlocks(1)
+	blockHashes, err := vw.GenerateBlocks(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
-	block, err := miner.Node.GetBlock(blockHashes[0])
+	block, err := miner.Node.GetBlock(context.TODO(), blockHashes[0])
 	if err != nil {
 		t.Fatalf("unable to find block: %v", err)
 	}
@@ -1102,7 +1106,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 			PkScript: script,
 		}
 		txid, err := miner.SendOutputs([]*wire.TxOut{output},
-			dcrutil.Amount(defaultFeeRate))
+			compat.Amount2to3(dcrutil.Amount(defaultFeeRate)))
 		if err != nil {
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
@@ -1115,7 +1119,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 
 	// Generate 10 blocks to mine all the transactions created above.
 	const numBlocksMined = 10
-	blocks, err := vw.GenerateBlocks(numBlocksMined)
+	blocks, err := vw.GenerateBlocks(context.TODO(), numBlocksMined)
 	if err != nil {
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
@@ -1256,7 +1260,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		t.Fatalf("unable to find mempool tx in tx details!")
 	}
 
-	burnBlock, err := vw.GenerateBlocks(1)
+	burnBlock, err := vw.GenerateBlocks(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to mine block: %v", err)
 	}
@@ -1374,7 +1378,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 			PkScript: script,
 		}
 		txid, err := miner.SendOutputs([]*wire.TxOut{output},
-			dcrutil.Amount(defaultFeeRate))
+			compat.Amount2to3(dcrutil.Amount(defaultFeeRate)))
 		if err != nil {
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
@@ -1420,7 +1424,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 
 	// Next mine a single block, all the transactions generated above
 	// should be included.
-	if _, err := vw.GenerateBlocks(1); err != nil {
+	if _, err := vw.GenerateBlocks(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -1480,7 +1484,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 func scriptFromKey(pubkey *secp256k1.PublicKey) ([]byte, error) {
 	pubkeyHash := dcrutil.Hash160(pubkey.SerializeCompressed())
 	keyAddr, err := dcrutil.NewAddressPubKeyHash(
-		pubkeyHash, chaincfg.RegNetParams(), dcrec.STEcdsaSecp256k1,
+		pubkeyHash, chaincfg.SimNetParams(), dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create addr: %v", err)
@@ -1501,12 +1505,12 @@ func mineAndAssert(r *rpctest.Harness, tx *wire.MsgTx) error {
 		return fmt.Errorf("tx not relayed to miner: %v", err)
 	}
 
-	blockHashes, err := r.Node.Generate(1)
+	blockHashes, err := r.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		return fmt.Errorf("unable to generate block: %v", err)
 	}
 
-	block, err := r.Node.GetBlock(blockHashes[0])
+	block, err := r.Node.GetBlock(context.TODO(), blockHashes[0])
 	if err != nil {
 		return fmt.Errorf("unable to find block: %v", err)
 	}
@@ -1588,7 +1592,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 		},
 		WitnessScript: keyScript,
 		Output:        tx.TxOut[outputIndex],
-		HashType:      txscript.SigHashAll,
+		HashType:      txscript3.SigHashAll,
 		InputIndex:    0, // Has only one input.
 	}
 
@@ -1609,7 +1613,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 	// Finally, attempt to validate the completed transaction. This should
 	// succeed if the wallet was able to properly generate the proper
 	// private key.
-	vm, err := txscript.NewEngine(
+	vm, err := txscript3.NewEngine(
 		keyScript, tx1, 0, input.ScriptVerifyFlags, tx.TxOut[outputIndex].Version, nil,
 	)
 	if err != nil {
@@ -1696,7 +1700,7 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	}
 
 	// Mine the transaction.
-	if _, err := vw.GenerateBlocks(1); err != nil {
+	if _, err := vw.GenerateBlocks(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -1892,7 +1896,8 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 	// we'll generate a commitment pre-image, then derive a revocation key
 	// and single tweak from that.
 	commitPreimage := bytes.Repeat([]byte{2}, 32)
-	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(commitPreimage)
+	commitSecret := secp256k1.PrivKeyFromBytes(commitPreimage)
+	commitPoint := commitSecret.PubKey()
 
 	revocationKey := input.DeriveRevocationPubkey(pubKey.PubKey, commitPoint)
 	commitTweak := input.SingleTweakBytes(commitPoint, pubKey.PubKey)
@@ -1976,7 +1981,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 			},
 			WitnessScript: keyScript,
 			Output:        newOutput,
-			HashType:      txscript.SigHashAll,
+			HashType:      txscript3.SigHashAll,
 			InputIndex:    0,
 		}
 
@@ -2006,7 +2011,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// Finally, attempt to validate the completed transaction. This
 		// should succeed if the wallet was able to properly generate
 		// the proper private key.
-		vm, err := txscript.NewEngine(keyScript,
+		vm, err := txscript3.NewEngine(keyScript,
 			sweepTx, 0, input.ScriptVerifyFlags, newOutput.Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
@@ -2026,7 +2031,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	// reorganization that doesn't invalidate any existing transactions or
 	// create any new non-coinbase transactions. We'll then check if it's
 	// the same after the empty reorg.
-	_, err := vw.GenerateBlocks(5)
+	_, err := vw.GenerateBlocks(context.TODO(), 5)
 	if err != nil {
 		t.Fatalf("unable to generate blocks on passed node: %v", err)
 	}
@@ -2049,7 +2054,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	if err != nil {
 		t.Fatalf("unable to generate address for miner: %v", err)
 	}
-	script, err := txscript.PayToAddrScript(minerAddr)
+	script, err := txscript3.PayToAddrScript(minerAddr)
 	if err != nil {
 		t.Fatalf("unable to create pay to addr script: %v", err)
 	}
@@ -2066,7 +2071,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	if err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	_, err = vw.GenerateBlocks(3)
+	_, err = vw.GenerateBlocks(context.TODO(), 3)
 	if err != nil {
 		t.Fatalf("unable to generate blocks on passed node: %v", err)
 	}
@@ -2085,7 +2090,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 
 	// Now we cause a reorganization as follows.
 	// Step 1: create a new miner and start it.
-	r2, err := rpctest.New(r.ActiveNet, nil, []string{"--txindex"})
+	r2, err := rpctest.New(t, r.ActiveNet, nil, []string{"--txindex"})
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
@@ -2115,10 +2120,10 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	}
 
 	mineFirst := func(nb uint32) ([]*chainhash.Hash, error) {
-		return vw.GenerateBlocks(nb)
+		return vw.GenerateBlocks(context.TODO(), nb)
 	}
 	mineSecond := func(nb uint32) ([]*chainhash.Hash, error) {
-		return r2.Node.Generate(nb)
+		return r2.Node.Generate(context.TODO(), nb)
 		// TODO: Re-enable.
 		//
 		// return lntest.AdjustedSimnetMiner(r2.Node, nb)
@@ -2139,12 +2144,12 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 				t.Fatalf("timeout waiting for miner disconnect")
 			default:
 			}
-			err = rpctest.RemoveNode(r2, r)
+			err = rpctest.RemoveNode(context.TODO(), r2, r)
 			if err != nil {
 				t.Fatalf("unable to disconnect mining nodes: %v",
 					err)
 			}
-			stillConnected, err = rpctest.NodesConnected(r2, r, true)
+			stillConnected, err = rpctest.NodesConnected(context.TODO(), r2, r, true)
 			if err != nil {
 				t.Fatalf("error checking node connectivity: %v",
 					err)
@@ -2305,7 +2310,7 @@ func testLastUnusedAddr(miner *rpctest.Harness,
 		t.Skip()
 	}
 
-	if _, err := vw.GenerateBlocks(1); err != nil {
+	if _, err := vw.GenerateBlocks(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -2426,7 +2431,7 @@ func testCreateSimpleTx(r *rpctest.Harness, // nolint: unused
 				t.Fatalf("unable to generate address for "+
 					"miner: %v", err)
 			}
-			script, err := txscript.PayToAddrScript(minerAddr)
+			script, err := txscript3.PayToAddrScript(minerAddr)
 			if err != nil {
 				t.Fatalf("unable to create pay to addr "+
 					"script: %v", err)
@@ -2641,7 +2646,7 @@ func clearWalletStates(a, b *lnwallet.LightningWallet) error {
 
 func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
 	var found bool
-	var tx *dcrutil.Tx
+	var tx *dcrutilv3.Tx
 	var err error
 	timeout := time.After(30 * time.Second)
 	for !found {
@@ -2654,7 +2659,7 @@ func waitForMempoolTx(r *rpctest.Harness, txid *chainhash.Hash) error {
 		time.Sleep(100 * time.Millisecond)
 
 		// Check for the harness' knowledge of the txid
-		tx, err = r.Node.GetRawTransaction(txid)
+		tx, err = r.Node.GetRawTransaction(context.TODO(), txid)
 		if err != nil {
 			switch e := err.(type) {
 			case *dcrjson.RPCError:
@@ -2693,7 +2698,7 @@ func waitForWalletSync(r *rpctest.Harness, w *lnwallet.LightningWallet) error {
 
 		// Check whether the chain source of the wallet is caught up to
 		// the harness it's supposed to be catching up to.
-		bestHash, bestHeight, err = r.Node.GetBestBlock()
+		bestHash, bestHeight, err = r.Node.GetBestBlock(context.TODO())
 		if err != nil {
 			return fmt.Errorf("error getting node best block: %v", err)
 		}
@@ -2865,7 +2870,7 @@ func TestLightningWallet(t *testing.T) {
 	}()
 
 	// Direct the lnwallet and driver logs to the given files.
-	logFilename := fmt.Sprintf("output-lnwallet.log")
+	logFilename := "output-lnwallet.log"
 	logFile, err := os.Create(logFilename)
 	if err != nil {
 		t.Fatalf("Cannot create lnwallet log file: %v", err)
@@ -2897,7 +2902,7 @@ func TestLightningWallet(t *testing.T) {
 				walletDriver.WalletType, backEnd)
 			minerArgs := []string{"--txindex", "--debuglevel=debug",
 				"--logdir=" + minerLogDir}
-			miningNode, err = rpctest.New(netParams, nil, minerArgs)
+			miningNode, err = rpctest.New(t, compat.Params2to3(netParams), nil, minerArgs)
 			if err != nil {
 				t.Fatalf("unable to create mining node: %v", err)
 			}
@@ -2906,7 +2911,7 @@ func TestLightningWallet(t *testing.T) {
 			}
 
 			// Generate the premine block.
-			_, err = miningNode.Node.Generate(1)
+			_, err = miningNode.Node.Generate(context.TODO(), 1)
 			if err != nil {
 				t.Fatalf("unable to generate premine: %v", err)
 			}
@@ -2920,7 +2925,7 @@ func TestLightningWallet(t *testing.T) {
 			}
 
 			// Setup a voting wallet for when the chain passes SVH.
-			votingWallet, err := rpctest.NewVotingWallet(miningNode)
+			votingWallet, err := rpctest.NewVotingWallet(context.TODO(), miningNode)
 			if err != nil {
 				t.Fatalf("unable to create voting wallet: %v", err)
 			}
@@ -3225,6 +3230,8 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 	if err := loadTestCredits(miningNode, bob, votingWallet.GenerateBlocks, 20, 4); err != nil {
 		t.Logf("unable to send initial funds to bob: %v", err)
 	}
+
+	t.Logf("Loaded test credits")
 
 	// Both wallets should now have 80DCR available for
 	// spending.

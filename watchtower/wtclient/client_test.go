@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	txscript2 "github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -60,7 +61,7 @@ var (
 		chaincfg.TestNet3Params(),
 	)
 
-	addrScript, _ = txscript.PayToAddrScript(addr)
+	addrScript, _ = txscript2.PayToAddrScript(addr)
 )
 
 // randPrivKey generates a new secp keypair, and returns the public key.

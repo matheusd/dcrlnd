@@ -14,7 +14,8 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -52,8 +53,9 @@ var (
 	testCupOfNonsense  = "ナンセンス 1杯"
 	testPleaseConsider = "Please consider supporting this project"
 
-	testPrivKeyBytes, _     = hex.DecodeString("e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734")
-	testPrivKey, testPubKey = secp256k1.PrivKeyFromBytes(testPrivKeyBytes)
+	testPrivKeyBytes, _ = hex.DecodeString("e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734")
+	testPrivKey         = secp256k1.PrivKeyFromBytes(testPrivKeyBytes)
+	testPubKey          = testPrivKey.PubKey()
 
 	testDescriptionHashSlice = chainhash.HashB([]byte("One piece of chocolate cake, one icecream cone, one pickle, one slice of swiss cheese, one slice of salami, one lollypop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon"))
 
@@ -97,12 +99,7 @@ var (
 
 	testMessageSigner = MessageSigner{
 		SignCompact: func(hash []byte) ([]byte, error) {
-			sig, err := secp256k1.SignCompact(testPrivKey, hash, true)
-			if err != nil {
-				return nil, fmt.Errorf("can't sign the "+
-					"message: %v", err)
-			}
-			return sig, nil
+			return ecdsa.SignCompact(testPrivKey, hash, true), nil
 		},
 	}
 
@@ -790,10 +787,11 @@ func TestInvoiceChecksumMalleability(t *testing.T) {
 	chain := chaincfg.RegNetParams()
 	var payHash [32]byte
 	ts := time.Unix(0, 0)
-	privKey, _ := secp256k1.PrivKeyFromBytes(privKeyBytes)
+	privKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
+	pubKey := privKey.PubKey()
 	msgSigner := MessageSigner{
 		SignCompact: func(hash []byte) ([]byte, error) {
-			return secp256k1.SignCompact(privKey, hash, true)
+			return ecdsa.SignCompact(privKey, hash, true), nil
 		},
 	}
 	opts := []func(*Invoice){Description("test")}
@@ -806,6 +804,9 @@ func TestInvoiceChecksumMalleability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	t.Logf("encoded %s", encoded)
+	t.Logf("pubkey %x", pubKey.SerializeCompressed())
 
 	// Changing a bech32 string which checksum ends in "p" to "(q*)p" can
 	// cause the checksum to return as a valid bech32 string _but_ the
@@ -857,7 +858,7 @@ func compareInvoices(expected, actual *Invoice) error {
 
 	if !comparePubkeys(expected.Destination, actual.Destination) {
 		return fmt.Errorf("expected destination pubkey %x, got %x",
-			expected.Destination, actual.Destination)
+			expected.Destination.SerializeCompressed(), actual.Destination.SerializeCompressed())
 	}
 
 	if !compareHashes(expected.DescriptionHash, actual.DescriptionHash) {
@@ -930,7 +931,7 @@ func compareRouteHints(a, b []HopHint) error {
 	for i := 0; i < len(a); i++ {
 		if !comparePubkeys(a[i].NodeID, b[i].NodeID) {
 			return fmt.Errorf("expected routeHint nodeID %x, "+
-				"got %x", a[i].NodeID, b[i].NodeID)
+				"got %x", a[i].NodeID.SerializeCompressed(), b[i].NodeID.SerializeCompressed())
 		}
 
 		if a[i].ChannelID != b[i].ChannelID {

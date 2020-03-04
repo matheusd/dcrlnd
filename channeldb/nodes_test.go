@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -21,8 +20,8 @@ func TestLinkNodeEncodeDecode(t *testing.T) {
 
 	// First we'll create some initial data to use for populating our test
 	// LinkNode instances.
-	_, pub1 := secp256k1.PrivKeyFromBytes(key[:])
-	_, pub2 := secp256k1.PrivKeyFromBytes(rev[:])
+	_, pub1 := privKeyFromBytes(key[:])
+	_, pub2 := privKeyFromBytes(rev[:])
 	addr1, err := net.ResolveTCPAddr("tcp", "10.0.0.1:9000")
 	if err != nil {
 		t.Fatalf("unable to create test addr: %v", err)
@@ -116,7 +115,7 @@ func TestDeleteLinkNode(t *testing.T) {
 	}
 	defer cleanUp()
 
-	_, pubKey := secp256k1.PrivKeyFromBytes(key[:])
+	_, pubKey := privKeyFromBytes(key[:])
 	addr := &net.TCPAddr{
 		IP:   net.ParseIP("127.0.0.1"),
 		Port: 1337,

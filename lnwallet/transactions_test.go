@@ -10,9 +10,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -1058,11 +1058,11 @@ func testSpendValidation(t *testing.T, tweakless bool) {
 	// We also set up set some resources for the commitment transaction.
 	// Each side currently has 1 DCR within the channel, with a total
 	// channel capacity of 2 DCR.
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(testWalletPrivKey)
+	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 
 	revocationPreimage := testHdSeed.CloneBytes()
-	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(revocationPreimage)
+	commitSecret, commitPoint := privKeyFromBytes(revocationPreimage)
 	revokePubKey := input.DeriveRevocationPubkey(bobKeyPub, commitPoint)
 
 	aliceDelayKey := input.TweakPubKey(aliceKeyPub, commitPoint)

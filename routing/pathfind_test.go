@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"math/big"
 	"net"
 	"os"
 	"reflect"
@@ -19,7 +18,8 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
@@ -80,13 +80,16 @@ var (
 	)
 )
 
+func modNScalar(b []byte) *secp256k1.ModNScalar {
+	var m secp256k1.ModNScalar
+	m.SetByteSlice(b)
+	return &m
+}
+
 var (
-	testSig = &secp256k1.Signature{
-		R: new(big.Int),
-		S: new(big.Int),
-	}
-	_, _ = testSig.R.SetString("63724406601629180062774974542967536251589935445068131219452686511677818569431", 10)
-	_, _ = testSig.S.SetString("18801056069249825825291287104931333862866033135609736119018462340006816851118", 10)
+	rBytes, _ = hex.DecodeString("63724406601629180062774974542967536251589935445068131219452686511677818569431")
+	sBytes, _ = hex.DecodeString("18801056069249825825291287104931333862866033135609736119018462340006816851118")
+	testSig   = ecdsa.NewSignature(modNScalar(rBytes), modNScalar(sBytes))
 
 	testAuthProof = channeldb.ChannelAuthProof{
 		NodeSig1Bytes:   testSig.Serialize(),
@@ -438,7 +441,8 @@ func createTestGraphFromChannels(testChannels []*testChannel, source string) (
 			0, 0, 0, 0, 0, 0, 0, nodeIndex + 1,
 		}
 
-		privKey, pubKey := secp256k1.PrivKeyFromBytes(keyBytes)
+		privKey := secp256k1.PrivKeyFromBytes(keyBytes)
+		pubKey := privKey.PubKey()
 
 		if features == nil {
 			features = lnwire.EmptyFeatureVector()

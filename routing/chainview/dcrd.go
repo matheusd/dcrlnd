@@ -10,7 +10,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	jsontypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 )
@@ -102,11 +102,11 @@ func (b *DcrdFilteredChainView) Start() error {
 	if err := b.dcrdConn.Connect(context.Background(), true); err != nil {
 		return err
 	}
-	if err := b.dcrdConn.NotifyBlocks(); err != nil {
+	if err := b.dcrdConn.NotifyBlocks(context.TODO()); err != nil {
 		return err
 	}
 
-	_, bestHeight, err := b.dcrdConn.GetBestBlock()
+	_, bestHeight, err := b.dcrdConn.GetBestBlock(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -347,7 +347,7 @@ func (b *DcrdFilteredChainView) chainFilterer() {
 			// Apply the new TX filter to dcrd, which will cause
 			// all following notifications from and calls to it
 			// return blocks filtered with the new filter.
-			b.dcrdConn.LoadTxFilter(false, nil, update.newUtxos)
+			b.dcrdConn.LoadTxFilter(context.TODO(), false, nil, update.newUtxos)
 
 			// All blocks gotten after we loaded the filter will
 			// have the filter applied, but we will need to rescan
@@ -370,7 +370,7 @@ func (b *DcrdFilteredChainView) chainFilterer() {
 			// with dcrd applying the newly loaded filter to each
 			// block.
 			for i := update.updateHeight + 1; i < bestHeight+1; i++ {
-				blockHash, err := b.dcrdConn.GetBlockHash(i)
+				blockHash, err := b.dcrdConn.GetBlockHash(context.TODO(), i)
 				if err != nil {
 					log.Warnf("Unable to get block hash "+
 						"for block at height %d: %v",
@@ -383,7 +383,7 @@ func (b *DcrdFilteredChainView) chainFilterer() {
 				// block at a time, skipping blocks that might
 				// have gone missing.
 				rescanned, err := b.dcrdConn.Rescan(
-					[]chainhash.Hash{*blockHash})
+					context.TODO(), []chainhash.Hash{*blockHash})
 				if err != nil {
 					log.Warnf("Unable to rescan block "+
 						"with hash %v at height %d: %v",
@@ -416,13 +416,13 @@ func (b *DcrdFilteredChainView) chainFilterer() {
 		case req := <-b.filterBlockReqs:
 			// First we'll fetch the block itself as well as some
 			// additional information including its height.
-			block, err := b.dcrdConn.GetBlock(req.blockHash)
+			block, err := b.dcrdConn.GetBlock(context.TODO(), req.blockHash)
 			if err != nil {
 				req.err <- err
 				req.resp <- nil
 				continue
 			}
-			header, err := b.dcrdConn.GetBlockHeaderVerbose(req.blockHash)
+			header, err := b.dcrdConn.GetBlockHeaderVerbose(context.TODO(), req.blockHash)
 			if err != nil {
 				req.err <- err
 				req.resp <- nil

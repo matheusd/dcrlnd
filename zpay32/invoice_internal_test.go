@@ -9,7 +9,7 @@ import (
 
 	"github.com/decred/dcrd/bech32"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -452,7 +452,7 @@ func TestParseDestination(t *testing.T) {
 		if test.valid && !comparePubkeys(destination, test.result) {
 			t.Fatalf("test %d failed decoding destination: "+
 				"expected %x, got %x",
-				i, *test.result, *destination)
+				i, test.result.SerializeCompressed(), destination.SerializeCompressed())
 			return
 		}
 	}

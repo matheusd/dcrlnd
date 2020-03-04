@@ -3,8 +3,9 @@ package wtmock
 import (
 	"sync"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -43,7 +44,8 @@ func (s *MockSigner) SignOutputRaw(tx *wire.MsgTx,
 
 	sig, err := txscript.RawTxInSignature(
 		tx, signDesc.InputIndex,
-		witnessScript, signDesc.HashType, privKey,
+		witnessScript, signDesc.HashType, privKey.Serialize(),
+		dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, err

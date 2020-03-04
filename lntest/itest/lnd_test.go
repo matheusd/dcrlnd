@@ -25,13 +25,15 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
+	dcrutilv3 "github.com/decred/dcrd/dcrutil/v3"
 	jsonrpctypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
@@ -206,7 +208,7 @@ func mineBlocks(t *harnessTest, net *lntest.NetworkHarness,
 	}
 
 	for i, blockHash := range blockHashes {
-		block, err := net.Miner.Node.GetBlock(blockHash)
+		block, err := net.Miner.Node.GetBlock(context.Background(), blockHash)
 		if err != nil {
 			t.Fatalf("unable to get block: %v", err)
 		}
@@ -2290,14 +2292,14 @@ func assertMinerBlockHeightDelta(t *harnessTest,
 	// Ensure the chain lengths are what we expect.
 	var predErr error
 	err := wait.Predicate(func() bool {
-		_, tempMinerHeight, err := tempMiner.Node.GetBestBlock()
+		_, tempMinerHeight, err := tempMiner.Node.GetBestBlock(context.Background())
 		if err != nil {
 			predErr = fmt.Errorf("unable to get current "+
 				"blockheight %v", err)
 			return false
 		}
 
-		_, minerHeight, err := miner.Node.GetBestBlock()
+		_, minerHeight, err := miner.Node.GetBestBlock(context.Background())
 		if err != nil {
 			predErr = fmt.Errorf("unable to get current "+
 				"blockheight %v", err)
@@ -2325,7 +2327,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Set up a new miner that we can use to cause a reorg.
 	args := []string{"--rejectnonstd", "--txindex"}
-	tempMiner, err := rpctest.New(harnessNetParams,
+	tempMiner, err := rpctest.New(t.t, compat.Params2to3(harnessNetParams),
 		&rpcclient.NotificationHandlers{}, args)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
@@ -2350,7 +2352,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = rpctest.RemoveNode(net.Miner, tempMiner)
+	err = rpctest.RemoveNode(context.Background(), net.Miner, tempMiner)
 	if err != nil {
 		t.Fatalf("unable to remove node: %v", err)
 	}
@@ -2391,7 +2393,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	block := mineBlocks(t, net, 10, 1)[0]
 	assertTxInBlock(t, block, fundingTxID)
 	// TODO: Re-enable.
-	tempMiner.Node.Generate(15)
+	tempMiner.Node.Generate(context.Background(), 15)
 	// lntest.AdjustedSimnetMiner(tempMiner.Node, 15)
 
 	// Ensure the chain lengths are what we expect, with the temp miner
@@ -2399,7 +2401,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	assertMinerBlockHeightDelta(t, net.Miner, tempMiner, 5)
 
 	// Wait for Alice to sync to the original miner's chain.
-	_, minerHeight, err := net.Miner.Node.GetBestBlock()
+	_, minerHeight, err := net.Miner.Node.GetBestBlock(context.Background())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -2475,7 +2477,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Now we disconnect the two miners, and connect our original miner to
 	// our chain backend once again.
-	err = rpctest.RemoveNode(net.Miner, tempMiner)
+	err = rpctest.RemoveNode(context.Background(), net.Miner, tempMiner)
 	if err != nil {
 		t.Fatalf("unable to remove node: %v", err)
 	}
@@ -2487,7 +2489,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// This should have caused a reorg, and Alice should sync to the longer
 	// chain, where the funding transaction is not confirmed.
-	_, tempMinerHeight, err := tempMiner.Node.GetBestBlock()
+	_, tempMinerHeight, err := tempMiner.Node.GetBestBlock(context.Background())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -3264,7 +3266,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Fetch starting height of this test so we can compute the block
 	// heights we expect certain events to take place.
-	_, curHeight, err := net.Miner.Node.GetBestBlock()
+	_, curHeight, err := net.Miner.Node.GetBestBlock(context.Background())
 	if err != nil {
 		t.Fatalf("unable to get best block height")
 	}
@@ -3505,7 +3507,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Fetch the sweep transaction, all input it's spending should be from
 	// the commitment transaction which was broadcast on-chain.
-	sweepTx, err := net.Miner.Node.GetRawTransaction(sweepingTXID)
+	sweepTx, err := net.Miner.Node.GetRawTransaction(context.Background(), sweepingTXID)
 	if err != nil {
 		t.Fatalf("unable to fetch sweep tx: %v", err)
 	}
@@ -3530,7 +3532,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
-	block, err := net.Miner.Node.GetBlock(blockHash[0])
+	block, err := net.Miner.Node.GetBlock(context.Background(), blockHash[0])
 	if err != nil {
 		t.Fatalf("unable to get block: %v", err)
 	}
@@ -3538,7 +3540,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	assertTxInBlock(t, block, sweepTx.Hash())
 
 	// Update current height
-	_, curHeight, err = net.Miner.Node.GetBestBlock()
+	_, curHeight, err = net.Miner.Node.GetBestBlock(context.Background())
 	if err != nil {
 		t.Fatalf("unable to get best block height")
 	}
@@ -3689,7 +3691,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 		// Fetch the sweep transaction, all input it's spending should
 		// be from the commitment transaction which was broadcast
 		// on-chain.
-		htlcTx, err := net.Miner.Node.GetRawTransaction(htlcTxID)
+		htlcTx, err := net.Miner.Node.GetRawTransaction(context.Background(), htlcTxID)
 		if err != nil {
 			t.Fatalf("unable to fetch sweep tx: %v", err)
 		}
@@ -3803,7 +3805,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Fetch the htlc sweep transaction from the mempool.
-	htlcSweepTx, err := net.Miner.Node.GetRawTransaction(htlcSweepTxID)
+	htlcSweepTx, err := net.Miner.Node.GetRawTransaction(context.Background(), htlcSweepTxID)
 	if err != nil {
 		t.Fatalf("unable to fetch sweep tx: %v", err)
 	}
@@ -6020,7 +6022,7 @@ func testPrivateChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	mineBlocks(t, net, 10, 0)
 
 	// Wait until all nodes have caught up to this height.
-	_, minerHeight, err := net.Miner.Node.GetBestBlock()
+	_, minerHeight, err := net.Miner.Node.GetBestBlock(context.Background())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -7175,7 +7177,7 @@ func waitForNTxsInMempool(miner *rpcclient.Client, n int,
 			return nil, fmt.Errorf("wanted %v, found %v txs "+
 				"in mempool: %v", n, len(mempool), mempool)
 		case <-ticker.C:
-			mempool, err = miner.GetRawMempool(jsonrpctypes.GRMRegular)
+			mempool, err = miner.GetRawMempool(context.Background(), jsonrpctypes.GRMRegular)
 			if err != nil {
 				return nil, err
 			}
@@ -7868,7 +7870,7 @@ func testRevokedCloseRetribution(net *lntest.NetworkHarness, t *harnessTest) {
 	// Query for the mempool transaction found above. Then assert that all
 	// the inputs of this transaction are spending outputs generated by
 	// Bob's breach transaction above.
-	justiceTx, err := net.Miner.Node.GetRawTransaction(justiceTXID)
+	justiceTx, err := net.Miner.Node.GetRawTransaction(context.Background(), justiceTXID)
 	if err != nil {
 		t.Fatalf("unable to query for justice tx: %v", err)
 	}
@@ -8136,7 +8138,7 @@ func testRevokedCloseRetributionZeroValueRemoteOutput(net *lntest.NetworkHarness
 	// Query for the mempool transaction found above. Then assert that all
 	// the inputs of this transaction are spending outputs generated by
 	// Carol's breach transaction above.
-	justiceTx, err := net.Miner.Node.GetRawTransaction(justiceTXID)
+	justiceTx, err := net.Miner.Node.GetRawTransaction(context.Background(), justiceTXID)
 	if err != nil {
 		t.Fatalf("unable to query for justice tx: %v", err)
 	}
@@ -8477,7 +8479,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	exNumInputs := 2 + numInvoices
 	errNotFound := fmt.Errorf("justice tx with %d inputs not found", exNumInputs)
 	findJusticeTx := func() (*chainhash.Hash, error) {
-		mempool, err := net.Miner.Node.GetRawMempool(jsonrpctypes.GRMRegular)
+		mempool, err := net.Miner.Node.GetRawMempool(context.Background(), jsonrpctypes.GRMRegular)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get mempool from "+
 				"miner: %v", err)
@@ -8486,7 +8488,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 		for _, txid := range mempool {
 			// Check that the justice tx has the appropriate number
 			// of inputs.
-			tx, err := net.Miner.Node.GetRawTransaction(txid)
+			tx, err := net.Miner.Node.GetRawTransaction(context.Background(), txid)
 			if err != nil {
 				return nil, fmt.Errorf("unable to query for "+
 					"txs: %v", err)
@@ -8514,12 +8516,12 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	}
 
 	// Grab some transactions which will be needed for future checks.
-	justiceTx, err := net.Miner.Node.GetRawTransaction(justiceTxid)
+	justiceTx, err := net.Miner.Node.GetRawTransaction(context.Background(), justiceTxid)
 	if err != nil {
 		t.Fatalf("unable to query for justice tx: %v", err)
 	}
 
-	breachTx, err := net.Miner.Node.GetRawTransaction(closeTxId)
+	breachTx, err := net.Miner.Node.GetRawTransaction(context.Background(), closeTxId)
 	if err != nil {
 		t.Fatalf("unable to query for breach tx: %v", err)
 	}
@@ -8528,7 +8530,7 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 	if err != nil {
 		t.Fatalf("chainpoint id bytes not a chainhash: %v", err)
 	}
-	fundingTx, err := net.Miner.Node.GetRawTransaction(fundingTxId)
+	fundingTx, err := net.Miner.Node.GetRawTransaction(context.Background(), fundingTxId)
 	if err != nil {
 		t.Fatalf("unable to query for funding tx: %v", err)
 	}
@@ -8934,7 +8936,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	// potential second level spend spending from the commit tx.
 	isSecondLevelSpend := func(commitTxid, secondLevelTxid *chainhash.Hash) (bool, *wire.MsgTx) {
 		secondLevel, err := net.Miner.Node.GetRawTransaction(
-			secondLevelTxid)
+			context.Background(), secondLevelTxid)
 		if err != nil {
 			t.Fatalf("unable to query for tx: %v", err)
 		}
@@ -8959,7 +8961,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	}
 
 	// Grab transactions which will be required for future checks.
-	breachTx, err := net.Miner.Node.GetRawTransaction(closeTxId)
+	breachTx, err := net.Miner.Node.GetRawTransaction(context.Background(), closeTxId)
 	if err != nil {
 		t.Fatalf("unable to query for breach tx: %v", err)
 	}
@@ -8968,7 +8970,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	if err != nil {
 		t.Fatalf("chainpoint id bytes not a chainhash: %v", err)
 	}
-	fundingTx, err := net.Miner.Node.GetRawTransaction(fundingTxId)
+	fundingTx, err := net.Miner.Node.GetRawTransaction(context.Background(), fundingTxId)
 	if err != nil {
 		t.Fatalf("unable to query for funding tx: %v", err)
 	}
@@ -9058,7 +9060,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 	exNumInputs := 2 + numInvoices
 	errNotFound := fmt.Errorf("justice tx with %d inputs not found", exNumInputs)
 	findJusticeTx := func() (*chainhash.Hash, error) {
-		mempool, err := net.Miner.Node.GetRawMempool(jsonrpctypes.GRMRegular)
+		mempool, err := net.Miner.Node.GetRawMempool(context.Background(), jsonrpctypes.GRMRegular)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get mempool from "+
 				"miner: %v", err)
@@ -9067,7 +9069,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		for _, txid := range mempool {
 			// Check that the justice tx has the appropriate number
 			// of inputs.
-			tx, err := net.Miner.Node.GetRawTransaction(txid)
+			tx, err := net.Miner.Node.GetRawTransaction(context.Background(), txid)
 			if err != nil {
 				return nil, fmt.Errorf("unable to query for "+
 					"txs: %v", err)
@@ -9093,7 +9095,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		t.Fatalf(predErr.Error())
 	}
 
-	justiceTx, err := net.Miner.Node.GetRawTransaction(justiceTxid)
+	justiceTx, err := net.Miner.Node.GetRawTransaction(context.Background(), justiceTxid)
 	if err != nil {
 		t.Fatalf("unable to query for justice tx: %v", err)
 	}
@@ -9441,7 +9443,7 @@ func testRevokedCloseRetributionAltruistWatchtower(net *lntest.NetworkHarness,
 	// Query for the mempool transaction found above. Then assert that all
 	// the inputs of this transaction are spending outputs generated by
 	// Carol's breach transaction above.
-	justiceTx, err := net.Miner.Node.GetRawTransaction(justiceTXID)
+	justiceTx, err := net.Miner.Node.GetRawTransaction(context.Background(), justiceTXID)
 	if err != nil {
 		t.Fatalf("unable to query for justice tx: %v", err)
 	}
@@ -10745,7 +10747,7 @@ func testGraphTopologyNotifications(net *lntest.NetworkHarness, t *harnessTest) 
 		}
 	}
 
-	_, blockHeight, err := net.Miner.Node.GetBestBlock()
+	_, blockHeight, err := net.Miner.Node.GetBestBlock(context.Background())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -11561,7 +11563,7 @@ func assertSpendingTxInMempool(t *harnessTest, miner *rpcclient.Client,
 		case <-breakTimeout:
 			t.Fatalf("didn't find tx in mempool")
 		case <-ticker.C:
-			mempool, err := miner.GetRawMempool(jsonrpctypes.GRMRegular)
+			mempool, err := miner.GetRawMempool(context.Background(), jsonrpctypes.GRMRegular)
 			if err != nil {
 				t.Fatalf("unable to get mempool: %v", err)
 			}
@@ -11571,7 +11573,7 @@ func assertSpendingTxInMempool(t *harnessTest, miner *rpcclient.Client,
 			}
 
 			for _, txid := range mempool {
-				tx, err := miner.GetRawTransaction(txid)
+				tx, err := miner.GetRawTransaction(context.Background(), txid)
 				if err != nil {
 					t.Fatalf("unable to fetch tx: %v", err)
 				}
@@ -16953,11 +16955,11 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		// "--connect=" + chainBackend.P2PAddr(),
 	}
 	handlers := &rpcclient.NotificationHandlers{
-		OnTxAccepted: func(hash *chainhash.Hash, amt dcrutil.Amount) {
+		OnTxAccepted: func(hash *chainhash.Hash, amt dcrutilv3.Amount) {
 			lndHarness.OnTxAccepted(hash)
 		},
 	}
-	miner, err := rpctest.New(harnessNetParams, handlers, args)
+	miner, err := rpctest.New(t, compat.Params2to3(harnessNetParams), handlers, args)
 	if err != nil {
 		ht.Fatalf("unable to create mining node: %v", err)
 	}
@@ -16982,12 +16984,12 @@ func TestLightningNetworkDaemon(t *testing.T) {
 	if err := miner.SetUp(false, 0); err != nil {
 		ht.Fatalf("unable to set up mining node: %v", err)
 	}
-	if err := miner.Node.NotifyNewTransactions(false); err != nil {
+	if err := miner.Node.NotifyNewTransactions(context.Background(), false); err != nil {
 		ht.Fatalf("unable to request transaction notifications: %v", err)
 	}
 
 	// Start a chain backend.
-	chainBackend, cleanUp, err := lntest.NewBackend(miner)
+	chainBackend, cleanUp, err := lntest.NewBackend(t, miner)
 	if err != nil {
 		ht.Fatalf("unable to start dcrd: %v", err)
 	}

@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
@@ -238,7 +239,7 @@ type fundingConfig struct {
 	//
 	// TODO(roasbeef): should instead pass on this responsibility to a
 	// distinct sub-system?
-	SignMessage func(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error)
+	SignMessage func(pubKey *secp256k1.PublicKey, msg []byte) (*ecdsa.Signature, error)
 
 	// CurrentNodeAnnouncement should return the latest, fully signed node
 	// announcement from the backing Lightning Network node.
@@ -3226,11 +3227,8 @@ func (f *fundingManager) IsPendingChannel(pendingChanID [32]byte,
 }
 
 func copyPubKey(pub *secp256k1.PublicKey) *secp256k1.PublicKey {
-	return &secp256k1.PublicKey{
-		Curve: secp256k1.S256(),
-		X:     pub.X,
-		Y:     pub.Y,
-	}
+	c := *pub
+	return &c
 }
 
 // saveChannelOpeningState saves the channelOpeningState for the provided

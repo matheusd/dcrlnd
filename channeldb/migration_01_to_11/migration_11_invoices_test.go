@@ -2,12 +2,11 @@ package migration_01_to_11
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/zpay32"
 	bolt "go.etcd.io/bbolt"
 )
@@ -139,15 +138,12 @@ func signDigestCompact(hash []byte) ([]byte, error) {
 	// Should the signature reference a compressed public key or not.
 	isCompressedKey := true
 
-	privKey, _ := secp256k1.PrivKeyFromBytes(testPrivKeyBytes)
+	privKey, _ := privKeyFromBytes(testPrivKeyBytes)
 
 	// secp256k1.SignCompact returns a pubkey-recoverable signature
-	sig, err := secp256k1.SignCompact(
+	sig := ecdsa.SignCompact(
 		privKey, hash, isCompressedKey,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("can't sign the hash: %v", err)
-	}
 
 	return sig, nil
 }

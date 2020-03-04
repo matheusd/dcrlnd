@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	sphinx "github.com/decred/lightning-onion/v3"
@@ -1493,7 +1493,6 @@ func generateSphinxPacket(rt *route.Route, paymentHash []byte,
 			path := make([]sphinx.OnionHop, sphinxPath.TrueRouteLength())
 			for i := range path {
 				hopCopy := sphinxPath[i]
-				hopCopy.NodePub.Curve = nil
 				path[i] = hopCopy
 			}
 			return spew.Sdump(path)
@@ -1523,7 +1522,6 @@ func generateSphinxPacket(rt *route.Route, paymentHash []byte,
 			// internal curve here in order to keep the logs from
 			// getting noisy.
 			key := *sphinxPacket.EphemeralKey
-			key.Curve = nil
 			packetCopy := *sphinxPacket
 			packetCopy.EphemeralKey = &key
 			return spew.Sdump(packetCopy)
@@ -1781,7 +1779,6 @@ func (r *ChannelRouter) sendPayment(
 				var hopHints []zpay32.HopHint
 				for _, hopHint := range routeHint {
 					h := hopHint.Copy()
-					h.NodeID.Curve = nil
 					hopHints = append(hopHints, h)
 				}
 				routeHints = append(routeHints, hopHints)

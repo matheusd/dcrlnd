@@ -11,19 +11,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"google.golang.org/grpc"
 
+	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/hdkeychain/v2"
+	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/dcrd/txscript/v2"
+	txscriptv3 "github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
-	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 )
 
 type DcrWallet struct {
@@ -121,11 +123,7 @@ func New(cfg Config) (*DcrWallet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to derive first external key: %v", err)
 	}
-	firstPubKey, err := firstKey.ECPubKey()
-	if err != nil {
-		return nil, err
-	}
-	firstPubKeyBytes := firstPubKey.Serialize()
+	firstPubKeyBytes := firstKey.SerializedPubKey()
 	if err = cfg.DB.CompareAndStoreAccountID(firstPubKeyBytes); err != nil {
 		return nil, fmt.Errorf("account number %d failed to generate "+
 			"previously stored account ID: %v", cfg.AccountNumber, err)
@@ -361,14 +359,15 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 		if err != nil {
 			return nil, err
 		}
-		privKey, err := extPrivKey.ECPrivKey()
+		privKey, err := extPrivKey.SerializedPrivKey()
 		if err != nil {
 			return nil, err
 		}
 
 		// Actually sign the input.
-		sigScript, err := txscript.SignatureScript(
-			tx, i, pkScript, txscript.SigHashAll, privKey, true,
+		sigScript, err := txscriptv3.SignatureScript(
+			tx, i, pkScript, txscriptv3.SigHashAll, privKey,
+			dcrec.STEcdsaSecp256k1, true,
 		)
 		if err != nil {
 			return nil, err

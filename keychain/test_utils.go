@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 )
 
 // versionZeroKeyFamilies is a slice of all the known key families for first
@@ -244,8 +244,8 @@ func CheckSecretKeyRingImpl(t *testing.T, constructor SecretKeyRingConstructor) 
 		// We'll try again, but this time with an
 		// unknown public key.
 		var empty [32]byte
-		_, pub := secp256k1.PrivKeyFromBytes(empty[:])
-		keyDesc.PubKey = pub
+		priv := secp256k1.PrivKeyFromBytes(empty[:])
+		keyDesc.PubKey = priv.PubKey()
 
 		// If we attempt to query for this key, then we
 		// should get ErrCannotDerivePrivKey.

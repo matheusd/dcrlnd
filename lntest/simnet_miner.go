@@ -1,6 +1,7 @@
 package lntest
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"math"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/decred/dcrd/blockchain/standalone"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	rpcclient3 "github.com/decred/dcrd/rpcclient/v5"
+	rpcclient3 "github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -89,7 +90,7 @@ func AdjustedSimnetMiner(client *rpcclient3.Client, nb uint32) ([]*chainhash.Has
 	hashes := make([]*chainhash.Hash, nb)
 
 	for i := uint32(0); i < nb; i++ {
-		work, err := client.GetWork()
+		work, err := client.GetWork(context.TODO())
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +106,7 @@ func AdjustedSimnetMiner(client *rpcclient3.Client, nb uint32) ([]*chainhash.Has
 			return nil, err
 		}
 
-		prevBlock, err := client.GetBlock(&header.PrevBlock)
+		prevBlock, err := client.GetBlock(context.TODO(), &header.PrevBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func AdjustedSimnetMiner(client *rpcclient3.Client, nb uint32) ([]*chainhash.Has
 		}
 		workBytes = append(workBytes, extraBytes[:]...)
 		workData := hex.EncodeToString(workBytes)
-		accepted, err := client.GetWorkSubmit(workData)
+		accepted, err := client.GetWorkSubmit(context.TODO(), workData)
 		if err != nil {
 			return nil, err
 		}

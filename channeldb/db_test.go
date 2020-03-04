@@ -12,7 +12,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
@@ -289,14 +288,12 @@ func genRandomChannelShell() (*ChannelShell, error) {
 		return nil, err
 	}
 
-	_, pub := secp256k1.PrivKeyFromBytes(testPriv[:])
+	_, pub := privKeyFromBytes(testPriv[:])
 
 	var chanPoint wire.OutPoint
 	if _, err := rand.Read(chanPoint.Hash[:]); err != nil {
 		return nil, err
 	}
-
-	pub.Curve = nil
 
 	chanPoint.Index = uint32(rand.Intn(math.MaxUint16))
 

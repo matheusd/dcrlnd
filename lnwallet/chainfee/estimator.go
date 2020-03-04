@@ -13,7 +13,7 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v2"
 	dcrjson "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/rpcclient/v6"
 )
 
 const (
@@ -170,7 +170,7 @@ func (b *DcrdEstimator) Start() error {
 
 	// Once the connection to the backend node has been established, we'll
 	// query it for its minimum relay fee.
-	info, err := b.dcrdConn.GetInfo()
+	info, err := b.dcrdConn.GetInfo(ctx)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func (b *DcrdEstimator) EstimateFeePerKB(numBlocks uint32) (AtomPerKByte, error)
 // confTarget blocks. The estimate is returned in atom/kB.
 func (b *DcrdEstimator) fetchEstimate(confTarget uint32) (AtomPerKByte, error) {
 	// First, we'll fetch the estimate for our confirmation target.
-	dcrPerKB, err := b.dcrdConn.EstimateSmartFee(int64(confTarget),
+	dcrPerKB, err := b.dcrdConn.EstimateSmartFee(context.TODO(), int64(confTarget),
 		dcrjson.EstimateSmartFeeConservative)
 	if err != nil {
 		return 0, err

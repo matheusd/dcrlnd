@@ -145,7 +145,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 
 	// The tx should be spending from the funding transaction,
 	commitHash := txids[0]
-	tx1, err := net.Miner.Node.GetRawTransaction(commitHash)
+	tx1, err := net.Miner.Node.GetRawTransaction(context.Background(), commitHash)
 	if err != nil {
 		t.Fatalf("unable to get txn: %v", err)
 	}
@@ -181,7 +181,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	// Both Carol's second level transaction and Bob's sweep should be
 	// spending from the commitment transaction.
 	for _, txid := range commitSpends {
-		tx, err := net.Miner.Node.GetRawTransaction(txid)
+		tx, err := net.Miner.Node.GetRawTransaction(context.Background(), txid)
 		if err != nil {
 			t.Fatalf("unable to get txn: %v", err)
 		}
@@ -214,7 +214,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// It should spend from the commitment in the channel with Alice.
-	tx, err := net.Miner.Node.GetRawTransaction(bobSecondLvlTx)
+	tx, err := net.Miner.Node.GetRawTransaction(context.Background(), bobSecondLvlTx)
 	if err != nil {
 		t.Fatalf("unable to get txn: %v", err)
 	}
@@ -304,7 +304,7 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest)
 	}
 
 	// Make sure it spends from the second level tx.
-	tx, err = net.Miner.Node.GetRawTransaction(bobSweep)
+	tx, err = net.Miner.Node.GetRawTransaction(context.Background(), bobSweep)
 	if err != nil {
 		t.Fatalf("unable to get txn: %v", err)
 	}

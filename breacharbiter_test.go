@@ -20,9 +20,9 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -1677,7 +1677,7 @@ func createTestArbiter(t *testing.T, contractBreaches chan *ContractBreachEvent,
 		return newRetributionStore(db)
 	})
 
-	aliceKeyPriv, _ := secp256k1.PrivKeyFromBytes(alicesPrivKey)
+	aliceKeyPriv := secp256k1.PrivKeyFromBytes(alicesPrivKey)
 	signer := &mockSigner{key: aliceKeyPriv}
 
 	// Assemble our test arbiter.
@@ -1714,8 +1714,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 
 	chainParams := chaincfg.RegNetParams()
 
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicesPrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(alicesPrivKey)
+	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 
 	channelCapacity, err := dcrutil.NewAmount(10)
 	if err != nil {

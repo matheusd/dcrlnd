@@ -16,9 +16,9 @@ import (
 	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -137,14 +137,14 @@ func CreateTestChannels(tweaklessCommits bool) (
 		copy(key, testWalletPrivKey)
 		key[0] ^= byte(i + 1)
 
-		aliceKey, _ := secp256k1.PrivKeyFromBytes(key)
+		aliceKey := secp256k1.PrivKeyFromBytes(key)
 		aliceKeys = append(aliceKeys, aliceKey)
 
 		key = make([]byte, len(bobsPrivKey))
 		copy(key, bobsPrivKey)
 		key[0] ^= byte(i + 1)
 
-		bobKey, _ := secp256k1.PrivKeyFromBytes(key)
+		bobKey := secp256k1.PrivKeyFromBytes(key)
 		bobKeys = append(bobKeys, bobKey)
 	}
 
@@ -442,9 +442,14 @@ func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, _ := secp256k1.PrivKeyFromBytes(bytes)
+	key := secp256k1.PrivKeyFromBytes(bytes)
 	return key, nil
 
+}
+
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	key := secp256k1.PrivKeyFromBytes(b)
+	return key, key.PubKey()
 }
 
 // blockFromHex parses a full Decred block from a hex encoded string.

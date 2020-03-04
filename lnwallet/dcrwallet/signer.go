@@ -4,17 +4,20 @@ import (
 	"context"
 	"fmt"
 
+	"decred.org/dcrwallet/errors"
+	base "decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec"
+	secpv2 "github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/errors/v2"
-	base "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 // FetchInputInfo queries for the WalletController's knowledge of the passed
@@ -76,7 +79,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 // fetchOutputAddr attempts to fetch the managed address corresponding to the
 // passed output script. This function is used to look up the proper key which
 // should be used to sign a specified input.
-func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.ManagedAddress, error) {
+func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (base.KnownAddress, error) {
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, script,
 		b.netParams)
 	if err != nil {
@@ -87,7 +90,7 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 	// Therefore, we simply select the key for the first address we know
 	// of.
 	for _, addr := range addrs {
-		addr, err := b.wallet.AddressInfo(context.TODO(), addr)
+		addr, err := b.wallet.KnownAddress(context.TODO(), addr)
 		if err == nil {
 			return addr, nil
 		}
@@ -148,7 +151,8 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 	// TODO(decred): use cached prefix hash in signDesc.sigHashes
 	sig, err := txscript.RawTxInSignature(
 		tx, signDesc.InputIndex,
-		witnessScript, signDesc.HashType, privKey,
+		witnessScript, signDesc.HashType, privKey.Serialize(),
+		dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, err
@@ -200,7 +204,11 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	}
 
 	// Fetch the private key for the given wallet address.
-	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(context.TODO(), walletAddr.Address())
+	addr, err := dcrutil.DecodeAddress(walletAddr.String(), b.netParams)
+	if err != nil {
+		return nil, err
+	}
+	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(context.TODO(), addr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid wif string for address: %v", err)
 	}
@@ -208,10 +216,11 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	if err != nil {
 		return nil, fmt.Errorf("error decoding wif string for address: %v", err)
 	}
-	privKey, isSecp := privKeyWif.PrivKey.(*secp256k1.PrivateKey)
+	privKey2, isSecp := privKeyWif.PrivKey.(*secpv2.PrivateKey)
 	if !isSecp {
 		return nil, fmt.Errorf("private key returned is not secp256k1")
 	}
+	privKey := compat.PrivKey2to3(privKey2)
 
 	// If a tweak (single or double) is specified, then we'll need to use
 	// this tweak to derive the final private key to be used for signing
@@ -224,7 +233,8 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
 	sigScript, err := txscript.SignatureScript(tx, signDesc.InputIndex,
-		outputScript, signDesc.HashType, privKey, true)
+		outputScript, signDesc.HashType, privKey.Serialize(),
+		dcrec.STEcdsaSecp256k1, true)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +258,7 @@ var _ input.Signer = (*DcrWallet)(nil)
 //
 // NOTE: This is a part of the Messageinput.Signer interface.
 func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*secp256k1.Signature, error) {
+	msg []byte) (*ecdsa.Signature, error) {
 
 	keyDesc := keychain.KeyDescriptor{
 		PubKey: pubKey,
@@ -263,10 +273,7 @@ func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 
 	// Double hash and sign the data.
 	msgDigest := chainhash.HashB(msg)
-	sign, err := privKey.Sign(msgDigest)
-	if err != nil {
-		return nil, errors.Errorf("unable sign the message: %v", err)
-	}
+	sign := ecdsa.Sign(privKey, msgDigest)
 
 	return sign, nil
 }

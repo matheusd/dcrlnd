@@ -7,9 +7,10 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -63,7 +64,8 @@ func (m *MockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]
 	}
 
 	sig, err := txscript.RawTxInSignature(tx, signDesc.InputIndex,
-		signDesc.WitnessScript, txscript.SigHashAll, privKey)
+		signDesc.WitnessScript, txscript.SigHashAll, privKey.Serialize(),
+		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +91,8 @@ func (m *MockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor
 
 		sigScript, err := txscript.SignatureScript(
 			tx, signDesc.InputIndex, signDesc.Output.PkScript,
-			txscript.SigHashAll, privKey, true,
+			txscript.SigHashAll, privKey.Serialize(),
+			dcrec.STEcdsaSecp256k1, true,
 		)
 		if err != nil {
 			return nil, err
@@ -148,7 +151,7 @@ func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, _ := secp256k1.PrivKeyFromBytes(bytes)
+	key := secp256k1.PrivKeyFromBytes(bytes)
 	return key, nil
 
 }

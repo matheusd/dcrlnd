@@ -10,10 +10,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/dcrutil/v2/txsort"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
@@ -80,6 +80,11 @@ func TestJusticeDescriptor(t *testing.T) {
 	}
 }
 
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	p := secp256k1.PrivKeyFromBytes(b)
+	return p, p.PubKey()
+}
+
 func testJusticeDescriptor(t *testing.T, blobType blob.Type) {
 	const (
 		localAmount  = dcrutil.Amount(100000)
@@ -89,9 +94,9 @@ func testJusticeDescriptor(t *testing.T, blobType blob.Type) {
 	netParams := chaincfg.RegNetParams()
 
 	// Parse the key pairs for all keys used in the test.
-	revSK, revPK := secp256k1.PrivKeyFromBytes(revPrivBytes)
-	_, toLocalPK := secp256k1.PrivKeyFromBytes(toLocalPrivBytes)
-	toRemoteSK, toRemotePK := secp256k1.PrivKeyFromBytes(toRemotePrivBytes)
+	revSK, revPK := privKeyFromBytes(revPrivBytes)
+	_, toLocalPK := privKeyFromBytes(toLocalPrivBytes)
+	toRemoteSK, toRemotePK := privKeyFromBytes(toRemotePrivBytes)
 
 	// Create the signer, and add the revocation and to-remote privkeys.
 	signer := wtmock.NewMockSigner()

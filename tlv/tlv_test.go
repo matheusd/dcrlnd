@@ -2,12 +2,11 @@ package tlv_test
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"reflect"
 	"testing"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/tlv"
 )
 
@@ -304,7 +303,8 @@ var tlvDecodingFailureTests = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x02,
 		},
-		expErr: errors.New("invalid magic in compressed pubkey string: 4"),
+		expErr: secp256k1.Error{ErrorCode: secp256k1.ErrPubKeyInvalidFormat,
+			Description: "invalid public key: unsupported format: 4"},
 		skipN2: true,
 	},
 	{
@@ -386,7 +386,7 @@ func TestTLVDecodingFailures(t *testing.T) {
 			err := n1.Decode(r)
 			if !reflect.DeepEqual(err, test.expErr) {
 				t.Fatalf("expected N1 decoding failure: %v, "+
-					"got: %v", test.expErr, err)
+					"got: %v %t", test.expErr, err, err)
 			}
 
 			if test.skipN2 {

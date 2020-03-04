@@ -4,6 +4,7 @@ package chainntnfs_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,13 +13,14 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/rpctest"
 
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/compat"
 )
 
 func testSingleConfirmationNotification(miner *rpctest.Harness,
@@ -38,7 +40,7 @@ func testSingleConfirmationNotification(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -62,7 +64,7 @@ func testSingleConfirmationNotification(miner *rpctest.Harness,
 
 	// Now generate a single block, the transaction should be included which
 	// should trigger a notification event.
-	blockHash, err := miner.Node.Generate(1)
+	blockHash, err := miner.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
@@ -76,7 +78,7 @@ func testSingleConfirmationNotification(miner *rpctest.Harness,
 
 		// Finally, we'll verify that the tx index returned is the exact same
 		// as the tx index of the transaction within the block itself.
-		msgBlock, err := miner.Node.GetBlock(blockHash[0])
+		msgBlock, err := miner.Node.GetBlock(context.TODO(), blockHash[0])
 		if err != nil {
 			t.Fatalf("unable to fetch block: %v", err)
 		}
@@ -112,7 +114,7 @@ func testMultiConfirmationNotification(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -134,7 +136,7 @@ func testMultiConfirmationNotification(miner *rpctest.Harness,
 
 	// Now generate a six blocks. The transaction should be included in the
 	// first block, which will be built upon by the other 5 blocks.
-	if _, err := miner.Node.Generate(6); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 6); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
@@ -158,7 +160,7 @@ func testBatchConfirmationNotification(miner *rpctest.Harness,
 	confSpread := [6]uint32{1, 2, 3, 6, 20, 22}
 	confIntents := make([]*chainntnfs.ConfirmationEvent, len(confSpread))
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -210,7 +212,7 @@ func testBatchConfirmationNotification(miner *rpctest.Harness,
 
 		// Generate the number of blocks necessary to trigger this
 		// current confirmation notification.
-		if _, err := miner.Node.Generate(blocksToGen); err != nil {
+		if _, err := miner.Node.Generate(context.TODO(), blocksToGen); err != nil {
 			t.Fatalf("unable to generate single block: %v", err)
 		}
 
@@ -270,7 +272,7 @@ func testSpendNotification(miner *rpctest.Harness,
 	// To do so, we first create a new output to our test target address.
 	outpoint, output, privKey := chainntnfs.CreateSpendableOutput(t, miner)
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -303,7 +305,7 @@ func testSpendNotification(miner *rpctest.Harness,
 	spendingTx := chainntnfs.CreateSpendTx(t, outpoint, output, privKey)
 
 	// Broadcast our spending transaction.
-	spenderHash, err := miner.Node.SendRawTransaction(spendingTx, true)
+	spenderHash, err := miner.Node.SendRawTransaction(context.TODO(), spendingTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast tx: %v", err)
 	}
@@ -364,11 +366,11 @@ func testSpendNotification(miner *rpctest.Harness,
 
 	// Now we mine a single block, which should include our spend. The
 	// notification should also be sent off.
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
-	_, currentHeight, err = miner.Node.GetBestBlock()
+	_, currentHeight, err = miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -424,7 +426,7 @@ func testBlockEpochNotification(miner *rpctest.Harness,
 
 	// Now generate 10 blocks, the clients above should each receive 10
 	// notifications, thereby unblocking the goroutine above.
-	if _, err := miner.Node.Generate(numBlocks); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -454,7 +456,7 @@ func testMultiClientConfirmationNotification(miner *rpctest.Harness,
 		numConfs        = 1
 	)
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -491,7 +493,7 @@ func testMultiClientConfirmationNotification(miner *rpctest.Harness,
 
 	// Finally, generate a single block which should trigger the unblocking
 	// of all numConfsClients blocked on the channel read above.
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -524,7 +526,7 @@ func testTxConfirmedBeforeNtfnRegistration(miner *rpctest.Harness,
 	// older blocks when the confirmation event is registered below to ensure
 	// that the TXID hasn't already been included in the chain, otherwise the
 	// notification will never be sent.
-	_, err = miner.Node.Generate(1)
+	_, err = miner.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -545,13 +547,13 @@ func testTxConfirmedBeforeNtfnRegistration(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
 
 	// Now generate another block containing txs 1 & 2.
-	blockHash, err := miner.Node.Generate(1)
+	blockHash, err := miner.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -578,7 +580,7 @@ func testTxConfirmedBeforeNtfnRegistration(miner *rpctest.Harness,
 	case confInfo := <-ntfn1.Confirmed:
 		// Finally, we'll verify that the tx index returned is the exact same
 		// as the tx index of the transaction within the block itself.
-		msgBlock, err := miner.Node.GetBlock(blockHash[0])
+		msgBlock, err := miner.Node.GetBlock(context.TODO(), blockHash[0])
 		if err != nil {
 			t.Fatalf("unable to fetch block: %v", err)
 		}
@@ -621,7 +623,7 @@ func testTxConfirmedBeforeNtfnRegistration(miner *rpctest.Harness,
 	}
 
 	// Fully confirm tx3.
-	_, err = miner.Node.Generate(2)
+	_, err = miner.Node.Generate(context.TODO(), 2)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -709,7 +711,7 @@ func testLazyNtfnConsumer(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -718,7 +720,7 @@ func testLazyNtfnConsumer(miner *rpctest.Harness,
 
 	// Add a block right before registering, this makes race conditions
 	// between the historical dispatcher and the normal dispatcher more obvious
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -737,7 +739,7 @@ func testLazyNtfnConsumer(miner *rpctest.Harness,
 	}
 
 	// Generate another 2 blocks, this should dispatch the confirm notification
-	if _, err := miner.Node.Generate(2); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 2); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -752,7 +754,7 @@ func testLazyNtfnConsumer(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, currentHeight, err = miner.Node.GetBestBlock()
+	_, currentHeight, err = miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -772,7 +774,7 @@ func testLazyNtfnConsumer(miner *rpctest.Harness,
 		t.Fatalf("unable to register ntfn: %v", err)
 	}
 
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -805,14 +807,14 @@ func testSpendBeforeNtfnRegistration(miner *rpctest.Harness,
 	// To do so, we first create a new output to our test target address.
 	outpoint, output, privKey := chainntnfs.CreateSpendableOutput(t, miner)
 
-	_, heightHint, err := miner.Node.GetBestBlock()
+	_, heightHint, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
 
 	// We'll then spend this output and broadcast the spend transaction.
 	spendingTx := chainntnfs.CreateSpendTx(t, outpoint, output, privKey)
-	spenderHash, err := miner.Node.SendRawTransaction(spendingTx, true)
+	spenderHash, err := miner.Node.SendRawTransaction(context.TODO(), spendingTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast tx: %v", err)
 	}
@@ -828,10 +830,10 @@ func testSpendBeforeNtfnRegistration(miner *rpctest.Harness,
 	}
 
 	// Now we mine an additional block, which should include our spend.
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
-	_, spendHeight, err := miner.Node.GetBestBlock()
+	_, spendHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -904,7 +906,7 @@ func testSpendBeforeNtfnRegistration(miner *rpctest.Harness,
 
 	// Bury the spend even deeper, and do the same check.
 	const numBlocks = 10
-	if _, err := miner.Node.Generate(numBlocks); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), numBlocks); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
@@ -934,7 +936,7 @@ func testCancelSpendNtfn(node *rpctest.Harness,
 	// ourselves.
 	outpoint, output, privKey := chainntnfs.CreateSpendableOutput(t, node)
 
-	_, currentHeight, err := node.Node.GetBestBlock()
+	_, currentHeight, err := node.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -970,7 +972,7 @@ func testCancelSpendNtfn(node *rpctest.Harness,
 	spendClients[1].Cancel()
 
 	// Broadcast our spending transaction.
-	spenderHash, err := node.Node.SendRawTransaction(spendingTx, true)
+	spenderHash, err := node.Node.SendRawTransaction(context.TODO(), spendingTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast tx: %v", err)
 	}
@@ -981,7 +983,7 @@ func testCancelSpendNtfn(node *rpctest.Harness,
 
 	// Now we mine a single block, which should include our spend. The
 	// notification should also be sent off.
-	if _, err := node.Node.Generate(1); err != nil {
+	if _, err := node.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
@@ -1045,7 +1047,7 @@ func testCancelEpochNtfn(node *rpctest.Harness,
 
 	// Now mine a single block, this should trigger the logic to dispatch
 	// epoch notifications.
-	if _, err := node.Node.Generate(1); err != nil {
+	if _, err := node.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -1076,7 +1078,7 @@ func testReorgConf(miner *rpctest.Harness,
 	notifier chainntnfs.TestChainNotifier, scriptDispatch bool, t *testing.T) {
 
 	// Set up a new miner that we can use to cause a reorg.
-	miner2, err := rpctest.New(chainntnfs.NetParams, nil, []string{"--txindex"})
+	miner2, err := rpctest.New(t, chainntnfs.NetParams, nil, []string{"--txindex"})
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
@@ -1096,12 +1098,12 @@ func testReorgConf(miner *rpctest.Harness,
 	}
 
 	// The two should be on the same blockheight.
-	_, nodeHeight1, err := miner.Node.GetBestBlock()
+	_, nodeHeight1, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
 
-	_, nodeHeight2, err := miner2.Node.GetBestBlock()
+	_, nodeHeight2, err := miner2.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -1113,7 +1115,7 @@ func testReorgConf(miner *rpctest.Harness,
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = rpctest.RemoveNode(miner, miner2)
+	err = rpctest.RemoveNode(context.TODO(), miner, miner2)
 	if err != nil {
 		t.Fatalf("unable to remove node: %v", err)
 	}
@@ -1126,7 +1128,7 @@ func testReorgConf(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, currentHeight, err := miner.Node.GetBestBlock()
+	_, currentHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current height: %v", err)
 	}
@@ -1149,7 +1151,7 @@ func testReorgConf(miner *rpctest.Harness,
 	}
 
 	// Now generate a single block, the transaction should be included.
-	_, err = miner.Node.Generate(1)
+	_, err = miner.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
@@ -1164,7 +1166,7 @@ func testReorgConf(miner *rpctest.Harness,
 
 	// Reorganize transaction out of the chain by generating a longer fork
 	// from the other miner. The transaction is not included in this fork.
-	miner2.Node.Generate(2)
+	miner2.Node.Generate(context.TODO(), 2)
 
 	// Reconnect nodes to reach consensus on the longest chain. miner2's chain
 	// should win and become active on miner1.
@@ -1176,12 +1178,12 @@ func testReorgConf(miner *rpctest.Harness,
 		t.Fatalf("unable to join node on blocks: %v", err)
 	}
 
-	_, nodeHeight1, err = miner.Node.GetBestBlock()
+	_, nodeHeight1, err = miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
 
-	_, nodeHeight2, err = miner2.Node.GetBestBlock()
+	_, nodeHeight2, err = miner2.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -1202,12 +1204,12 @@ func testReorgConf(miner *rpctest.Harness,
 
 	// Now confirm the transaction on the longest chain and verify that we
 	// receive the notification.
-	tx, err := miner.Node.GetRawTransaction(txid)
+	tx, err := miner.Node.GetRawTransaction(context.TODO(), txid)
 	if err != nil {
 		t.Fatalf("unable to get raw tx: %v", err)
 	}
 
-	txid, err = miner2.Node.SendRawTransaction(tx.MsgTx(), false)
+	txid, err = miner2.Node.SendRawTransaction(context.TODO(), tx.MsgTx(), false)
 	if err != nil {
 		t.Fatalf("unable to get send tx: %v", err)
 	}
@@ -1215,7 +1217,7 @@ func testReorgConf(miner *rpctest.Harness,
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
 
-	_, err = miner.Node.Generate(3)
+	_, err = miner.Node.Generate(context.TODO(), 3)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
@@ -1236,7 +1238,7 @@ func testReorgSpend(miner *rpctest.Harness,
 	// We'll start by creating an output and registering a spend
 	// notification for it.
 	outpoint, output, privKey := chainntnfs.CreateSpendableOutput(t, miner)
-	_, heightHint, err := miner.Node.GetBestBlock()
+	_, heightHint, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to retrieve current height: %v", err)
 	}
@@ -1256,7 +1258,7 @@ func testReorgSpend(miner *rpctest.Harness,
 	}
 
 	// Set up a new miner that we can use to cause a reorg.
-	miner2, err := rpctest.New(chainntnfs.NetParams, nil, []string{"--txindex"})
+	miner2, err := rpctest.New(t, chainntnfs.NetParams, nil, []string{"--txindex"})
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
@@ -1275,11 +1277,11 @@ func testReorgSpend(miner *rpctest.Harness,
 	if err := rpctest.JoinNodes(nodeSlice, rpctest.Blocks); err != nil {
 		t.Fatalf("unable to sync miners: %v", err)
 	}
-	_, minerHeight1, err := miner.Node.GetBestBlock()
+	_, minerHeight1, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get miner1's current height: %v", err)
 	}
-	_, minerHeight2, err := miner2.Node.GetBestBlock()
+	_, minerHeight2, err := miner2.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get miner2's current height: %v", err)
 	}
@@ -1290,7 +1292,7 @@ func testReorgSpend(miner *rpctest.Harness,
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = rpctest.RemoveNode(miner, miner2)
+	err = rpctest.RemoveNode(context.TODO(), miner, miner2)
 	if err != nil {
 		t.Fatalf("unable to disconnect miners: %v", err)
 	}
@@ -1298,7 +1300,7 @@ func testReorgSpend(miner *rpctest.Harness,
 	// Craft the spending transaction for the outpoint created above and
 	// confirm it under the chain of the original miner.
 	spendTx := chainntnfs.CreateSpendTx(t, outpoint, output, privKey)
-	spendTxHash, err := miner.Node.SendRawTransaction(spendTx, true)
+	spendTxHash, err := miner.Node.SendRawTransaction(context.TODO(), spendTx, true)
 	if err != nil {
 		t.Fatalf("unable to broadcast spend tx: %v", err)
 	}
@@ -1306,10 +1308,10 @@ func testReorgSpend(miner *rpctest.Harness,
 		t.Fatalf("spend tx not relayed to miner: %v", err)
 	}
 	const numBlocks = 1
-	if _, err := miner.Node.Generate(numBlocks); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
-	_, spendHeight, err := miner.Node.GetBestBlock()
+	_, spendHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get spend height: %v", err)
 	}
@@ -1327,7 +1329,7 @@ func testReorgSpend(miner *rpctest.Harness,
 
 	// Now, with the other miner, we'll generate one more block than the
 	// other miner and connect them to cause a reorg.
-	if _, err := miner2.Node.Generate(numBlocks + 1); err != nil {
+	if _, err := miner2.Node.Generate(context.TODO(), numBlocks+1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 	if err := rpctest.ConnectNode(miner, miner2); err != nil {
@@ -1337,11 +1339,11 @@ func testReorgSpend(miner *rpctest.Harness,
 	if err := rpctest.JoinNodes(nodeSlice, rpctest.Blocks); err != nil {
 		t.Fatalf("unable to sync miners: %v", err)
 	}
-	_, minerHeight1, err = miner.Node.GetBestBlock()
+	_, minerHeight1, err = miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get miner1's current height: %v", err)
 	}
-	_, minerHeight2, err = miner2.Node.GetBestBlock()
+	_, minerHeight2, err = miner2.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get miner2's current height: %v", err)
 	}
@@ -1363,16 +1365,16 @@ func testReorgSpend(miner *rpctest.Harness,
 	// Now that both miners are on the same chain, we'll confirm the
 	// spending transaction of the outpoint and receive a notification for
 	// it.
-	if _, err = miner2.Node.SendRawTransaction(spendTx, true); err != nil {
+	if _, err = miner2.Node.SendRawTransaction(context.TODO(), spendTx, true); err != nil {
 		t.Fatalf("unable to broadcast spend tx: %v", err)
 	}
 	if err := chainntnfs.WaitForMempoolTx(miner, spendTxHash); err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	if _, err := miner.Node.Generate(numBlocks); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), numBlocks); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
-	_, spendHeight, err = miner.Node.GetBestBlock()
+	_, spendHeight, err = miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to retrieve current height: %v", err)
 	}
@@ -1397,7 +1399,7 @@ func testCatchUpClientOnMissedBlocks(miner *rpctest.Harness,
 	const numClients = 5
 	var wg sync.WaitGroup
 
-	outdatedHash, outdatedHeight, err := miner.Node.GetBestBlock()
+	outdatedHash, outdatedHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to retrieve current height: %v", err)
 	}
@@ -1405,7 +1407,7 @@ func testCatchUpClientOnMissedBlocks(miner *rpctest.Harness,
 	// This function is used by UnsafeStart to ensure all notifications
 	// are fully drained before clients register for notifications.
 	generateBlocks := func() error {
-		_, err = miner.Node.Generate(numBlocks)
+		_, err = miner.Node.Generate(context.TODO(), numBlocks)
 		return err
 	}
 
@@ -1489,7 +1491,7 @@ func testCatchUpOnMissedBlocks(miner *rpctest.Harness,
 	const numClients = 5
 	var wg sync.WaitGroup
 
-	_, bestHeight, err := miner.Node.GetBestBlock()
+	_, bestHeight, err := miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -1497,7 +1499,7 @@ func testCatchUpOnMissedBlocks(miner *rpctest.Harness,
 	// This function is used by UnsafeStart to ensure all notifications
 	// are fully drained before clients register for notifications.
 	generateBlocks := func() error {
-		_, err = miner.Node.Generate(numBlocks)
+		_, err = miner.Node.Generate(context.TODO(), numBlocks)
 		return err
 	}
 
@@ -1532,7 +1534,7 @@ func testCatchUpOnMissedBlocks(miner *rpctest.Harness,
 
 	// Generate a single block to trigger the backlog of historical
 	// notifications for the previously mined blocks.
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -1594,7 +1596,7 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 	var wg sync.WaitGroup
 
 	// Set up a new miner that we can use to cause a reorg.
-	miner2, err := rpctest.New(chainntnfs.NetParams, nil, []string{"--txindex"})
+	miner2, err := rpctest.New(t, chainntnfs.NetParams, nil, []string{"--txindex"})
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
@@ -1614,12 +1616,12 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 	}
 
 	// The two should be on the same blockheight.
-	_, nodeHeight1, err := miner1.Node.GetBestBlock()
+	_, nodeHeight1, err := miner1.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
 
-	_, nodeHeight2, err := miner2.Node.GetBestBlock()
+	_, nodeHeight2, err := miner2.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to get current blockheight %v", err)
 	}
@@ -1631,20 +1633,20 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 
 	// We disconnect the two nodes, such that we can start mining on them
 	// individually without the other one learning about the new blocks.
-	err = rpctest.RemoveNode(miner1, miner2)
+	err = rpctest.RemoveNode(context.TODO(), miner1, miner2)
 	if err != nil {
 		t.Fatalf("unable to remove node: %v", err)
 	}
 
 	// Now mine on each chain separately
-	blocks, err := miner1.Node.Generate(numBlocks)
+	blocks, err := miner1.Node.Generate(context.TODO(), numBlocks)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
 	// We generate an extra block on miner 2's chain to ensure it is the
 	// longer chain.
-	_, err = miner2.Node.Generate(numBlocks + 1)
+	_, err = miner2.Node.Generate(context.TODO(), numBlocks+1)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
@@ -1661,12 +1663,12 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 	// The two should be on the same block hash.
 	timeout := time.After(10 * time.Second)
 	for {
-		nodeHash1, _, err := miner1.Node.GetBestBlock()
+		nodeHash1, _, err := miner1.Node.GetBestBlock(context.TODO())
 		if err != nil {
 			t.Fatalf("unable to get current block hash: %v", err)
 		}
 
-		nodeHash2, _, err := miner2.Node.GetBestBlock()
+		nodeHash2, _, err := miner2.Node.GetBestBlock(context.TODO())
 		if err != nil {
 			t.Fatalf("unable to get current block hash: %v", err)
 		}
@@ -1717,7 +1719,7 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 
 	// Generate a single block, which should trigger the notifier to rewind
 	// to the common ancestor and dispatch notifications from there.
-	_, err = miner2.Node.Generate(1)
+	_, err = miner2.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
@@ -1921,7 +1923,7 @@ func TestInterfaces(t *testing.T) {
 		switch notifierType {
 		case "dcrd":
 			notifier, err = dcrdnotify.New(
-				&rpcConfig, chainntnfs.NetParams, hintCache,
+				&rpcConfig, compat.Params3to2(chainntnfs.NetParams), hintCache,
 				hintCache,
 			)
 			if err != nil {

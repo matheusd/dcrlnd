@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
@@ -127,7 +127,7 @@ func NewSingle(channel *channeldb.OpenChannel,
 	// the backups plaintext don't carry any private information. When we
 	// go to recover, we'll present this in order to derive the private
 	// key.
-	_, shaChainPoint := secp256k1.PrivKeyFromBytes(b.Bytes())
+	shaChainPoint := secp256k1.PrivKeyFromBytes(b.Bytes()).PubKey()
 
 	// If a channel is unconfirmed, the block height of the ShortChannelID
 	// is zero. This will lead to problems when trying to restore that
@@ -309,8 +309,6 @@ func readRemoteKeyDesc(r io.Reader) (keychain.KeyDescriptor, error) {
 	if err != nil {
 		return keychain.KeyDescriptor{}, err
 	}
-
-	keyDesc.PubKey.Curve = nil
 
 	return keyDesc, nil
 }

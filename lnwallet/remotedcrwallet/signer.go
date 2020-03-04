@@ -8,15 +8,17 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 )
 
 // FetchInputInfo queries for the WalletController's knowledge of the passed
@@ -129,7 +131,8 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 	// TODO(roasbeef): generate sighash midstate if not present?
 	sig, err := txscript.RawTxInSignature(
 		tx, signDesc.InputIndex,
-		witnessScript, signDesc.HashType, privKey,
+		witnessScript, signDesc.HashType, privKey.Serialize(),
+		dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, err
@@ -214,10 +217,11 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	if err != nil {
 		return nil, err
 	}
-	privKey, err := extPrivKey.ECPrivKey()
+	serPrivKey, err := extPrivKey.SerializedPrivKey()
 	if err != nil {
 		return nil, err
 	}
+	privKey := secp256k1.PrivKeyFromBytes(serPrivKey)
 
 	// If a tweak (single or double) is specified, then we'll need to use
 	// this tweak to derive the final private key to be used for signing
@@ -230,7 +234,8 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	// Generate a valid witness stack for the input.
 	// TODO(roasbeef): adhere to passed HashType
 	sigScript, err := txscript.SignatureScript(tx, signDesc.InputIndex,
-		script, signDesc.HashType, privKey, true)
+		script, signDesc.HashType, privKey.Serialize(),
+		dcrec.STEcdsaSecp256k1, true)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +259,7 @@ var _ input.Signer = (*DcrWallet)(nil)
 //
 // NOTE: This is a part of the Messageinput.Signer interface.
 func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*secp256k1.Signature, error) {
+	msg []byte) (*ecdsa.Signature, error) {
 
 	keyDesc := keychain.KeyDescriptor{
 		PubKey: pubKey,
@@ -269,10 +274,7 @@ func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
 
 	// Double hash and sign the data.
 	msgDigest := chainhash.HashB(msg)
-	sign, err := privKey.Sign(msgDigest)
-	if err != nil {
-		return nil, fmt.Errorf("unable sign the message: %v", err)
-	}
+	sign := ecdsa.Sign(privKey, msgDigest)
 
 	return sign, nil
 }

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
@@ -35,7 +36,7 @@ type VerifyJob struct {
 
 	// Sig is the raw signature generated using the above public key.  This
 	// is the signature to be verified.
-	Sig *secp256k1.Signature
+	Sig *ecdsa.Signature
 
 	// SigHash is a function closure generates the sighashes that the
 	// passed signature is known to have signed.

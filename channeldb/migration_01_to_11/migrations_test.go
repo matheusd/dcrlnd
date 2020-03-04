@@ -438,8 +438,6 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 
 			dbChan := dbChannels[0]
 			if !reflect.DeepEqual(dbChan, test.closeSummary) {
-				dbChan.RemotePub.Curve = nil
-				test.closeSummary.RemotePub.Curve = nil
 				t.Fatalf("not equal: %v vs %v",
 					spew.Sdump(dbChan),
 					spew.Sdump(test.closeSummary))

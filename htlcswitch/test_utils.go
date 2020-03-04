@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"net"
 	"os"
 	"runtime"
@@ -17,7 +17,8 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
@@ -38,21 +39,23 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+func modNScalar(b []byte) *secp256k1.ModNScalar {
+	var m secp256k1.ModNScalar
+	m.SetByteSlice(b)
+	return &m
+}
+
 var (
 	alicePrivKey = []byte("alice priv key")
 	bobPrivKey   = []byte("bob priv key")
 	carolPrivKey = []byte("carol priv key")
 
-	testSig = &secp256k1.Signature{
-		R: new(big.Int),
-		S: new(big.Int),
-	}
+	rBytes, _ = hex.DecodeString("6372440660162918006277497454296753625158993" +
+		"5445068131219452686511677818569431")
+	sBytes, _ = hex.DecodeString("1880105606924982582529128710493133386286603" +
+		"3135609736119018462340006816851118")
+	testSig    = ecdsa.NewSignature(modNScalar(rBytes), modNScalar(sBytes))
 	wireSig, _ = lnwire.NewSigFromSignature(testSig)
-
-	_, _ = testSig.R.SetString("6372440660162918006277497454296753625158993"+
-		"5445068131219452686511677818569431", 10)
-	_, _ = testSig.S.SetString("1880105606924982582529128710493133386286603"+
-		"3135609736119018462340006816851118", 10)
 
 	// testTx is used as the default funding txn for single-funder channels.
 	testTx = &wire.MsgTx{
@@ -162,8 +165,10 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 
 	netParams := chaincfg.RegNetParams()
 
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(alicePrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobPrivKey)
+	aliceKeyPriv := secp256k1.PrivKeyFromBytes(alicePrivKey)
+	aliceKeyPub := aliceKeyPriv.PubKey()
+	bobKeyPriv := secp256k1.PrivKeyFromBytes(bobPrivKey)
+	bobKeyPub := bobKeyPriv.PubKey()
 
 	channelCapacity := aliceAmount + bobAmount
 	csvTimeoutAlice := uint32(5)

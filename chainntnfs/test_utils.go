@@ -3,18 +3,20 @@
 package chainntnfs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -70,7 +72,7 @@ func WaitForMempoolTx(miner *rpctest.Harness, txid *chainhash.Hash) error {
 	trickle := time.After(2 * trickleInterval)
 	for {
 		// Check for the harness' knowledge of the txid.
-		tx, err := miner.Node.GetRawTransaction(txid)
+		tx, err := miner.Node.GetRawTransaction(context.TODO(), txid)
 		if err != nil {
 			jsonErr, ok := err.(*dcrjson.RPCError)
 			if ok && jsonErr.Code == dcrjson.ErrRPCNoTxInfo {
@@ -127,7 +129,7 @@ func CreateSpendableOutput(t *testing.T,
 	if err := WaitForMempoolTx(miner, txid); err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	if _, err := miner.Node.Generate(1); err != nil {
+	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
@@ -147,7 +149,7 @@ func CreateSpendTx(t *testing.T, prevOutPoint *wire.OutPoint,
 
 	sigScript, err := txscript.SignatureScript(
 		spendingTx, 0, prevOutput.PkScript, txscript.SigHashAll,
-		privKey, true,
+		privKey.Serialize(), dcrec.STEcdsaSecp256k1, true,
 	)
 	if err != nil {
 		t.Fatalf("unable to sign tx: %v", err)
@@ -171,7 +173,7 @@ func NewMiner(t *testing.T, extraArgs []string, createChain bool,
 	//extraArgs = append(extraArgs, trickle)
 	_ = trickle
 
-	node, err := rpctest.New(NetParams, nil, extraArgs)
+	node, err := rpctest.New(t, NetParams, nil, extraArgs)
 	if err != nil {
 		t.Fatalf("unable to create backend node: %v", err)
 	}

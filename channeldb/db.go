@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"

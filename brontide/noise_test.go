@@ -10,7 +10,7 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -37,7 +37,7 @@ func makeListener() (*Listener, *lnwire.NetAddress, error) {
 	}
 
 	netAddr := &lnwire.NetAddress{
-		IdentityKey: (*secp256k1.PublicKey)(&localPriv.PublicKey),
+		IdentityKey: localPriv.PubKey(),
 		Address:     listener.Addr().(*net.TCPAddr),
 	}
 
@@ -314,7 +314,7 @@ func TestBolt0008TestVectors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to decode hex: %v", err)
 	}
-	initiatorPriv, _ := secp256k1.PrivKeyFromBytes(initiatorKeyBytes)
+	initiatorPriv := secp256k1.PrivKeyFromBytes(initiatorKeyBytes)
 
 	// We'll then do the same for the responder.
 	responderKeyBytes, err := hex.DecodeString("212121212121212121212121" +
@@ -322,7 +322,8 @@ func TestBolt0008TestVectors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to decode hex: %v", err)
 	}
-	responderPriv, responderPub := secp256k1.PrivKeyFromBytes(responderKeyBytes)
+	responderPriv := secp256k1.PrivKeyFromBytes(responderKeyBytes)
+	responderPub := responderPriv.PubKey()
 
 	// With the initiator's key data parsed, we'll now define a custom
 	// EphemeralGenerator function for the state machine to ensure that the
@@ -336,7 +337,7 @@ func TestBolt0008TestVectors(t *testing.T) {
 			return nil, err
 		}
 
-		priv, _ := secp256k1.PrivKeyFromBytes(eBytes)
+		priv := secp256k1.PrivKeyFromBytes(eBytes)
 		return priv, nil
 	})
 	responderEphemeral := EphemeralGenerator(func() (*secp256k1.PrivateKey, error) {
@@ -347,7 +348,7 @@ func TestBolt0008TestVectors(t *testing.T) {
 			return nil, err
 		}
 
-		priv, _ := secp256k1.PrivKeyFromBytes(eBytes)
+		priv := secp256k1.PrivKeyFromBytes(eBytes)
 		return priv, nil
 	})
 

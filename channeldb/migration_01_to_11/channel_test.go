@@ -9,12 +9,17 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
 )
+
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	k := secp256k1.PrivKeyFromBytes(b)
+	return k, k.PubKey()
+}
 
 var (
 	key = [chainhash.HashSize]byte{
@@ -60,7 +65,7 @@ var (
 		},
 		LockTime: 5,
 	}
-	privKey, pubKey = secp256k1.PrivKeyFromBytes(key[:])
+	privKey, pubKey = privKeyFromBytes(key[:])
 )
 
 // makeTestDB creates a new instance of the ChannelDB for testing purposes. A
@@ -116,19 +121,19 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			CsvDelay:         uint16(rand.Int31()),
 		},
 		MultiSigKey: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 		},
 		RevocationBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 		},
 		PaymentBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 		},
 		DelayBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 		},
 		HtlcBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 		},
 	}
 	remoteCfg := ChannelConfig{
@@ -141,35 +146,35 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			CsvDelay:         uint16(rand.Int31()),
 		},
 		MultiSigKey: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyMultiSig,
 				Index:  9,
 			},
 		},
 		RevocationBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyRevocationBase,
 				Index:  8,
 			},
 		},
 		PaymentBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyPaymentBase,
 				Index:  7,
 			},
 		},
 		DelayBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyDelayBase,
 				Index:  6,
 			},
 		},
 		HtlcBasePoint: keychain.KeyDescriptor{
-			PubKey: (*secp256k1.PublicKey)(&privKey.PublicKey),
+			PubKey: privKey.PubKey(),
 			KeyLocator: keychain.KeyLocator{
 				Family: keychain.KeyFamilyHtlcBase,
 				Index:  5,
@@ -211,8 +216,8 @@ func createTestChannelState(cdb *DB) (*OpenChannel, error) {
 			CommitSig:     bytes.Repeat([]byte{1}, 71),
 		},
 		NumConfsRequired:        4,
-		RemoteCurrentRevocation: (*secp256k1.PublicKey)(&privKey.PublicKey),
-		RemoteNextRevocation:    (*secp256k1.PublicKey)(&privKey.PublicKey),
+		RemoteCurrentRevocation: privKey.PubKey(),
+		RemoteNextRevocation:    privKey.PubKey(),
 		RevocationProducer:      producer,
 		RevocationStore:         store,
 		Db:                      cdb,

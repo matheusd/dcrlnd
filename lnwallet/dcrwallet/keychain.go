@@ -2,12 +2,13 @@ package dcrwallet
 
 import (
 	"context"
+
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 
-	"github.com/decred/dcrd/hdkeychain/v2"
-	"github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
+	"decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/udb"
+	"github.com/decred/dcrd/hdkeychain/v3"
 )
 
 // walletKeyRing is an implementation of both the KeyRing and SecretKeyRing
@@ -77,11 +78,7 @@ func newWalletKeyRing(w *wallet.Wallet, db *channeldb.DB) (*walletKeyRing, error
 			return nil, err
 		}
 
-		branchPub, err := branchKey.Neuter()
-		if err != nil {
-			return nil, err
-		}
-
+		branchPub := branchKey.Neuter()
 		masterPubs[keychain.KeyFamily(i)] = branchPub
 	}
 

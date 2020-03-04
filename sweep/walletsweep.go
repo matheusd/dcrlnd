@@ -6,7 +6,8 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	txscript2 "github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -262,7 +263,7 @@ func CraftSweepAllTx(feeRate chainfee.AtomPerKByte, blockHeight uint32,
 
 	// Next, we'll convert the delivery addr to a pkScript that we can use
 	// to create the sweep transaction.
-	deliveryPkScript, err := txscript.PayToAddrScript(deliveryAddr)
+	deliveryPkScript, err := txscript2.PayToAddrScript(deliveryAddr)
 	if err != nil {
 		unlockOutputs()
 

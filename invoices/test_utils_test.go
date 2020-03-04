@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/lntypes"
@@ -59,7 +60,7 @@ var (
 	testPrivKeyBytes, _ = hex.DecodeString(
 		"e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734")
 
-	testPrivKey, _ = secp256k1.PrivKeyFromBytes(
+	testPrivKey = secp256k1.PrivKeyFromBytes(
 		testPrivKeyBytes)
 
 	testInvoiceDescription = "coffee"
@@ -70,10 +71,7 @@ var (
 
 	testMessageSigner = zpay32.MessageSigner{
 		SignCompact: func(hash []byte) ([]byte, error) {
-			sig, err := secp256k1.SignCompact(testPrivKey, hash, true)
-			if err != nil {
-				return nil, fmt.Errorf("can't sign the message: %v", err)
-			}
+			sig := ecdsa.SignCompact(testPrivKey, hash, true)
 			return sig, nil
 		},
 	}

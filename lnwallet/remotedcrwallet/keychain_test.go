@@ -11,14 +11,14 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 
+	base "decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txrules"
+
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/hdkeychain/v2"
+	"github.com/decred/dcrd/hdkeychain/v3"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	base "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 var (
@@ -50,22 +50,19 @@ func (mas *mockOnchainAddrSourcer) NewAddress(t lnwallet.AddressType, change boo
 	// Convert to a regular p2pkh address, since the addresses returned are
 	// used as paramaters to PayToScriptAddress() which doesn't understand
 	// the native wallet types.
-	return dcrutil.DecodeAddress(addr.Address(), chaincfg.RegNetParams())
+	return dcrutil.DecodeAddress(addr.Address(), chaincfg.SimNetParams())
 
 }
 func (mas *mockOnchainAddrSourcer) Bip44AddressInfo(addr dcrutil.Address) (uint32, uint32, uint32, error) {
-	info, err := mas.w.AddressInfo(context.Background(), addr)
+	info, err := mas.w.KnownAddress(context.Background(), addr)
 	if err != nil {
 		return 0, 0, 0, nil
 	}
 
 	switch ma := info.(type) {
-	case udb.ManagedPubKeyAddress:
-		branch := uint32(0)
-		if ma.Internal() {
-			branch = 1
-		}
-		return ma.Account(), branch, ma.Index(), nil
+	case base.BIP0044Address:
+		acct, branch, child := ma.Path()
+		return acct, branch, child, nil
 	}
 
 	return 0, 0, 0, fmt.Errorf("unkown address type")
@@ -76,9 +73,9 @@ func createTestWallet() (func(), *hdkeychain.ExtendedKey, *channeldb.DB, onchain
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	loader := walletloader.NewLoader(chaincfg.RegNetParams(), tempDir,
+	loader := walletloader.NewLoader(chaincfg.SimNetParams(), tempDir,
 		&walletloader.StakeOptions{}, 20, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), 5,
+		txrules.DefaultRelayFeePerKb, 5,
 		false)
 
 	pass := []byte("test")
@@ -107,7 +104,7 @@ func createTestWallet() (func(), *hdkeychain.ExtendedKey, *channeldb.DB, onchain
 	}
 
 	// The root master xpriv is the default account's one.
-	acctXpriv, err := baseWallet.MasterPrivKey(context.Background(), 0)
+	acctXpriv, err := baseWallet.AccountXpriv(context.Background(), 0)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

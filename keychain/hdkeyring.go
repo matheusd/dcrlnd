@@ -1,12 +1,11 @@
 package keychain
 
 import (
-	"crypto/sha256"
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-	"github.com/decred/dcrd/hdkeychain/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/hdkeychain/v3"
 )
 
 var errPubOnlyKeyRing = errors.New("keyring configured as pubkey only")
@@ -80,7 +79,7 @@ func (kr *HDKeyRing) DeriveNextKey(keyFam KeyFamily) (KeyDescriptor, error) {
 			return KeyDescriptor{}, err
 		}
 
-		pubkey, err := indexKey.ECPubKey()
+		pubkey, err := secp256k1.ParsePubKey(indexKey.SerializedPubKey())
 		if err != nil {
 			return KeyDescriptor{}, err
 		}
@@ -109,7 +108,7 @@ func (kr HDKeyRing) DeriveKey(keyLoc KeyLocator) (KeyDescriptor, error) {
 	if err != nil {
 		return KeyDescriptor{}, err
 	}
-	pubKey, err := key.ECPubKey()
+	pubKey, err := secp256k1.ParsePubKey(key.SerializedPubKey())
 	if err != nil {
 		return KeyDescriptor{}, err
 	}
@@ -141,11 +140,15 @@ func (kr *HDKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey
 	// then we know that the caller instead knows the derivation
 	// path for a key.
 	if keyDesc.PubKey == nil || keyDesc.Index > 0 {
-		privKey, err := masterPriv.Child(keyDesc.Index)
+		exPrivKey, err := masterPriv.Child(keyDesc.Index)
 		if err != nil {
 			return nil, err
 		}
-		return privKey.ECPrivKey()
+		serPrivKey, err := exPrivKey.SerializedPrivKey()
+		if err != nil {
+			return nil, err
+		}
+		return secp256k1.PrivKeyFromBytes(serPrivKey), nil
 	}
 
 	// If the public key isn't nil, then this indicates that we
@@ -163,14 +166,18 @@ func (kr *HDKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey
 			return nil, err
 		}
 
-		pubKey, err := privKey.ECPubKey()
+		pubKey, err := secp256k1.ParsePubKey(privKey.SerializedPubKey())
 		if err != nil {
 			// simply skip invalid keys here
 			continue
 		}
 
 		if keyDesc.PubKey.IsEqual(pubKey) {
-			return privKey.ECPrivKey()
+			serPriv, err := privKey.SerializedPrivKey()
+			if err != nil {
+				return nil, err
+			}
+			return secp256k1.PrivKeyFromBytes(serPriv), nil
 		}
 	}
 
@@ -189,17 +196,5 @@ func (kr *HDKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey
 func (kr *HDKeyRing) ScalarMult(keyDesc KeyDescriptor,
 	pub *secp256k1.PublicKey) ([]byte, error) {
 
-	privKey, err := kr.DerivePrivKey(keyDesc)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &secp256k1.PublicKey{}
-	x, y := secp256k1.S256().ScalarMult(pub.X, pub.Y, privKey.D.Bytes())
-	s.X = x
-	s.Y = y
-
-	h := sha256.Sum256(s.SerializeCompressed())
-
-	return h[:], nil
+	return nil, fmt.Errorf("Unimplemented")
 }

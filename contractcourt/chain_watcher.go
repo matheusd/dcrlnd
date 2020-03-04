@@ -9,9 +9,9 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -905,27 +905,8 @@ func (c *chainWatcher) dispatchContractBreach(spendEvent *chainntnfs.SpendDetail
 		return fmt.Errorf("unable to create breach retribution: %v", err)
 	}
 
-	// Nil the curve before printing.
-	if retribution.RemoteOutputSignDesc != nil &&
-		retribution.RemoteOutputSignDesc.DoubleTweak != nil {
-		retribution.RemoteOutputSignDesc.DoubleTweak.Curve = nil
-	}
-	if retribution.RemoteOutputSignDesc != nil &&
-		retribution.RemoteOutputSignDesc.KeyDesc.PubKey != nil {
-		retribution.RemoteOutputSignDesc.KeyDesc.PubKey.Curve = nil
-	}
-	if retribution.LocalOutputSignDesc != nil &&
-		retribution.LocalOutputSignDesc.DoubleTweak != nil {
-		retribution.LocalOutputSignDesc.DoubleTweak.Curve = nil
-	}
-	if retribution.LocalOutputSignDesc != nil &&
-		retribution.LocalOutputSignDesc.KeyDesc.PubKey != nil {
-		retribution.LocalOutputSignDesc.KeyDesc.PubKey.Curve = nil
-	}
-
 	log.Debugf("Punishment breach retribution created: %v",
 		newLogClosure(func() string {
-			retribution.KeyRing.CommitPoint.Curve = nil
 			retribution.KeyRing.LocalHtlcKey = nil
 			retribution.KeyRing.RemoteHtlcKey = nil
 			retribution.KeyRing.ToLocalKey = nil

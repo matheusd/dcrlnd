@@ -16,10 +16,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
@@ -56,7 +58,6 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
-	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -1274,7 +1275,7 @@ func (r *rpcServer) VerifyMessage(ctx context.Context,
 	digest := chainhash.HashB(in.Msg)
 
 	// RecoverCompact both recovers the pubkey and validates the signature.
-	pubKey, _, err := secp256k1.RecoverCompact(sig, digest)
+	pubKey, _, err := ecdsa.RecoverCompact(sig, digest)
 	if err != nil {
 		return &lnrpc.VerifyMessageResponse{Valid: false}, nil
 	}

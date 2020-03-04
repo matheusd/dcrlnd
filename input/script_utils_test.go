@@ -8,14 +8,19 @@ import (
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 )
 
 const scriptVersion uint16 = 0
+
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	priv := secp256k1.PrivKeyFromBytes(b)
+	return priv, priv.PubKey()
+}
 
 // TestRevocationKeyDerivation tests that given a public key, and a revocation
 // hash, the homomorphic revocation public and private key derivation work
@@ -26,11 +31,11 @@ func TestRevocationKeyDerivation(t *testing.T) {
 	// First, we'll generate a commitment point, and a commitment secret.
 	// These will be used to derive the ultimate revocation keys.
 	revocationPreimage := testHdSeed.CloneBytes()
-	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(revocationPreimage)
+	commitSecret, commitPoint := privKeyFromBytes(revocationPreimage)
 
 	// With the commitment secrets generated, we'll now create the base
 	// keys we'll use to derive the revocation key from.
-	basePriv, basePub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
+	basePriv, basePub := privKeyFromBytes(testWalletPrivKey)
 
 	// With the point and key obtained, we can now derive the revocation
 	// key itself.
@@ -53,7 +58,7 @@ func TestTweakKeyDerivation(t *testing.T) {
 
 	// First, we'll generate a base public key that we'll be "tweaking".
 	baseSecret := testHdSeed.CloneBytes()
-	basePriv, basePub := secp256k1.PrivKeyFromBytes(baseSecret)
+	basePriv, basePub := privKeyFromBytes(baseSecret)
 
 	// With the base key create, we'll now create a commitment point, and
 	// from that derive the bytes we'll used to tweak the base public key.
@@ -122,7 +127,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 	// Next we'll the commitment secret for our commitment tx and also the
 	// revocation key that we'll use as well.
 	revokePreimage := testHdSeed.CloneBytes()
-	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(revokePreimage)
+	commitSecret, commitPoint := privKeyFromBytes(revokePreimage)
 
 	// Generate a payment preimage to be used below.
 	paymentPreimage := revokePreimage
@@ -131,8 +136,8 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 
 	// We'll also need some tests keys for alice and bob, and metadata of
 	// the HTLC output.
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(testWalletPrivKey)
+	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 	paymentAmt := dcrutil.Amount(1 * 10e8)
 
 	aliceLocalKey := TweakPubKey(aliceKeyPub, commitPoint)
@@ -377,7 +382,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 	// Next we'll the commitment secret for our commitment tx and also the
 	// revocation key that we'll use as well.
 	revokePreimage := testHdSeed.CloneBytes()
-	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(revokePreimage)
+	commitSecret, commitPoint := privKeyFromBytes(revokePreimage)
 
 	// Generate a payment preimage to be used below.
 	paymentPreimage := revokePreimage
@@ -386,9 +391,9 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 
 	// We'll also need some tests keys for alice and bob, and metadata of
 	// the HTLC output.
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(
+	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(
 		testWalletPrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 	paymentAmt := dcrutil.Amount(1 * 10e8)
 	cltvTimeout := uint32(8)
 
@@ -632,11 +637,11 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 
 	// First we'll set up some initial key state for Alice and Bob that
 	// will be used in the scripts we created below.
-	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
-	bobKeyPriv, bobKeyPub := secp256k1.PrivKeyFromBytes(bobsPrivKey)
+	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(testWalletPrivKey)
+	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 
 	revokePreimage := testHdSeed.CloneBytes()
-	commitSecret, commitPoint := secp256k1.PrivKeyFromBytes(revokePreimage)
+	commitSecret, commitPoint := privKeyFromBytes(revokePreimage)
 
 	// As we're modeling this as Bob sweeping the HTLC on-chain from his
 	// commitment transaction after a period of time, we'll be using a

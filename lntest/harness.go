@@ -19,10 +19,11 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript/v2"
+	txscript2 "github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd"
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lnwire"
@@ -85,7 +86,7 @@ func NewNetworkHarness(r *rpctest.Harness, b BackendConfig, lndBinary string) (
 		seenTxns:            make(chan *chainhash.Hash),
 		decredWatchRequests: make(chan *txWatchRequest),
 		lndErrorChan:        make(chan error),
-		netParams:           r.ActiveNet,
+		netParams:           compat.Params3to2(r.ActiveNet),
 		Miner:               r,
 		BackendCfg:          b,
 		quit:                make(chan struct{}),
@@ -139,7 +140,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	grpclog.SetLogger(&fakeLogger{})
 
 	// Generate the premine block the usual way.
-	_, err := n.Miner.Node.Generate(1)
+	_, err := n.Miner.Node.Generate(context.TODO(), 1)
 	if err != nil {
 		return fmt.Errorf("unable to generate premine: %v", err)
 	}
@@ -211,7 +212,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 			if err != nil {
 				return err
 			}
-			addrScript, err := txscript.PayToAddrScript(addr)
+			addrScript, err := txscript2.PayToAddrScript(addr)
 			if err != nil {
 				return err
 			}
@@ -1362,7 +1363,7 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	if err != nil {
 		return err
 	}
-	addrScript, err := txscript.PayToAddrScript(addr)
+	addrScript, err := txscript2.PayToAddrScript(addr)
 	if err != nil {
 		return err
 	}
@@ -1433,7 +1434,7 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	}
 
 	// Wait until the wallet has seen all 6 blocks.
-	_, height, err := n.Miner.Node.GetBestBlock()
+	_, height, err := n.Miner.Node.GetBestBlock(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -1451,7 +1452,7 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 // setupVotingWallet sets up a minimum voting wallet, so that the simnet used
 // for tests can advance past SVH.
 func (n *NetworkHarness) setupVotingWallet() error {
-	vw, err := rpctest.NewVotingWallet(n.Miner)
+	vw, err := rpctest.NewVotingWallet(context.TODO(), n.Miner)
 	if err != nil {
 		return err
 	}
@@ -1484,7 +1485,7 @@ func (n *NetworkHarness) setupVotingWallet() error {
 // that the new block can propagate to the voting node and votes for the new
 // block can be generated and published.
 func (n *NetworkHarness) Generate(nb uint32) ([]*chainhash.Hash, error) {
-	return n.votingWallet.GenerateBlocks(nb)
+	return n.votingWallet.GenerateBlocks(context.TODO(), nb)
 }
 
 // CopyFile copies the file src to dest.

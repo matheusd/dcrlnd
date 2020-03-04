@@ -5,8 +5,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/keychain"
 )
@@ -191,7 +191,7 @@ func ReadSignDescriptor(r io.Reader, sd *SignDescriptor) error {
 	if len(doubleTweakBytes) == 0 {
 		sd.DoubleTweak = nil
 	} else {
-		sd.DoubleTweak, _ = secp256k1.PrivKeyFromBytes(doubleTweakBytes)
+		sd.DoubleTweak = secp256k1.PrivKeyFromBytes(doubleTweakBytes)
 	}
 
 	// Only one tweak should ever be set, fail if both are present.

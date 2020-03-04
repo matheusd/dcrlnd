@@ -27,11 +27,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v2"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/decred/dcrlnd/autopilot"
@@ -453,9 +452,8 @@ func Main(lisCfg ListenerCfg) error {
 		ltndLog.Error(err)
 		return err
 	}
-	idPrivKey.Curve = secp256k1.S256()
 	idPubKey := idPrivKey.PubKey()
-	srvrLog.Infof("Derived node public key %x", idPubKey.Serialize())
+	srvrLog.Infof("Derived node public key %x", idPubKey.SerializeCompressed())
 
 	if cfg.Tor.Active {
 		srvrLog.Infof("Proxying all network traffic via Tor "+
@@ -958,7 +956,7 @@ func waitForWalletPassword(restEndpoints []net.Addr,
 		)
 		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
 			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+			txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
 			false)
 
 		// With the seed, we can now use the wallet loader to create

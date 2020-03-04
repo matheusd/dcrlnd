@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrwallet/errors/v2"
-	"github.com/decred/dcrwallet/wallet/v3"
-	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb" // driver loaded during init
+	"decred.org/dcrwallet/errors"
+	"decred.org/dcrwallet/wallet"
+	_ "decred.org/dcrwallet/wallet/drivers/bdb" // driver loaded during init
+	chaincfg2 "github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrlnd/compat"
 )
 
 const (
@@ -42,7 +44,7 @@ type Loader struct {
 	accountGapLimit         int
 	disableCoinTypeUpgrades bool
 	allowHighFees           bool
-	relayFee                float64
+	relayFee                dcrutil.Amount
 
 	mu sync.Mutex
 }
@@ -59,11 +61,11 @@ type StakeOptions struct {
 }
 
 // NewLoader constructs a Loader.
-func NewLoader(chainParams *chaincfg.Params, dbDirPath string, stakeOptions *StakeOptions, gapLimit int,
-	allowHighFees bool, relayFee float64, accountGapLimit int, disableCoinTypeUpgrades bool) *Loader {
+func NewLoader(chainParams *chaincfg2.Params, dbDirPath string, stakeOptions *StakeOptions, gapLimit int,
+	allowHighFees bool, relayFee dcrutil.Amount, accountGapLimit int, disableCoinTypeUpgrades bool) *Loader {
 
 	return &Loader{
-		chainParams:             chainParams,
+		chainParams:             compat.Params2to3(chainParams),
 		dbDirPath:               dbDirPath,
 		stakeOptions:            stakeOptions,
 		gapLimit:                gapLimit,
@@ -173,7 +175,6 @@ func (l *Loader) CreateWatchingOnlyWallet(ctx context.Context, extendedPubKey st
 		VotingAddress:           so.VotingAddress,
 		PoolAddress:             so.PoolAddress,
 		PoolFees:                so.PoolFees,
-		TicketFee:               so.TicketFee,
 		GapLimit:                l.gapLimit,
 		AccountGapLimit:         l.accountGapLimit,
 		DisableCoinTypeUpgrades: l.disableCoinTypeUpgrades,
@@ -264,7 +265,6 @@ func (l *Loader) CreateNewWallet(ctx context.Context, pubPassphrase, privPassphr
 		VotingAddress:           so.VotingAddress,
 		PoolAddress:             so.PoolAddress,
 		PoolFees:                so.PoolFees,
-		TicketFee:               so.TicketFee,
 		GapLimit:                l.gapLimit,
 		AccountGapLimit:         l.accountGapLimit,
 		DisableCoinTypeUpgrades: l.disableCoinTypeUpgrades,
@@ -325,7 +325,6 @@ func (l *Loader) OpenExistingWallet(ctx context.Context, pubPassphrase []byte) (
 		VotingAddress:           so.VotingAddress,
 		PoolAddress:             so.PoolAddress,
 		PoolFees:                so.PoolFees,
-		TicketFee:               so.TicketFee,
 		GapLimit:                l.gapLimit,
 		AccountGapLimit:         l.accountGapLimit,
 		DisableCoinTypeUpgrades: l.disableCoinTypeUpgrades,

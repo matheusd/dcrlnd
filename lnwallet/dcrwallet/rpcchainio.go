@@ -4,17 +4,16 @@ import (
 	"context"
 	"encoding/hex"
 	"sync"
-	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/lnwallet"
 
-	"github.com/decred/dcrwallet/errors/v2"
+	"decred.org/dcrwallet/errors"
 )
 
 var (
@@ -46,9 +45,14 @@ var _ lnwallet.BlockChainIO = (*RPCChainIO)(nil)
 // full dcrd node.  It requires the config for reaching the dcrd instance and
 // the corresponding network this instance should be in.
 func NewRPCChainIO(rpcConfig rpcclient.ConnConfig, net *chaincfg.Params) (*RPCChainIO, error) {
-	connectTimeout := 30 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
-	defer cancel()
+	// TODO: bring back this. rpcclient/v6 changed the semantics of the
+	// context passed to Connect().
+	/*
+		connectTimeout := 30 * time.Second
+		ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
+		defer cancel()
+	*/
+	ctx := context.Background()
 
 	rpcConfig.DisableConnectOnNew = true
 	rpcConfig.DisableAutoReconnect = false
@@ -78,7 +82,7 @@ func (s *RPCChainIO) GetBestBlock() (*chainhash.Hash, int32, error) {
 	if s.chain == nil {
 		return nil, 0, ErrUnconnected
 	}
-	hash, height, err := s.chain.GetBestBlock()
+	hash, height, err := s.chain.GetBestBlock(context.TODO())
 	return hash, int32(height), err
 }
 
@@ -95,7 +99,7 @@ func (s *RPCChainIO) GetUtxo(op *wire.OutPoint, pkScript []byte,
 		return nil, ErrUnconnected
 	}
 
-	txout, err := s.chain.GetTxOut(&op.Hash, op.Index, false)
+	txout, err := s.chain.GetTxOut(context.TODO(), &op.Hash, op.Index, false)
 	if err != nil {
 		return nil, err
 	} else if txout == nil {
@@ -128,7 +132,7 @@ func (s *RPCChainIO) GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error)
 	if s.chain == nil {
 		return nil, ErrUnconnected
 	}
-	return s.chain.GetBlock(blockHash)
+	return s.chain.GetBlock(context.TODO(), blockHash)
 }
 
 // GetBlockHash returns the hash of the block in the best blockchain at the
@@ -141,5 +145,5 @@ func (s *RPCChainIO) GetBlockHash(blockHeight int64) (*chainhash.Hash, error) {
 	if s.chain == nil {
 		return nil, ErrUnconnected
 	}
-	return s.chain.GetBlockHash(blockHeight)
+	return s.chain.GetBlockHash(context.TODO(), blockHeight)
 }

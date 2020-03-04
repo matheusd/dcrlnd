@@ -3,13 +3,13 @@ package lnwire
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 )
 
 // Sig is a fixed-sized ECDSA signature. Unlike Bitcoin, we use fixed sized
 // signatures on the wire, instead of DER encoded signatures. This type
 // provides several methods to convert to/from a regular Bitcoin DER encoded
-// signature (raw bytes and *secp256k1.Signature).
+// signature (raw bytes and *ecdsa.Signature).
 type Sig [64]byte
 
 // NewSigFromRawSignature returns a Sig from a Bitcoin raw signature encoded in
@@ -25,8 +25,8 @@ func NewSigFromRawSignature(sig []byte) (Sig, error) {
 	// 0x30 <length> 0x02 <length r> r 0x02 <length s> s
 	// which means the length of R is the 4th byte and the length of S
 	// is the second byte after R ends. 0x02 signifies a length-prefixed,
-	// zero-padded, big-endian bigint. 0x30 signifies a DER signature.
-	// See the Serialize() method for secp256k1.Signature for details.
+	// zero-padded, big-endian bigint. 0x30 signifies a DER signature.  See
+	// the Serialize() method for ecdsa.Signature for details.
 	rLen := sig[3]
 	sLen := sig[5+rLen]
 
@@ -63,8 +63,8 @@ func NewSigFromRawSignature(sig []byte) (Sig, error) {
 }
 
 // NewSigFromSignature creates a new signature as used on the wire, from an
-// existing secp256k1.Signature.
-func NewSigFromSignature(e *secp256k1.Signature) (Sig, error) {
+// existing ecdsa.Signature.
+func NewSigFromSignature(e *ecdsa.Signature) (Sig, error) {
 	if e == nil {
 		return Sig{}, fmt.Errorf("cannot decode empty signature")
 	}
@@ -73,12 +73,12 @@ func NewSigFromSignature(e *secp256k1.Signature) (Sig, error) {
 	return NewSigFromRawSignature(e.Serialize())
 }
 
-// ToSignature converts the fixed-sized signature to a secp256k1.Signature
-// objects which can be used for signature validation checks.
-func (b *Sig) ToSignature() (*secp256k1.Signature, error) {
+// ToSignature converts the fixed-sized signature to a ecdsa.Signature objects
+// which can be used for signature validation checks.
+func (b *Sig) ToSignature() (*ecdsa.Signature, error) {
 	// Parse the signature with strict checks.
 	sigBytes := b.ToSignatureBytes()
-	sig, err := secp256k1.ParseDERSignature(sigBytes)
+	sig, err := ecdsa.ParseDERSignature(sigBytes)
 	if err != nil {
 		return nil, err
 	}

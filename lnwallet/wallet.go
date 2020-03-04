@@ -13,10 +13,11 @@ import (
 	"github.com/decred/dcrd/blockchain/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/dcrutil/v2/txsort"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -1203,7 +1204,7 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 	// Verify that we've received a valid signature from the remote party
 	// for our version of the commitment transaction.
 	theirCommitSig := msg.theirCommitmentSig
-	sig, err := secp256k1.ParseSignature(theirCommitSig)
+	sig, err := ecdsa.ParseDERSignature(theirCommitSig)
 	if err != nil {
 		msg.err <- err
 		msg.completeChan <- nil
@@ -1362,7 +1363,7 @@ func (l *LightningWallet) handleSingleFunderSigs(req *addSingleFunderSigsMsg) {
 
 	// Verify that we've received a valid signature from the remote party
 	// for our version of the commitment transaction.
-	sig, err := secp256k1.ParseSignature(req.theirCommitmentSig)
+	sig, err := ecdsa.ParseDERSignature(req.theirCommitmentSig)
 	if err != nil {
 		req.err <- err
 		req.completeChan <- nil

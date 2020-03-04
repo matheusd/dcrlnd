@@ -10,7 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
@@ -101,14 +101,12 @@ func genRandomOpenChannelShell() (*channeldb.OpenChannel, error) {
 		return nil, err
 	}
 
-	_, pub := secp256k1.PrivKeyFromBytes(testPriv[:])
+	pub := secp256k1.PrivKeyFromBytes(testPriv[:]).PubKey()
 
 	var chanPoint wire.OutPoint
 	if _, err := rand.Read(chanPoint.Hash[:]); err != nil {
 		return nil, err
 	}
-
-	pub.Curve = nil
 
 	chanPoint.Index = uint32(rand.Intn(math.MaxUint16))
 
@@ -211,7 +209,6 @@ func TestSinglePackUnpack(t *testing.T) {
 	}
 
 	singleChanBackup := NewSingle(channel, []net.Addr{addr1, addr2})
-	singleChanBackup.RemoteNodePub.Curve = nil
 
 	keyRing := &mockKeyRing{}
 
@@ -272,7 +269,6 @@ func TestSinglePackUnpack(t *testing.T) {
 				t.Fatalf("#%v unable to unpack single: %v",
 					i, err)
 			}
-			unpackedSingle.RemoteNodePub.Curve = nil
 
 			assertSingleEqual(t, singleChanBackup, unpackedSingle)
 

@@ -12,7 +12,8 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -414,7 +415,7 @@ func Decode(invoice string, net *chaincfg.Params) (*Invoice, error) {
 	} else {
 		headerByte := recoveryID + 27 + 4
 		compactSign := append([]byte{headerByte}, sig[:]...)
-		pubkey, _, err := secp256k1.RecoverCompact(compactSign, hash)
+		pubkey, _, err := ecdsa.RecoverCompact(compactSign, hash)
 		if err != nil {
 			return nil, err
 		}

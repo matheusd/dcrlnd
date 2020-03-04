@@ -138,7 +138,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// The commitment transaction should be spending from the funding
 	// transaction.
 	commitHash := txids[0]
-	tx, err := net.Miner.Node.GetRawTransaction(commitHash)
+	tx, err := net.Miner.Node.GetRawTransaction(context.Background(), commitHash)
 	if err != nil {
 		t.Fatalf("unable to get txn: %v", err)
 	}
@@ -172,7 +172,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 	// the commitment transaction.
 	var secondLevelHash *chainhash.Hash
 	for _, txid := range secondLevelHashes {
-		tx, err := net.Miner.Node.GetRawTransaction(txid)
+		tx, err := net.Miner.Node.GetRawTransaction(context.Background(), txid)
 		if err != nil {
 			t.Fatalf("unable to get txn: %v", err)
 		}

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 )
 
 // TestParsePkScript ensures that the supported script types can be parsed

@@ -16,14 +16,15 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 
+	base "decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txauthor"
+	"decred.org/dcrwallet/wallet/txrules"
+	"decred.org/dcrwallet/wallet/udb"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	base "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txauthor"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 const (
@@ -99,7 +100,7 @@ func New(cfg Config) (*DcrWallet, error) {
 		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
 		loader = walletloader.NewLoader(cfg.NetParams, netDir,
 			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit,
+			txrules.DefaultRelayFeePerKb, base.DefaultAccountGapLimit,
 			false)
 		walletExists, err := loader.WalletExists()
 		if err != nil {
@@ -198,12 +199,12 @@ func (b *DcrWallet) Stop() error {
 // TODO(matheusd) Remove witness argument, given that's not applicable to decred
 func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 
-	balances, err := b.wallet.CalculateAccountBalance(context.TODO(), defaultAccount, confs)
+	balances, err := b.wallet.AccountBalance(context.TODO(), defaultAccount, confs)
 	if err != nil {
 		return 0, err
 	}
 
-	return balances.Spendable, nil
+	return compat.Amount3to2(balances.Spendable), nil
 }
 
 // NewAddress returns the next external or internal address for the wallet
@@ -255,7 +256,11 @@ func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
 		return nil, fmt.Errorf("unknown address type")
 	}
 
-	return b.wallet.CurrentAddress(defaultAccount)
+	addr3, err := b.wallet.CurrentAddress(defaultAccount)
+	if err != nil {
+		return nil, err
+	}
+	return compat.Address3to2(addr3, b.wallet.ChainParams())
 }
 
 // IsOurAddress checks if the passed address belongs to this wallet
@@ -284,7 +289,7 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	// add the fee as a parameter so that we don't risk changing the default
 	// fee rate.
 	oldRelayFee := b.wallet.RelayFee()
-	b.wallet.SetRelayFee(dcrutil.Amount(feeRate))
+	b.wallet.SetRelayFee(compat.Amount2to3(dcrutil.Amount(feeRate)))
 	defer b.wallet.SetRelayFee(oldRelayFee)
 
 	txHash, err := b.wallet.SendOutputs(context.TODO(), outputs,
@@ -404,11 +409,6 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 // published to the network (either in the mempool or chain) no error
 // will be returned.
 func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
-	serTx, err := tx.Bytes()
-	if err != nil {
-		return err
-	}
-
 	n, err := b.wallet.NetworkBackend()
 	if err != nil {
 		return err
@@ -416,7 +416,7 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 	if n == nil {
 		return fmt.Errorf("wallet does not have an active backend")
 	}
-	_, err = b.wallet.PublishTransaction(context.TODO(), tx, serTx, n)
+	_, err = b.wallet.PublishTransaction(context.TODO(), tx, n)
 	if err != nil {
 		// TODO(decred): review if the string messages are correct.
 		// Possible convert from checking the message to checking the
@@ -476,7 +476,7 @@ func extractBalanceDelta(
 	// transaction.
 	var balanceDelta dcrutil.Amount
 	for _, input := range txSummary.MyInputs {
-		balanceDelta -= input.PreviousAmount
+		balanceDelta -= compat.Amount3to2(input.PreviousAmount)
 	}
 	for _, output := range txSummary.MyOutputs {
 		balanceDelta += dcrutil.Amount(tx.TxOut[output.Index].Value)
@@ -688,8 +688,9 @@ out:
 			// Launch a goroutine to re-package and send
 			// notifications for any newly confirmed transactions.
 			go func() {
+				chainParams := compat.Params3to2(t.w.ChainParams())
 				for _, block := range txNtfn.AttachedBlocks {
-					details, err := minedTransactionsToDetails(currentHeight, &block, t.w.ChainParams())
+					details, err := minedTransactionsToDetails(currentHeight, &block, chainParams)
 					if err != nil {
 						continue
 					}
@@ -708,9 +709,10 @@ out:
 			// Launch a goroutine to re-package and send
 			// notifications for any newly unconfirmed transactions.
 			go func() {
+				chainParams := compat.Params3to2(t.w.ChainParams())
 				for _, tx := range txNtfn.UnminedTransactions {
 					detail, err := unminedTransactionsToDetail(
-						tx, t.w.ChainParams(),
+						tx, chainParams,
 					)
 					if err != nil {
 						continue
@@ -770,7 +772,7 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	// wallet should return the height it's attempting to sync to.
 	ioHash, _, err := b.cfg.ChainIO.GetBestBlock()
 	if err != nil {
-		return false, 0, err
+		return false, 0, fmt.Errorf("chainIO.GetBestBlock error: %v", err)
 	}
 	if !bytes.Equal(walletBestHash[:], ioHash[:]) {
 		return false, walletBestHeader.Timestamp.Unix(), nil

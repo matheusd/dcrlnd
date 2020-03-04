@@ -29,7 +29,7 @@ func (b *DcrdNotifier) UnsafeStart(bestHeight int64, bestHash *chainhash.Hash,
 	if err := b.chainConn.Connect(context.Background(), true); err != nil {
 		return err
 	}
-	if err := b.chainConn.NotifyBlocks(); err != nil {
+	if err := b.chainConn.NotifyBlocks(context.TODO()); err != nil {
 		return err
 	}
 
@@ -72,7 +72,7 @@ func (b *DcrdNotifier) UnsafeStart(bestHeight int64, bestHash *chainhash.Hash,
 		Height: int32(bestHeight), Hash: bestHash,
 	}
 	if bestHash == nil {
-		hash, err := b.chainConn.GetBlockHash(int64(bestHeight))
+		hash, err := b.chainConn.GetBlockHash(context.TODO(), int64(bestHeight))
 		if err != nil {
 			return err
 		}

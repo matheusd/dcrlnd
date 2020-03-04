@@ -3,34 +3,35 @@ module github.com/decred/dcrlnd
 go 1.13
 
 require (
+	decred.org/dcrwallet v1.2.3-0.20200618173758-53994fa373a2
 	git.schwanenlied.me/yawning/bsaes.git v0.0.0-20180720073208-c0276d75487e // indirect
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
 	github.com/davecgh/go-spew v1.1.1
-	github.com/decred/dcrd v1.2.1-0.20191016204340-338ce9d7017d
+	github.com/decred/dcrd v1.2.1-0.20200604211334-3f43437d1338
 	github.com/decred/dcrd/bech32 v1.0.0
 	github.com/decred/dcrd/blockchain/stake v1.2.1
 	github.com/decred/dcrd/blockchain/standalone v1.1.0
 	github.com/decred/dcrd/blockchain/v2 v2.1.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
 	github.com/decred/dcrd/chaincfg/v2 v2.3.0
+	github.com/decred/dcrd/chaincfg/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/connmgr v1.1.0
 	github.com/decred/dcrd/dcrec v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0
+	github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/dcrjson/v2 v2.2.0
 	github.com/decred/dcrd/dcrutil v1.4.0
 	github.com/decred/dcrd/dcrutil/v2 v2.0.1
+	github.com/decred/dcrd/dcrutil/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/hdkeychain/v2 v2.1.0
-	github.com/decred/dcrd/mempool/v3 v3.1.0
-	github.com/decred/dcrd/rpc/jsonrpc/types/v2 v2.0.0
-	github.com/decred/dcrd/rpcclient/v5 v5.0.0
+	github.com/decred/dcrd/hdkeychain/v3 v3.0.0
+	github.com/decred/dcrd/rpc/jsonrpc/types/v2 v2.0.1-0.20200503044000-76f6906e50e5
+	github.com/decred/dcrd/rpcclient/v6 v6.0.0-20200616182840-3baf1f590cb1
 	github.com/decred/dcrd/txscript/v2 v2.1.0
+	github.com/decred/dcrd/txscript/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/wire v1.3.0
-	github.com/decred/dcrwallet/chain/v3 v3.0.0
-	github.com/decred/dcrwallet/errors/v2 v2.0.0
-	github.com/decred/dcrwallet/rpc/walletrpc v0.3.0
-	github.com/decred/dcrwallet/wallet/v3 v3.0.0
-	github.com/decred/lightning-onion/v3 v3.0.0
+	github.com/decred/lightning-onion/v3 v3.0.0-20200707162618-08f2e355dbb0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/golang/protobuf v1.3.2
@@ -57,16 +58,20 @@ require (
 	github.com/urfave/cli v1.20.0
 	gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40 // indirect
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
-	go.etcd.io/bbolt v1.3.3
-	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
+	go.etcd.io/bbolt v1.3.5
+	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
-	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
-	google.golang.org/grpc v1.22.0
+	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	google.golang.org/grpc v1.27.1
 	gopkg.in/errgo.v1 v1.0.0 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.1.0
 	gopkg.in/macaroon.v2 v2.0.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
 
-replace github.com/decred/lightning-onion/v3 => github.com/matheusd/lightning-onion/v3 v3.0.0-20200108130659-ce91c24fe0c2
+replace (
+	github.com/decred/dcrd/dcrutil/v3 => github.com/decred/dcrd/dcrutil/v3 v3.0.0-20200604211334-3f43437d1338
+	github.com/decred/dcrd/hdkeychain/v3 => github.com/decred/dcrd/hdkeychain/v3 v3.0.0-20200604211334-3f43437d1338
+	github.com/decred/dcrd/txscript/v3 => github.com/decred/dcrd/txscript/v3 v3.0.0-20200604211334-3f43437d1338
+)

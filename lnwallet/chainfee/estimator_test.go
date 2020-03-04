@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type mockSparseConfFeeSource struct {
@@ -124,6 +126,8 @@ func TestWebAPIFeeEstimator(t *testing.T) {
 			testFees[tc.target] = tc.apiEst
 		}
 	}
+
+	spew.Dump(testFees)
 
 	feeSource := mockSparseConfFeeSource{
 		url:  "https://www.github.com",

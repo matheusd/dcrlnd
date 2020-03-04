@@ -8,9 +8,9 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 )
 
@@ -349,7 +349,7 @@ func SenderHtlcSpendRevoke(signer Signer, signDesc *SignDescriptor,
 	// commitment point.
 	revokeKey := DeriveRevocationPubkey(
 		signDesc.KeyDesc.PubKey,
-		(*secp256k1.PublicKey)(&signDesc.DoubleTweak.PublicKey),
+		signDesc.DoubleTweak.PubKey(),
 	)
 
 	return senderHtlcSpendRevoke(signer, signDesc, revokeKey, sweepTx)
@@ -601,7 +601,7 @@ func ReceiverHtlcSpendRevoke(signer Signer, signDesc *SignDescriptor,
 	// commitment point.
 	revokeKey := DeriveRevocationPubkey(
 		signDesc.KeyDesc.PubKey,
-		(*secp256k1.PublicKey)(&signDesc.DoubleTweak.PublicKey),
+		signDesc.DoubleTweak.PubKey(),
 	)
 
 	return receiverHtlcSpendRevoke(signer, signDesc, revokeKey, sweepTx)
@@ -1071,16 +1071,16 @@ func TweakPubKey(basePoint, commitPoint *secp256k1.PublicKey) *secp256k1.PublicK
 // TweakPubKeyWithTweak is the exact same as the TweakPubKey function, however
 // it accepts the raw tweak bytes directly rather than the commitment point.
 func TweakPubKeyWithTweak(pubKey *secp256k1.PublicKey, tweakBytes []byte) *secp256k1.PublicKey {
+	// TODO(decred): fully switch to secp256k.JacobianPoint repr.
 	curve := secp256k1.S256()
 	tweakX, tweakY := curve.ScalarBaseMult(tweakBytes)
 
 	// TODO(roasbeef): check that both passed on curve?
-	x, y := curve.Add(pubKey.X, pubKey.Y, tweakX, tweakY)
-	return &secp256k1.PublicKey{
-		X:     x,
-		Y:     y,
-		Curve: curve,
-	}
+	x, y := curve.Add(pubKey.X(), pubKey.Y(), tweakX, tweakY)
+	var fx, fy secp256k1.FieldVal
+	fx.SetByteSlice(x.Bytes())
+	fy.SetByteSlice(y.Bytes())
+	return secp256k1.NewPublicKey(&fx, &fy)
 }
 
 // TweakPrivKey tweaks the private key of a public base point given a per
@@ -1097,10 +1097,12 @@ func TweakPrivKey(basePriv *secp256k1.PrivateKey, commitTweak []byte) *secp256k1
 	// tweakInt := sha256(commitPoint || basePub)
 	tweakInt := new(big.Int).SetBytes(commitTweak)
 
-	tweakInt = tweakInt.Add(tweakInt, basePriv.D)
+	// TODO(decred): Fully switch to fieldVal repr.
+	d := new(big.Int).SetBytes(basePriv.Serialize())
+	tweakInt = tweakInt.Add(tweakInt, d)
 	tweakInt = tweakInt.Mod(tweakInt, secp256k1.S256().N)
 
-	tweakPriv, _ := secp256k1.PrivKeyFromBytes(tweakInt.Bytes())
+	tweakPriv := secp256k1.PrivKeyFromBytes(tweakInt.Bytes())
 	return tweakPriv
 }
 
@@ -1131,15 +1133,16 @@ func TweakPrivKey(basePriv *secp256k1.PrivateKey, commitTweak []byte) *secp256k1
 //
 // Where N is the order of the sub-group.
 func DeriveRevocationPubkey(revokeBase, commitPoint *secp256k1.PublicKey) *secp256k1.PublicKey {
+	// TODO(decred): fully switch to secp256k1.JacobianPoint repr.
 
 	// R = revokeBase * sha256(revocationBase || commitPoint)
 	revokeTweakBytes := SingleTweakBytes(revokeBase, commitPoint)
-	rX, rY := secp256k1.S256().ScalarMult(revokeBase.X, revokeBase.Y,
+	rX, rY := secp256k1.S256().ScalarMult(revokeBase.X(), revokeBase.Y(),
 		revokeTweakBytes)
 
 	// C = commitPoint * sha256(commitPoint || revocationBase)
 	commitTweakBytes := SingleTweakBytes(commitPoint, revokeBase)
-	cX, cY := secp256k1.S256().ScalarMult(commitPoint.X, commitPoint.Y,
+	cX, cY := secp256k1.S256().ScalarMult(commitPoint.X(), commitPoint.Y(),
 		commitTweakBytes)
 
 	// Now that we have the revocation point, we add this to their commitment
@@ -1147,11 +1150,10 @@ func DeriveRevocationPubkey(revokeBase, commitPoint *secp256k1.PublicKey) *secp2
 	//
 	// P = R + C
 	revX, revY := secp256k1.S256().Add(rX, rY, cX, cY)
-	return &secp256k1.PublicKey{
-		X:     revX,
-		Y:     revY,
-		Curve: secp256k1.S256(),
-	}
+	var fx, fy secp256k1.FieldVal
+	fx.SetByteSlice(revX.Bytes())
+	fy.SetByteSlice(revY.Bytes())
+	return secp256k1.NewPublicKey(&fx, &fy)
 }
 
 // DeriveRevocationPrivKey derives the revocation private key given a node's
@@ -1168,16 +1170,18 @@ func DeriveRevocationPubkey(revokeBase, commitPoint *secp256k1.PublicKey) *secp2
 func DeriveRevocationPrivKey(revokeBasePriv *secp256k1.PrivateKey,
 	commitSecret *secp256k1.PrivateKey) *secp256k1.PrivateKey {
 
+	// TODO(decred): Switch to secpp256k1.JacobianPoint repr.
+
 	// r = sha256(revokeBasePub || commitPoint)
 	revokeTweakBytes := SingleTweakBytes(
-		(*secp256k1.PublicKey)(&revokeBasePriv.PublicKey),
-		(*secp256k1.PublicKey)(&commitSecret.PublicKey))
+		revokeBasePriv.PubKey(),
+		commitSecret.PubKey())
 	revokeTweakInt := new(big.Int).SetBytes(revokeTweakBytes)
 
 	// c = sha256(commitPoint || revokeBasePub)
 	commitTweakBytes := SingleTweakBytes(
-		(*secp256k1.PublicKey)(&commitSecret.PublicKey),
-		(*secp256k1.PublicKey)(&revokeBasePriv.PublicKey))
+		commitSecret.PubKey(),
+		revokeBasePriv.PubKey())
 	commitTweakInt := new(big.Int).SetBytes(commitTweakBytes)
 
 	// Finally to derive the revocation secret key we'll perform the
@@ -1189,13 +1193,15 @@ func DeriveRevocationPrivKey(revokeBasePriv *secp256k1.PrivateKey,
 	//  P = (G*a)*b + (G*c)*d
 	//  P = G*(a*b) + G*(c*d)
 	//  P = G*(a*b + c*d)
-	revokeHalfPriv := revokeTweakInt.Mul(revokeTweakInt, revokeBasePriv.D)
-	commitHalfPriv := commitTweakInt.Mul(commitTweakInt, commitSecret.D)
+	revokeD := new(big.Int).SetBytes(revokeBasePriv.Serialize())
+	commitD := new(big.Int).SetBytes(commitSecret.Serialize())
+	revokeHalfPriv := revokeTweakInt.Mul(revokeTweakInt, revokeD)
+	commitHalfPriv := commitTweakInt.Mul(commitTweakInt, commitD)
 
 	revocationPriv := revokeHalfPriv.Add(revokeHalfPriv, commitHalfPriv)
 	revocationPriv = revocationPriv.Mod(revocationPriv, secp256k1.S256().N)
 
-	priv, _ := secp256k1.PrivKeyFromBytes(revocationPriv.Bytes())
+	priv := secp256k1.PrivKeyFromBytes(revocationPriv.Bytes())
 	return priv
 }
 
@@ -1204,11 +1210,6 @@ func DeriveRevocationPrivKey(revokeBasePriv *secp256k1.PrivateKey,
 // the key-ring and also to used as a tweak to derive new public+private keys
 // for the state.
 func ComputeCommitmentPoint(commitSecret []byte) *secp256k1.PublicKey {
-	x, y := secp256k1.S256().ScalarBaseMult(commitSecret)
-
-	return &secp256k1.PublicKey{
-		X:     x,
-		Y:     y,
-		Curve: secp256k1.S256(),
-	}
+	priv := secp256k1.PrivKeyFromBytes(commitSecret)
+	return priv.PubKey()
 }

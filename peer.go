@@ -13,7 +13,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
@@ -1389,31 +1389,6 @@ func (p *peer) logWireMessage(msg lnwire.Message, read bool) {
 			msg.MsgType(), summary, preposition, p)
 	}))
 
-	switch m := msg.(type) {
-	case *lnwire.ChannelReestablish:
-		if m.LocalUnrevokedCommitPoint != nil {
-			m.LocalUnrevokedCommitPoint.Curve = nil
-		}
-	case *lnwire.RevokeAndAck:
-		m.NextRevocationKey.Curve = nil
-	case *lnwire.AcceptChannel:
-		m.FundingKey.Curve = nil
-		m.RevocationPoint.Curve = nil
-		m.PaymentPoint.Curve = nil
-		m.DelayedPaymentPoint.Curve = nil
-		m.HtlcPoint.Curve = nil
-		m.FirstCommitmentPoint.Curve = nil
-	case *lnwire.OpenChannel:
-		m.FundingKey.Curve = nil
-		m.RevocationPoint.Curve = nil
-		m.PaymentPoint.Curve = nil
-		m.DelayedPaymentPoint.Curve = nil
-		m.HtlcPoint.Curve = nil
-		m.FirstCommitmentPoint.Curve = nil
-	case *lnwire.FundingLocked:
-		m.NextPerCommitmentPoint.Curve = nil
-	}
-
 	prefix := "readMessage from"
 	if !read {
 		prefix = "writeMessage to"
@@ -2543,7 +2518,7 @@ func (p *peer) resendChanSyncMsg(cid lnwire.ChannelID) error {
 
 	if !c.RemotePub.IsEqual(p.IdentityKey()) {
 		return fmt.Errorf("ignoring channel reestablish from "+
-			"peer=%x", p.IdentityKey())
+			"peer=%x", p.IdentityKey().SerializeCompressed())
 	}
 
 	peerLog.Debugf("Re-sending channel sync message for channel %v to "+

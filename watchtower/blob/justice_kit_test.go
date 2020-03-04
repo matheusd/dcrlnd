@@ -8,8 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
@@ -231,10 +232,7 @@ func TestJusticeKitRemoteWitnessConstruction(t *testing.T) {
 	// Sign a message using the to-remote private key. The exact message
 	// doesn't matter as we won't be validating the signature's validity.
 	digest := bytes.Repeat([]byte("a"), 32)
-	rawToRemoteSig, err := toRemotePrivKey.Sign(digest)
-	if err != nil {
-		t.Fatalf("unable to generate to-remote signature: %v", err)
-	}
+	rawToRemoteSig := ecdsa.Sign(toRemotePrivKey, digest)
 
 	// Convert the DER-encoded signature into a fixed-size sig.
 	commitToRemoteSig, err := lnwire.NewSigFromSignature(rawToRemoteSig)
@@ -330,10 +328,7 @@ func TestJusticeKitToLocalWitnessConstruction(t *testing.T) {
 	// Sign a message using the revocation private key. The exact message
 	// doesn't matter as we won't be validating the signature's validity.
 	digest := bytes.Repeat([]byte("a"), 32)
-	rawRevSig, err := revPrivKey.Sign(digest)
-	if err != nil {
-		t.Fatalf("unable to generate revocation signature: %v", err)
-	}
+	rawRevSig := ecdsa.Sign(revPrivKey, digest)
 
 	// Convert the DER-encoded signature into a fixed-size sig.
 	commitToLocalSig, err := lnwire.NewSigFromSignature(rawRevSig)

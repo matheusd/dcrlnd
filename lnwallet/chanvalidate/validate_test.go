@@ -5,13 +5,19 @@ import (
 	"testing"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
 )
+
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	key := secp256k1.PrivKeyFromBytes(b)
+	return key, key.PubKey()
+}
 
 var (
 	aliceKey = chainhash.Hash{
@@ -27,8 +33,8 @@ var (
 		0x69, 0x49, 0x18, 0x83, 0x31, 0x98, 0x47, 0x53,
 	}
 
-	alicePriv, alicePub = secp256k1.PrivKeyFromBytes(aliceKey[:])
-	bobPriv, bobPub     = secp256k1.PrivKeyFromBytes(bobKey[:])
+	alicePriv, alicePub = privKeyFromBytes(aliceKey[:])
+	bobPriv, bobPub     = privKeyFromBytes(bobKey[:])
 )
 
 // channelTestCtx holds shared context that will be used in all tests cases
@@ -99,7 +105,8 @@ func newChannelTestCtx(chanSize int64) (*channelTestCtx, error) {
 
 	aliceSig, err := txscript.RawTxInSignature(
 		commitTx, 0,
-		multiSigScript, txscript.SigHashAll, alicePriv,
+		multiSigScript, txscript.SigHashAll, alicePriv.Serialize(),
+		dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, err
@@ -107,7 +114,8 @@ func newChannelTestCtx(chanSize int64) (*channelTestCtx, error) {
 
 	bobSig, err := txscript.RawTxInSignature(
 		commitTx, 0,
-		multiSigScript, txscript.SigHashAll, bobPriv,
+		multiSigScript, txscript.SigHashAll, bobPriv.Serialize(),
+		dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, err

@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/rpcclient/v5"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
@@ -25,7 +26,6 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
-	"github.com/decred/dcrwallet/wallet/v3"
 	"google.golang.org/grpc"
 )
 
@@ -115,7 +115,7 @@ func checkDcrdNode(rpcConfig rpcclient.ConnConfig) error {
 	defer chainConn.Shutdown()
 
 	// Verify whether the node is on the correct network.
-	net, err := chainConn.GetCurrentNet()
+	net, err := chainConn.GetCurrentNet(ctx)
 	if err != nil {
 		return err
 	}

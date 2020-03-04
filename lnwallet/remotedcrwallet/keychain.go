@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/hdkeychain/v2"
+	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -76,10 +76,7 @@ func newRemoteWalletKeyRing(rootAccountXPriv *hdkeychain.ExtendedKey,
 	if err != nil {
 		return nil, err
 	}
-	multiSigXPub, err := multiSigXPriv.Neuter()
-	if err != nil {
-		return nil, err
-	}
+	multiSigXPub := multiSigXPriv.Neuter()
 	masterPubs[keychain.KeyFamilyMultiSig] = multiSigXPub
 
 	// The masterpub for the payment base key family (i.e. addresses used
@@ -91,10 +88,7 @@ func newRemoteWalletKeyRing(rootAccountXPriv *hdkeychain.ExtendedKey,
 	if err != nil {
 		return nil, err
 	}
-	paymentBaseXPub, err := paymentBaseXPriv.Neuter()
-	if err != nil {
-		return nil, err
-	}
+	paymentBaseXPub := paymentBaseXPriv.Neuter()
 	masterPubs[keychain.KeyFamilyPaymentBase] = paymentBaseXPub
 
 	// Derive the master pubs for the other key families.
@@ -113,11 +107,7 @@ func newRemoteWalletKeyRing(rootAccountXPriv *hdkeychain.ExtendedKey,
 			return nil, err
 		}
 
-		famPub, err := famKey.Neuter()
-		if err != nil {
-			return nil, err
-		}
-
+		famPub := famKey.Neuter()
 		masterPubs[keychain.KeyFamily(i)] = famPub
 	}
 

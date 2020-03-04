@@ -19,7 +19,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	sphinx "github.com/decred/lightning-onion/v3"
@@ -69,25 +69,6 @@ func (c *concurrentTester) Fatalf(format string, args ...interface{}) {
 // setting the 'Curve" parameter to nil. Doing this avoids printing out each of
 // the field elements in the curve parameters for secp256k1.
 func messageToString(msg lnwire.Message) string {
-	switch m := msg.(type) {
-	case *lnwire.RevokeAndAck:
-		m.NextRevocationKey.Curve = nil
-	case *lnwire.AcceptChannel:
-		m.FundingKey.Curve = nil
-		m.RevocationPoint.Curve = nil
-		m.PaymentPoint.Curve = nil
-		m.DelayedPaymentPoint.Curve = nil
-		m.FirstCommitmentPoint.Curve = nil
-	case *lnwire.OpenChannel:
-		m.FundingKey.Curve = nil
-		m.RevocationPoint.Curve = nil
-		m.PaymentPoint.Curve = nil
-		m.DelayedPaymentPoint.Curve = nil
-		m.FirstCommitmentPoint.Curve = nil
-	case *lnwire.FundingLocked:
-		m.NextPerCommitmentPoint.Curve = nil
-	}
-
 	return spew.Sdump(msg)
 }
 
