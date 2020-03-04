@@ -307,12 +307,13 @@ func testSendPaymentMaxOutboundAmt(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Now open a channel from Carol -> Bob.
+	ctype := commitTypeAnchors
 	chanAmt := int64(1000000)
 	pushAmt := chanAmt / 2
 	chanReserve := chanAmt / 100
-	txFee := calcStaticFee(0)
+	txFee := ctype.calcStaticFee(0)
 	htlcFee := 0 // relay fee of tests is 0
-	peerHtlcFee := calcStaticFee(1) - calcStaticFee(0)
+	peerHtlcFee := ctype.calcStaticFee(1) - ctype.calcStaticFee(0)
 	localAmt := chanAmt - pushAmt - int64(txFee)
 	maxPayAmt := localAmt - chanReserve - int64(htlcFee)
 	channelParam := lntest.OpenChannelParams{
@@ -464,7 +465,8 @@ func testMaxIOChannelBalances(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	chanAmt := int64(1000000)
-	txFee := int64(calcStaticFee(0))
+	ctype := commitTypeLegacy
+	txFee := int64(ctype.calcStaticFee(0))
 	chanReserve := chanAmt / 100
 	dustLimit := int64(6030) // dust limit at the network relay fee rate
 
