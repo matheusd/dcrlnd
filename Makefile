@@ -40,9 +40,10 @@ DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
 DCRD_TMPDIR := $(shell mktemp -d)
 
-DCRWALLET_COMMIT := release-v1.5
+DCRWALLET_REPO := github.com/matheusd/dcrwallet
+DCRWALLET_COMMIT := 1922b3b7d4805f47b44042afa325c659386f97af
 DCRWALLET_META := $(DCRWALLET_COMMIT).from-dcrlnd
-DCRWALLET_LDFLAGS := "-X github.com/decred/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
+DCRWALLET_LDFLAGS := "-X decred.org/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
 DCRWALLET_TMPDIR := $(shell mktemp -d)
 
 GOACC_COMMIT := ddc355013f90fea78d83d3a6c71f1d37ac07ecd5
@@ -117,7 +118,7 @@ dcrd:
 
 dcrwallet:
 	@$(call print, "Installing dcrwallet $(DCRWALLET_COMMIT).")
-	git clone https://github.com/decred/dcrwallet $(DCRWALLET_TMPDIR)
+	git clone https://$(DCRWALLET_REPO) $(DCRWALLET_TMPDIR)
 	cd $(DCRWALLET_TMPDIR) && \
 		git checkout $(DCRWALLET_COMMIT) && \
 		GO111MODULE=on go build -o "$$GOPATH/bin/dcrwallet-dcrlnd" -ldflags $(DCRWALLET_LDFLAGS) .
