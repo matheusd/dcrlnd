@@ -1362,7 +1362,7 @@ func (s *server) Start() error {
 		// connections to percolate through the connMgr and be
 		// registered as potential peers before attempting outbound
 		// connections.
-		time.Sleep(time.Second)
+		time.Sleep(time.Millisecond * 200)
 
 		if err := s.establishPersistentConnections(); err != nil {
 			startErr = err
