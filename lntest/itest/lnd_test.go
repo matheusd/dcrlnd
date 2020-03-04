@@ -166,7 +166,7 @@ func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash)
 		}
 	}
 
-	t.Fatalf("tx was not included in block")
+	t.Fatalf("tx %s was not included in block", txid)
 }
 
 func rpcPointToWirePoint(t *harnessTest, chanPoint *lnrpc.ChannelPoint) wire.OutPoint {
@@ -2392,9 +2392,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	// open.
 	block := mineBlocks(t, net, 10, 1)[0]
 	assertTxInBlock(t, block, fundingTxID)
-	// TODO: Re-enable.
-	tempMiner.Node.Generate(context.Background(), 15)
-	// lntest.AdjustedSimnetMiner(tempMiner.Node, 15)
+	lntest.AdjustedSimnetMiner(tempMiner.Node, 15)
 
 	// Ensure the chain lengths are what we expect, with the temp miner
 	// being 5 blocks ahead.
