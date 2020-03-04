@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
@@ -32,7 +33,6 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/macaroons"
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"github.com/go-errors/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

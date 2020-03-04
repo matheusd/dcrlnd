@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrd/rpcclient/v5"
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

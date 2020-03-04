@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

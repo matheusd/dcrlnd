@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
@@ -56,7 +57,6 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/zpay32"
-	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"

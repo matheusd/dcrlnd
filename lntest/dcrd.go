@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
 )
 
 // logDir is the name of the temporary log directory.

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -25,7 +26,6 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/chainview"
-	"github.com/decred/dcrwallet/wallet/v3"
 	"google.golang.org/grpc"
 )
 

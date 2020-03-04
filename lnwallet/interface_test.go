@@ -21,7 +21,7 @@ import (
 	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 
-	_ "github.com/decred/dcrwallet/wallet/v3/drivers/bdb"
+	_ "decred.org/dcrwallet/wallet/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
@@ -267,7 +267,7 @@ func loadTestCredits(miner *rpctest.Harness, w *lnwallet.LightningWallet,
 	// manager and underlying database. This is needed to prevent a possible
 	// deadlock condition in the wallet when generating new addresses while
 	// processing a transaction (see
-	// https://github.com/decred/dcrwallet/issues/1372). This isn't pretty,
+	// https://github.com/dcrwallet/issues/1372). This isn't pretty,
 	// but 200ms should be more than enough to prevent triggering this bug
 	// on most dev machines.
 	time.Sleep(time.Millisecond * 200)
@@ -1480,7 +1480,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 func scriptFromKey(pubkey *secp256k1.PublicKey) ([]byte, error) {
 	pubkeyHash := dcrutil.Hash160(pubkey.SerializeCompressed())
 	keyAddr, err := dcrutil.NewAddressPubKeyHash(
-		pubkeyHash, chaincfg.RegNetParams(), dcrec.STEcdsaSecp256k1,
+		pubkeyHash, chaincfg.SimNetParams(), dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create addr: %v", err)
