@@ -80,6 +80,21 @@ func TestTxSizeEstimator(t *testing.T) {
 			numP2PKHOutputs: 1,
 			numP2SHOutputs:  2,
 		},
+		{
+			numP2SHInputs:   253,
+			numP2PKHOutputs: 1,
+			numP2SHOutputs:  1,
+		},
+		{
+			numP2SHInputs:   1,
+			numP2PKHOutputs: 253,
+			numP2SHOutputs:  1,
+		},
+		{
+			numP2SHInputs:   1,
+			numP2PKHOutputs: 1,
+			numP2SHOutputs:  253,
+		},
 	}
 
 	for i, test := range testCases {
