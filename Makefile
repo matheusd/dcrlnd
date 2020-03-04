@@ -30,12 +30,7 @@ WTDIRTY := $(shell git diff-index --quiet HEAD -- || echo "-dirty" || echo "")
 COMMIT := $(shell git log -1 --format="%H$(WTDIRTY)")
 LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
 
-DCRD_COMMIT := $(shell cat go.mod | \
-		grep $(DCRD_PKG) | \
-		head -n1 | \
-		awk -F " " '{ print $$2 }' | \
-		awk -F "/" '{ print $$1 }' | \
-		awk -F "-" '{ print $$NF }' )
+DCRD_COMMIT := b10c942130f497f2285697899d6d562f75cded84
 DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
 DCRD_TMPDIR := $(shell mktemp -d)
