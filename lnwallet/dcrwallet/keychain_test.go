@@ -9,11 +9,11 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 
+	wallet "decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	wallet "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
 )
 
 var (
@@ -30,9 +30,9 @@ func createTestWallet() (func(), *wallet.Wallet, *channeldb.DB, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	loader := walletloader.NewLoader(chaincfg.RegNetParams(), tempDir,
+	loader := walletloader.NewLoader(chaincfg.SimNetParams(), tempDir,
 		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+		txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
 		false)
 
 	pass := []byte("test")

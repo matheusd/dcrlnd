@@ -27,11 +27,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	"github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
 	proxy "github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/decred/dcrlnd/autopilot"
@@ -958,7 +958,7 @@ func waitForWalletPassword(restEndpoints []net.Addr,
 		)
 		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
 			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb.ToCoin(), wallet.DefaultAccountGapLimit,
+			txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
 			false)
 
 		// With the seed, we can now use the wallet loader to create

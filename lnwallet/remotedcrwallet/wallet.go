@@ -11,9 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	pb "github.com/decred/dcrwallet/rpc/walletrpc"
+	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"google.golang.org/grpc"
 
+	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
@@ -23,7 +24,6 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
-	"github.com/decred/dcrwallet/wallet/v3/txauthor"
 )
 
 type DcrWallet struct {

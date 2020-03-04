@@ -2,12 +2,14 @@ package dcrwallet
 
 import (
 	"context"
+
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/keychain"
 
+	"decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/udb"
 	"github.com/decred/dcrd/hdkeychain/v2"
-	"github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 // walletKeyRing is an implementation of both the KeyRing and SecretKeyRing
@@ -57,10 +59,11 @@ func newWalletKeyRing(w *wallet.Wallet, db *channeldb.DB) (*walletKeyRing, error
 	masterPubs := make(map[keychain.KeyFamily]*hdkeychain.ExtendedKey,
 		lastKeyFam+1)
 
-	ctKey, err := w.CoinTypePrivKey(context.TODO())
+	ctKey3, err := w.CoinTypePrivKey(context.TODO())
 	if err != nil {
 		return nil, err
 	}
+	ctKey := compat.ExtendedKey3to2(ctKey3, w.ChainParams())
 
 	// Derive the master pubs for each key family. They are mapped to the
 	// external branch for each corresponding wallet account.
@@ -101,10 +104,11 @@ func (wkr *walletKeyRing) nextIndex(keyFam keychain.KeyFamily) (uint32, error) {
 func (wkr *walletKeyRing) fetchMasterPriv(keyFam keychain.KeyFamily) (*hdkeychain.ExtendedKey,
 	error) {
 
-	ctKey, err := wkr.wallet.CoinTypePrivKey(context.TODO())
+	ctKey3, err := wkr.wallet.CoinTypePrivKey(context.TODO())
 	if err != nil {
 		return nil, err
 	}
+	ctKey := compat.ExtendedKey3to2(ctKey3, wkr.wallet.ChainParams())
 
 	acctKey, err := ctKey.Child(hdkeychain.HardenedKeyStart + uint32(keyFam))
 	if err != nil {

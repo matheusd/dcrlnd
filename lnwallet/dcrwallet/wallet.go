@@ -16,14 +16,15 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 
+	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 
+	base "decred.org/dcrwallet/wallet"
+	"decred.org/dcrwallet/wallet/txauthor"
+	"decred.org/dcrwallet/wallet/txrules"
+	"decred.org/dcrwallet/wallet/udb"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
-	base "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/txauthor"
-	"github.com/decred/dcrwallet/wallet/v3/txrules"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 const (
@@ -99,7 +100,7 @@ func New(cfg Config) (*DcrWallet, error) {
 		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
 		loader = walletloader.NewLoader(cfg.NetParams, netDir,
 			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb.ToCoin(), base.DefaultAccountGapLimit,
+			txrules.DefaultRelayFeePerKb, base.DefaultAccountGapLimit,
 			false)
 		walletExists, err := loader.WalletExists()
 		if err != nil {
@@ -203,7 +204,7 @@ func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 		return 0, err
 	}
 
-	return balances.Spendable, nil
+	return compat.Amount3to2(balances.Spendable), nil
 }
 
 // NewAddress returns the next external or internal address for the wallet
@@ -255,7 +256,11 @@ func (b *DcrWallet) LastUnusedAddress(addrType lnwallet.AddressType) (
 		return nil, fmt.Errorf("unknown address type")
 	}
 
-	return b.wallet.CurrentAddress(defaultAccount)
+	addr3, err := b.wallet.CurrentAddress(defaultAccount)
+	if err != nil {
+		return nil, err
+	}
+	return compat.Address3to2(addr3, b.wallet.ChainParams())
 }
 
 // IsOurAddress checks if the passed address belongs to this wallet
@@ -284,7 +289,7 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 	// add the fee as a parameter so that we don't risk changing the default
 	// fee rate.
 	oldRelayFee := b.wallet.RelayFee()
-	b.wallet.SetRelayFee(dcrutil.Amount(feeRate))
+	b.wallet.SetRelayFee(compat.Amount2to3(dcrutil.Amount(feeRate)))
 	defer b.wallet.SetRelayFee(oldRelayFee)
 
 	txHash, err := b.wallet.SendOutputs(context.TODO(), outputs,
@@ -476,7 +481,7 @@ func extractBalanceDelta(
 	// transaction.
 	var balanceDelta dcrutil.Amount
 	for _, input := range txSummary.MyInputs {
-		balanceDelta -= input.PreviousAmount
+		balanceDelta -= compat.Amount3to2(input.PreviousAmount)
 	}
 	for _, output := range txSummary.MyOutputs {
 		balanceDelta += dcrutil.Amount(tx.TxOut[output.Index].Value)
@@ -688,8 +693,9 @@ out:
 			// Launch a goroutine to re-package and send
 			// notifications for any newly confirmed transactions.
 			go func() {
+				chainParams := compat.Params3to2(t.w.ChainParams())
 				for _, block := range txNtfn.AttachedBlocks {
-					details, err := minedTransactionsToDetails(currentHeight, &block, t.w.ChainParams())
+					details, err := minedTransactionsToDetails(currentHeight, &block, chainParams)
 					if err != nil {
 						continue
 					}
@@ -708,9 +714,10 @@ out:
 			// Launch a goroutine to re-package and send
 			// notifications for any newly unconfirmed transactions.
 			go func() {
+				chainParams := compat.Params3to2(t.w.ChainParams())
 				for _, tx := range txNtfn.UnminedTransactions {
 					detail, err := unminedTransactionsToDetail(
-						tx, t.w.ChainParams(),
+						tx, chainParams,
 					)
 					if err != nil {
 						continue

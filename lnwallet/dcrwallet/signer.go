@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"decred.org/dcrwallet/errors"
+	base "decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
@@ -12,9 +14,6 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
-	"github.com/decred/dcrwallet/errors/v2"
-	base "github.com/decred/dcrwallet/wallet/v3"
-	"github.com/decred/dcrwallet/wallet/v3/udb"
 )
 
 // FetchInputInfo queries for the WalletController's knowledge of the passed
@@ -76,7 +75,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 // fetchOutputAddr attempts to fetch the managed address corresponding to the
 // passed output script. This function is used to look up the proper key which
 // should be used to sign a specified input.
-func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.ManagedAddress, error) {
+func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (base.KnownAddress, error) {
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, script,
 		b.netParams)
 	if err != nil {
@@ -87,7 +86,7 @@ func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (udb.Ma
 	// Therefore, we simply select the key for the first address we know
 	// of.
 	for _, addr := range addrs {
-		addr, err := b.wallet.AddressInfo(context.TODO(), addr)
+		addr, err := b.wallet.KnownAddress(context.TODO(), addr)
 		if err == nil {
 			return addr, nil
 		}
@@ -200,7 +199,11 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	}
 
 	// Fetch the private key for the given wallet address.
-	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(context.TODO(), walletAddr.Address())
+	addr, err := dcrutil.DecodeAddress(walletAddr.String(), b.netParams)
+	if err != nil {
+		return nil, err
+	}
+	privKeyWifStr, err := b.wallet.DumpWIFPrivateKey(context.TODO(), addr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid wif string for address: %v", err)
 	}
