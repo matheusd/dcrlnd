@@ -2118,10 +2118,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		return vw.GenerateBlocks(nb)
 	}
 	mineSecond := func(nb uint32) ([]*chainhash.Hash, error) {
-		return r2.Node.Generate(nb)
-		// TODO: Re-enable.
-		//
-		// return lntest.AdjustedSimnetMiner(r2.Node, nb)
+		return lntest.AdjustedSimnetMiner(r2.Node, nb)
 	}
 
 	// Step 3: Do a set of reorgs by disconnecting the two miners, mining
@@ -2927,16 +2924,9 @@ func TestLightningWallet(t *testing.T) {
 			votingWallet.SetErrorReporting(func(err error) {
 				t.Logf("Voting wallet error: %v", err)
 			})
-			// TODO: Re-enable. The new background template
-			// generator takes up to 30s to generate a new template
-			// for new regular txs, so this currently fails tests
-			// which rely on sending a tx and checking it was
-			// mined.
-			/*
-				votingWallet.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
-					return lntest.AdjustedSimnetMiner(miningNode.Node, nb)
-				})
-			*/
+			votingWallet.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
+				return lntest.AdjustedSimnetMiner(miningNode.Node, nb)
+			})
 			if err = votingWallet.Start(); err != nil {
 				t.Fatalf("unable to start voting wallet: %v", err)
 			}

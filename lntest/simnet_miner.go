@@ -3,6 +3,7 @@ package lntest
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math"
 	"runtime"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	rpcclient3 "github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/lntest/wait"
 )
 
 // solveBlock attempts to find a nonce which makes the passed block header hash
@@ -87,6 +89,28 @@ func solveBlock(header *wire.BlockHeader) bool {
 func AdjustedSimnetMiner(client *rpcclient3.Client, nb uint32) ([]*chainhash.Hash, error) {
 
 	hashes := make([]*chainhash.Hash, nb)
+
+	prevWork, err := client.GetWork()
+	if err != nil {
+		return nil, err
+	}
+
+	// Force regeneration of the block template prior to generating this
+	// set of blocks so that it's current, then wait for a bit for it to be
+	// updated.
+	err = client.RegenTemplate()
+	if err != nil {
+		return nil, fmt.Errorf("unable to regenerate block template: %v", err)
+	}
+
+	// Wait until the template changes or some time has passed.
+	wait.Predicate(func() bool {
+		work, err := client.GetWork()
+		if err != nil {
+			return false
+		}
+		return work.Data != prevWork.Data
+	}, time.Second)
 
 	for i := uint32(0); i < nb; i++ {
 		work, err := client.GetWork()
