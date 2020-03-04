@@ -35,6 +35,7 @@ import (
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/go-errors/errors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 	"gopkg.in/macaroon.v2"
 )
@@ -615,8 +616,16 @@ func (hn *HarnessNode) startRemoteWallet() error {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second * 40),
-		grpc.WithBackoffMaxDelay(time.Millisecond * 20),
 		grpc.WithTransportCredentials(creds),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  time.Millisecond * 20,
+				Multiplier: 1,
+				Jitter:     0.2,
+				MaxDelay:   time.Millisecond * 20,
+			},
+			MinConnectTimeout: time.Millisecond * 20,
+		}),
 	}
 
 	hn.walletConn, err = grpc.Dial(
@@ -970,7 +979,18 @@ func (hn *HarnessNode) ConnectRPCWithMacaroon(mac *macaroon.Macaroon) (
 		}
 	}
 
-	opts := []grpc.DialOption{grpc.WithBlock()}
+	opts := []grpc.DialOption{
+		grpc.WithBlock(),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  time.Millisecond * 20,
+				Multiplier: 1,
+				Jitter:     0.2,
+				MaxDelay:   time.Millisecond * 20,
+			},
+			MinConnectTimeout: time.Millisecond * 20,
+		}),
+	}
 	tlsCreds, err := credentials.NewClientTLSFromFile(
 		hn.Cfg.TLSCertPath, "",
 	)
