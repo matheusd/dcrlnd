@@ -53,12 +53,12 @@ UNIT_TARGETED ?= no
 # targeted case. Otherwise, default to running all tests.
 ifeq ($(UNIT_TARGETED), yes)
 UNIT := $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) $(UNITPKG)
-UNIT_RACE := $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) -race $(UNITPKG)
+UNIT_RACE := $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) -race -gcflags=all=-d=checkptr=0 $(UNITPKG)
 endif
 
 ifeq ($(UNIT_TARGETED), no)
 UNIT := $(GOLIST) | $(XARGS) env $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS)
-UNIT_RACE := $(UNIT) -race
+UNIT_RACE := $(UNIT) -race -gcflags=all=-d=checkptr=0
 endif
 
 
