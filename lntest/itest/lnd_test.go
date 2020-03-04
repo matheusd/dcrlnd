@@ -3403,6 +3403,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 	// outputs can be swept.
 	commitTypes := []commitType{
 		commitTypeLegacy,
+		commitTypeAnchors,
 	}
 
 	for _, channelType := range commitTypes {
@@ -3442,7 +3443,19 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 					err)
 			}
 
-			channelForceClosureTest(net, ht, alice, carol)
+			// Also give Carol some coins to allow her to sweep her
+			// anchor.
+			err = net.SendCoins(
+				ctxt, dcrutil.AtomsPerCoin, carol,
+			)
+			if err != nil {
+				t.Fatalf("unable to send coins to Alice: %v",
+					err)
+			}
+
+			channelForceClosureTest(
+				net, ht, alice, carol, channelType,
+			)
 		})
 		if !success {
 			return
@@ -3451,7 +3464,7 @@ func testChannelForceClosure(net *lntest.NetworkHarness, t *harnessTest) {
 }
 
 func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
-	alice, carol *lntest.HarnessNode) {
+	alice, carol *lntest.HarnessNode, channelType commitType) {
 
 	ctxb := context.Background()
 
@@ -3624,8 +3637,16 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 	}
 
 	// Mine a block which should confirm the commitment transaction
-	// broadcast as a result of the force closure.
-	_, err = waitForTxInMempool(net.Miner.Node, minerMempoolTimeout)
+	// broadcast as a result of the force closure. If there are anchors, we
+	// also expect the anchor sweep tx to be in the mempool.
+	expectedTxes := 1
+	if channelType == commitTypeAnchors {
+		expectedTxes = 2
+	}
+
+	_, err = waitForNTxsInMempool(
+		net.Miner.Node, expectedTxes, minerMempoolTimeout,
+	)
 	if err != nil {
 		t.Fatalf("failed to find commitment in miner mempool: %v", err)
 	}
@@ -3666,12 +3687,17 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		}
 
 		// None of our outputs have been swept, so they should all be in
-		// limbo.
+		// limbo. For anchors, we expect the anchor amount to be
+		// recovered.
 		if forceClose.LimboBalance == 0 {
 			return errors.New("all funds should still be in " +
 				"limbo")
 		}
-		if forceClose.RecoveredBalance != 0 {
+		expectedRecoveredBalance := int64(0)
+		if channelType == commitTypeAnchors {
+			expectedRecoveredBalance = anchorSize
+		}
+		if forceClose.RecoveredBalance != expectedRecoveredBalance {
 			return errors.New("no funds should yet be shown " +
 				"as recovered")
 		}
@@ -3690,9 +3716,21 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		t.Fatalf("Node restart failed: %v", err)
 	}
 
+	if channelType == commitTypeAnchors {
+		// Note(decred): in lnd due to a large difference in fees, two
+		// transactions are expected at this point: one sweeping the
+		// commitment output and one the anchor output. In decred,
+		// since fees are all using the default relay fee only a single
+		// transaction sweeping both outputs is expected.
+		expectedTxes = 1
+	}
+
 	// Carol's sweep tx should be in the mempool already, as her output is
-	// not timelocked.
-	_, err = waitForTxInMempool(net.Miner.Node, minerMempoolTimeout)
+	// not timelocked. If there are anchors, we also expect Carol's anchor
+	// sweep now.
+	_, err = waitForNTxsInMempool(
+		net.Miner.Node, expectedTxes, minerMempoolTimeout,
+	)
 	if err != nil {
 		t.Fatalf("failed to find Carol's sweep in miner mempool: %v",
 			err)
@@ -3754,7 +3792,11 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 			return errors.New("all funds should still be in " +
 				"limbo")
 		}
-		if forceClose.RecoveredBalance != 0 {
+		expectedRecoveredBalance := int64(0)
+		if channelType == commitTypeAnchors {
+			expectedRecoveredBalance = anchorSize
+		}
+		if forceClose.RecoveredBalance != expectedRecoveredBalance {
 			return errors.New("no funds should yet be shown " +
 				"as recovered")
 		}
