@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
@@ -131,6 +132,7 @@ func createTestCtxFromGraphInstance(startingHeight uint32, graphInstance *testGr
 			return next, nil
 		},
 		PathFindingConfig: pathFindingConfig,
+		Clock:             clock.NewTestClock(time.Unix(1, 0)),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create router %v", err)
@@ -2968,6 +2970,7 @@ func TestRouterPaymentStateMachine(t *testing.T) {
 				next := atomic.AddUint64(&uniquePaymentID, 1)
 				return next, nil
 			},
+			Clock: clock.NewTestClock(time.Unix(1, 0)),
 		})
 		if err != nil {
 			t.Fatalf("unable to create router %v", err)
