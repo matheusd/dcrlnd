@@ -17020,9 +17020,9 @@ func TestLightningNetworkDaemon(t *testing.T) {
 	}
 
 	t.Logf("Running %v integration tests", len(testsCases))
-	for _, testCase := range testsCases {
-		logLine := fmt.Sprintf("STARTING ============ %v ============\n",
-			testCase.name)
+	for i, testCase := range testsCases {
+		logLine := fmt.Sprintf("STARTING %d ============ %v ============\n",
+			i, testCase.name)
 
 		err := lndHarness.EnsureConnected(
 			context.Background(), lndHarness.Alice, lndHarness.Bob,
