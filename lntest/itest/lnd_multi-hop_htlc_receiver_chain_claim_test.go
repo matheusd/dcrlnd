@@ -191,6 +191,8 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest) 
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
+	// Wait for Carol to process the block before performing the next
+	// checks.
 	time.Sleep(time.Second * 4)
 
 	// TODO(roasbeef): assert bob pending state as well
