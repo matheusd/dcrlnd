@@ -102,7 +102,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 
 	// Mine enough blocks for Alice to sweep her funds from the force
 	// closed channel.
-	_, err = net.Generate(defaultCSV)
+	_, err = net.Generate(defaultCSV - 1)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -137,7 +137,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// on-chain to claim the HTLC as Bob has been inactive. We mine up to
 	// just before the deadline to check the transaction is in the mempool.
 	numBlocks := padCLTV(uint32(invoiceReq.CltvExpiry-
-		dcrlnd.DefaultIncomingBroadcastDelta) - defaultCSV - 1)
+		dcrlnd.DefaultIncomingBroadcastDelta) - defaultCSV)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}

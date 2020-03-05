@@ -502,7 +502,10 @@ func cleanupForceClose(t *harnessTest, net *lntest.NetworkHarness,
 
 	// Mine enough blocks for the node to sweep its funds from the force
 	// closed channel.
-	_, err = net.Generate(defaultCSV)
+	//
+	// The commit sweeper resolver is able to broadcast the sweep tx up to
+	// one block before the CSV elapses, so wait until defaultCSV-1.
+	_, err = net.Generate(defaultCSV - 1)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -4614,6 +4617,7 @@ func updateChannelPolicy(t *harnessTest, node *lntest.HarnessNode,
 }
 
 func testMultiHopPayments(net *lntest.NetworkHarness, t *harnessTest) {
+
 	ctxb := context.Background()
 
 	const chanAmt = dcrutil.Amount(100000)
@@ -7340,7 +7344,7 @@ func testFailingChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Mine enough blocks for Alice to sweep her funds from the force
 	// closed channel.
-	_, err = net.Generate(defaultCSV)
+	_, err = net.Generate(defaultCSV - 1)
 	if err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
@@ -9688,7 +9692,11 @@ func assertDLPExecuted(net *lntest.NetworkHarness, t *harnessTest,
 	}
 
 	// After the Carol's output matures, she should also reclaim her funds.
-	mineBlocks(t, net, defaultCSV-1, 0)
+	//
+	// The commit sweep resolver publishes the sweep tx at defaultCSV-1 and
+	// we already mined one block after the commitmment was published, so
+	// take that into account.
+	mineBlocks(t, net, defaultCSV-2, 0)
 	carolSweep, err := waitForTxInMempool(
 		net.Miner.Node, minerMempoolTimeout,
 	)
@@ -10001,7 +10009,7 @@ func testDataLossProtection(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Mine enough blocks for Carol to sweep her funds.
-	mineBlocks(t, net, defaultCSV, 0)
+	mineBlocks(t, net, defaultCSV-1, 0)
 
 	carolSweep, err := waitForTxInMempool(net.Miner.Node, minerMempoolTimeout)
 	if err != nil {
@@ -11785,7 +11793,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// We'll mine the remaining blocks in order to generate the sweep
 	// transaction of Bob's commitment output.
-	mineBlocks(t, net, defaultCSV, 1)
+	mineBlocks(t, net, defaultCSV-1, 1)
 	assertSpendingTxInMempool(
 		t, net.Miner.Node, minerMempoolTimeout, wire.OutPoint{
 			Hash:  *closeTxid,
@@ -11815,10 +11823,10 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("bob should have pending htlc but doesn't")
 	}
 
-	// Now we'll mine an additional block, which should confirm Bob's commit
-	// sweep. This block should also prompt Bob to broadcast their second
-	// layer sweep due to the CSV on the HTLC timeout output.
-	mineBlocks(t, net, 1, 1)
+	// Now we'll mine two additional blocks, the first should confirm Bob's
+	// commit sweep. The following block should prompt Bob to broadcast
+	// their second layer sweep due to the CSV on the HTLC timeout output.
+	mineBlocks(t, net, 2, 1)
 	assertSpendingTxInMempool(
 		t, net.Miner.Node, minerMempoolTimeout, wire.OutPoint{
 			Hash:  *htlcTimeout,
@@ -11982,7 +11990,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 
 	// We'll mine defaultCSV blocks in order to generate the sweep transaction
 	// of Bob's funding output.
-	if _, err := net.Generate(defaultCSV); err != nil {
+	if _, err := net.Generate(defaultCSV - 1); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
@@ -11994,7 +12002,7 @@ func testMultiHopLocalForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	// We'll now mine enough blocks for the HTLC to expire. After this, Bob
 	// should hand off the now expired HTLC output to the utxo nursery.
 	numBlocks := padCLTV(
-		finalCltvDelta - defaultCSV - 1,
+		finalCltvDelta - defaultCSV,
 	)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
@@ -14326,7 +14334,7 @@ func testSendUpdateDisableChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	// Since we force-closed the Alice->Carol channel, mine enough blocks
 	// for the resulting sweep tx to be broadcast and confirmed (taking
 	// into account we already mined one block after closing that channel).
-	mineBlocks(t, net, defaultCSV-1, 0)
+	mineBlocks(t, net, defaultCSV-2, 0)
 	mineBlocks(t, net, 1, 1)
 }
 
