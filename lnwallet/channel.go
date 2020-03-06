@@ -2022,7 +2022,11 @@ type BreachRetribution struct {
 	// party) within the breach transaction.
 	LocalOutpoint wire.OutPoint
 
-	// RemoteOutputSignDesc is a input.SignDescriptor which is capable of
+	// LocalDelay is the CSV delay for the to_remote script on the breached
+	// commitment.
+	LocalDelay uint32
+
+	// RemoteOutputSignDesc is a SignDescriptor which is capable of
 	// generating the signature required to claim the funds as described
 	// within the revocation clause of the remote party's commitment
 	// output.
@@ -2035,6 +2039,10 @@ type BreachRetribution struct {
 	// party within the breach transaction.
 	RemoteOutpoint wire.OutPoint
 
+	// RemoteDelay specifies the CSV delay applied to to-local scripts on
+	// the breaching commitment transaction.
+	RemoteDelay uint32
+
 	// HtlcRetributions is a slice of HTLC retributions for each output
 	// active HTLC output within the breached commitment transaction.
 	HtlcRetributions []HtlcRetribution
@@ -2043,10 +2051,6 @@ type BreachRetribution struct {
 	// breaching commitment transaction. This allows downstream clients to
 	// have access to the public keys used in the scripts.
 	KeyRing *CommitmentKeyRing
-
-	// RemoteDelay specifies the CSV delay applied to to-local scripts on
-	// the breaching commitment transaction.
-	RemoteDelay uint32
 }
 
 // NewBreachRetribution creates a new fully populated BreachRetribution for the
@@ -2098,7 +2102,7 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 
 	// Since it is the remote breach we are reconstructing, the output going
 	// to us will be a to-remote script with our local params.
-	ourScript, _, err := CommitScriptToRemote(
+	ourScript, ourDelay, err := CommitScriptToRemote(
 		chanState.ChanType, keyRing.ToRemoteKey,
 	)
 	if err != nil {
@@ -2240,11 +2244,12 @@ func NewBreachRetribution(chanState *channeldb.OpenChannel, stateNum uint64,
 		PendingHTLCs:         revokedSnapshot.Htlcs,
 		LocalOutpoint:        ourOutpoint,
 		LocalOutputSignDesc:  ourSignDesc,
+		LocalDelay:           ourDelay,
 		RemoteOutpoint:       theirOutpoint,
 		RemoteOutputSignDesc: theirSignDesc,
+		RemoteDelay:          theirDelay,
 		HtlcRetributions:     htlcRetributions,
 		KeyRing:              keyRing,
-		RemoteDelay:          theirDelay,
 	}, nil
 }
 
