@@ -1041,7 +1041,8 @@ func TestHTLCDustLimit(t *testing.T) {
 
 	// The amount of the HTLC should be above Alice's dust limit and below
 	// Bob's dust limit.
-	htlcAtoms := dcrutil.Amount(8000) + htlcTimeoutFee(
+	htlcAtoms := dcrutil.Amount(8000) + HtlcTimeoutFee(
+		aliceChannel.channelState.ChanType,
 		chainfee.AtomPerKByte(
 			aliceChannel.channelState.LocalCommitment.FeePerKB,
 		),
@@ -1144,13 +1145,17 @@ func TestHTLCSigNumber(t *testing.T) {
 
 	// Calculate two values that will be below and above Bob's dust limit.
 	estimator := chainfee.NewStaticEstimator(1e5, 0)
-	FeePerKB, err := estimator.EstimateFeePerKB(1)
+	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		t.Fatalf("unable to get fee: %v", err)
 	}
 
-	belowDust := dcrutil.Amount(5000) + htlcTimeoutFee(FeePerKB)
-	aboveDust := dcrutil.Amount(14000) + htlcSuccessFee(FeePerKB)
+	belowDust := dcrutil.Amount(5000) + HtlcTimeoutFee(
+		channeldb.SingleFunderTweaklessBit, feePerKB,
+	)
+	aboveDust := dcrutil.Amount(14000) + HtlcSuccessFee(
+		channeldb.SingleFunderTweaklessBit, feePerKB,
+	)
 
 	// ===================================================================
 	// Test that Bob will reject a commitment if Alice doesn't send enough
@@ -4834,10 +4839,10 @@ func TestChanAvailableBalanceNearHtlcFee(t *testing.T) {
 		aliceChannel.channelState.LocalCommitment.CommitFee,
 	)
 	htlcTimeoutFee := lnwire.NewMAtomsFromAtoms(
-		htlcTimeoutFee(feeRate),
+		HtlcTimeoutFee(aliceChannel.channelState.ChanType, feeRate),
 	)
 	htlcSuccessFee := lnwire.NewMAtomsFromAtoms(
-		htlcSuccessFee(feeRate),
+		HtlcSuccessFee(aliceChannel.channelState.ChanType, feeRate),
 	)
 
 	// Helper method to check the current reported balance.
@@ -6343,7 +6348,8 @@ func TestChanReserveLocalInitiatorDustHtlc(t *testing.T) {
 	// limit (12060 atoms). It is considered dust if the amount remaining
 	// after paying the HTLC fee is below the dustlimit, so we choose a
 	// size of 7000+htlcFee.
-	htlcSat := dcrutil.Amount(7000) + htlcTimeoutFee(
+	htlcSat := dcrutil.Amount(7000) + HtlcTimeoutFee(
+		aliceChannel.channelState.ChanType,
 		chainfee.AtomPerKByte(
 			aliceChannel.channelState.LocalCommitment.FeePerKB,
 		),
