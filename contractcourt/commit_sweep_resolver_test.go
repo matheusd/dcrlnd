@@ -135,6 +135,7 @@ func TestCommitSweepResolverNoDelay(t *testing.T) {
 			Output: &wire.TxOut{
 				Value: 100,
 			},
+			WitnessScript: []byte{0},
 		},
 	}
 
@@ -164,6 +165,7 @@ func TestCommitSweepResolverDelay(t *testing.T) {
 			Output: &wire.TxOut{
 				Value: amt,
 			},
+			WitnessScript: []byte{0},
 		},
 		MaturityDelay: 3,
 		SelfOutPoint:  outpoint,
@@ -241,6 +243,7 @@ func TestCommitSweepResolverLocalBreach(t *testing.T) {
 			Output: &wire.TxOut{
 				Value: amt,
 			},
+			WitnessScript: []byte{0},
 		},
 		MaturityDelay: 3,
 		SelfOutPoint:  outpoint,
