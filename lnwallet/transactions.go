@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 )
 
@@ -44,8 +45,8 @@ var (
 // In order to spend the HTLC output, the witness for the passed transaction
 // should be:
 //   * <sender sig> <recvr sig> <preimage>
-func createHtlcSuccessTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
-	csvDelay uint32,
+func createHtlcSuccessTx(chanType channeldb.ChannelType,
+	htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount, csvDelay uint32,
 	revocationKey, delayKey *secp256k1.PublicKey) (*wire.MsgTx, error) {
 
 	// Create a version two transaction (as the success version of this
@@ -98,7 +99,8 @@ func createHtlcSuccessTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 // NOTE: The passed amount for the HTLC should take into account the required
 // fee rate at the time the HTLC was created. The fee should be able to
 // entirely pay for this (tiny: 1-in 1-out) transaction.
-func createHtlcTimeoutTx(htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
+func createHtlcTimeoutTx(chanType channeldb.ChannelType,
+	htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
 	cltvExpiry, csvDelay uint32,
 	revocationKey, delayKey *secp256k1.PublicKey) (*wire.MsgTx, error) {
 
