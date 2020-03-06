@@ -191,14 +191,17 @@ const (
 	//                      - OP_DROP                        1 byte
 	//                      - OP_CHECKSIG                    1 byte
 	//              - OP_ENDIF                               1 byte
+	//		- OP_DATA_1				 1 byte
+	//		- OP_CHECKSEQUENCEVERIFY		 1 byte
+	//		- OP_DROP				 1 byte
 	//      - OP_ENDIF                                       1 byte
 	//
-	// Total: 140 bytes
+	// Total: 143 bytes
 	//
 	// TODO(decred) verify whether the maximum cltv_expirt can actually occupy
 	// the full 5 bytes (which is the maximum used by OP_CHECKLOCKTIMEVERIFY).
 	acceptedHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 8*1 + 20 + 4*1 +
-		33 + 5*1 + 5 + 5*1
+		33 + 5*1 + 5 + 8*1
 
 	// offeredHtlcRedeemScriptSize is the worst (largest) size of a redeemScript used
 	// by the local node when sending payment via an HTLC output.
@@ -238,10 +241,13 @@ const (
 	//		                - OP_EQUALVERIFY             1 byte
 	//		                - OP_CHECKSIG                1 byte
 	//		        - OP_ENDIF                           1 byte
+	//			- OP_DATA_1			     1 byte
+	//			- OP_CHECKSEQUENCEVERIFY	     1 byte
+	//			- OP_DROP			     1 byte
 	//		- OP_ENDIF                                   1 byte
 	//
-	// Total: 133 bytes
-	offeredHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 10*1 + 33 + 6*1 + 20 + 4*1
+	// Total: 136 bytes
+	offeredHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 10*1 + 33 + 6*1 + 20 + 7*1
 
 	// The following *SigScript constants record sizes for various types of
 	// LN-specific sigScripts, spending outputs that use one of the custom
@@ -306,9 +312,9 @@ const (
 	//		- OP_0                            1 byte
 	//		- OP_PUSHDATA1                    1 byte
 	//		- 140                             1 byte
-	//		- accepted_htlc script          140 bytes
+	//		- accepted_htlc script          143 bytes
 	//
-	// Total: 217 bytes
+	// Total: 220 bytes
 	AcceptedHtlcTimeoutSigScriptSize int64 = 1 + 73 + 1 + 1 + 1 +
 		acceptedHtlcRedeemScriptSize
 
@@ -323,9 +329,9 @@ const (
 	//		- payment_preimage                  32 bytes
 	//		- OP_PUSHDATA1                       1 byte
 	//		- 140                                1 byte
-	//		- accepted_htlc script             140 bytes
+	//		- accepted_htlc script             143 bytes
 	//
-	// Total: 323 bytes
+	// Total: 326 bytes
 	AcceptedHtlcSuccessSigScriptSize int64 = 1 + 73 + 1 + 73 + 1 + 32 +
 		1 + 1 + acceptedHtlcRedeemScriptSize
 
@@ -338,9 +344,9 @@ const (
 	//		- revocation_key                   33 bytes
 	//		- OP_PUSHDATA1                      1 byte
 	//		- 140                               1 byte
-	//		- accepted_htlc script            140 bytes
+	//		- accepted_htlc script            143 bytes
 	//
-	// Total: 250 bytes
+	// Total: 253 bytes
 	AcceptedHtlcPenaltySigScriptSize int64 = 1 + 73 + 1 + 33 + 1 + 1 +
 		acceptedHtlcRedeemScriptSize
 
@@ -354,9 +360,9 @@ const (
 	//		- OP_0                               1 byte
 	//		- OP_PUSHDATA1                       1 byte
 	//		- 133                                1 byte
-	//		- offered_htlc script              133 bytes
+	//		- offered_htlc script              136 bytes
 	//
-	// Total: 284 bytes
+	// Total: 287 bytes
 	OfferedHtlcTimeoutSigScriptSize int64 = 1 + 73 + 1 + 73 + 1 + 1 +
 		1 + offeredHtlcRedeemScriptSize
 
@@ -371,9 +377,9 @@ const (
 	//		- payment_preimage               32 bytes
 	//		- OP_PUSHDATA1                    1 byte
 	//		- 133                             1 byte
-	//		- offered_htlc script           133 bytes
+	//		- offered_htlc script           136 bytes
 	//
-	// Total: 316 bytes
+	// Total: 319 bytes
 	OfferedHtlcSuccessSigScriptSize int64 = 1 + 73 + 1 + 73 + 1 + 32 +
 		1 + 1 + offeredHtlcRedeemScriptSize
 
@@ -386,9 +392,9 @@ const (
 	//		- revocation_key                 33 bytes
 	//		- OP_PUSHDATA1                    1 byte
 	//		- 133                             1 byte
-	//		- offered_htlc script           133 bytes
+	//		- offered_htlc script           136 bytes
 	//
-	// Total: 243 bytes
+	// Total: 246 bytes
 	OfferedHtlcPenaltySigScriptSize int64 = 1 + 73 + 1 + 33 + 1 + 1 +
 		offeredHtlcRedeemScriptSize
 
@@ -448,9 +454,9 @@ const (
 	//		- p2sh pkscript                                    23 bytes
 	//		- input count witness varint                        1 byte
 	//		- offered_htlc_timeout sigscript varint             3 bytes
-	//		- offered_htlc_timeout sigscript                  284 bytes
+	//		- offered_htlc_timeout sigscript                  287 bytes
 	//
-	// Total: 393 bytes
+	// Total: 396 bytes
 	// TODO(decred) Double check correctness of selected sigScript alternative
 	HTLCTimeoutTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
 		P2SHPkScriptSize + 1 + 3 + OfferedHtlcTimeoutSigScriptSize
@@ -469,9 +475,9 @@ const (
 	//		- p2pkh pkscript                                 25 bytes
 	//		- input count witness varint                      1 byte
 	//		- accepted_htlc_success sigscript varint          3 bytes
-	//		- accepted_htlc_timeout sigscript               323 bytes
+	//		- accepted_htlc_timeout sigscript               326 bytes
 	//
-	// Total: 434 bytes
+	// Total: 437 bytes
 	// TODO(decred) Double check correctness of selected sigScript alternative
 	HTLCSuccessTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
 		P2PKHPkScriptSize + 1 + 3 + AcceptedHtlcSuccessSigScriptSize
