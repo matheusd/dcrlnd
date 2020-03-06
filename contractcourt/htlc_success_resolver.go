@@ -120,6 +120,7 @@ func (h *htlcSuccessResolver) Resolve() (ContractResolver, error) {
 				&h.htlcResolution.SweepSignDesc,
 				h.htlcResolution.Preimage[:],
 				h.broadcastHeight,
+				h.htlcResolution.CsvDelay,
 			)
 
 			// With the input created, we can now generate the full
