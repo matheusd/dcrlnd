@@ -1229,6 +1229,114 @@ func TestCommitSpendToRemoteConfirmed(t *testing.T) {
 	}
 }
 
+// TestSpendAnchor checks that we can spend the anchors using the various spend
+// paths.
+func TestSpendAnchor(t *testing.T) {
+	t.Parallel()
+
+	const anchorSize = 294
+
+	// First we'll set up some initial key state for Alice.
+	aliceKeyPriv, aliceKeyPub := secp256k1.PrivKeyFromBytes(testWalletPrivKey)
+
+	// Create a fake anchor outpoint that we'll use to generate the
+	// sweeping transaction.
+	txid, err := chainhash.NewHash(testHdSeed.CloneBytes())
+	if err != nil {
+		t.Fatalf("unable to create txid: %v", err)
+	}
+	anchorOutPoint := &wire.OutPoint{
+		Hash:  *txid,
+		Index: 0,
+	}
+
+	sweepTx := wire.NewMsgTx()
+	sweepTx.Version = LNTxVersion
+	sweepTx.AddTxIn(wire.NewTxIn(anchorOutPoint, 0, nil)) // TODO(decred) Pass in correct value
+	sweepTx.AddTxOut(
+		&wire.TxOut{
+			PkScript: []byte("doesn't matter"),
+			Value:    1 * 10e8,
+		},
+	)
+
+	// Generate the anchor script that can be spent by Alice immediately,
+	// or by anyone after 16 blocks.
+	anchorScript, err := CommitScriptAnchor(aliceKeyPub)
+	if err != nil {
+		t.Fatalf("unable to create htlc script: %v", err)
+	}
+	anchorPkScript, err := ScriptHashPkScript(anchorScript)
+	if err != nil {
+		t.Fatalf("unable to create htlc output: %v", err)
+	}
+
+	anchorOutput := &wire.TxOut{
+		PkScript: anchorPkScript,
+		Value:    int64(anchorSize),
+	}
+
+	// Create mock signer for Alice.
+	aliceSigner := &MockSigner{Privkeys: []*secp256k1.PrivateKey{aliceKeyPriv}}
+
+	testCases := []struct {
+		witness func() TxWitness
+		valid   bool
+	}{
+		{
+			// Alice can spend immediately.
+			makeWitnessTestCase(t, func() (TxWitness, error) {
+				sweepTx.TxIn[0].Sequence = wire.MaxTxInSequenceNum
+
+				signDesc := &SignDescriptor{
+					KeyDesc: keychain.KeyDescriptor{
+						PubKey: aliceKeyPub,
+					},
+					WitnessScript: anchorScript,
+					Output:        anchorOutput,
+					HashType:      txscript.SigHashAll,
+					InputIndex:    0,
+				}
+
+				return CommitSpendAnchor(aliceSigner, signDesc,
+					sweepTx)
+			}),
+			true,
+		},
+		{
+			// Anyone can spend after 16 blocks.
+			makeWitnessTestCase(t, func() (TxWitness, error) {
+				sweepTx.TxIn[0].Sequence = LockTimeToSequence(false, 16)
+				return CommitSpendAnchorAnyone(anchorScript)
+			}),
+			true,
+		},
+		{
+			// Anyone cannot spend before 16 blocks.
+			makeWitnessTestCase(t, func() (TxWitness, error) {
+				sweepTx.TxIn[0].Sequence = LockTimeToSequence(false, 15)
+				return CommitSpendAnchorAnyone(anchorScript)
+			}),
+			false,
+		},
+	}
+
+	for i, testCase := range testCases {
+		sweepTx.TxIn[0].SignatureScript, err = WitnessStackToSigScript(testCase.witness())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		newEngine := func() (*txscript.Engine, error) {
+			return txscript.NewEngine(anchorPkScript,
+				sweepTx, 0, ScriptVerifyFlags, scriptVersion,
+				nil)
+		}
+
+		assertEngineExecution(t, i, testCase.valid, newEngine)
+	}
+}
+
 // TestSpecificationKeyDerivation implements the test vectors provided in
 // BOLT-03, Appendix E.
 func TestSpecificationKeyDerivation(t *testing.T) {
