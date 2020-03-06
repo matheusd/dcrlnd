@@ -27,6 +27,11 @@ const (
 	// CommitmentTypeTweakless is a newer commitment format where the
 	// to_remote key is static.
 	CommitmentTypeTweakless
+
+	// CommitmentTypeAnchors is a commitment type that is tweakless, and
+	// has extra anchor ouputs in order to bump the fee of the commitment
+	// transaction.
+	CommitmentTypeAnchors
 )
 
 // String returns the name of the CommitmentType.
@@ -36,6 +41,8 @@ func (c CommitmentType) String() string {
 		return "legacy"
 	case CommitmentTypeTweakless:
 		return "tweakless"
+	case CommitmentTypeAnchors:
+		return "anchors"
 	default:
 		return "invalid"
 	}
@@ -172,12 +179,25 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 		initiator    bool
 	)
 
-	commitFee := commitFeePerKB.FeeForSize(input.CommitmentTxSize)
+	// Based on the channel type, we determine the initial commit size and
+	// fee.
+	commitSize := input.CommitmentTxSize
+	if commitType == CommitmentTypeAnchors {
+		commitSize = input.CommitmentWithAnchorsTxSize
+	}
+	commitFee := commitFeePerKB.FeeForSize(commitSize)
+
 	localFundingMAtoms := lnwire.NewMAtomsFromAtoms(localFundingAmt)
 	// TODO(halseth): make method take remote funding amount directly
 	// instead of inferring it from capacity and local amt.
 	capacityMAtoms := lnwire.NewMAtomsFromAtoms(capacity)
+
+	// The total fee paid by the initiator will be the commitment fee in
+	// addition to the two anchor outputs.
 	feeMAtoms := lnwire.NewMAtomsFromAtoms(commitFee)
+	if commitType == CommitmentTypeAnchors {
+		feeMAtoms += 2 * lnwire.NewMAtomsFromAtoms(anchorSize)
+	}
 
 	// If we're the responder to a single-funder reservation, then we have
 	// no initial balance in the channel unless the remote party is pushing
@@ -257,7 +277,11 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 	// non-zero push amt (there's no pushing for dual funder), then this is
 	// a single-funder channel.
 	if ourBalance == 0 || theirBalance == 0 || pushMAtoms != 0 {
-		if commitType == CommitmentTypeTweakless {
+		// Both the tweakless type and the anchor type is tweakless,
+		// hence set the bit.
+		if commitType == CommitmentTypeTweakless ||
+			commitType == CommitmentTypeAnchors {
+
 			chanType |= channeldb.SingleFunderTweaklessBit
 		} else {
 			chanType |= channeldb.SingleFunderBit
@@ -275,6 +299,11 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 		// technically the "initiator"
 		initiator = false
 		chanType |= channeldb.DualFunderBit
+	}
+
+	// We are adding anchor outputs to our commitment.
+	if commitType == CommitmentTypeAnchors {
+		chanType |= channeldb.AnchorOutputsBit
 	}
 
 	return &ChannelReservation{
