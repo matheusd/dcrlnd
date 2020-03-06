@@ -392,6 +392,8 @@ func TestCheckCommitTxSize(t *testing.T) {
 
 		diff := estimatedCost - actualCost
 		if 0 > diff || commitTxSizeEstimationError < diff {
+			bts, _ := commitTx.Bytes()
+			t.Logf("%x", bts)
 			t.Fatalf("estimation is wrong with %d HTLCs, diff: %v",
 				count, diff)
 		}
@@ -412,6 +414,8 @@ func TestCheckCommitTxSize(t *testing.T) {
 	checkSize(aliceChannel, 0)
 	checkSize(bobChannel, 0)
 
+	t.Logf("Checking adds")
+
 	// Adding HTLCs and check that size stays in allowable estimation
 	// error window.
 	for i := 0; i <= 10; i++ {
@@ -430,6 +434,8 @@ func TestCheckCommitTxSize(t *testing.T) {
 		checkSize(aliceChannel, i+1)
 		checkSize(bobChannel, i+1)
 	}
+
+	t.Logf("Checking settles")
 
 	// Settle HTLCs and check that estimation is counting cost of settle
 	// HTLCs properly.
