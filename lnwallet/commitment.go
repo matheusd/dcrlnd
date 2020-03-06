@@ -258,6 +258,29 @@ func CommitSize(chanType channeldb.ChannelType) int64 {
 	return input.CommitmentTxSize
 }
 
+// HtlcTimeoutFee returns the fee in satoshis required for an HTLC timeout
+// transaction based on the current fee rate.
+func HtlcTimeoutFee(chanType channeldb.ChannelType,
+	feePerKB chainfee.AtomPerKByte) dcrutil.Amount {
+
+	if chanType.HasAnchors() {
+		return feePerKB.FeeForSize(input.HTLCTimeoutConfirmedTxSize)
+	}
+
+	return feePerKB.FeeForSize(input.HTLCTimeoutTxSize)
+}
+
+// HtlcSuccessFee returns the fee in satoshis required for an HTLC success
+// transaction based on the current fee rate.
+func HtlcSuccessFee(chanType channeldb.ChannelType,
+	feePerKB chainfee.AtomPerKByte) dcrutil.Amount {
+
+	if chanType.HasAnchors() {
+		return feePerKB.FeeForSize(input.HTLCSuccessConfirmedTxSize)
+	}
+	return feePerKB.FeeForSize(input.HTLCSuccessTxSize)
+}
+
 // CommitScriptAnchors return the scripts to use for the local and remote
 // anchor.
 func CommitScriptAnchors(localChanCfg,
@@ -380,18 +403,20 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 
 	numHTLCs := int64(0)
 	for _, htlc := range filteredHTLCView.ourUpdates {
-		if htlcIsDust(false, isOurs, feePerKB,
-			htlc.Amount.ToAtoms(), dustLimit) {
-
+		if htlcIsDust(
+			cb.chanState.ChanType, false, isOurs, feePerKB,
+			htlc.Amount.ToAtoms(), dustLimit,
+		) {
 			continue
 		}
 
 		numHTLCs++
 	}
 	for _, htlc := range filteredHTLCView.theirUpdates {
-		if htlcIsDust(true, isOurs, feePerKB,
-			htlc.Amount.ToAtoms(), dustLimit) {
-
+		if htlcIsDust(
+			cb.chanState.ChanType, true, isOurs, feePerKB,
+			htlc.Amount.ToAtoms(), dustLimit,
+		) {
 			continue
 		}
 
@@ -467,8 +492,10 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 	// purposes of sorting.
 	cltvs := make([]uint32, len(commitTx.TxOut))
 	for _, htlc := range filteredHTLCView.ourUpdates {
-		if htlcIsDust(false, isOurs, feePerKB,
-			htlc.Amount.ToAtoms(), dustLimit) {
+		if htlcIsDust(
+			cb.chanState.ChanType, false, isOurs, feePerKB,
+			htlc.Amount.ToAtoms(), dustLimit,
+		) {
 			continue
 		}
 
@@ -482,8 +509,10 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 		cltvs = append(cltvs, htlc.Timeout)
 	}
 	for _, htlc := range filteredHTLCView.theirUpdates {
-		if htlcIsDust(true, isOurs, feePerKB,
-			htlc.Amount.ToAtoms(), dustLimit) {
+		if htlcIsDust(
+			cb.chanState.ChanType, true, isOurs, feePerKB,
+			htlc.Amount.ToAtoms(), dustLimit,
+		) {
 			continue
 		}
 
