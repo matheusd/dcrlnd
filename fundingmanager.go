@@ -1091,6 +1091,28 @@ func (f *fundingManager) processFundingOpen(msg *lnwire.OpenChannel,
 	}
 }
 
+// commitmentType returns the commitment type to use for the channel, based on
+// the features the two peers have available.
+func commitmentType(localFeatures,
+	remoteFeatures *lnwire.FeatureVector) lnwallet.CommitmentType {
+
+	localTweakless := localFeatures.HasFeature(
+		lnwire.StaticRemoteKeyOptional,
+	)
+	remoteTweakless := remoteFeatures.HasFeature(
+		lnwire.StaticRemoteKeyOptional,
+	)
+
+	// If both nodes are signaling the proper feature bit for tweakless
+	// copmmitments, we'll use that.
+	if localTweakless && remoteTweakless {
+		return lnwallet.CommitmentTypeTweakless
+	}
+
+	// Otherwise we'll fall back to the legacy type.
+	return lnwallet.CommitmentTypeLegacy
+}
+
 // handleFundingOpen creates an initial 'ChannelReservation' within the wallet,
 // then responds to the source peer with an accept channel message progressing
 // the funding workflow.
@@ -1220,13 +1242,9 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	// negotiated the new tweakless commitment format. This is only the
 	// case if *both* us and the remote peer are signaling the proper
 	// feature bit.
-	localTweakless := fmsg.peer.LocalFeatures().HasFeature(
-		lnwire.StaticRemoteKeyOptional,
+	commitType := commitmentType(
+		fmsg.peer.LocalFeatures(), fmsg.peer.RemoteFeatures(),
 	)
-	remoteTweakless := fmsg.peer.RemoteFeatures().HasFeature(
-		lnwire.StaticRemoteKeyOptional,
-	)
-	tweaklessCommitment := localTweakless && remoteTweakless
 	chainHash := msg.ChainHash
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:        &chainHash,
@@ -1240,7 +1258,7 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 		PushMAtoms:       msg.PushAmount,
 		Flags:            msg.ChannelFlags,
 		MinConfs:         1,
-		Tweakless:        tweaklessCommitment,
+		CommitType:       commitType,
 	}
 
 	reservation, err := f.cfg.Wallet.InitChannelReservation(req)
@@ -1299,9 +1317,9 @@ func (f *fundingManager) handleFundingOpen(fmsg *fundingOpenMsg) {
 	reservation.SetOurUpfrontShutdown(shutdown)
 
 	fndgLog.Infof("Requiring %v confirmations for pendingChan(%x): "+
-		"amt=%v, push_amt=%v, tweakless=%v, upfrontShutdown=%x", numConfsReq,
+		"amt=%v, push_amt=%v, committype=%v, upfrontShutdown=%x", numConfsReq,
 		fmsg.msg.PendingChannelID, amt, msg.PushAmount,
-		tweaklessCommitment, msg.UpfrontShutdownScript)
+		commitType, msg.UpfrontShutdownScript)
 
 	// Generate our required constraints for the remote party.
 	remoteCsvDelay := f.cfg.RequiredRemoteDelay(amt)
@@ -2901,13 +2919,9 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	// negotiated the new tweakless commitment format. This is only the
 	// case if *both* us and the remote peer are signaling the proper
 	// feature bit.
-	localTweakless := msg.peer.LocalFeatures().HasFeature(
-		lnwire.StaticRemoteKeyOptional,
+	commitType := commitmentType(
+		msg.peer.LocalFeatures(), msg.peer.RemoteFeatures(),
 	)
-	remoteTweakless := msg.peer.RemoteFeatures().HasFeature(
-		lnwire.StaticRemoteKeyOptional,
-	)
-	tweaklessCommitment := localTweakless && remoteTweakless
 	req := &lnwallet.InitFundingReserveMsg{
 		ChainHash:        &msg.chainHash,
 		PendingChanID:    chanID,
@@ -2921,7 +2935,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		PushMAtoms:       msg.pushAmt,
 		Flags:            channelFlags,
 		MinConfs:         msg.minConfs,
-		Tweakless:        tweaklessCommitment,
+		CommitType:       commitType,
 		ChanFunder:       msg.chanFunder,
 	}
 
@@ -3009,7 +3023,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 	maxHtlcs := f.cfg.RequiredRemoteMaxHTLCs(capacity)
 
 	fndgLog.Infof("Starting funding workflow with %v for pending_id(%x), "+
-		"tweakless=%v", msg.peer.Address(), chanID, tweaklessCommitment)
+		"committype=%v", msg.peer.Address(), chanID, commitType)
 
 	fundingOpen := lnwire.OpenChannel{
 		ChainHash:             f.cfg.Wallet.Cfg.NetParams.GenesisHash,
