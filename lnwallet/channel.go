@@ -2762,6 +2762,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 	txHash := remoteCommitView.txn.TxHash()
 	dustLimit := remoteChanCfg.DustLimit
 	feePerKB := remoteCommitView.feePerKB
+	sigHashType := HtlcSigHashType(chanType)
 
 	// With the keys generated, we'll make a slice with enough capacity to
 	// hold potentially all the HTLCs. The actual slice may be a bit
@@ -2822,7 +2823,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 			Output: &wire.TxOut{
 				Value: int64(htlc.Amount.ToAtoms()),
 			},
-			HashType:   txscript.SigHashAll,
+			HashType:   sigHashType,
 			InputIndex: 0,
 		}
 		sigJob.OutputIndex = htlc.remoteOutputIndex
@@ -2873,7 +2874,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 			Output: &wire.TxOut{
 				Value: int64(htlc.Amount.ToAtoms()),
 			},
-			HashType:   txscript.SigHashAll,
+			HashType:   sigHashType,
 			InputIndex: 0,
 		}
 		sigJob.OutputIndex = htlc.remoteOutputIndex
@@ -3824,6 +3825,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 
 	txHash := localCommitmentView.txn.TxHash()
 	feePerKB := localCommitmentView.feePerKB
+	sigHashType := HtlcSigHashType(chanType)
 
 	// With the required state generated, we'll create a slice with large
 	// enough capacity to hold verification jobs for all HTLC's in this
@@ -3876,8 +3878,9 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 				}
 
 				sigHash, err := txscript.CalcSignatureHash(
-					htlc.ourWitnessScript, txscript.SigHashAll,
-					successTx, 0, nil,
+					htlc.ourWitnessScript,
+					sigHashType, successTx, 0,
+					nil,
 				)
 				if err != nil {
 					return nil, err
@@ -3927,8 +3930,10 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 				}
 
 				sigHash, err := txscript.CalcSignatureHash(
-					htlc.ourWitnessScript, txscript.SigHashAll, timeoutTx,
-					0, nil)
+					htlc.ourWitnessScript,
+					sigHashType, timeoutTx, 0,
+					nil,
+				)
 				if err != nil {
 					return nil, err
 				}
@@ -5415,8 +5420,9 @@ func newOutgoingHtlcResolution(signer input.Signer,
 
 	// With the sign desc created, we can now construct the full witness
 	// for the timeout transaction, and populate it as well.
+	sigHashType := HtlcSigHashType(chanType)
 	timeoutWitness, err := input.SenderHtlcSpendTimeout(
-		htlc.Signature, signer, &timeoutSignDesc, timeoutTx,
+		htlc.Signature, sigHashType, signer, &timeoutSignDesc, timeoutTx,
 	)
 	if err != nil {
 		return nil, err
@@ -5545,8 +5551,10 @@ func newIncomingHtlcResolution(signer input.Signer,
 	// the success transaction. Don't specify the preimage yet. The preimage
 	// will be supplied by the contract resolver, either directly or when it
 	// becomes known.
+	sigHashType := HtlcSigHashType(chanType)
 	successWitness, err := input.ReceiverHtlcSpendRedeem(
-		htlc.Signature, nil, signer, &successSignDesc, successTx,
+		htlc.Signature, sigHashType, nil, signer, &successSignDesc,
+		successTx,
 	)
 	if err != nil {
 		return nil, err

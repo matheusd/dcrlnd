@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -225,6 +226,16 @@ func CommitScriptToRemote(chanType channeldb.ChannelType,
 		WitnessScript: p2pkh,
 		PkScript:      p2pkh,
 	}, 0, nil
+}
+
+// HtlcSigHashType returns the sighash type to use for HTLC success and timeout
+// transactions given the channel type.
+func HtlcSigHashType(chanType channeldb.ChannelType) txscript.SigHashType {
+	if chanType.HasAnchors() {
+		return txscript.SigHashSingle | txscript.SigHashAnyOneCanPay
+	}
+
+	return txscript.SigHashAll
 }
 
 // CommitSize returns the base commitment size before adding HTLCs.

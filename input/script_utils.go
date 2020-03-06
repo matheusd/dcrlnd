@@ -396,8 +396,10 @@ func SenderHtlcSpendRedeem(signer Signer, signDesc *SignDescriptor,
 // HTLC to activate the time locked covenant clause of a soon to be expired
 // HTLC.  This script simply spends the multi-sig output using the
 // pre-generated HTLC timeout transaction.
-func SenderHtlcSpendTimeout(receiverSig []byte, signer Signer,
-	signDesc *SignDescriptor, htlcTimeoutTx *wire.MsgTx) (TxWitness, error) {
+func SenderHtlcSpendTimeout(receiverSig []byte,
+	receiverSigHash txscript.SigHashType, signer Signer,
+	signDesc *SignDescriptor, htlcTimeoutTx *wire.MsgTx) (
+	TxWitness, error) {
 
 	sweepSig, err := signer.SignOutputRaw(htlcTimeoutTx, signDesc)
 	if err != nil {
@@ -407,7 +409,7 @@ func SenderHtlcSpendTimeout(receiverSig []byte, signer Signer,
 	// We place a zero as the first item of the evaluated witness stack in
 	// order to force Script execution to the HTLC timeout clause.
 	witnessStack := TxWitness(make([][]byte, 4))
-	witnessStack[0] = append(receiverSig, byte(txscript.SigHashAll))
+	witnessStack[0] = append(receiverSig, byte(receiverSigHash))
 	witnessStack[1] = append(sweepSig, byte(signDesc.HashType))
 	witnessStack[2] = nil
 	witnessStack[3] = signDesc.WitnessScript
@@ -556,9 +558,10 @@ func ReceiverHTLCScript(cltvExpiry uint32, senderHtlcKey,
 // signed has a relative timelock delay enforced by its sequence number. This
 // delay give the sender of the HTLC enough time to revoke the output if this
 // is a breach commitment transaction.
-func ReceiverHtlcSpendRedeem(senderSig, paymentPreimage []byte,
-	signer Signer, signDesc *SignDescriptor,
-	htlcSuccessTx *wire.MsgTx) (TxWitness, error) {
+func ReceiverHtlcSpendRedeem(senderSig []byte,
+	senderSigHash txscript.SigHashType, paymentPreimage []byte,
+	signer Signer, signDesc *SignDescriptor, htlcSuccessTx *wire.MsgTx) (
+	TxWitness, error) {
 
 	// First, we'll generate a signature for the HTLC success transaction.
 	// The signDesc should be signing with the public key used as the
@@ -572,7 +575,7 @@ func ReceiverHtlcSpendRedeem(senderSig, paymentPreimage []byte,
 	// payment pre-image, and also execute the multi-sig clause after the
 	// pre-images matches.
 	witnessStack := TxWitness(make([][]byte, 4))
-	witnessStack[0] = append(senderSig, byte(txscript.SigHashAll))
+	witnessStack[0] = append(senderSig, byte(senderSigHash))
 	witnessStack[1] = append(sweepSig, byte(signDesc.HashType))
 	witnessStack[2] = paymentPreimage
 	witnessStack[3] = signDesc.WitnessScript

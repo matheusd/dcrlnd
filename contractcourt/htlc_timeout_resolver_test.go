@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
@@ -152,7 +153,8 @@ func TestHtlcTimeoutResolver(t *testing.T) {
 			timeout:      true,
 			txToBroadcast: func() (*wire.MsgTx, error) {
 				witness, err := input.SenderHtlcSpendTimeout(
-					nil, signer, fakeSignDesc, sweepTx,
+					nil, txscript.SigHashAll, signer,
+					fakeSignDesc, sweepTx,
 				)
 				if err != nil {
 					return nil, err
@@ -176,7 +178,8 @@ func TestHtlcTimeoutResolver(t *testing.T) {
 			timeout:      false,
 			txToBroadcast: func() (*wire.MsgTx, error) {
 				witness, err := input.ReceiverHtlcSpendRedeem(
-					nil, fakePreimageBytes, signer,
+					nil, txscript.SigHashAll,
+					fakePreimageBytes, signer,
 					fakeSignDesc, sweepTx,
 				)
 				if err != nil {
