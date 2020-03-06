@@ -725,7 +725,8 @@ func testCancelNonExistentReservation(miner *rpctest.Harness,
 	// Create our own reservation, give it some ID.
 	res, err := lnwallet.NewChannelReservation(
 		20000, 20000, feePerKB, alice, 22, 10, &testHdSeed,
-		lnwire.FFAnnounceChannel, true, nil, [32]byte{},
+		lnwire.FFAnnounceChannel, lnwallet.CommitmentTypeTweakless,
+		nil, [32]byte{},
 	)
 	if err != nil {
 		t.Fatalf("unable to create res: %v", err)
@@ -764,7 +765,7 @@ func testReservationInitiatorBalanceBelowDustCancel(miner *rpctest.Harness,
 		FundingFeePerKB:  1000,
 		PushMAtoms:       0,
 		Flags:            lnwire.FFAnnounceChannel,
-		Tweakless:        true,
+		CommitType:       lnwallet.CommitmentTypeTweakless,
 	}
 	_, err = alice.InitChannelReservation(req)
 	switch {
@@ -820,7 +821,8 @@ func assertContributionInitPopulated(t *testing.T, c *lnwallet.ChannelContributi
 
 func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 	vw *rpctest.VotingWallet,
-	alice, bob *lnwallet.LightningWallet, t *testing.T, tweakless bool,
+	alice, bob *lnwallet.LightningWallet, t *testing.T,
+	commitType lnwallet.CommitmentType,
 	aliceChanFunder chanfunding.Assembler,
 	fetchFundingTx func() *wire.MsgTx, pendingChanID [32]byte) {
 
@@ -850,7 +852,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		FundingFeePerKB:  feePerKB,
 		PushMAtoms:       pushAmt,
 		Flags:            lnwire.FFAnnounceChannel,
-		Tweakless:        tweakless,
+		CommitType:       commitType,
 		ChanFunder:       aliceChanFunder,
 	}
 	aliceChanReservation, err := alice.InitChannelReservation(aliceReq)
@@ -901,7 +903,7 @@ func testSingleFunderReservationWorkflow(miner *rpctest.Harness,
 		FundingFeePerKB:  feePerKB,
 		PushMAtoms:       pushAmt,
 		Flags:            lnwire.FFAnnounceChannel,
-		Tweakless:        tweakless,
+		CommitType:       commitType,
 	}
 	bobChanReservation, err := bob.InitChannelReservation(bobReq)
 	if err != nil {
@@ -2565,7 +2567,8 @@ var walletTests = []walletTestCase{
 			alice, bob *lnwallet.LightningWallet, t *testing.T) {
 
 			testSingleFunderReservationWorkflow(
-				miner, vw, alice, bob, t, false, nil, nil,
+				miner, vw, alice, bob, t,
+				lnwallet.CommitmentTypeLegacy, nil, nil,
 				[32]byte{},
 			)
 		},
@@ -2576,7 +2579,8 @@ var walletTests = []walletTestCase{
 			alice, bob *lnwallet.LightningWallet, t *testing.T) {
 
 			testSingleFunderReservationWorkflow(
-				miner, vw, alice, bob, t, true, nil, nil,
+				miner, vw, alice, bob, t,
+				lnwallet.CommitmentTypeTweakless, nil, nil,
 				[32]byte{},
 			)
 		},
@@ -2831,8 +2835,8 @@ func testSingleFunderExternalFundingTx(miner *rpctest.Harness,
 	// pending channel ID generated above to allow Alice and Bob to track
 	// the funding flow externally.
 	testSingleFunderReservationWorkflow(
-		miner, vw, alice, bob, t, true, aliceExternalFunder,
-		func() *wire.MsgTx {
+		miner, vw, alice, bob, t, lnwallet.CommitmentTypeTweakless,
+		aliceExternalFunder, func() *wire.MsgTx {
 			return fundingTx
 		}, pendingChanID,
 	)
