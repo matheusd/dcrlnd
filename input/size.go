@@ -304,6 +304,26 @@ const (
 	ToLocalPenaltySigScriptSize int64 = 1 + 73 + 1 + 1 + 1 +
 		toLocalRedeemScriptSize
 
+	// ToRemoteConfirmedRedeemScriptSize
+	// 		- OP_DATA			 1 byte
+	//		- to_remote_key			33 bytes
+	//		- OP_CHECKSIGVERIFY		 1 byte
+	//		- OP_1				 1 byte
+	// 		- OP_CHECKSEQUENCEVERIFY	 1 byte
+	//
+	// Total: 37 bytes
+	ToRemoteConfirmedRedeemScriptSize = 1 + 33 + 1 + 1 + 1
+
+	// ToRemoteConfirmedWitnessSize
+	//
+	//		- OP_DATA_73			  1 byte
+	//		- sender_sig + hash_type	 73 bytes
+	//		- OP_DATA_37			  1 byte
+	//		- confirmed_redeem_script	 37 bytes
+	//
+	// Total:
+	ToRemoteConfirmedWitnessSize = 1 + 73 + 1 + ToRemoteConfirmedRedeemScriptSize
+
 	// AcceptedHtlcTimeoutSigScriptSize is the size of a sigScript used
 	// when redeeming an acceptedHtlcScript using the "timeout" code path.
 	//
