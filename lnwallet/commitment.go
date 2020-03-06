@@ -366,7 +366,10 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 			continue
 		}
 
-		err := addHTLC(commitTx, isOurs, false, htlc, keyRing)
+		err := addHTLC(
+			commitTx, isOurs, false, htlc, keyRing,
+			cb.chanState.ChanType,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -378,7 +381,10 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 			continue
 		}
 
-		err := addHTLC(commitTx, isOurs, true, htlc, keyRing)
+		err := addHTLC(
+			commitTx, isOurs, true, htlc, keyRing,
+			cb.chanState.ChanType,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -492,7 +498,8 @@ func CreateCommitTx(chanType channeldb.ChannelType,
 // genHtlcScript generates the proper P2SH public key scripts for the HTLC
 // output modified by two-bits denoting if this is an incoming HTLC, and if the
 // HTLC is being applied to their commitment transaction or ours.
-func genHtlcScript(isIncoming, ourCommit bool, timeout uint32, rHash [32]byte,
+func genHtlcScript(chanType channeldb.ChannelType, isIncoming, ourCommit bool,
+	timeout uint32, rHash [32]byte,
 	keyRing *CommitmentKeyRing) ([]byte, []byte, error) {
 
 	var (
@@ -556,13 +563,14 @@ func genHtlcScript(isIncoming, ourCommit bool, timeout uint32, rHash [32]byte,
 // the descriptor itself.
 func addHTLC(commitTx *wire.MsgTx, ourCommit bool,
 	isIncoming bool, paymentDesc *PaymentDescriptor,
-	keyRing *CommitmentKeyRing) error {
+	keyRing *CommitmentKeyRing, chanType channeldb.ChannelType) error {
 
 	timeout := paymentDesc.Timeout
 	rHash := paymentDesc.RHash
 
-	p2sh, witnessScript, err := genHtlcScript(isIncoming, ourCommit,
-		timeout, rHash, keyRing)
+	p2sh, witnessScript, err := genHtlcScript(
+		chanType, isIncoming, ourCommit, timeout, rHash, keyRing,
+	)
 	if err != nil {
 		return err
 	}
