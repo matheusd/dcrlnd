@@ -481,6 +481,11 @@ const (
 	CommitmentWithAnchorsTxSize int64 = CommitmentTxSize + 2*OutputSize +
 		2*1 + 2*P2SHPkScriptSize
 
+	// htlcConfirmedScriptOverhead is the extra length of an HTLC script
+	// that requires confirmation before it can be spent. These extra bytes
+	// is a result of the extra CSV check.
+	htlcConfirmedScriptOverhead = 3
+
 	// HTLCTimeoutSize is the worst case (largest) size of the HTLC timeout
 	// transaction which will transition an outgoing HTLC to the
 	// delay-and-claim state. The worst case for a timeout transaction is
@@ -499,9 +504,23 @@ const (
 	//		- offered_htlc_timeout sigscript                  287 bytes
 	//
 	// Total: 396 bytes
-	// TODO(decred) Double check correctness of selected sigScript alternative
+	//
+	// Note that we subtract the htlcConfirmedScriptOverhead here to
+	// account for the fact that this is the size of the unconfirmed
+	// version of the timeout tx (that is, the one that uses the
+	// offered_htlc_timeout redeem script without the extra csv check).
+	//
+	// TODO(decred) Double check correctness of selected sigScript
+	// alternative
 	HTLCTimeoutTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
-		P2SHPkScriptSize + 1 + 3 + OfferedHtlcTimeoutSigScriptSize
+		P2SHPkScriptSize + 1 + 3 + OfferedHtlcTimeoutSigScriptSize -
+		htlcConfirmedScriptOverhead
+
+	// HTLCTimeoutConfirmedTxSize is the size of the HTLC timeout
+	// transaction which will transition an outgoing HTLC to the
+	// delay-and-claim state, for the confirmed HTLC outputs. It is 3 bytes
+	// larger because of the additional CSV check in the input script.
+	HTLCTimeoutConfirmedTxSize = HTLCTimeoutTxSize + htlcConfirmedScriptOverhead
 
 	// HTLCSuccessSize is the worst case (largest) size of the HTLC success
 	// transaction which will transition an HTLC tx to the delay-and-claim
@@ -520,9 +539,23 @@ const (
 	//		- accepted_htlc_timeout sigscript               326 bytes
 	//
 	// Total: 437 bytes
-	// TODO(decred) Double check correctness of selected sigScript alternative
+	//
+	// Note that we subtract the htlcConfirmedScriptOverhead here to
+	// account for the fact that this is the size of the unconfirmed
+	// version of the timeout tx (that is, the one that uses the
+	// offered_htlc_timeout redeem script without the extra csv check).
+	//
+	// TODO(decred) Double check correctness of selected sigScript
+	// alternative
 	HTLCSuccessTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
-		P2PKHPkScriptSize + 1 + 3 + AcceptedHtlcSuccessSigScriptSize
+		P2PKHPkScriptSize + 1 + 3 + AcceptedHtlcSuccessSigScriptSize -
+		htlcConfirmedScriptOverhead
+
+	// HTLCSuccessConfirmedTxSize is the size of the HTLC success
+	// transaction which will transition an incoming HTLC to the
+	// delay-and-claim state, for the confirmed HTLC outputs. It is 3 bytes
+	// larger because of the conditional CSV check in the input script.
+	HTLCSuccessConfirmedTxSize = HTLCSuccessTxSize + htlcConfirmedScriptOverhead
 
 	// MaxHTLCNumber is the maximum number HTLCs which can be included in a
 	// commitment transaction. This limit was chosen such that, in the case
