@@ -459,6 +459,28 @@ const (
 		OutputSize + 1 + P2PKHPkScriptSize + OutputSize + 1 + P2SHPkScriptSize +
 		1 + 1 + FundingOutputSigScriptSize
 
+	// CommitmentWithAnchorsTxSize is the base size of a commitment
+	// transaction that also contains 2 anchor outputs. It is based on the
+	// original commitment tx size with the additional outputs added to it.
+	//
+	// Given the current limits for maximum number of HTLCs in a single
+	// commitment tx, the addition of two outputs doesn't trigger a bump in
+	// the varints for output counts.
+	//
+	// It is calculated as:
+	//
+	//		- CommitmentTxSize			364 bytes
+	//		- remote anchor output			 10 bytes
+	//		- p2sh remote varint			  1 byte
+	//		- p2sh remote pkscript			 23 bytes
+	//		- p2sh local anchor output		 10 bytes
+	//		- p2sh local varint			  1 byte
+	//		- p2sh local pkscript			 23 bytes
+	//
+	// Total: 432 bytes
+	CommitmentWithAnchorsTxSize int64 = CommitmentTxSize + 2*OutputSize +
+		2*1 + 2*P2SHPkScriptSize
+
 	// HTLCTimeoutSize is the worst case (largest) size of the HTLC timeout
 	// transaction which will transition an outgoing HTLC to the
 	// delay-and-claim state. The worst case for a timeout transaction is

@@ -3785,7 +3785,8 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 		totalHtlcSize += input.HTLCOutputSize
 	}
 
-	totalCommitSize := input.CommitmentTxSize + totalHtlcSize
+	totalCommitSize := CommitSize(lc.channelState.ChanType) +
+		totalHtlcSize
 	return ourBalance, theirBalance, totalCommitSize, filteredHTLCView, nil
 }
 
@@ -6340,7 +6341,7 @@ func CreateCooperativeCloseTx(fundingTxIn wire.TxIn,
 // CalcFee returns the commitment fee to use for the given
 // fee rate (fee-per-kw).
 func (lc *LightningChannel) CalcFee(feeRate chainfee.AtomPerKByte) dcrutil.Amount {
-	return feeRate.FeeForSize(input.CommitmentTxSize)
+	return feeRate.FeeForSize(CommitSize(lc.channelState.ChanType))
 }
 
 // MaxFeeRate returns the maximum fee rate given an allocation of the channel
