@@ -202,6 +202,9 @@ func Ripemd160H(d []byte) []byte {
 //    * The receiver of the HTLC sweeping all the funds in the case that a
 //      revoked commitment transaction bearing this HTLC was broadcast.
 //
+// If confirmedSpend=true, a 1 OP_CSV check will be added to the non-revocation
+// cases, to allow sweeping only after confirmation.
+//
 // Possible Input Scripts:
 //    SENDR: <sendr sig> <recvr sig> <0> (spend using HTLC timeout transaction)
 //    RECVR: <recvr sig> <preimage>
@@ -220,9 +223,11 @@ func Ripemd160H(d []byte) []byte {
 //         OP_HASH160 <ripemd160(payment hash)> OP_EQUALVERIFY
 //         OP_CHECKSIG
 //     OP_ENDIF
+//     [1 OP_CHECKSEQUENCEVERIFY OP_DROP] <- if allowing confirmed spend only.
 // OP_ENDIF
 func SenderHTLCScript(senderHtlcKey, receiverHtlcKey,
-	revocationKey *secp256k1.PublicKey, paymentHash []byte) ([]byte, error) {
+	revocationKey *secp256k1.PublicKey, paymentHash []byte,
+	confirmedSpend bool) ([]byte, error) {
 
 	builder := txscript.NewScriptBuilder()
 
@@ -295,6 +300,14 @@ func SenderHTLCScript(senderHtlcKey, receiverHtlcKey,
 
 	// Close out the OP_IF statement above.
 	builder.AddOp(txscript.OP_ENDIF)
+
+	// Add 1 block CSV delay if a confirmation is required for the
+	// non-revocation clauses.
+	if confirmedSpend {
+		builder.AddOp(txscript.OP_1)
+		builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
+		builder.AddOp(txscript.OP_DROP)
+	}
 
 	// Close out the OP_IF statement at the top of the script.
 	builder.AddOp(txscript.OP_ENDIF)
@@ -411,6 +424,9 @@ func SenderHtlcSpendTimeout(receiverSig []byte, signer Signer,
 // HTLC sweeps the HTLC on-chain after the timeout period of the HTLC has
 // passed.
 //
+// If confirmedSpend=true, a 1 OP_CSV check will be added to the non-revocation
+// cases, to allow sweeping only after confirmation.
+//
 // Possible Input Scripts:
 //    RECVR: <sender sig> <recvr sig> <preimage> (spend using HTLC success transaction)
 //    REVOK: <sig> <key>
@@ -430,10 +446,11 @@ func SenderHtlcSpendTimeout(receiverSig []byte, signer Signer,
 //         OP_DROP <cltv expiry> OP_CHECKLOCKTIMEVERIFY OP_DROP
 //         OP_CHECKSIG
 //     OP_ENDIF
+//     [1 OP_CHECKSEQUENCEVERIFY OP_DROP] <- if allowing confirmed spend only.
 // OP_ENDIF
 func ReceiverHTLCScript(cltvExpiry uint32, senderHtlcKey,
 	receiverHtlcKey, revocationKey *secp256k1.PublicKey,
-	paymentHash []byte) ([]byte, error) {
+	paymentHash []byte, confirmedSpend bool) ([]byte, error) {
 
 	builder := txscript.NewScriptBuilder()
 
@@ -516,6 +533,14 @@ func ReceiverHTLCScript(cltvExpiry uint32, senderHtlcKey,
 
 	// Close out the inner if statement.
 	builder.AddOp(txscript.OP_ENDIF)
+
+	// Add 1 block CSV delay for non-revocation clauses if confirmation is
+	// required.
+	if confirmedSpend {
+		builder.AddOp(txscript.OP_1)
+		builder.AddOp(txscript.OP_CHECKSEQUENCEVERIFY)
+		builder.AddOp(txscript.OP_DROP)
+	}
 
 	// Close out the outer if statement.
 	builder.AddOp(txscript.OP_ENDIF)
