@@ -17,6 +17,73 @@ import (
 
 const scriptVersion uint16 = 0
 
+// assertEngineExecution executes the VM returned by the newEngine closure,
+// asserting the result matches the validity expectation. In the case where it
+// doesn't match the expectation, it executes the script step-by-step and
+// prints debug information to stdout.
+func assertEngineExecution(t *testing.T, testNum int, valid bool,
+	newEngine func() (*txscript.Engine, error)) {
+	t.Helper()
+
+	// Get a new VM to execute.
+	vm, err := newEngine()
+	if err != nil {
+		t.Fatalf("unable to create engine: %v", err)
+	}
+
+	// Execute the VM, only go on to the step-by-step execution if
+	// it doesn't validate as expected.
+	vmErr := vm.Execute()
+	if valid == (vmErr == nil) {
+		return
+	}
+
+	// Now that the execution didn't match what we expected, fetch a new VM
+	// to step through.
+	vm, err = newEngine()
+	if err != nil {
+		t.Fatalf("unable to create engine: %v", err)
+	}
+
+	// This buffer will trace execution of the Script, dumping out
+	// to stdout.
+	var debugBuf bytes.Buffer
+
+	done := false
+	for !done {
+		dis, err := vm.DisasmPC()
+		if err != nil {
+			t.Fatalf("stepping (%v)\n", err)
+		}
+		debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
+
+		done, err = vm.Step()
+		if err != nil && valid {
+			fmt.Println(debugBuf.String())
+			t.Fatalf("spend test case #%v failed, spend "+
+				"should be valid: %v", testNum, err)
+		} else if err == nil && !valid && done {
+			fmt.Println(debugBuf.String())
+			t.Fatalf("spend test case #%v succeed, spend "+
+				"should be invalid: %v", testNum, err)
+		}
+
+		debugBuf.WriteString(fmt.Sprintf("Stack: %v", vm.GetStack()))
+		debugBuf.WriteString(fmt.Sprintf("AltStack: %v", vm.GetAltStack()))
+	}
+
+	// If we get to this point the unexpected case was not reached
+	// during step execution, which happens for some checks, like
+	// the clean-stack rule.
+	validity := "invalid"
+	if valid {
+		validity = "valid"
+	}
+
+	fmt.Println(debugBuf.String())
+	t.Fatalf("%v spend test case #%v execution ended with: %v", validity, testNum, vmErr)
+}
+
 // TestRevocationKeyDerivation tests that given a public key, and a revocation
 // hash, the homomorphic revocation public and private key derivation work
 // properly.
@@ -304,44 +371,13 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 		}
 
-		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, ScriptVerifyFlags, htlcOutput.Version, nil)
-		if err != nil {
-			t.Fatalf("unable to create engine: %v", err)
+		newEngine := func() (*txscript.Engine, error) {
+			return txscript.NewEngine(htlcPkScript,
+				sweepTx, 0, ScriptVerifyFlags, htlcOutput.Version,
+				nil)
 		}
 
-		// This buffer will trace execution of the Script, only dumping
-		// out to stdout in the case that a test fails.
-		var debugBuf bytes.Buffer
-
-		done := false
-		for !done {
-			dis, err := vm.DisasmPC()
-			if err != nil {
-				t.Fatalf("stepping (%v)\n", err)
-			}
-			debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
-
-			done, err = vm.Step()
-			if done && err == nil {
-				// Check if the ending success conditions for the script are
-				// satisfied.
-				err = vm.CheckErrorCondition(true)
-			}
-
-			if err != nil && testCase.valid {
-				fmt.Println(debugBuf.String())
-				t.Fatalf("spend test case #%v failed, spend "+
-					"should be valid: %v", i, err)
-			} else if err == nil && !testCase.valid && done {
-				fmt.Println(debugBuf.String())
-				t.Fatalf("spend test case #%v succeed, spend "+
-					"should be invalid: %v", i, err)
-			}
-
-			debugBuf.WriteString(fmt.Sprintf("Stack: \n%s", vm.GetStack()))
-			debugBuf.WriteString(fmt.Sprintf("AltStack: \n%s", vm.GetAltStack()))
-		}
+		assertEngineExecution(t, i, testCase.valid, newEngine)
 	}
 }
 
@@ -579,42 +615,13 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 		}
 
-		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, ScriptVerifyFlags, scriptVersion,
-			nil)
-		if err != nil {
-			t.Fatalf("unable to create engine: %v", err)
+		newEngine := func() (*txscript.Engine, error) {
+			return txscript.NewEngine(htlcPkScript,
+				sweepTx, 0, ScriptVerifyFlags, scriptVersion,
+				nil)
 		}
 
-		// This buffer will trace execution of the Script, only dumping
-		// out to stdout in the case that a test fails.
-		var debugBuf bytes.Buffer
-
-		done := false
-		for !done {
-			dis, err := vm.DisasmPC()
-			if err != nil {
-				t.Fatalf("stepping (%v)\n", err)
-			}
-			debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
-
-			done, err = vm.Step()
-			if done && err == nil {
-				// Check if the ending success conditions for the script are
-				// satisfied.
-				err = vm.CheckErrorCondition(true)
-			}
-			if err != nil && testCase.valid {
-				fmt.Println(debugBuf.String())
-				t.Fatalf("spend test case #%v failed, spend should be valid: %v", i, err)
-			} else if err == nil && !testCase.valid && done {
-				fmt.Println(debugBuf.String())
-				t.Fatalf("spend test case #%v succeed, spend should be invalid: %v", i, err)
-			}
-
-			debugBuf.WriteString(fmt.Sprintf("Stack: %v", vm.GetStack()))
-			debugBuf.WriteString(fmt.Sprintf("AltStack: %v", vm.GetAltStack()))
-		}
+		assertEngineExecution(t, i, testCase.valid, newEngine)
 	}
 }
 
@@ -809,44 +816,13 @@ func TestSecondLevelHtlcSpends(t *testing.T) {
 			t.Fatalf("unable to convert witness stack to sigScript: %v", err)
 		}
 
-		vm, err := txscript.NewEngine(htlcPkScript,
-			sweepTx, 0, ScriptVerifyFlags, scriptVersion, nil)
-		if err != nil {
-			t.Fatalf("unable to create engine: %v", err)
+		newEngine := func() (*txscript.Engine, error) {
+			return txscript.NewEngine(htlcPkScript,
+				sweepTx, 0, ScriptVerifyFlags, scriptVersion,
+				nil)
 		}
 
-		// This buffer will trace execution of the Script, only dumping
-		// out to stdout in the case that a test fails.
-		var debugBuf bytes.Buffer
-
-		done := false
-		for !done {
-			dis, err := vm.DisasmPC()
-			if err != nil {
-				t.Fatalf("stepping (%v)\n", err)
-			}
-			debugBuf.WriteString(fmt.Sprintf("stepping %v\n", dis))
-
-			done, err = vm.Step()
-			if done && err == nil {
-				// Check if the ending success conditions for the script are
-				// satisfied.
-				err = vm.CheckErrorCondition(true)
-			}
-
-			if err != nil && testCase.valid {
-				fmt.Println(debugBuf.String())
-				t.Fatalf("spend test case #%v failed, spend "+
-					"should be valid: %v", i, err)
-			} else if err == nil && !testCase.valid && done {
-				fmt.Println(debugBuf.String())
-				t.Fatalf("spend test case #%v succeed, spend "+
-					"should be invalid: %v", i, err)
-			}
-
-			debugBuf.WriteString(fmt.Sprintf("Stack: %v\n", vm.GetStack()))
-			debugBuf.WriteString(fmt.Sprintf("AltStack: %v\n", vm.GetAltStack()))
-		}
+		assertEngineExecution(t, i, testCase.valid, newEngine)
 	}
 }
 
