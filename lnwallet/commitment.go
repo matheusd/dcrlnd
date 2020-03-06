@@ -227,6 +227,16 @@ func CommitScriptToRemote(chanType channeldb.ChannelType,
 	}, 0, nil
 }
 
+// CommitSize returns the base commitment size before adding HTLCs.
+func CommitSize(chanType channeldb.ChannelType) int64 {
+	// If this commitment has anchors, it will be slightly heavier.
+	if chanType.HasAnchors() {
+		return input.CommitmentWithAnchorsTxSize
+	}
+
+	return input.CommitmentTxSize
+}
+
 // CommitScriptAnchors return the scripts to use for the local and remote
 // anchor.
 func CommitScriptAnchors(localChanCfg,
@@ -371,7 +381,8 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 	// on its total size. Once we have the total size, we'll multiply
 	// by the current fee-per-kb, then divide by 1000 to get the proper
 	// fee.
-	totalCommitSize := input.CommitmentTxSize + (input.HTLCOutputSize * numHTLCs)
+	totalCommitSize := CommitSize(cb.chanState.ChanType) +
+		input.HTLCOutputSize*numHTLCs
 
 	// With the size known, we can now calculate the commitment fee,
 	// ensuring that we account for any dust outputs trimmed above.
