@@ -899,6 +899,13 @@ func (bo *breachedOutput) CraftInputScript(signer input.Signer, txn *wire.MsgTx,
 // must be built on top of the confirmation height before the output can be
 // spent.
 func (bo *breachedOutput) BlocksToMaturity() uint32 {
+	// If the output is a to_remote output we can claim, and it's of the
+	// confirmed type, we must wait one block before claiming it.
+	if bo.witnessType == input.CommitmentToRemoteConfirmed {
+		return 1
+	}
+
+	// All other breached outputs have no CSV delay.
 	return 0
 }
 
@@ -953,6 +960,12 @@ func newRetributionInfo(chanPoint *wire.OutPoint,
 		witnessType := input.CommitmentNoDelay
 		if breachInfo.LocalOutputSignDesc.SingleTweak == nil {
 			witnessType = input.CommitSpendNoDelayTweakless
+		}
+
+		// If the local delay is non-zero, it means this output is of
+		// the confirmed to_remote type.
+		if breachInfo.LocalDelay != 0 {
+			witnessType = input.CommitmentToRemoteConfirmed
 		}
 
 		localOutput := makeBreachedOutput(
@@ -1118,6 +1131,7 @@ func (b *breachArbiter) sweepSpendableOutputsTxn(txSize int64,
 		txn.AddTxIn(&wire.TxIn{
 			ValueIn:          input.SignDesc().Output.Value,
 			PreviousOutPoint: *input.OutPoint(),
+			Sequence:         input.BlocksToMaturity(),
 		})
 	}
 
