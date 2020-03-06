@@ -2386,6 +2386,29 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 		return nil, err
 	}
 
+	// We'll assert that there hasn't been a mistake during fee calculation
+	// leading to a fee too low.
+	var totalOut dcrutil.Amount
+	for _, txOut := range commitTx.txn.TxOut {
+		totalOut += dcrutil.Amount(txOut.Value)
+	}
+	fee := lc.channelState.Capacity - totalOut
+
+	// Since the transaction is not signed yet, we manually add in the size
+	// of the sigscript required to redeem the funding output.
+	// msgTx.SerializeSize() includes one byte for sigscript len so there's
+	// no need to add it here.
+	size := int64(commitTx.txn.SerializeSize()) + input.FundingOutputSigScriptSize
+
+	effFeeRate := chainfee.AtomPerKByte(fee) * 1000 /
+		chainfee.AtomPerKByte(size)
+	if effFeeRate < chainfee.FeePerKBFloor {
+		return nil, fmt.Errorf("height=%v, for ChannelPoint(%v) "+
+			"attempts to create commitment with too low feerate %v: %v",
+			nextHeight, lc.channelState.FundingOutpoint,
+			effFeeRate, spew.Sdump(commitTx))
+	}
+
 	// With the commitment view created, store the resulting balances and
 	// transaction with the other parameters for this height.
 	c := &commitment{
