@@ -12,7 +12,6 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 
 	base "decred.org/dcrwallet/wallet"
-	"decred.org/dcrwallet/wallet/txrules"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v2"
@@ -73,10 +72,7 @@ func createTestWallet() (func(), *hdkeychain.ExtendedKey, *channeldb.DB, onchain
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	loader := walletloader.NewLoader(chaincfg.SimNetParams(), tempDir,
-		&walletloader.StakeOptions{}, 20, false,
-		txrules.DefaultRelayFeePerKb, 5,
-		false)
+	loader := walletloader.NewLoader(chaincfg.SimNetParams(), tempDir, 20)
 
 	pass := []byte("test")
 

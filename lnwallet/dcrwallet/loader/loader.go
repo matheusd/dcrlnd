@@ -14,6 +14,7 @@ import (
 	"decred.org/dcrwallet/errors"
 	"decred.org/dcrwallet/wallet"
 	_ "decred.org/dcrwallet/wallet/drivers/bdb" // driver loaded during init
+	"decred.org/dcrwallet/wallet/txrules"
 	chaincfg2 "github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
@@ -39,7 +40,6 @@ type Loader struct {
 	wallet      *wallet.Wallet
 	db          wallet.DB
 
-	stakeOptions            *StakeOptions
 	gapLimit                int
 	accountGapLimit         int
 	disableCoinTypeUpgrades bool
@@ -49,25 +49,17 @@ type Loader struct {
 	mu sync.Mutex
 }
 
-// StakeOptions contains the various options necessary for stake mining.
-type StakeOptions struct {
-	VotingEnabled       bool
-	TicketFee           float64
-	AddressReuse        bool
-	VotingAddress       dcrutil.Address
-	PoolAddress         dcrutil.Address
-	PoolFees            float64
-	StakePoolColdExtKey string
-}
-
 // NewLoader constructs a Loader.
-func NewLoader(chainParams *chaincfg2.Params, dbDirPath string, stakeOptions *StakeOptions, gapLimit int,
-	allowHighFees bool, relayFee dcrutil.Amount, accountGapLimit int, disableCoinTypeUpgrades bool) *Loader {
+func NewLoader(chainParams *chaincfg2.Params, dbDirPath string, gapLimit int) *Loader {
+
+	allowHighFees := false
+	relayFee := txrules.DefaultRelayFeePerKb
+	accountGapLimit := wallet.DefaultAccountGapLimit
+	disableCoinTypeUpgrades := false
 
 	return &Loader{
 		chainParams:             compat.Params2to3(chainParams),
 		dbDirPath:               dbDirPath,
-		stakeOptions:            stakeOptions,
 		gapLimit:                gapLimit,
 		accountGapLimit:         accountGapLimit,
 		disableCoinTypeUpgrades: disableCoinTypeUpgrades,
@@ -166,19 +158,12 @@ func (l *Loader) CreateWatchingOnlyWallet(ctx context.Context, extendedPubKey st
 	}
 
 	// Open the watch-only wallet.
-	so := l.stakeOptions
 	cfg := &wallet.Config{
 		DB:                      db,
 		PubPassphrase:           pubPass,
-		VotingEnabled:           so.VotingEnabled,
-		AddressReuse:            so.AddressReuse,
-		VotingAddress:           so.VotingAddress,
-		PoolAddress:             so.PoolAddress,
-		PoolFees:                so.PoolFees,
 		GapLimit:                l.gapLimit,
 		AccountGapLimit:         l.accountGapLimit,
 		DisableCoinTypeUpgrades: l.disableCoinTypeUpgrades,
-		StakePoolColdExtKey:     so.StakePoolColdExtKey,
 		AllowHighFees:           l.allowHighFees,
 		RelayFee:                l.relayFee,
 		Params:                  l.chainParams,
@@ -256,19 +241,12 @@ func (l *Loader) CreateNewWallet(ctx context.Context, pubPassphrase, privPassphr
 	}
 
 	// Open the newly-created wallet.
-	so := l.stakeOptions
 	cfg := &wallet.Config{
 		DB:                      db,
 		PubPassphrase:           pubPassphrase,
-		VotingEnabled:           so.VotingEnabled,
-		AddressReuse:            so.AddressReuse,
-		VotingAddress:           so.VotingAddress,
-		PoolAddress:             so.PoolAddress,
-		PoolFees:                so.PoolFees,
 		GapLimit:                l.gapLimit,
 		AccountGapLimit:         l.accountGapLimit,
 		DisableCoinTypeUpgrades: l.disableCoinTypeUpgrades,
-		StakePoolColdExtKey:     so.StakePoolColdExtKey,
 		AllowHighFees:           l.allowHighFees,
 		RelayFee:                l.relayFee,
 		Params:                  l.chainParams,
@@ -316,19 +294,12 @@ func (l *Loader) OpenExistingWallet(ctx context.Context, pubPassphrase []byte) (
 		}
 	}()
 
-	so := l.stakeOptions
 	cfg := &wallet.Config{
 		DB:                      db,
 		PubPassphrase:           pubPassphrase,
-		VotingEnabled:           so.VotingEnabled,
-		AddressReuse:            so.AddressReuse,
-		VotingAddress:           so.VotingAddress,
-		PoolAddress:             so.PoolAddress,
-		PoolFees:                so.PoolFees,
 		GapLimit:                l.gapLimit,
 		AccountGapLimit:         l.accountGapLimit,
 		DisableCoinTypeUpgrades: l.disableCoinTypeUpgrades,
-		StakePoolColdExtKey:     so.StakePoolColdExtKey,
 		AllowHighFees:           l.allowHighFees,
 		RelayFee:                l.relayFee,
 		Params:                  l.chainParams,
