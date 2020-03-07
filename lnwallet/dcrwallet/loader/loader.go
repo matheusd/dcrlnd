@@ -55,7 +55,7 @@ func NewLoader(chainParams *chaincfg2.Params, dbDirPath string, gapLimit int) *L
 	allowHighFees := false
 	relayFee := txrules.DefaultRelayFeePerKb
 	accountGapLimit := wallet.DefaultAccountGapLimit
-	disableCoinTypeUpgrades := false
+	disableCoinTypeUpgrades := defaultDisableCoinTypeUpgrades
 
 	return &Loader{
 		chainParams:             compat.Params2to3(chainParams),
