@@ -3529,6 +3529,11 @@ func (r *rpcServer) SubscribeChannelEvents(req *lnrpc.ChannelEventSubscription,
 					},
 				}
 
+			// Completely ignore ActiveLinkEvent as this is explicitly not
+			// exposed to the RPC.
+			case channelnotifier.ActiveLinkEvent:
+				continue
+
 			default:
 				return fmt.Errorf("unexpected channel event update: %v", event)
 			}
@@ -6171,6 +6176,8 @@ func (r *rpcServer) SubscribeChannelBackups(req *lnrpc.ChannelBackupSubscription
 			case channelnotifier.ActiveChannelEvent:
 				continue
 			case channelnotifier.InactiveChannelEvent:
+				continue
+			case channelnotifier.ActiveLinkEvent:
 				continue
 			}
 
