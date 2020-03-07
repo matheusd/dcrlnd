@@ -17,7 +17,6 @@ import (
 
 	pb "decred.org/dcrwallet/rpc/walletrpc"
 	"decred.org/dcrwallet/wallet"
-	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 	"google.golang.org/grpc"
@@ -149,10 +148,7 @@ func (u *UnlockerService) GenSeed(ctx context.Context,
 	// Before we start, we'll ensure that the wallet hasn't already created
 	// so we don't show a *new* seed to the user if one already exists.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := walletloader.NewLoader(u.netParams, netDir,
-		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
-		false)
+	loader := walletloader.NewLoader(u.netParams, netDir, wallet.DefaultGapLimit)
 	walletExists, err := loader.WalletExists()
 	if err != nil {
 		return nil, err
@@ -288,10 +284,7 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	// loader is only used for this check and should not leak to the
 	// outside.
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := walletloader.NewLoader(u.netParams, netDir,
-		&walletloader.StakeOptions{}, gapLimit, false,
-		txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
-		false)
+	loader := walletloader.NewLoader(u.netParams, netDir, gapLimit)
 
 	walletExists, err := loader.WalletExists()
 	if err != nil {
@@ -407,10 +400,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	}
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := walletloader.NewLoader(u.netParams, netDir,
-		&walletloader.StakeOptions{}, gapLimit, false,
-		txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
-		false)
+	loader := walletloader.NewLoader(u.netParams, netDir, gapLimit)
 
 	// Check if wallet already exists.
 	walletExists, err := loader.WalletExists()
@@ -462,10 +452,7 @@ func (u *UnlockerService) ChangePassword(ctx context.Context,
 	in *lnrpc.ChangePasswordRequest) (*lnrpc.ChangePasswordResponse, error) {
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
-	loader := walletloader.NewLoader(u.netParams, netDir,
-		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
-		false)
+	loader := walletloader.NewLoader(u.netParams, netDir, wallet.DefaultGapLimit)
 
 	// First, we'll make sure the wallet exists for the specific chain and
 	// network.

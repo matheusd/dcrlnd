@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"decred.org/dcrwallet/wallet"
-	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/keychain"
@@ -39,9 +38,7 @@ var (
 func createTestWallet(t *testing.T, dir string, netParams *chaincfg.Params) {
 	netDir := dcrwallet.NetworkDir(dir, netParams)
 	loader := walletloader.NewLoader(netParams, netDir,
-		&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-		txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
-		false)
+		wallet.DefaultGapLimit)
 	_, err := loader.CreateNewWallet(
 		context.Background(), testPassword, testPassword, testSeed,
 	)
