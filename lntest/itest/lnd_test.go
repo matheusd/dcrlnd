@@ -10486,7 +10486,7 @@ func testRejectHTLC(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Open a channel between Alice and Carol.
-	ctxt, _ := context.WithTimeout(ctxb, timeout)
+	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointAlice := openChannelAndAssert(
 		ctxt, t, net, net.Alice, carol,
 		lntest.OpenChannelParams{
@@ -10495,7 +10495,7 @@ func testRejectHTLC(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	// Open a channel between Carol and Bob.
-	ctxt, _ = context.WithTimeout(ctxb, timeout)
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	chanPointCarol := openChannelAndAssert(
 		ctxt, t, net, carol, net.Bob,
 		lntest.OpenChannelParams{
@@ -15252,7 +15252,7 @@ func testChannelBackupUpdates(net *lntest.NetworkHarness, t *harnessTest) {
 	numChans := 2
 	chanAmt := dcrutil.Amount(1000000)
 	for i := 0; i < numChans; i++ {
-		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 		chanPoint := openChannelAndAssert(
 			ctxt, t, net, net.Alice, carol,
 			lntest.OpenChannelParams{
@@ -15386,7 +15386,7 @@ func testExportChannelBackup(net *lntest.NetworkHarness, t *harnessTest) {
 	numChans := 2
 	chanAmt := dcrutil.Amount(1000000)
 	for i := 0; i < numChans; i++ {
-		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
 		chanPoint := openChannelAndAssert(
 			ctxt, t, net, net.Alice, carol,
 			lntest.OpenChannelParams{
