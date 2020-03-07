@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"decred.org/dcrwallet/wallet"
-	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
@@ -957,9 +956,7 @@ func waitForWalletPassword(restEndpoints []net.Addr,
 			cfg.ChainDir, activeNetParams.Params,
 		)
 		loader := walletloader.NewLoader(activeNetParams.Params, netDir,
-			&walletloader.StakeOptions{}, wallet.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb, wallet.DefaultAccountGapLimit,
-			false)
+			wallet.DefaultGapLimit)
 
 		// With the seed, we can now use the wallet loader to create
 		// the wallet, then pass it back to avoid unlocking it again.

@@ -22,7 +22,6 @@ import (
 
 	base "decred.org/dcrwallet/wallet"
 	"decred.org/dcrwallet/wallet/txauthor"
-	"decred.org/dcrwallet/wallet/txrules"
 	"decred.org/dcrwallet/wallet/udb"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 )
@@ -98,10 +97,7 @@ func New(cfg Config) (*DcrWallet, error) {
 		// Ensure the wallet exists or create it when the create flag
 		// is specified
 		netDir := NetworkDir(cfg.DataDir, cfg.NetParams)
-		loader = walletloader.NewLoader(cfg.NetParams, netDir,
-			&walletloader.StakeOptions{}, base.DefaultGapLimit, false,
-			txrules.DefaultRelayFeePerKb, base.DefaultAccountGapLimit,
-			false)
+		loader = walletloader.NewLoader(cfg.NetParams, netDir, base.DefaultGapLimit)
 		walletExists, err := loader.WalletExists()
 		if err != nil {
 			return nil, err
