@@ -1172,7 +1172,7 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 		// within the network.
 		closeResp, err := closeRespStream.Recv()
 		if err != nil {
-			errChan <- err
+			errChan <- fmt.Errorf("unable to recv() from close stream: %v", err)
 			return
 		}
 		pendingClose, ok := closeResp.Update.(*lnrpc.CloseStatusUpdate_ClosePending)
@@ -1184,11 +1184,11 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 
 		closeTxid, err := chainhash.NewHash(pendingClose.ClosePending.Txid)
 		if err != nil {
-			errChan <- err
+			errChan <- fmt.Errorf("unable to decode closeTxidx: %v", err)
 			return
 		}
 		if err := n.WaitForTxBroadcast(ctx, *closeTxid); err != nil {
-			errChan <- err
+			errChan <- fmt.Errorf("error while waiting for broadcast tx: %v", err)
 			return
 		}
 		fin <- closeTxid
@@ -1197,9 +1197,6 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 	// Wait until either the deadline for the context expires, an error
 	// occurs, or the channel close update is received.
 	select {
-	case <-ctx.Done():
-		return nil, nil, fmt.Errorf("timeout reached before channel close " +
-			"initiated")
 	case err := <-errChan:
 		return nil, nil, err
 	case closeTxid := <-fin:
