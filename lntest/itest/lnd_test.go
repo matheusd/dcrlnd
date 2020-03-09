@@ -2451,6 +2451,9 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 			numEdges)
 	}
 
+	// Let enough time pass for all wallet sync to be complete.
+	time.Sleep(3 * time.Second)
+
 	// Now we disconnect Alice's chain backend from the original miner, and
 	// connect the two miners together. Since the temporary miner knows
 	// about a longer chain, both miners should sync to that chain.
@@ -2524,6 +2527,9 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	if err != nil {
 		t.Fatalf(predErr.Error())
 	}
+
+	// Wait again for any outstanding ops in the subsystems to catch up.
+	time.Sleep(3 * time.Second)
 
 	// Cleanup by mining the funding tx again, then closing the channel.
 	block = mineBlocks(t, net, 1, 1)[0]
