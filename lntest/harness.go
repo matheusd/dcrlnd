@@ -1476,6 +1476,21 @@ func (n *NetworkHarness) Generate(nb uint32) ([]*chainhash.Hash, error) {
 	return n.votingWallet.GenerateBlocks(nb)
 }
 
+// SlowGenerate generates blocks with a large time interval between them. This
+// is useful for debugging.
+func (n *NetworkHarness) SlowGenerate(nb uint32) ([]*chainhash.Hash, error) {
+	res := make([]*chainhash.Hash, nb)
+	for i := uint32(0); i < nb; i++ {
+		time.Sleep(time.Second * 3)
+		genRes, err := n.Generate(1)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = genRes[0]
+	}
+	return res, nil
+}
+
 // CopyFile copies the file src to dest.
 func CopyFile(dest, src string) error {
 	s, err := os.Open(src)
