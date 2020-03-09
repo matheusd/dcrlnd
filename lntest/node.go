@@ -836,7 +836,6 @@ func (hn *HarnessNode) initLightningClient(conn *grpc.ClientConn) error {
 		return info.ServerActive
 	}, 30*time.Second)
 
-
 	// Launch the watcher that will hook into graph related topology change
 	// from the PoV of this node.
 	hn.wg.Add(1)
