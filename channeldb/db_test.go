@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
@@ -32,7 +33,13 @@ func TestOpenWithCreate(t *testing.T) {
 
 	// Next, open thereby creating channeldb for the first time.
 	dbPath := filepath.Join(tempDirName, "cdb")
-	cdb, err := Open(dbPath)
+	backend, cleanup, err := kvdb.GetTestBackend(dbPath, "cdb")
+	if err != nil {
+		t.Fatalf("unable to get test db backend: %v", err)
+	}
+	defer cleanup()
+
+	cdb, err := CreateWithBackend(backend)
 	if err != nil {
 		t.Fatalf("unable to create channeldb: %v", err)
 	}
@@ -72,7 +79,13 @@ func TestWipe(t *testing.T) {
 
 	// Next, open thereby creating channeldb for the first time.
 	dbPath := filepath.Join(tempDirName, "cdb")
-	cdb, err := Open(dbPath)
+	backend, cleanup, err := kvdb.GetTestBackend(dbPath, "cdb")
+	if err != nil {
+		t.Fatalf("unable to get test db backend: %v", err)
+	}
+	defer cleanup()
+
+	cdb, err := CreateWithBackend(backend)
 	if err != nil {
 		t.Fatalf("unable to create channeldb: %v", err)
 	}

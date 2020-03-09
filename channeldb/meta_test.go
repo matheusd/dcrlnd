@@ -3,6 +3,7 @@ package channeldb
 import (
 	"bytes"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/decred/dcrlnd/channeldb/kvdb"
@@ -419,12 +420,21 @@ func TestMigrationReversion(t *testing.T) {
 	t.Parallel()
 
 	tempDirName, err := ioutil.TempDir("", "channeldb")
+	defer func() {
+		os.RemoveAll(tempDirName)
+	}()
 	if err != nil {
 		t.Fatalf("unable to create temp dir: %v", err)
 	}
 
-	cdb, err := Open(tempDirName)
+	backend, cleanup, err := kvdb.GetTestBackend(tempDirName, "cdb")
 	if err != nil {
+		t.Fatalf("unable to get test db backend: %v", err)
+	}
+
+	cdb, err := CreateWithBackend(backend)
+	if err != nil {
+		cleanup()
 		t.Fatalf("unable to open channeldb: %v", err)
 	}
 
@@ -440,12 +450,19 @@ func TestMigrationReversion(t *testing.T) {
 
 	// Close the database. Even if we succeeded, our next step is to reopen.
 	cdb.Close()
+	cleanup()
 
 	if err != nil {
 		t.Fatalf("unable to increase db version: %v", err)
 	}
 
-	_, err = Open(tempDirName)
+	backend, cleanup, err = kvdb.GetTestBackend(tempDirName, "cdb")
+	if err != nil {
+		t.Fatalf("unable to get test db backend: %v", err)
+	}
+	defer cleanup()
+
+	_, err = CreateWithBackend(backend)
 	if err != ErrDBReversion {
 		t.Fatalf("unexpected error when opening channeldb, "+
 			"want: %v, got: %v", ErrDBReversion, err)
