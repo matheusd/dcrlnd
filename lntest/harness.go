@@ -1175,7 +1175,8 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 		// within the network.
 		closeResp, err := closeRespStream.Recv()
 		if err != nil {
-			errChan <- fmt.Errorf("unable to recv() from close stream: %v", err)
+			errChan <- fmt.Errorf("unable to recv() from close "+
+				"stream: %v", err)
 			return
 		}
 		pendingClose, ok := closeResp.Update.(*lnrpc.CloseStatusUpdate_ClosePending)
@@ -1187,11 +1188,13 @@ func (n *NetworkHarness) CloseChannel(ctx context.Context,
 
 		closeTxid, err := chainhash.NewHash(pendingClose.ClosePending.Txid)
 		if err != nil {
-			errChan <- fmt.Errorf("unable to decode closeTxidx: %v", err)
+			errChan <- fmt.Errorf("unable to decode closeTxid: "+
+				"%v", err)
 			return
 		}
 		if err := n.WaitForTxBroadcast(ctx, *closeTxid); err != nil {
-			errChan <- fmt.Errorf("error while waiting for broadcast tx: %v", err)
+			errChan <- fmt.Errorf("error while waiting for "+
+				"broadcast tx: %v", err)
 			return
 		}
 		fin <- closeTxid
