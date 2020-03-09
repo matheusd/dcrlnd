@@ -529,6 +529,8 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 		SignedTransaction: rawTx,
 	}
 	_, err = b.wallet.PublishTransaction(context.Background(), publishReq)
+	dcrwLog.Debugf("PublishTransaction(%s): error %v", newLogClosure(
+		func() string { return tx.TxHash().String() }), err)
 	if err != nil {
 		// TODO(decred): review if the string messages are correct.
 		// Possible convert from checking the message to checking the
