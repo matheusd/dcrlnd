@@ -30,7 +30,7 @@ var (
 		0x1e, 0x0b, 0x4c, 0xfd,
 	}
 
-	testNetParams = chaincfg.MainNetParams()
+	testNetParams = chaincfg.SimNetParams()
 
 	testRecoveryWindow uint32 = 150
 )
