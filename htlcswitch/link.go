@@ -2061,6 +2061,10 @@ func (l *channelLink) updateCommitTx() error {
 		return err
 	}
 
+	if err := l.ackDownStreamPackets(); err != nil {
+		return err
+	}
+
 	// The remote party now has a new pending commitment, so we'll update
 	// the contract court to be aware of this new set (the prior old remote
 	// pending).
@@ -2070,11 +2074,7 @@ func (l *channelLink) updateCommitTx() error {
 		Htlcs:   pendingHTLCs,
 	}:
 	case <-l.quit:
-		return nil
-	}
-
-	if err := l.ackDownStreamPackets(); err != nil {
-		return err
+		return ErrLinkShuttingDown
 	}
 
 	commitSig := &lnwire.CommitSig{
