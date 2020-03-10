@@ -1,7 +1,9 @@
 package input
 
 import (
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/keychain"
 )
 
 // Quick review of the serialized layout of decred transactions. This is
@@ -599,10 +601,47 @@ const (
 	MaxHTLCNumber = 300
 )
 
+// dummySigner is a fake signer used for size (upper bound) calculations.
+type dummySigner struct {
+	Signer
+}
+
+// SignOutputRaw generates a signature for the passed transaction according to
+// the data within the passed SignDescriptor.
+func (s *dummySigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) (
+	[]byte, error) {
+
+	// Always return worst-case signature length, excluding the one byte
+	// sighash flag.
+	return make([]byte, 73-1), nil
+}
+
+var (
+	// dummyPubKey is a pubkey used in script size calculation.
+	dummyPubKey = secp256k1.PublicKey{}
+
+	// dummyAnchorScript is a script used for size calculation.
+	dummyAnchorScript, _ = CommitScriptAnchor(&dummyPubKey)
+
+	// dummyAnchorWitness is a witness used for size calculation.
+	dummyAnchorWitness, _ = CommitSpendAnchor(
+		&dummySigner{},
+		&SignDescriptor{
+			KeyDesc: keychain.KeyDescriptor{
+				PubKey: &dummyPubKey,
+			},
+			WitnessScript: dummyAnchorScript,
+		},
+		nil,
+	)
+
+	// AnchorWitnessSize 116 bytes
+	AnchorWitnessSize = int64(dummyAnchorWitness.WitnessSerializeSize())
+)
+
 // EstimateCommitmentTxSize estimates the size of a commitment transaction
 // assuming that it has an additional 'count' HTLC outputs appended to it.
 func EstimateCommitmentTxSize(count int) int64 {
-
 	// Size of 'count' HTLC outputs.
 	htlcsSize := int64(count) * HTLCOutputSize
 
