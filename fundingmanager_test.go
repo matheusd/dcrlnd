@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -97,6 +98,22 @@ type mockNotifier struct {
 	oneConfChannel chan *chainntnfs.TxConfirmation
 	sixConfChannel chan *chainntnfs.TxConfirmation
 	epochChan      chan *chainntnfs.BlockEpoch
+
+	useByTxConfChannels bool
+	byTxConfChannels    *sync.Map
+}
+
+func (m *mockNotifier) confirmTx(t *testing.T, tx *wire.MsgTx) {
+	txid := tx.TxHash()
+	v, ok := m.byTxConfChannels.Load(txid)
+	if !ok {
+		t.Fatalf("could not find confirm channel for txid %s", txid)
+	}
+
+	ch := v.(chan *chainntnfs.TxConfirmation)
+	ch <- &chainntnfs.TxConfirmation{
+		Tx: tx,
+	}
 }
 
 func (m *mockNotifier) RegisterConfirmationsNtfn(txid *chainhash.Hash,
@@ -105,6 +122,14 @@ func (m *mockNotifier) RegisterConfirmationsNtfn(txid *chainhash.Hash,
 	_, err := chainntnfs.ParsePkScript(0, pkScript)
 	if err != nil {
 		return nil, err
+	}
+
+	if m.useByTxConfChannels {
+		ch := make(chan *chainntnfs.TxConfirmation, 1)
+		m.byTxConfChannels.Store(*txid, ch)
+		return &chainntnfs.ConfirmationEvent{
+			Confirmed: ch,
+		}, nil
 	}
 
 	if numConfs == 6 {
@@ -261,9 +286,10 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 	estimator := chainfee.NewStaticEstimator(62500, 0)
 
 	chainNotifier := &mockNotifier{
-		oneConfChannel: make(chan *chainntnfs.TxConfirmation, 1),
-		sixConfChannel: make(chan *chainntnfs.TxConfirmation, 1),
-		epochChan:      make(chan *chainntnfs.BlockEpoch, 2),
+		oneConfChannel:   make(chan *chainntnfs.TxConfirmation, 1),
+		sixConfChannel:   make(chan *chainntnfs.TxConfirmation, 1),
+		epochChan:        make(chan *chainntnfs.BlockEpoch, 2),
+		byTxConfChannels: &sync.Map{},
 	}
 
 	sentMessages := make(chan lnwire.Message)
@@ -2573,6 +2599,11 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 	)
 	defer tearDownFundingManagers(t, alice, bob)
 
+	// We confirm multiple txs concurrently, so use different confirmation
+	// channels per tx to ensure there's no mix up in the readers.
+	alice.mockNotifier.useByTxConfChannels = true
+	bob.mockNotifier.useByTxConfChannels = true
+
 	// Create openChanReqs for maxPending+1 channels.
 	var initReqs []*openChanReq
 	for i := 0; i < maxPending+1; i++ {
@@ -2692,7 +2723,6 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 		case <-time.After(time.Second * 5):
 			t.Fatalf("alice did not publish funding tx")
 		}
-
 	}
 
 	// Sending another init request from Alice should still make Bob
@@ -2705,12 +2735,8 @@ func TestFundingManagerMaxPendingChannels(t *testing.T) {
 
 	// Notify that the transactions were mined.
 	for i := 0; i < maxPending; i++ {
-		alice.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
-			Tx: txs[i],
-		}
-		bob.mockNotifier.oneConfChannel <- &chainntnfs.TxConfirmation{
-			Tx: txs[i],
-		}
+		alice.mockNotifier.confirmTx(t, txs[i])
+		bob.mockNotifier.confirmTx(t, txs[i])
 
 		// Expect both to be sending FundingLocked.
 		_ = assertFundingMsgSent(
