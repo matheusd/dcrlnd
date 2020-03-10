@@ -106,7 +106,7 @@ var (
 // the test has been finalized. The clean up function will remote all temporary
 // files created. If tweaklessCommits is true, then the commits within the
 // channels will use the new format, otherwise the legacy format.
-func CreateTestChannels(tweaklessCommits bool) (
+func CreateTestChannels(chanType channeldb.ChannelType) (
 	*LightningChannel, *LightningChannel, func(), error) {
 
 	channelCapacity, err := dcrutil.NewAmount(10)
@@ -222,10 +222,6 @@ func CreateTestChannels(tweaklessCommits bool) (
 	aliceCommitPoint := input.ComputeCommitmentPoint(aliceFirstRevoke[:])
 
 	netParams := chaincfg.RegNetParams()
-	chanType := channeldb.SingleFunderTweaklessBit
-	if !tweaklessCommits {
-		chanType = channeldb.SingleFunderBit
-	}
 
 	aliceCommitTx, bobCommitTx, err := CreateCommitmentTxns(
 		channelBal, channelBal, &aliceCfg, &bobCfg, aliceCommitPoint,
@@ -264,12 +260,21 @@ func CreateTestChannels(tweaklessCommits bool) (
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	commitFee := calcStaticFee(0)
+	commitFee := calcStaticFee(chanType, 0)
+	var anchorAmt dcrutil.Amount
+	if chanType.HasAnchors() {
+		anchorAmt += 2 * anchorSize
+	}
+
+	aliceBalance := lnwire.NewMAtomsFromAtoms(
+		channelBal - commitFee - anchorAmt,
+	)
+	bobBalance := lnwire.NewMAtomsFromAtoms(channelBal)
 
 	aliceCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal - commitFee),
-		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
+		LocalBalance:  aliceBalance,
+		RemoteBalance: bobBalance,
 		CommitFee:     commitFee,
 		FeePerKB:      dcrutil.Amount(feePerKB),
 		CommitTx:      aliceCommitTx,
@@ -277,8 +282,8 @@ func CreateTestChannels(tweaklessCommits bool) (
 	}
 	bobCommit := channeldb.ChannelCommitment{
 		CommitHeight:  0,
-		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
-		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal - commitFee),
+		LocalBalance:  bobBalance,
+		RemoteBalance: aliceBalance,
 		CommitFee:     commitFee,
 		FeePerKB:      dcrutil.Amount(feePerKB),
 		CommitTx:      bobCommitTx,
@@ -472,11 +477,12 @@ func txFromHex(txHex string) (*dcrutil.Tx, error) {
 // This uses a fixed, hard-coded value of 6000 Atoms/kB as fee.
 //
 // TODO(bvu): Refactor when dynamic fee estimation is added.
-func calcStaticFee(numHTLCs int) dcrutil.Amount {
+func calcStaticFee(chanType channeldb.ChannelType, numHTLCs int) dcrutil.Amount {
 	const (
 		feePerKB = dcrutil.Amount(1e5)
 	)
-	commitSize := input.EstimateCommitmentTxSize(numHTLCs)
+
+	commitSize := CommitSize(chanType) + input.HTLCOutputSize*int64(numHTLCs)
 	return feePerKB * dcrutil.Amount(commitSize) / 1000
 }
 

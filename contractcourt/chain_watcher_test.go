@@ -80,7 +80,9 @@ func TestChainWatcherRemoteUnilateralClose(t *testing.T) {
 
 	// First, we'll create two channels which already have established a
 	// commitment contract between themselves.
-	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(true)
+	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(
+		channeldb.SingleFunderTweaklessBit,
+	)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -167,7 +169,9 @@ func TestChainWatcherRemoteUnilateralClosePendingCommit(t *testing.T) {
 
 	// First, we'll create two channels which already have established a
 	// commitment contract between themselves.
-	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(true)
+	aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(
+		channeldb.SingleFunderTweaklessBit,
+	)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -250,7 +254,9 @@ func TestChainWatcherCorrectSpendNtnf(t *testing.T) {
 
 	// First, we'll create two channels which already have established a
 	// commitment contract between themselves.
-	aliceChannel, _, cleanUp, err := lnwallet.CreateTestChannels(true)
+	aliceChannel, _, cleanUp, err := lnwallet.CreateTestChannels(
+		channeldb.SingleFunderBit,
+	)
 	if err != nil {
 		t.Fatalf("unable to create test channels: %v", err)
 	}
@@ -343,7 +349,7 @@ func TestChainWatcherDataLossProtect(t *testing.T) {
 		// First, we'll create two channels which already have
 		// established a commitment contract between themselves.
 		aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(
-			false,
+			channeldb.SingleFunderBit,
 		)
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
@@ -512,7 +518,7 @@ func TestChainWatcherLocalForceCloseDetect(t *testing.T) {
 		// First, we'll create two channels which already have
 		// established a commitment contract between themselves.
 		aliceChannel, bobChannel, cleanUp, err := lnwallet.CreateTestChannels(
-			false,
+			channeldb.SingleFunderBit,
 		)
 		if err != nil {
 			t.Fatalf("unable to create test channels: %v", err)
