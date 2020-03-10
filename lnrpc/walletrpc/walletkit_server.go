@@ -390,6 +390,10 @@ func (w *WalletKit) PendingSweeps(ctx context.Context,
 			witnessType = WitnessType_WITNESS_KEY_HASH
 		case input.NestedWitnessKeyHash:
 			witnessType = WitnessType_NESTED_WITNESS_KEY_HASH
+		case input.CommitmentAnchor:
+			witnessType = WitnessType_COMMITMENT_ANCHOR
+
+		// Decred-specific.
 		case input.PublicKeyHash:
 			witnessType = WitnessType_PUBKEY_HASH
 		default:
