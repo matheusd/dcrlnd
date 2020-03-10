@@ -166,6 +166,12 @@ enum WitnessType {
     NESTED_WITNESS_KEY_HASH = 12;
 
     /*
+    A witness type that allows us to spend our anchor on the commitment
+    transaction.
+    */
+    COMMITMENT_ANCHOR = 13;
+
+    /*
     A witness type that allows us to sweep an output that sends to a P2PKH
     script.
     */

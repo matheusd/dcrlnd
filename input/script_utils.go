@@ -30,6 +30,25 @@ const LNTxVersion uint16 = 2
 // TxWitness represents the witness data for a transaction.
 type TxWitness [][]byte
 
+// WitnessSerializeSize returns the number of bytes it would take to serialize
+// the given slice as if it were a bitcoin witness program.
+//
+// Note: this is only used as an acessory in certain tests in Decred.
+func (t TxWitness) WitnessSerializeSize() int {
+	// A varint to signal the number of elements the witness has.
+	n := wire.VarIntSerializeSize(uint64(len(t)))
+
+	// For each element in the witness, we'll need a varint to signal the
+	// size of the element, then finally the number of bytes the element
+	// itself comprises.
+	for _, witItem := range t {
+		n += wire.VarIntSerializeSize(uint64(len(witItem)))
+		n += len(witItem)
+	}
+
+	return n
+}
+
 var (
 	// TODO(roasbeef): remove these and use the one's defined in txscript
 	// within testnet-L.

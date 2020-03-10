@@ -133,6 +133,10 @@ const (
 	// output on the counterparty's commitment transaction after a
 	// confirmation.
 	CommitmentToRemoteConfirmed StandardWitnessType = 13
+
+	// CommitmentAnchor is a witness that allows us to spend our anchor on
+	// the commitment transaction.
+	CommitmentAnchor StandardWitnessType = 14
 )
 
 // String returns a human readable version of the target WitnessType.
@@ -145,6 +149,9 @@ func (wt StandardWitnessType) String() string {
 
 	case CommitmentToRemoteConfirmed:
 		return "CommitmentToRemoteConfirmed"
+
+	case CommitmentAnchor:
+		return "CommitmentAnchor"
 
 	case CommitmentNoDelay:
 		return "CommitmentNoDelay"
@@ -218,6 +225,16 @@ func (wt StandardWitnessType) WitnessGenerator(signer Signer,
 			witness, err := CommitSpendToRemoteConfirmed(
 				signer, desc, tx,
 			)
+			if err != nil {
+				return nil, err
+			}
+
+			return &Script{
+				Witness: witness,
+			}, nil
+
+		case CommitmentAnchor:
+			witness, err := CommitSpendAnchor(signer, desc, tx)
 			if err != nil {
 				return nil, err
 			}
@@ -359,6 +376,10 @@ func (wt StandardWitnessType) SizeUpperBound() (int64, bool, error) {
 	// 1 CSV time locked output to us on remote commitment.
 	case CommitmentToRemoteConfirmed:
 		return ToRemoteConfirmedWitnessSize, false, nil
+
+	// Anchor output on the commitment transaction.
+	case CommitmentAnchor:
+		return AnchorWitnessSize, false, nil
 
 	// Outgoing second layer HTLC's that have confirmed within the
 	// chain, and the output they produced is now mature enough to
