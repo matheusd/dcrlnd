@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/sweep"
 )
 
@@ -120,6 +121,10 @@ func (s *mockSweeper) CreateSweepTx(inputs []input.Input, feePref sweep.FeePrefe
 	currentBlockHeight uint32) (*wire.MsgTx, error) {
 
 	return nil, nil
+}
+
+func (s *mockSweeper) RelayFeePerKB() chainfee.AtomPerKByte {
+	return 1e4
 }
 
 var _ UtxoSweeper = &mockSweeper{}

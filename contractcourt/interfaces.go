@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/sweep"
 )
@@ -51,4 +52,8 @@ type UtxoSweeper interface {
 	// estimate before generating the required witnesses.
 	CreateSweepTx(inputs []input.Input, feePref sweep.FeePreference,
 		currentBlockHeight uint32) (*wire.MsgTx, error)
+
+	// RelayFeePerKB returns the minimum fee rate required for transactions
+	// to be relayed.
+	RelayFeePerKB() chainfee.AtomPerKByte
 }
