@@ -202,9 +202,6 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			subCfgValue.FieldByName("NodeSigner").Set(
 				reflect.ValueOf(nodeSigner),
 			)
-			subCfgValue.FieldByName("MaxPaymentMAtoms").Set(
-				reflect.ValueOf(MaxPaymentMAtoms),
-			)
 			defaultDelta := cfg.TimeLockDelta
 			subCfgValue.FieldByName("DefaultCLTVExpiry").Set(
 				reflect.ValueOf(defaultDelta),
