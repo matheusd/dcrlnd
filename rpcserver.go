@@ -4506,7 +4506,6 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 		IsChannelActive:   r.server.htlcSwitch.HasActiveLink,
 		ChainParams:       activeNetParams.Params,
 		NodeSigner:        r.server.nodeSigner,
-		MaxPaymentMAtoms:  MaxPaymentMAtoms,
 		DefaultCLTVExpiry: defaultDelta,
 		ChanDB:            r.server.chanDB,
 		GenInvoiceFeatures: func() *lnwire.FeatureVector {

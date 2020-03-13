@@ -37,9 +37,6 @@ type AddInvoiceConfig struct {
 	// that's backed by the identity private key of the running lnd node.
 	NodeSigner *netann.NodeSigner
 
-	// MaxPaymentMAtoms is the maximum allowed payment.
-	MaxPaymentMAtoms lnwire.MilliAtom
-
 	// DefaultCLTVExpiry is the default invoice expiry if no values is
 	// specified.
 	DefaultCLTVExpiry uint32
@@ -167,20 +164,11 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 
 	amtMAtoms := invoice.Value
 
-	// The value of the invoice must also not exceed the current soft-limit
-	// on the largest payment within the network.
-	if amtMAtoms > cfg.MaxPaymentMAtoms {
-		return nil, nil, fmt.Errorf("payment of %v is too large, max "+
-			"payment allowed is %v", amtMAtoms.ToAtoms(),
-			cfg.MaxPaymentMAtoms.ToAtoms(),
-		)
-	}
-
-	// We also create an encoded payment request which allows the
-	// caller to compactly send the invoice to the payer. We'll create a
-	// list of options to be added to the encoded payment request. For now
-	// we only support the required fields description/description_hash,
-	// expiry, fallback address, and the amount field.
+	// We also create an encoded payment request which allows the caller to
+	// compactly send the invoice to the payer. We'll create a list of
+	// options to be added to the encoded payment request. For now we only
+	// support the required fields description/description_hash, expiry,
+	// fallback address, and the amount field.
 	var options []func(*zpay32.Invoice)
 
 	// We only include the amount in the invoice if it is greater than 0.
