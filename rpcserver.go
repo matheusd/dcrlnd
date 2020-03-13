@@ -566,6 +566,7 @@ func newRPCServer(s *server, macService *macaroons.Service,
 		Tower:                 s.controlTower,
 		MaxTotalTimelock:      cfg.MaxOutgoingCltvExpiry,
 		DefaultFinalCltvDelta: uint16(cfg.TimeLockDelta),
+		SubscribeHtlcEvents:   s.htlcNotifier.SubscribeHtlcEvents,
 	}
 
 	genInvoiceFeatures := func() *lnwire.FeatureVector {
