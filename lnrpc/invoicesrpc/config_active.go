@@ -40,9 +40,6 @@ type Config struct {
 	// that's backed by the identity private key of the running lnd node.
 	NodeSigner *netann.NodeSigner
 
-	// MaxPaymentMAtoms is the maximum allowed payment.
-	MaxPaymentMAtoms lnwire.MilliAtom
-
 	// DefaultCLTVExpiry is the default invoice expiry if no values is
 	// specified.
 	DefaultCLTVExpiry uint32
