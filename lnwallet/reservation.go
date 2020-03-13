@@ -171,7 +171,7 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 	id uint64, pushMAtoms lnwire.MilliAtom, chainHash *chainhash.Hash,
 	flags lnwire.FundingFlag, commitType CommitmentType,
 	fundingAssembler chanfunding.Assembler,
-	pendingChanID [32]byte) (*ChannelReservation, error) {
+	pendingChanID [32]byte, thawHeight uint32) (*ChannelReservation, error) {
 
 	var (
 		ourBalance   lnwire.MilliAtom
@@ -306,6 +306,12 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 		chanType |= channeldb.AnchorOutputsBit
 	}
 
+	// If the channel is meant to be frozen, then we'll set the frozen bit
+	// now so once the channel is open, it can be interpreted properly.
+	if thawHeight != 0 {
+		chanType |= channeldb.FrozenBit
+	}
+
 	return &ChannelReservation{
 		ourContribution: &ChannelContribution{
 			FundingAmount: ourBalance.ToAtoms(),
@@ -334,7 +340,8 @@ func NewChannelReservation(capacity, localFundingAmt dcrutil.Amount,
 				FeePerKB:      dcrutil.Amount(commitFeePerKB),
 				CommitFee:     commitFee,
 			},
-			Db: wallet.Cfg.Database,
+			ThawHeight: thawHeight,
+			Db:         wallet.Cfg.Database,
 		},
 		pushMAtoms:    pushMAtoms,
 		pendingChanID: pendingChanID,
