@@ -244,6 +244,8 @@ type Config struct {
 
 	AllowCircularRoute bool `long:"allow-circular-route" description:"If true, our node will allow htlc forwards that arrive and depart on the same channel."`
 
+	DB *lncfg.DB `group:"db" namespace:"db"`
+
 	// registeredChains keeps track of all chains that have been registered
 	// with the daemon.
 	registeredChains *chainRegistry
@@ -330,6 +332,7 @@ func DefaultConfig() Config {
 		},
 		MaxOutgoingCltvExpiry:   htlcswitch.DefaultMaxOutgoingCltvExpiry,
 		MaxChannelFeeAllocation: htlcswitch.DefaultMaxLinkFeeAllocation,
+		DB:                      lncfg.DefaultDB(),
 		registeredChains:        newChainRegistry(),
 	}
 }
@@ -933,6 +936,7 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 		cfg.Workers,
 		cfg.Caches,
 		cfg.WtClient,
+		cfg.DB,
 	)
 	if err != nil {
 		return nil, err
@@ -948,6 +952,14 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 
 	// All good, return the sanitized result.
 	return &cfg, err
+}
+
+// localDatabaseDir returns the default directory where the
+// local bolt db files are stored.
+func (c *Config) localDatabaseDir() string {
+	return filepath.Join(c.DataDir,
+		defaultGraphSubDirname,
+		normalizeNetwork(activeNetParams.Name))
 }
 
 // CleanAndExpandPath expands environment variables and leading ~ in the
