@@ -14,16 +14,17 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnpeer"
-	"github.com/decred/dcrlnd/multimutex"
-	"github.com/decred/dcrlnd/ticker"
-
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/multimutex"
+	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
+	"github.com/decred/dcrlnd/ticker"
 )
 
 var (
@@ -2464,7 +2465,9 @@ func (d *AuthenticatedGossiper) updateChannel(info *channeldb.ChannelEdgeInfo,
 
 	// With the update applied, we'll generate a new signature over a
 	// digest of the channel announcement itself.
-	sig, err := SignAnnouncement(d.cfg.AnnSigner, d.selfKey, chanUpdate)
+	sig, err := netann.SignAnnouncement(
+		d.cfg.AnnSigner, d.selfKey, chanUpdate,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

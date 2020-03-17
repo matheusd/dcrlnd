@@ -25,6 +25,7 @@ import (
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/ticker"
@@ -550,7 +551,7 @@ func createNodeAnnouncement(priv *secp256k1.PrivateKey,
 	}
 
 	signer := mockSigner{priv}
-	sig, err := SignAnnouncement(&signer, priv.PubKey(), a)
+	sig, err := netann.SignAnnouncement(&signer, priv.PubKey(), a)
 	if err != nil {
 		return nil, err
 	}
@@ -602,7 +603,7 @@ func createUpdateAnnouncement(blockHeight uint32,
 func signUpdate(nodeKey *secp256k1.PrivateKey, a *lnwire.ChannelUpdate) error {
 	pub := nodeKey.PubKey()
 	signer := mockSigner{nodeKey}
-	sig, err := SignAnnouncement(&signer, pub, a)
+	sig, err := netann.SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return err
 	}
@@ -644,7 +645,7 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 
 	pub := nodeKeyPriv1.PubKey()
 	signer := mockSigner{nodeKeyPriv1}
-	sig, err := SignAnnouncement(&signer, pub, a)
+	sig, err := netann.SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return nil, err
 	}
@@ -655,7 +656,7 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 
 	pub = nodeKeyPriv2.PubKey()
 	signer = mockSigner{nodeKeyPriv2}
-	sig, err = SignAnnouncement(&signer, pub, a)
+	sig, err = netann.SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return nil, err
 	}
@@ -666,7 +667,7 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 
 	pub = decredKeyPriv1.PubKey()
 	signer = mockSigner{decredKeyPriv1}
-	sig, err = SignAnnouncement(&signer, pub, a)
+	sig, err = netann.SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return nil, err
 	}
@@ -677,7 +678,7 @@ func createRemoteChannelAnnouncement(blockHeight uint32,
 
 	pub = decredKeyPriv2.PubKey()
 	signer = mockSigner{decredKeyPriv2}
-	sig, err = SignAnnouncement(&signer, pub, a)
+	sig, err = netann.SignAnnouncement(&signer, pub, a)
 	if err != nil {
 		return nil, err
 	}
