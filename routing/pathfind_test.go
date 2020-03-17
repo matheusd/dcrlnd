@@ -805,10 +805,8 @@ func testBasicGraphPathFindingCase(t *testing.T, graphInstance *testGraphInstanc
 
 	paymentAmt := lnwire.NewMAtomsFromAtoms(test.paymentAmt)
 	target := graphInstance.aliasMap[test.target]
-	path, err := findPath(
-		&graphParams{
-			graph: graphInstance.graph,
-		},
+	path, err := dbFindPath(
+		graphInstance.graph, nil, nil,
 		&RestrictParams{
 			FeeLimit:          test.feeLimit,
 			ProbabilitySource: noProbabilitySource,
@@ -999,11 +997,8 @@ func TestPathFindingWithAdditionalEdges(t *testing.T) {
 	find := func(r *RestrictParams) (
 		[]*channeldb.ChannelEdgePolicy, error) {
 
-		return findPath(
-			&graphParams{
-				graph:           graph.graph,
-				additionalEdges: additionalEdges,
-			},
+		return dbFindPath(
+			graph.graph, additionalEdges, nil,
 			r, testPathFindingConfig,
 			sourceNode.PubKeyBytes, doge.PubKeyBytes, paymentAmt,
 			0,
@@ -1427,10 +1422,8 @@ func TestPathNotAvailable(t *testing.T) {
 	var unknownNode route.Vertex
 	copy(unknownNode[:], unknownNodeBytes)
 
-	_, err = findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, unknownNode, 100, 0,
 	)
@@ -1476,7 +1469,7 @@ func TestDestTLVGraphFallback(t *testing.T) {
 	ctx := newPathFindingTestContext(t, testChannels, "roasbeef")
 	defer ctx.cleanup()
 
-	sourceNode, err := ctx.graphParams.graph.SourceNode()
+	sourceNode, err := ctx.graph.SourceNode()
 	if err != nil {
 		t.Fatalf("unable to fetch source node: %v", err)
 
@@ -1485,10 +1478,8 @@ func TestDestTLVGraphFallback(t *testing.T) {
 	find := func(r *RestrictParams,
 		target route.Vertex) ([]*channeldb.ChannelEdgePolicy, error) {
 
-		return findPath(
-			&graphParams{
-				graph: ctx.graphParams.graph,
-			},
+		return dbFindPath(
+			ctx.graph, nil, nil,
 			r, testPathFindingConfig,
 			sourceNode.PubKeyBytes, target, 100, 0,
 		)
@@ -1759,10 +1750,8 @@ func TestPathInsufficientCapacity(t *testing.T) {
 	target := graph.aliasMap["sophon"]
 
 	payAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
-	_, err = findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -1792,10 +1781,8 @@ func TestRouteFailMinHTLC(t *testing.T) {
 	// attempt should fail.
 	target := graph.aliasMap["songoku"]
 	payAmt := lnwire.MilliAtom(10)
-	_, err = findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -1891,10 +1878,8 @@ func TestRouteFailDisabledEdge(t *testing.T) {
 	// succeed without issue, and return a single path via phamnuwen
 	target := graph.aliasMap["sophon"]
 	payAmt := lnwire.NewMAtomsFromAtoms(105000)
-	_, err = findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -1919,10 +1904,8 @@ func TestRouteFailDisabledEdge(t *testing.T) {
 		t.Fatalf("unable to update edge: %v", err)
 	}
 
-	_, err = findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -1944,10 +1927,8 @@ func TestRouteFailDisabledEdge(t *testing.T) {
 
 	// If we attempt to route through that edge, we should get a failure as
 	// it is no longer eligible.
-	_, err = findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -1978,10 +1959,8 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 	// cheapest path.
 	target := graph.aliasMap["sophon"]
 	payAmt := lnwire.NewMAtomsFromAtoms(50000)
-	path, err := findPath(
-		&graphParams{
-			graph: graph.graph,
-		},
+	path, err := dbFindPath(
+		graph.graph, nil, nil,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -2001,11 +1980,8 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 
 	// Since both these edges has a bandwidth of zero, no path should be
 	// found.
-	_, err = findPath(
-		&graphParams{
-			graph:          graph.graph,
-			bandwidthHints: bandwidths,
-		},
+	_, err = dbFindPath(
+		graph.graph, nil, bandwidths,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -2019,11 +1995,8 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 
 	// Now, if we attempt to route again, we should find the path via
 	// phamnuven, as the other source edge won't be considered.
-	path, err = findPath(
-		&graphParams{
-			graph:          graph.graph,
-			bandwidthHints: bandwidths,
-		},
+	path, err = dbFindPath(
+		graph.graph, nil, bandwidths,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -2050,11 +2023,8 @@ func TestPathSourceEdgesBandwidth(t *testing.T) {
 
 	// Since we ignore disable flags for local channels, a path should
 	// still be found.
-	path, err = findPath(
-		&graphParams{
-			graph:          graph.graph,
-			bandwidthHints: bandwidths,
-		},
+	path, err = dbFindPath(
+		graph.graph, nil, bandwidths,
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
@@ -2805,7 +2775,7 @@ func TestRouteToSelf(t *testing.T) {
 
 type pathFindingTestContext struct {
 	t                 *testing.T
-	graphParams       graphParams
+	graph             *channeldb.ChannelGraph
 	restrictParams    RestrictParams
 	pathFindingConfig PathFindingConfig
 	testGraphInstance *testGraphInstance
@@ -2832,10 +2802,8 @@ func newPathFindingTestContext(t *testing.T, testChannels []*testChannel,
 		testGraphInstance: testGraphInstance,
 		source:            route.Vertex(sourceNode.PubKeyBytes),
 		pathFindingConfig: *testPathFindingConfig,
-		graphParams: graphParams{
-			graph: testGraphInstance.graph,
-		},
-		restrictParams: *noRestrictions,
+		graph:             testGraphInstance.graph,
+		restrictParams:    *noRestrictions,
 	}
 
 	return ctx
@@ -2862,8 +2830,8 @@ func (c *pathFindingTestContext) findPath(target route.Vertex,
 	amt lnwire.MilliAtom) ([]*channeldb.ChannelEdgePolicy,
 	error) {
 
-	return findPath(
-		&c.graphParams, &c.restrictParams, &c.pathFindingConfig,
+	return dbFindPath(
+		c.graph, nil, nil, &c.restrictParams, &c.pathFindingConfig,
 		c.source, target, amt, 0,
 	)
 }
@@ -2880,4 +2848,34 @@ func (c *pathFindingTestContext) assertPath(path []*channeldb.ChannelEdgePolicy,
 				"but got %v", i, expected[i], edge.ChannelID)
 		}
 	}
+}
+
+// dbFindPath calls findPath after getting a db transaction from the database
+// graph.
+func dbFindPath(graph *channeldb.ChannelGraph,
+	additionalEdges map[route.Vertex][]*channeldb.ChannelEdgePolicy,
+	bandwidthHints map[uint64]lnwire.MilliAtom,
+	r *RestrictParams, cfg *PathFindingConfig,
+	source, target route.Vertex, amt lnwire.MilliAtom,
+	finalHtlcExpiry int32) ([]*channeldb.ChannelEdgePolicy, error) {
+
+	routingTx, err := newDbRoutingTx(graph)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := routingTx.close()
+		if err != nil {
+			log.Errorf("Error closing db tx: %v", err)
+		}
+	}()
+
+	return findPath(
+		&graphParams{
+			additionalEdges: additionalEdges,
+			bandwidthHints:  bandwidthHints,
+			graph:           routingTx,
+		},
+		r, cfg, source, target, amt, finalHtlcExpiry,
+	)
 }
