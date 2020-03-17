@@ -334,20 +334,7 @@ func (c *ChanSeries) FetchChanUpdates(chain chainhash.Hash,
 
 	chanUpdates := make([]*lnwire.ChannelUpdate, 0, 2)
 	if e1 != nil {
-		chanUpdate := &lnwire.ChannelUpdate{
-			ChainHash:         chanInfo.ChainHash,
-			ShortChannelID:    shortChanID,
-			Timestamp:         uint32(e1.LastUpdate.Unix()),
-			MessageFlags:      e1.MessageFlags,
-			ChannelFlags:      e1.ChannelFlags,
-			TimeLockDelta:     e1.TimeLockDelta,
-			HtlcMinimumMAtoms: e1.MinHTLC,
-			HtlcMaximumMAtoms: e1.MaxHTLC,
-			BaseFee:           uint32(e1.FeeBaseMAtoms),
-			FeeRate:           uint32(e1.FeeProportionalMillionths),
-			ExtraOpaqueData:   e1.ExtraOpaqueData,
-		}
-		chanUpdate.Signature, err = lnwire.NewSigFromRawSignature(e1.SigBytes)
+		chanUpdate, err := netann.ChannelUpdateFromEdge(chanInfo, e1)
 		if err != nil {
 			return nil, err
 		}
@@ -355,20 +342,7 @@ func (c *ChanSeries) FetchChanUpdates(chain chainhash.Hash,
 		chanUpdates = append(chanUpdates, chanUpdate)
 	}
 	if e2 != nil {
-		chanUpdate := &lnwire.ChannelUpdate{
-			ChainHash:         chanInfo.ChainHash,
-			ShortChannelID:    shortChanID,
-			Timestamp:         uint32(e2.LastUpdate.Unix()),
-			MessageFlags:      e2.MessageFlags,
-			ChannelFlags:      e2.ChannelFlags,
-			TimeLockDelta:     e2.TimeLockDelta,
-			HtlcMinimumMAtoms: e2.MinHTLC,
-			HtlcMaximumMAtoms: e2.MaxHTLC,
-			BaseFee:           uint32(e2.FeeBaseMAtoms),
-			FeeRate:           uint32(e2.FeeProportionalMillionths),
-			ExtraOpaqueData:   e2.ExtraOpaqueData,
-		}
-		chanUpdate.Signature, err = lnwire.NewSigFromRawSignature(e2.SigBytes)
+		chanUpdate, err := netann.ChannelUpdateFromEdge(chanInfo, e2)
 		if err != nil {
 			return nil, err
 		}
