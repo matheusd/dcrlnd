@@ -55,13 +55,8 @@ func SignChannelUpdate(signer lnwallet.MessageSigner, pubKey *secp256k1.PublicKe
 	}
 	update.Timestamp = newTimestamp
 
-	chanUpdateMsg, err := update.DataToSign()
-	if err != nil {
-		return err
-	}
-
 	// Create the DER-encoded ECDSA signature over the message digest.
-	sig, err := signer.SignMessage(pubKey, chanUpdateMsg)
+	sig, err := SignAnnouncement(signer, pubKey, update)
 	if err != nil {
 		return err
 	}
