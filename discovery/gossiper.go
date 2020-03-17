@@ -1393,7 +1393,7 @@ func (d *AuthenticatedGossiper) processRejectedEdge(
 
 	// We'll then create then validate the new fully assembled
 	// announcement.
-	chanAnn, e1Ann, e2Ann, err := CreateChanAnnouncement(
+	chanAnn, e1Ann, e2Ann, err := netann.CreateChanAnnouncement(
 		proof, chanInfo, e1, e2,
 	)
 	if err != nil {
@@ -2153,7 +2153,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 						msg.ChannelID,
 						peerID)
 
-					chanAnn, _, _, err := CreateChanAnnouncement(
+					chanAnn, _, _, err := netann.CreateChanAnnouncement(
 						chanInfo.AuthProof, chanInfo,
 						e1, e2,
 					)
@@ -2236,7 +2236,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			dbProof.DecredSig1Bytes = oppositeProof.DecredSignature.ToSignatureBytes()
 			dbProof.DecredSig2Bytes = msg.DecredSignature.ToSignatureBytes()
 		}
-		chanAnn, e1Ann, e2Ann, err := CreateChanAnnouncement(
+		chanAnn, e1Ann, e2Ann, err := netann.CreateChanAnnouncement(
 			&dbProof, chanInfo, e1, e2,
 		)
 		if err != nil {

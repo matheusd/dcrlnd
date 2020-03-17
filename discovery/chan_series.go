@@ -6,6 +6,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/routing/route"
 )
 
@@ -119,7 +120,7 @@ func (c *ChanSeries) UpdatesInHorizon(chain chainhash.Hash,
 			continue
 		}
 
-		chanAnn, edge1, edge2, err := CreateChanAnnouncement(
+		chanAnn, edge1, edge2, err := netann.CreateChanAnnouncement(
 			channel.Info.AuthProof, channel.Info, channel.Policy1,
 			channel.Policy2,
 		)
@@ -268,7 +269,7 @@ func (c *ChanSeries) FetchChanAnns(chain chainhash.Hash,
 			continue
 		}
 
-		chanAnn, edge1, edge2, err := CreateChanAnnouncement(
+		chanAnn, edge1, edge2, err := netann.CreateChanAnnouncement(
 			channel.Info.AuthProof, channel.Info, channel.Policy1,
 			channel.Policy2,
 		)
