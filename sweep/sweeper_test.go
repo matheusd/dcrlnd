@@ -787,7 +787,7 @@ func TestRestart(t *testing.T) {
 	// Expect last tx to be republished.
 	ctx.receiveTx()
 
-	// Simulate other subsystem (eg contract resolver) re-offering inputs.
+	// Simulate other subsystem (e.g. contract resolver) re-offering inputs.
 	spendChan1, err := ctx.sweeper.SweepInput(input1, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
@@ -885,7 +885,7 @@ func TestRestartRemoteSpend(t *testing.T) {
 	// Mine remote spending tx.
 	ctx.backend.mine()
 
-	// Simulate other subsystem (eg contract resolver) re-offering input 0.
+	// Simulate other subsystem (e.g. contract resolver) re-offering input 0.
 	spendChan, err := ctx.sweeper.SweepInput(input1, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
@@ -932,7 +932,7 @@ func TestRestartConfirmed(t *testing.T) {
 	// Mine the sweep tx.
 	ctx.backend.mine()
 
-	// Simulate other subsystem (eg contract resolver) re-offering input 0.
+	// Simulate other subsystem (e.g. contract resolver) re-offering input 0.
 	spendChan, err := ctx.sweeper.SweepInput(input, defaultFeePref)
 	if err != nil {
 		t.Fatal(err)
