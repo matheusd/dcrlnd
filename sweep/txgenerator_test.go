@@ -3,6 +3,7 @@ package sweep
 import (
 	"testing"
 
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 )
@@ -15,9 +16,10 @@ var (
 		input.PublicKeyHash,
 	}
 	expectedSize    = int64(926)
-	expectedSummary = "1 CommitmentTimeLock, 1 " +
-		"HtlcAcceptedSuccessSecondLevel, 1 HtlcOfferedRemoteTimeout, " +
-		"1 PublicKeyHash"
+	expectedSummary = "0000000000000000000000000000000000000000000000000000000000000000:10 (CommitmentTimeLock), " +
+		"0000000000000000000000000000000000000000000000000000000000000001:11 (HtlcAcceptedSuccessSecondLevel), " +
+		"0000000000000000000000000000000000000000000000000000000000000002:12 (HtlcOfferedRemoteTimeout), " +
+		"0000000000000000000000000000000000000000000000000000000000000003:13 (PublicKeyHash)"
 )
 
 // TestWeightEstimate tests that the estimated weight and number of CSVs/CLTVs
@@ -27,9 +29,12 @@ func TestWeightEstimate(t *testing.T) {
 	t.Parallel()
 
 	var inputs []input.Input
-	for _, witnessType := range witnessTypes {
+	for i, witnessType := range witnessTypes {
 		inputs = append(inputs, input.NewBaseInput(
-			&wire.OutPoint{}, witnessType,
+			&wire.OutPoint{
+				Hash:  chainhash.Hash{byte(i)},
+				Index: uint32(i) + 10,
+			}, witnessType,
 			&input.SignDescriptor{}, 0,
 		))
 	}
