@@ -3129,9 +3129,9 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		default:
 			t.Fatalf("unknown chain driver: %v", backEnd)
 		}
-		aliceConn, aliceCleanup := newTestRemoteDcrwallet(
+		aliceConn, aliceCleanup := testutils.NewCustomTestRemoteDcrwallet(
 			t, "Alice", tempTestDirAlice, aliceSeedBytes,
-			alicePrivatePass, rpcConfig,
+			alicePrivatePass, &rpcConfig,
 		)
 		defer aliceCleanup()
 		aliceWalletConfig := &remotedcrwallet.Config{
@@ -3148,9 +3148,9 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		aliceSigner = aliceWalletController.(*remotedcrwallet.DcrWallet)
 		aliceKeyRing = aliceWalletController.(*remotedcrwallet.DcrWallet)
 
-		bobConn, bobCleanup := newTestRemoteDcrwallet(
+		bobConn, bobCleanup := testutils.NewCustomTestRemoteDcrwallet(
 			t, "Bob", tempTestDirBob, bobSeedBytes, bobPrivatePass,
-			rpcConfig,
+			&rpcConfig,
 		)
 		defer bobCleanup()
 		bobWalletConfig := &remotedcrwallet.Config{
