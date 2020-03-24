@@ -74,6 +74,9 @@ type DcrWallet struct {
 
 	syncer WalletSyncer
 
+	ctx       context.Context
+	cancelCtx func()
+
 	*walletKeyRing
 }
 
@@ -121,6 +124,8 @@ func New(cfg Config) (*DcrWallet, error) {
 		}
 	}
 
+	ctx, cancelCtx := context.WithCancel(context.Background())
+
 	return &DcrWallet{
 		cfg:                &cfg,
 		wallet:             wallet,
@@ -129,6 +134,8 @@ func New(cfg Config) (*DcrWallet, error) {
 		syncedChan:         make(chan struct{}),
 		atomicWalletSynced: syncStatusUnsynced,
 		netParams:          cfg.NetParams,
+		ctx:                ctx,
+		cancelCtx:          cancelCtx,
 	}, nil
 }
 
@@ -177,6 +184,7 @@ func (b *DcrWallet) Start() error {
 // This is a part of the WalletController interface.
 func (b *DcrWallet) Stop() error {
 	dcrwLog.Debug("Requesting wallet shutdown")
+	b.cancelCtx()
 	b.syncer.stop()
 	b.syncer.waitForShutdown()
 
@@ -771,12 +779,14 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	// TODO(decred) Check if the wallet is still syncing.  This is
 	// currently done by checking the associated chainIO but ideally the
 	// wallet should return the height it's attempting to sync to.
-	ioHash, _, err := b.cfg.ChainIO.GetBestBlock()
-	if err != nil {
-		return false, 0, err
-	}
-	if !bytes.Equal(walletBestHash[:], ioHash[:]) {
-		return false, walletBestHeader.Timestamp.Unix(), nil
+	if b.cfg.ChainIO != nil {
+		ioHash, _, err := b.cfg.ChainIO.GetBestBlock()
+		if err != nil {
+			return false, 0, err
+		}
+		if !bytes.Equal(walletBestHash[:], ioHash[:]) {
+			return false, walletBestHeader.Timestamp.Unix(), nil
+		}
 	}
 
 	// If the timestamp on the best header is more than 2 hours in the
