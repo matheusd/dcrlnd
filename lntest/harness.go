@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd"
+	"github.com/decred/dcrlnd/internal/testutils"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lnwire"
@@ -146,7 +147,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 
 	// Generate enough blocks so that the network harness can have funds to
 	// send to the voting wallet, Alice and Bob.
-	_, err = AdjustedSimnetMiner(n.Miner.Node, 64)
+	_, err = testutils.AdjustedSimnetMiner(n.Miner.Node, 64)
 	if err != nil {
 		return fmt.Errorf("unable to init chain: %v", err)
 	}
@@ -1457,7 +1458,7 @@ func (n *NetworkHarness) setupVotingWallet() error {
 	// are generated as fast as possible without triggering PoW difficulty
 	// increases.
 	vw.SetMiner(func(nb uint32) ([]*chainhash.Hash, error) {
-		return AdjustedSimnetMiner(n.Miner.Node, nb)
+		return testutils.AdjustedSimnetMiner(n.Miner.Node, nb)
 	})
 
 	err = vw.Start()

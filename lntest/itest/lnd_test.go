@@ -33,6 +33,7 @@ import (
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/internal/testutils"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
@@ -2393,7 +2394,7 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	// open.
 	block := mineBlocks(t, net, 10, 1)[0]
 	assertTxInBlock(t, block, fundingTxID)
-	lntest.AdjustedSimnetMiner(tempMiner.Node, 15)
+	testutils.AdjustedSimnetMiner(tempMiner.Node, 15)
 
 	// Ensure the chain lengths are what we expect, with the temp miner
 	// being 5 blocks ahead.
