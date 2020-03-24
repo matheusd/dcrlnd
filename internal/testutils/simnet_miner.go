@@ -1,4 +1,4 @@
-package lntest
+package testutils
 
 import (
 	"encoding/hex"
