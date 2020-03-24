@@ -238,7 +238,7 @@ type config struct {
 	BackupFilePath     string `long:"backupfilepath" description:"The target location of the channel backup file"`
 
 	ChainDir            string           `long:"chaindir" description:"The directory to store the chain's data within."`
-	Node                string           `long:"node" description:"The blockchain interface to use." choice:"dcrd"`
+	Node                string           `long:"node" description:"The blockchain interface to use." choice:"dcrd" choice:"dcrw"`
 	TestNet3            bool             `long:"testnet" description:"Use the test network"`
 	SimNet              bool             `long:"simnet" description:"Use the simulation test network"`
 	RegTest             bool             `long:"regtest" description:"Use the regression test network"`
@@ -666,7 +666,7 @@ func loadConfig() (*config, error) {
 	}
 
 	switch cfg.Node {
-	case "dcrd":
+	case "dcrd", "dcrw":
 		err := parseRPCParams(
 			cfg.DcrdMode, decredChain, cfg.SimNet,
 			cfg.Node, funcName,
