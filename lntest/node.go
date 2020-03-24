@@ -157,6 +157,7 @@ type NodeConfig struct {
 	HasSeed      bool
 	Password     []byte
 	RemoteWallet bool
+	DcrwNode     bool
 
 	P2PPort     int
 	RPCPort     int
@@ -230,6 +231,10 @@ func (cfg NodeConfig) genArgs() []string {
 	if cfg.RemoteWallet {
 		args = append(args, fmt.Sprintf("--dcrwallet.grpchost=localhost:%d", cfg.WalletPort))
 		args = append(args, fmt.Sprintf("--dcrwallet.certpath=%s", cfg.TLSCertPath))
+	}
+
+	if cfg.DcrwNode {
+		args = append(args, "--node=dcrw")
 	}
 
 	if !cfg.HasSeed {
