@@ -28,7 +28,7 @@ var (
 )
 
 var (
-	NetParams = chaincfg.RegNetParams()
+	NetParams = chaincfg.SimNetParams()
 )
 
 // randPubKeyHashScript generates a P2PKH script that pays to the public key of
