@@ -41,8 +41,8 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/internal/testutils"
 	"github.com/decred/dcrlnd/keychain"
-	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwallet/chanfunding"
@@ -2123,7 +2123,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		return vw.GenerateBlocks(context.TODO(), nb)
 	}
 	mineSecond := func(nb uint32) ([]*chainhash.Hash, error) {
-		return lntest.AdjustedSimnetMiner(r2.Node, nb)
+		return testutils.AdjustedSimnetMiner(r2.Node, nb)
 	}
 
 	// Step 3: Do a set of reorgs by disconnecting the two miners, mining
@@ -2916,7 +2916,7 @@ func TestLightningWallet(t *testing.T) {
 			// Generate enough blocks for the initial load of test and voting
 			// wallet but not so many that it would trigger a reorg after SVH
 			// during the testReorgWalletBalance test.
-			_, err = lntest.AdjustedSimnetMiner(miningNode.Node, 40)
+			_, err = testutils.AdjustedSimnetMiner(miningNode.Node, 40)
 			if err != nil {
 				t.Fatalf("unable to generate initial blocks: %v", err)
 			}
@@ -2930,7 +2930,7 @@ func TestLightningWallet(t *testing.T) {
 				t.Logf("Voting wallet error: %v", err)
 			})
 			votingWallet.SetMiner(func(ctx context.Context, nb uint32) ([]*chainhash.Hash, error) {
-				return lntest.AdjustedSimnetMiner(miningNode.Node, nb)
+				return testutils.AdjustedSimnetMiner(miningNode.Node, nb)
 			})
 			if err = votingWallet.Start(); err != nil {
 				t.Fatalf("unable to start voting wallet: %v", err)
