@@ -1,11 +1,11 @@
-// +build remotewallet
+// +build !remotewallet,!embeddedwallet_dcrw
 
 package lntest
 
 func useRemoteWallet() bool {
-	return true
+	return false
 }
 
 func useDcrwNode() bool {
-	return true
+	return false
 }

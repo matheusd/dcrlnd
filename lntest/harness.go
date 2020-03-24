@@ -400,6 +400,7 @@ func (n *NetworkHarness) newNode(name string, extraArgs []string,
 		NetParams:    n.netParams,
 		ExtraArgs:    extraArgs,
 		RemoteWallet: useRemoteWallet(),
+		DcrwNode:     useDcrwNode(),
 	})
 	if err != nil {
 		return nil, err
