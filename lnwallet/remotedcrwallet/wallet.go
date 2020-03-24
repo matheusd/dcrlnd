@@ -62,7 +62,10 @@ type DcrWallet struct {
 	// doesn't provide an entpoint to control this directly in the wallet.
 	lockedOutpoints map[wire.OutPoint]struct{}
 
-	wallet pb.WalletServiceClient
+	wallet    pb.WalletServiceClient
+	network   pb.NetworkServiceClient
+	ctx       context.Context
+	cancelCtx func()
 }
 
 // A compile time check to ensure that DcrWallet implements the
@@ -87,6 +90,7 @@ func New(cfg Config) (*DcrWallet, error) {
 	// the default account.
 	ctxb := context.Background()
 	wallet := pb.NewWalletServiceClient(cfg.Conn)
+	network := pb.NewNetworkServiceClient(cfg.Conn)
 	req := &pb.GetAccountExtendedPrivKeyRequest{
 		AccountNumber: uint32(cfg.AccountNumber),
 		Passphrase:    cfg.PrivatePass,
@@ -129,6 +133,7 @@ func New(cfg Config) (*DcrWallet, error) {
 			"previously stored account ID: %v", cfg.AccountNumber, err)
 	}
 
+	ctx, cancelCtx := context.WithCancel(ctxb)
 	dcrw := &DcrWallet{
 		account:         uint32(cfg.AccountNumber),
 		syncedChan:      make(chan struct{}),
@@ -137,9 +142,12 @@ func New(cfg Config) (*DcrWallet, error) {
 		cfg:             cfg,
 		conn:            cfg.Conn,
 		wallet:          wallet,
+		network:         network,
 		branchExtXPriv:  branchExtXPriv,
 		branchIntXPriv:  branchIntXPriv,
 		lockedOutpoints: make(map[wire.OutPoint]struct{}),
+		ctx:             ctx,
+		cancelCtx:       cancelCtx,
 	}
 
 	// Finally, create the keyring using the conventions for remote
@@ -175,6 +183,7 @@ func (b *DcrWallet) Start() error {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) Stop() error {
+	b.cancelCtx()
 	return b.conn.Close()
 }
 
@@ -917,12 +926,14 @@ func (b *DcrWallet) IsSynced() (bool, int64, error) {
 	// TODO(decred) Check if the wallet is still syncing.  This is
 	// currently done by checking the associated chainIO but ideally the
 	// wallet should return the height it's attempting to sync to.
-	ioHash, _, err := b.cfg.ChainIO.GetBestBlock()
-	if err != nil {
-		return false, 0, err
-	}
-	if !bytes.Equal(walletBestHash, ioHash[:]) {
-		return false, headerTS.Unix(), nil
+	if b.cfg.ChainIO != nil {
+		ioHash, _, err := b.cfg.ChainIO.GetBestBlock()
+		if err != nil {
+			return false, 0, err
+		}
+		if !bytes.Equal(walletBestHash, ioHash[:]) {
+			return false, headerTS.Unix(), nil
+		}
 	}
 
 	// If the timestamp on the best header is more than 2 hours in the
