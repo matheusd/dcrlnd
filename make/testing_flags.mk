@@ -2,6 +2,7 @@ DEV_TAGS = dev
 LOG_TAGS =
 UTEST_TAGS = unittest
 TEST_FLAGS =
+RACE_ENV = CGO_ENABLED=1 GORACE="history_size=7 halt_on_errors=1"
 COVER_PKG = $$(go list ./... | grep -v lnrpc)
 
 # If specific package is being unit tested, construct the full name of the
