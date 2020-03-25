@@ -1321,6 +1321,7 @@ func TestNewRoute(t *testing.T) {
 				sourceVertex, testCase.hops, startingHeight,
 				finalHopParams{
 					amt:         testCase.paymentAmount,
+					totalAmt:    testCase.paymentAmount,
 					cltvDelta:   finalHopCLTV,
 					records:     nil,
 					paymentAddr: testCase.paymentAddr,
