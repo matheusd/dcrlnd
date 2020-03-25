@@ -477,7 +477,7 @@ func findPathInternal(
 			return nil, err
 		}
 		if max < amt {
-			return nil, errInsufficientBalance
+			return nil, errNoPathFound
 		}
 	}
 
