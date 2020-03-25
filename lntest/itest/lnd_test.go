@@ -148,6 +148,12 @@ func (h *harnessTest) Log(args ...interface{}) {
 // assertCleanState ensures the state of the main test nodes and the mempool
 // are in a clean state (no open channels, no txs in the mempool, etc).
 func assertCleanState(h *harnessTest, net *lntest.NetworkHarness) {
+	_, minerHeight, err := net.Miner.Node.GetBestBlock()
+	if err != nil {
+		h.Fatalf("unable to get best height: %v", err)
+	}
+	assertNodeBlockHeight(h, net.Alice, int32(minerHeight))
+	assertNodeBlockHeight(h, net.Bob, int32(minerHeight))
 	assertNodeNumChannels(h, net.Alice, 0)
 	assertNumPendingChannels(h, net.Alice, 0, 0, 0, 0)
 	assertNodeNumChannels(h, net.Bob, 0)
@@ -155,6 +161,30 @@ func assertCleanState(h *harnessTest, net *lntest.NetworkHarness) {
 	assertNumUnminedUnspent(h, net.Alice, 0)
 	assertNumUnminedUnspent(h, net.Bob, 0)
 	waitForNTxsInMempool(net.Miner.Node, 0, minerMempoolTimeout)
+}
+
+func assertNodeBlockHeight(t *harnessTest, node *lntest.HarnessNode, height int32) {
+	t.t.Helper()
+
+	err := wait.NoError(func() error {
+		ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+		defer cancel()
+		getInfoReq := &lnrpc.GetInfoRequest{}
+		getInfoResp, err := node.GetInfo(ctxt, getInfoReq)
+		if err != nil {
+			return err
+		}
+		if int32(getInfoResp.BlockHeight) != height {
+			return fmt.Errorf("unexpected block height for node %s: "+
+				"want=%d got=%d", node.Name(),
+				height, getInfoResp.BlockHeight)
+		}
+
+		return nil
+	}, defaultTimeout)
+	if err != nil {
+		t.Fatalf("failed to assert node block height: %v", err)
+	}
 }
 
 func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash) {
