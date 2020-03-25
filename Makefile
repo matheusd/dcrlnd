@@ -50,7 +50,7 @@ GOINSTALL := GO111MODULE=on go install -v
 GOTEST := GO111MODULE=on go test -v
 
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
-GOLIST := go list $(PKG)/... | grep -v '/vendor/'
+GOLIST := go list $(PKG)/...
 GOLISTCOVER := $(shell go list -f '{{.ImportPath}}' ./... | sed -e 's/^$(ESCPKG)/./')
 
 TESTBINPKG := dcrlnd_testbins.tar.gz
@@ -58,7 +58,6 @@ TESTBINPKG := dcrlnd_testbins.tar.gz
 RM := rm -f
 CP := cp
 MAKE := make
-XARGS := xargs -L 1
 
 include make/testing_flags.mk
 
@@ -172,7 +171,7 @@ unit-cover: $(GOACC_BIN)
 
 unit-race:
 	@$(call print, "Running unit race tests.")
-	env CGO_ENABLED=1 GORACE="history_size=7 halt_on_errors=1" $(UNIT_RACE)
+	$(UNIT_RACE)
 
 goveralls: $(GOVERALLS_BIN)
 	@$(call print, "Sending coverage report.")
