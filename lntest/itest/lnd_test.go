@@ -744,18 +744,26 @@ func assertNumConnections(t *harnessTest, alice, bob *lntest.HarnessNode,
 }
 
 func assertNumUnminedUnspent(t *harnessTest, node *lntest.HarnessNode, expected int) {
-	ctxb := context.Background()
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
-	utxoReq := &lnrpc.ListUnspentRequest{}
-	utxoResp, err := node.ListUnspent(ctxt, utxoReq)
-	if err != nil {
-		t.Fatalf("unable to query utxos: %v", err)
-	}
+	err := wait.NoError(func() error {
+		ctxb := context.Background()
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		utxoReq := &lnrpc.ListUnspentRequest{}
+		utxoResp, err := node.ListUnspent(ctxt, utxoReq)
+		if err != nil {
+			return fmt.Errorf("unable to query utxos: %v", err)
+		}
 
-	actual := len(utxoResp.Utxos)
-	if actual != expected {
-		t.Fatalf("node %s has wrong number of unmined utxos ("+
-			"expected %d actual %d)", node.Name(), expected, actual)
+		actual := len(utxoResp.Utxos)
+		if actual != expected {
+			return fmt.Errorf("node %s has wrong number of unmined utxos ("+
+				"expected %d actual %d)", node.Name(), expected, actual)
+		}
+
+		return nil
+
+	}, defaultTimeout)
+	if err != nil {
+		t.Fatalf("failed asserting nb of unmined unspent: %v", err)
 	}
 }
 
