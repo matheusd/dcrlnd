@@ -597,20 +597,16 @@ func (hn *HarnessNode) startRemoteWallet() error {
 
 	// Wait until the TLS cert file exists, so we can connect to the
 	// wallet.
-	tlsFileExists := func() bool {
-		return fileExists(hn.Cfg.TLSCertPath)
-	}
-	err := wait.Predicate(tlsFileExists, time.Second*15)
-	if err != nil {
-		return fmt.Errorf("wallet TLS cert file not created before timeout: %v", err)
-	}
-
-	// Connect to it via gRPC.
-	creds, err := credentials.NewClientTLSFromFile(
-		hn.Cfg.TLSCertPath, "localhost",
-	)
-	if err != nil {
+	var creds credentials.TransportCredentials
+	err := wait.NoError(func() error {
+		var err error
+		creds, err = credentials.NewClientTLSFromFile(
+			hn.Cfg.TLSCertPath, "localhost",
+		)
 		return err
+	}, time.Second*30)
+	if err != nil {
+		return fmt.Errorf("error reading wallet TLS cert: %v", err)
 	}
 
 	opts := []grpc.DialOption{
