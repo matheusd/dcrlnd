@@ -2666,6 +2666,7 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 				RemoteBalance:          int64(localCommitment.RemoteBalance.ToAtoms()),
 				LocalChanReserveAtoms:  int64(pendingChan.LocalChanCfg.ChanReserve),
 				RemoteChanReserveAtoms: int64(pendingChan.RemoteChanCfg.ChanReserve),
+				Initiator:              pendingChan.IsInitiator,
 			},
 			CommitSize: commitSize,
 			CommitFee:  int64(localCommitment.CommitFee),
@@ -2696,6 +2697,29 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 			ChannelPoint:  chanPoint.String(),
 			Capacity:      int64(pendingClose.Capacity),
 			LocalBalance:  int64(pendingClose.SettledBalance),
+		}
+
+		// Lookup the channel in the historical channel bucket to obtain
+		// initiator information. If the historical channel bucket was
+		// not found, or the channel itself, this channel was closed
+		// in a version before we started persisting historical
+		// channels, so we silence the error.
+		historical, err := r.server.chanDB.FetchHistoricalChannel(
+			&pendingClose.ChanPoint,
+		)
+		switch err {
+		// If the channel was closed in a version that did not record
+		// historical channels, ignore the error.
+		case channeldb.ErrNoHistoricalBucket:
+		case channeldb.ErrChannelNotFound:
+
+		case nil:
+			channel.Initiator = historical.IsInitiator
+
+		// If the error is non-nil, and not due to older versions of lnd
+		// not persisting historical channels, return it.
+		default:
+			return nil, err
 		}
 
 		closeTXID := pendingClose.ClosingTXID.String()
@@ -2807,10 +2831,14 @@ func (r *rpcServer) PendingChannels(ctx context.Context,
 		}
 
 		channel := &lnrpc.PendingChannelsResponse_PendingChannel{
-			RemoteNodePub: hex.EncodeToString(pub),
-			ChannelPoint:  chanPoint.String(),
-			Capacity:      int64(waitingClose.Capacity),
-			LocalBalance:  int64(waitingClose.LocalCommitment.LocalBalance.ToAtoms()),
+			RemoteNodePub:          hex.EncodeToString(pub),
+			ChannelPoint:           chanPoint.String(),
+			Capacity:               int64(waitingClose.Capacity),
+			LocalBalance:           int64(waitingClose.LocalCommitment.LocalBalance.ToAtoms()),
+			RemoteBalance:          int64(waitingClose.LocalCommitment.RemoteBalance.ToAtoms()),
+			LocalChanReserveAtoms:  int64(waitingClose.LocalChanCfg.ChanReserve),
+			RemoteChanReserveAtoms: int64(waitingClose.RemoteChanCfg.ChanReserve),
+			Initiator:              waitingClose.IsInitiator,
 		}
 
 		waitingCloseResp := &lnrpc.PendingChannelsResponse_WaitingCloseChannel{
