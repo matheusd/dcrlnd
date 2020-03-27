@@ -132,7 +132,7 @@ type BackendConfig interface {
 	// ConnectMiner is called to establish a connection to the test miner.
 	ConnectMiner() error
 
-	// DisconnectMiner is called to bitconneeeect the miner.
+	// DisconnectMiner is called to disconnect the miner.
 	DisconnectMiner() error
 
 	// Name returns the name of the backend type.
