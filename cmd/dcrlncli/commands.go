@@ -2934,7 +2934,7 @@ func listInvoices(ctx *cli.Context) error {
 
 var describeGraphCommand = cli.Command{
 	Name:     "describegraph",
-	Category: "Peers",
+	Category: "Graph",
 	Description: "Prints a human readable version of the known channel " +
 		"graph from the PoV of the node",
 	Usage: "Describe the network graph.",
@@ -3023,7 +3023,7 @@ func listPayments(ctx *cli.Context) error {
 
 var getChanInfoCommand = cli.Command{
 	Name:     "getchaninfo",
-	Category: "Channels",
+	Category: "Graph",
 	Usage:    "Get the state of a channel.",
 	Description: "Prints out the latest authenticated state for a " +
 		"particular channel",
@@ -3074,7 +3074,7 @@ func getChanInfo(ctx *cli.Context) error {
 
 var getNodeInfoCommand = cli.Command{
 	Name:     "getnodeinfo",
-	Category: "Peers",
+	Category: "Graph",
 	Usage:    "Get information on a specific node.",
 	Description: "Prints out the latest authenticated node state for an " +
 		"advertised node",
