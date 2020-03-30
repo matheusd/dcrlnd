@@ -1643,12 +1643,9 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		return err
 	}
 
-	var (
-		nodePubKey      *secp256k1.PublicKey
-		nodePubKeyBytes []byte
-	)
-
 	// TODO(roasbeef): also return channel ID?
+
+	var nodePubKey *secp256k1.PublicKey
 
 	// Ensure that the NodePubKey is set before attempting to use it
 	if len(in.NodePubkey) == 0 {
@@ -1667,8 +1664,6 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	if nodePubKey.IsEqual(r.server.identityPriv.PubKey()) {
 		return fmt.Errorf("cannot open channel to self")
 	}
-
-	nodePubKeyBytes = nodePubKey.SerializeCompressed()
 
 	// Based on the passed fee related parameters, we'll determine an
 	// appropriate fee rate for the funding transaction.
@@ -1757,7 +1752,7 @@ out:
 		select {
 		case err := <-errChan:
 			rpcsLog.Errorf("unable to open channel to NodeKey(%x): %v",
-				nodePubKeyBytes, err)
+				nodePubKey.SerializeCompressed(), err)
 			return err
 		case fundingUpdate := <-updateChan:
 			rpcsLog.Tracef("[openchannel] sending update: %v",
@@ -1789,7 +1784,7 @@ out:
 	}
 
 	rpcsLog.Tracef("[openchannel] success NodeKey(%x), ChannelPoint(%v)",
-		nodePubKeyBytes, outpoint)
+		nodePubKey.SerializeCompressed(), outpoint)
 	return nil
 }
 
@@ -1822,16 +1817,31 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 			"wallet is fully synced")
 	}
 
-	// Decode the provided target node's public key, parsing it into a pub
-	// key object. For all sync call, byte slices are expected to be
-	// encoded as hex strings.
-	keyBytes, err := hex.DecodeString(in.NodePubkeyString)
-	if err != nil {
-		return nil, err
-	}
-	nodepubKey, err := secp256k1.ParsePubKey(keyBytes)
-	if err != nil {
-		return nil, err
+	var nodePubKey *secp256k1.PublicKey
+
+	// Parse the remote pubkey the NodePubkey field of the request. If it's
+	// not present, we'll fallback to the deprecated version that parses the
+	// key from a hex string.
+	if len(in.NodePubkey) > 0 {
+		// Parse the raw bytes of the node key into a pubkey object so we
+		// can easily manipulate it.
+		nodePubKey, err = secp256k1.ParsePubKey(in.NodePubkey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Decode the provided target node's public key, parsing it into
+		// a pub key object. For all sync call, byte slices are expected
+		// to be encoded as hex strings.
+		keyBytes, err := hex.DecodeString(in.NodePubkeyString)
+		if err != nil {
+			return nil, err
+		}
+
+		nodePubKey, err = secp256k1.ParsePubKey(keyBytes)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
@@ -1893,7 +1903,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	}
 
 	req := &openChanReq{
-		targetPubkey:    nodepubKey,
+		targetPubkey:    nodePubKey,
 		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
 		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
@@ -1910,7 +1920,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	// If an error occurs them immediately return the error to the client.
 	case err := <-errChan:
 		rpcsLog.Errorf("unable to open channel to NodeKey(%x): %v",
-			nodepubKey, err)
+			nodePubKey.SerializeCompressed(), err)
 		return nil, err
 
 	// Otherwise, wait for the first channel update. The first update sent
