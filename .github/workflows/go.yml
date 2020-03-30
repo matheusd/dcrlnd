@@ -84,11 +84,8 @@ jobs:
 
       - name: Compress log files
         if: always()
-        env:
-          ITEST_LOG_FILES: "./lntest/itest/*.log"
-          LNWALLET_LOG_FILES: "./lnwallet/*.log"
         run: |
-          tar --ignore-failed-read -czf output-logs.tar.gz $ITEST_LOG_FILES $LNWALLET_LOG_FILES
+          find . -iname *.log | tar -T - --ignore-failed-read -czf output-logs.tar.gz
 
       - name: Upload logs
         if: always()
