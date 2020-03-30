@@ -1580,15 +1580,10 @@ func newPsbtAssembler(req *lnrpc.OpenChannelRequest, normalizedMinConfs int32,
 	), nil
 }
 
-// OpenChannel attempts to open a singly funded channel specified in the
-// request to a remote peer.
-func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
-	updateStream lnrpc.Lightning_OpenChannelServer) error {
-
-	rpcsLog.Tracef("[openchannel] request to NodeKey(%v) "+
-		"allocation(us=%v, them=%v)", in.NodePubkeyString,
-		in.LocalFundingAmount, in.PushAtoms)
-
+// canOpenChannel returns an error if the necessary subsystems for channel
+// funding are not ready.
+func (r *rpcServer) canOpenChannel() error {
+	// We can't open a channel until the main server has started.
 	if !r.server.Started() {
 		return ErrServerNotActive
 	}
@@ -1604,6 +1599,19 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 			"wallet is fully synced")
 	}
 
+	return nil
+}
+
+// praseOpenChannelReq parses an OpenChannelRequest message into the server's
+// native openChanReq struct. The logic is abstracted so that it can be shared
+// between OpenChannel and OpenChannelSync.
+func (r *rpcServer) parseOpenChannelReq(in *lnrpc.OpenChannelRequest,
+	isSync bool) (*openChanReq, error) {
+
+	rpcsLog.Debugf("[openchannel] request to NodeKey(%x) "+
+		"allocation(us=%v, them=%v)", in.NodePubkey,
+		in.LocalFundingAmount, in.PushAtoms)
+
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
 	remoteInitialBalance := dcrutil.Amount(in.PushAtoms)
 	minHtlcIn := lnwire.MilliAtom(in.MinHtlcMAtoms)
@@ -1615,15 +1623,15 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	//
 	// TODO(roasbeef): incorporate base fee?
 	if remoteInitialBalance >= localFundingAmt {
-		return fmt.Errorf("amount pushed to remote peer for initial " +
-			"state must be below the local funding amount")
+		return nil, fmt.Errorf("amount pushed to remote peer for " +
+			"initial state must be below the local funding amount")
 	}
 
 	// Ensure that the user doesn't exceed the current soft-limit for
 	// channel size. If the funding amount is above the soft-limit, then
 	// we'll reject the request.
 	if localFundingAmt > MaxFundingAmount {
-		return fmt.Errorf("funding amount is too large, the max "+
+		return nil, fmt.Errorf("funding amount is too large, the max "+
 			"channel size is: %v", MaxFundingAmount)
 	}
 
@@ -1631,8 +1639,8 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	// level, we'll ensure that the output we create after accounting for
 	// fees that a dust output isn't created.
 	if localFundingAmt < minChanFundingSize {
-		return fmt.Errorf("channel is too small, the minimum channel "+
-			"size is: %v Atoms", int64(minChanFundingSize))
+		return nil, fmt.Errorf("channel is too small, the minimum "+
+			"channel size is: %v atoms", int64(minChanFundingSize))
 	}
 
 	// Then, we'll extract the minimum number of confirmations that each
@@ -1640,29 +1648,48 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 	// satisfy.
 	minConfs, err := extractOpenChannelMinConfs(in)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO(roasbeef): also return channel ID?
 
 	var nodePubKey *secp256k1.PublicKey
 
-	// Ensure that the NodePubKey is set before attempting to use it
-	if len(in.NodePubkey) == 0 {
-		return fmt.Errorf("NodePubKey is not set")
-	}
+	// Parse the remote pubkey the NodePubkey field of the request. If it's
+	// not present, we'll fallback to the deprecated version that parses the
+	// key from a hex string if this is for REST for backwards compatibility.
+	switch {
 
-	// Parse the raw bytes of the node key into a pubkey object so we
-	// can easily manipulate it.
-	nodePubKey, err = secp256k1.ParsePubKey(in.NodePubkey)
-	if err != nil {
-		return err
+	// Parse the raw bytes of the node key into a pubkey object so we can
+	// easily manipulate it.
+	case len(in.NodePubkey) > 0:
+		nodePubKey, err = secp256k1.ParsePubKey(in.NodePubkey)
+		if err != nil {
+			return nil, err
+		}
+
+	// Decode the provided target node's public key, parsing it into a pub
+	// key object. For all sync call, byte slices are expected to be encoded
+	// as hex strings.
+	case isSync:
+		keyBytes, err := hex.DecodeString(in.NodePubkeyString)
+		if err != nil {
+			return nil, err
+		}
+
+		nodePubKey, err = secp256k1.ParsePubKey(keyBytes)
+		if err != nil {
+			return nil, err
+		}
+
+	default:
+		return nil, fmt.Errorf("NodePubkey is not set")
 	}
 
 	// Making a channel to ourselves wouldn't be of any use, so we
 	// explicitly disallow them.
 	if nodePubKey.IsEqual(r.server.identityPriv.PubKey()) {
-		return fmt.Errorf("cannot open channel to self")
+		return nil, fmt.Errorf("cannot open channel to self")
 	}
 
 	// Based on the passed fee related parameters, we'll determine an
@@ -1675,7 +1702,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rpcsLog.Debugf("[openchannel]: using fee of %v atom/kB for funding tx",
@@ -1683,13 +1710,14 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 
 	script, err := parseUpfrontShutdownAddress(in.CloseAddress)
 	if err != nil {
-		return fmt.Errorf("error parsing upfront shutdown: %v", err)
+		return nil, fmt.Errorf("error parsing upfront shutdown: %v",
+			err)
 	}
 
 	// Instruct the server to trigger the necessary events to attempt to
 	// open a new channel. A stream is returned in place, this stream will
 	// be used to consume updates of the state of the pending channel.
-	req := &openChanReq{
+	return &openChanReq{
 		targetPubkey:    nodePubKey,
 		chainHash:       activeNetParams.GenesisHash,
 		localFundingAmt: localFundingAmt,
@@ -1700,6 +1728,21 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 		remoteCsvDelay:  remoteCsvDelay,
 		minConfs:        minConfs,
 		shutdownScript:  script,
+	}, nil
+}
+
+// OpenChannel attempts to open a singly funded channel specified in the
+// request to a remote peer.
+func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
+	updateStream lnrpc.Lightning_OpenChannelServer) error {
+
+	if err := r.canOpenChannel(); err != nil {
+		return err
+	}
+
+	req, err := r.parseOpenChannelReq(in, false)
+	if err != nil {
+		return err
 	}
 
 	// If the user has provided a shim, then we'll now augment the based
@@ -1735,7 +1778,7 @@ func (r *rpcServer) OpenChannel(in *lnrpc.OpenChannelRequest,
 			// transaction.
 			copy(req.pendingChanID[:], psbtShim.PendingChanId)
 			req.chanFunder, err = newPsbtAssembler(
-				in, minConfs, psbtShim,
+				in, req.minConfs, psbtShim,
 				&r.server.cc.wallet.Cfg.NetParams,
 			)
 			if err != nil {
@@ -1752,7 +1795,7 @@ out:
 		select {
 		case err := <-errChan:
 			rpcsLog.Errorf("unable to open channel to NodeKey(%x): %v",
-				nodePubKey.SerializeCompressed(), err)
+				req.targetPubkey.SerializeCompressed(), err)
 			return err
 		case fundingUpdate := <-updateChan:
 			rpcsLog.Tracef("[openchannel] sending update: %v",
@@ -1784,7 +1827,7 @@ out:
 	}
 
 	rpcsLog.Tracef("[openchannel] success NodeKey(%x), ChannelPoint(%v)",
-		nodePubKey.SerializeCompressed(), outpoint)
+		req.targetPubkey.SerializeCompressed(), outpoint)
 	return nil
 }
 
@@ -1795,130 +1838,13 @@ out:
 func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	in *lnrpc.OpenChannelRequest) (*lnrpc.ChannelPoint, error) {
 
-	rpcsLog.Tracef("[openchannel] request to NodeKey(%v) "+
-		"allocation(us=%v, them=%v)", in.NodePubkeyString,
-		in.LocalFundingAmount, in.PushAtoms)
-
-	// We don't allow new channels to be open while the server is still
-	// syncing, as otherwise we may not be able to obtain the relevant
-	// notifications.
-	if !r.server.Started() {
-		return nil, ErrServerNotActive
-	}
-
-	// Creation of channels before the wallet syncs up is currently
-	// disallowed.
-	isSynced, _, err := r.server.cc.wallet.IsSynced()
-	if err != nil {
-		return nil, err
-	}
-	if !isSynced {
-		return nil, errors.New("channels cannot be created before the " +
-			"wallet is fully synced")
-	}
-
-	var nodePubKey *secp256k1.PublicKey
-
-	// Parse the remote pubkey the NodePubkey field of the request. If it's
-	// not present, we'll fallback to the deprecated version that parses the
-	// key from a hex string.
-	if len(in.NodePubkey) > 0 {
-		// Parse the raw bytes of the node key into a pubkey object so we
-		// can easily manipulate it.
-		nodePubKey, err = secp256k1.ParsePubKey(in.NodePubkey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// Decode the provided target node's public key, parsing it into
-		// a pub key object. For all sync call, byte slices are expected
-		// to be encoded as hex strings.
-		keyBytes, err := hex.DecodeString(in.NodePubkeyString)
-		if err != nil {
-			return nil, err
-		}
-
-		nodePubKey, err = secp256k1.ParsePubKey(keyBytes)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Making a channel to ourselves wouldn't be of any use, so we
-	// explicitly disallow them.
-	if nodePubKey.IsEqual(r.server.identityPriv.PubKey()) {
-		return nil, fmt.Errorf("cannot open channel to self")
-	}
-
-	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
-	remoteInitialBalance := dcrutil.Amount(in.PushAtoms)
-	minHtlcIn := lnwire.MilliAtom(in.MinHtlcMAtoms)
-	remoteCsvDelay := uint16(in.RemoteCsvDelay)
-
-	// Ensure that the initial balance of the remote party (if pushing
-	// atoms) does not exceed the amount the local party has requested
-	// for funding.
-	if remoteInitialBalance >= localFundingAmt {
-		return nil, fmt.Errorf("amount pushed to remote peer for " +
-			"initial state must be below the local funding amount")
-	}
-
-	// Ensure that the user doesn't exceed the current soft-limit for
-	// channel size. If the funding amount is above the soft-limit, then
-	// we'll reject the request.
-	if localFundingAmt > MaxFundingAmount {
-		return nil, fmt.Errorf("funding amount is too large, the max "+
-			"channel size is: %v", MaxFundingAmount)
-	}
-
-	// Restrict the size of the channel we'll actually open. At a later
-	// level, we'll ensure that the output we create after accounting for
-	// fees that a dust output isn't created.
-	if localFundingAmt < minChanFundingSize {
-		return nil, fmt.Errorf("channel is too small, the minimum channel "+
-			"size is: %v Atoms", int64(minChanFundingSize))
-	}
-
-	// Then, we'll extract the minimum number of confirmations that each
-	// output we use to fund the channel's funding transaction should
-	// satisfy.
-	minConfs, err := extractOpenChannelMinConfs(in)
-	if err != nil {
+	if err := r.canOpenChannel(); err != nil {
 		return nil, err
 	}
 
-	// Based on the passed fee related parameters, we'll determine an
-	// appropriate fee rate for the funding transaction.
-	atomsPerKB := chainfee.AtomPerKByte(in.AtomsPerByte * 1000)
-	feeRate, err := sweep.DetermineFeePerKB(
-		r.server.cc.feeEstimator, sweep.FeePreference{
-			ConfTarget: uint32(in.TargetConf),
-			FeeRate:    atomsPerKB,
-		},
-	)
+	req, err := r.parseOpenChannelReq(in, true)
 	if err != nil {
 		return nil, err
-	}
-
-	rpcsLog.Tracef("[openchannel] target atom/kB for funding tx: %v",
-		int64(feeRate))
-
-	script, err := parseUpfrontShutdownAddress(in.CloseAddress)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing upfront shutdown: %v", err)
-	}
-
-	req := &openChanReq{
-		targetPubkey:    nodePubKey,
-		chainHash:       activeNetParams.GenesisHash,
-		localFundingAmt: localFundingAmt,
-		pushAmt:         lnwire.NewMAtomsFromAtoms(remoteInitialBalance),
-		minHtlcIn:       minHtlcIn,
-		fundingFeePerKB: feeRate,
-		private:         in.Private,
-		remoteCsvDelay:  remoteCsvDelay,
-		minConfs:        minConfs,
-		shutdownScript:  script,
 	}
 
 	updateChan, errChan := r.server.OpenChannel(req)
@@ -1926,7 +1852,7 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 	// If an error occurs them immediately return the error to the client.
 	case err := <-errChan:
 		rpcsLog.Errorf("unable to open channel to NodeKey(%x): %v",
-			nodePubKey.SerializeCompressed(), err)
+			req.targetPubkey.SerializeCompressed(), err)
 		return nil, err
 
 	// Otherwise, wait for the first channel update. The first update sent
