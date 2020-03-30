@@ -773,7 +773,8 @@ func (c *commitment) toDiskCommit(ourCommit bool) *channeldb.ChannelCommitment {
 // restart a channel session.
 func (lc *LightningChannel) diskHtlcToPayDesc(feeRate chainfee.AtomPerKByte,
 	commitHeight uint64, htlc *channeldb.HTLC, localCommitKeys,
-	remoteCommitKeys *CommitmentKeyRing) (PaymentDescriptor, error) {
+	remoteCommitKeys *CommitmentKeyRing, isLocal bool) (PaymentDescriptor,
+	error) {
 
 	// The proper pkScripts for this PaymentDescriptor must be
 	// generated so we can easily locate them within the commitment
@@ -816,6 +817,19 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate chainfee.AtomPerKByte,
 		}
 	}
 
+	// Reconstruct the proper local/remote output indexes from the HTLC's
+	// persisted output index depending on whose commitment we are
+	// generating.
+	var (
+		localOutputIndex  int32
+		remoteOutputIndex int32
+	)
+	if isLocal {
+		localOutputIndex = htlc.OutputIndex
+	} else {
+		remoteOutputIndex = htlc.OutputIndex
+	}
+
 	// With the scripts reconstructed (depending on if this is our commit
 	// vs theirs or a pending commit for the remote party), we can now
 	// re-create the original payment descriptor.
@@ -827,6 +841,8 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate chainfee.AtomPerKByte,
 		HtlcIndex:          htlc.HtlcIndex,
 		LogIndex:           htlc.LogIndex,
 		OnionBlob:          htlc.OnionBlob,
+		localOutputIndex:   localOutputIndex,
+		remoteOutputIndex:  remoteOutputIndex,
 		ourPkScript:        ourP2SH,
 		ourWitnessScript:   ourWitnessScript,
 		theirPkScript:      theirP2SH,
@@ -842,7 +858,8 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate chainfee.AtomPerKByte,
 // for each side.
 func (lc *LightningChannel) extractPayDescs(commitHeight uint64,
 	feeRate chainfee.AtomPerKByte, htlcs []channeldb.HTLC, localCommitKeys,
-	remoteCommitKeys *CommitmentKeyRing) ([]PaymentDescriptor, []PaymentDescriptor, error) {
+	remoteCommitKeys *CommitmentKeyRing, isLocal bool) ([]PaymentDescriptor,
+	[]PaymentDescriptor, error) {
 
 	var (
 		incomingHtlcs []PaymentDescriptor
@@ -860,6 +877,7 @@ func (lc *LightningChannel) extractPayDescs(commitHeight uint64,
 		payDesc, err := lc.diskHtlcToPayDesc(
 			feeRate, commitHeight, &htlc,
 			localCommitKeys, remoteCommitKeys,
+			isLocal,
 		)
 		if err != nil {
 			return incomingHtlcs, outgoingHtlcs, err
@@ -910,6 +928,7 @@ func (lc *LightningChannel) diskCommitToMemCommit(isLocal bool,
 		diskCommit.CommitHeight,
 		chainfee.AtomPerKByte(diskCommit.FeePerKB),
 		diskCommit.Htlcs, localCommitKeys, remoteCommitKeys,
+		isLocal,
 	)
 	if err != nil {
 		return nil, err
@@ -937,13 +956,6 @@ func (lc *LightningChannel) diskCommitToMemCommit(isLocal bool,
 		commit.dustLimit = lc.channelState.LocalChanCfg.DustLimit
 	} else {
 		commit.dustLimit = lc.channelState.RemoteChanCfg.DustLimit
-	}
-
-	// Finally, we'll re-populate the HTLC index for this state so we can
-	// properly locate each HTLC within the commitment transaction.
-	err = commit.populateHtlcIndexes(lc.channelState.ChanType)
-	if err != nil {
-		return nil, err
 	}
 
 	return commit, nil
