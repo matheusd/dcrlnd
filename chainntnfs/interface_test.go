@@ -19,6 +19,8 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
+	"github.com/decred/dcrlnd/chainntnfs/dcrwnotify"
+	"github.com/decred/dcrlnd/chainntnfs/remotedcrwnotify"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/internal/testutils"
 )
@@ -1980,6 +1982,27 @@ func TestInterfaces(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error initializing dcrd notifier: %v", err)
 			}
+
+		case "dcrw":
+			w, teardown := testutils.NewSyncingTestWallet(t, &backend)
+			notifier, err = dcrwnotify.New(
+				w, chainntnfs.NetParams, hintCache, hintCache,
+			)
+			if err != nil {
+				t.Fatalf("error initializing dcrw notifier: %v", err)
+			}
+			tearDownNotifier = teardown
+
+		case "remotedcrw":
+			c, teardown := testutils.NewTestRemoteDcrwallet(t, &backend)
+			notifier, err = remotedcrwnotify.New(
+				c, chainntnfs.NetParams, hintCache, hintCache,
+			)
+			if err != nil {
+				t.Fatalf("error initializing dcrw notifier: %v", err)
+			}
+			tearDownNotifier = teardown
+
 		default:
 			t.Fatalf("unknown notifier type: %v", notifierType)
 		}
@@ -2010,7 +2033,6 @@ func TestInterfaces(t *testing.T) {
 		notifierType := notifierDriver.NotifierType
 
 		success := t.Run(notifierType, func(t *testing.T) {
-
 			miner, vw, tearDownMiner := newMiner(t, notifierType)
 			defer tearDownMiner()
 
