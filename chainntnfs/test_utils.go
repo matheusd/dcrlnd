@@ -13,8 +13,8 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil/v3"
+	jsonrpctypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
@@ -27,6 +27,8 @@ var (
 	// transactions to its peers. We'll set it small to ensure the miner
 	// propagates transactions quickly in the tests.
 	trickleInterval = 10 * time.Millisecond
+
+	testFeeRate = dcrutil.Amount(1e4)
 )
 
 var (
@@ -60,7 +62,7 @@ func GetTestTxidAndScript(h *rpctest.Harness) (*chainhash.Hash, []byte, error) {
 		return nil, nil, fmt.Errorf("unable to generate pkScript: %v", err)
 	}
 	output := &wire.TxOut{Value: 2e8, PkScript: pkScript}
-	txid, err := h.SendOutputs([]*wire.TxOut{output}, 10)
+	txid, err := h.SendOutputs([]*wire.TxOut{output}, testFeeRate)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,19 +74,21 @@ func GetTestTxidAndScript(h *rpctest.Harness) (*chainhash.Hash, []byte, error) {
 func WaitForMempoolTx(miner *rpctest.Harness, txid *chainhash.Hash) error {
 	timeout := time.After(10 * time.Second)
 	trickle := time.After(2 * trickleInterval)
+
+checkmempool:
 	for {
-		// Check for the harness' knowledge of the txid.
-		tx, err := miner.Node.GetRawTransaction(context.TODO(), txid)
+		// Check via the raw mempool as this is a better hint as to
+		// whether a new template will be generated once we attempt to
+		// generate a block.
+		mempool, err := miner.Node.GetRawMempool(context.Background(), jsonrpctypes.GRMRegular)
 		if err != nil {
-			jsonErr, ok := err.(*dcrjson.RPCError)
-			if ok && jsonErr.Code == dcrjson.ErrRPCNoTxInfo {
-				continue
-			}
 			return err
 		}
 
-		if tx != nil && tx.Hash().IsEqual(txid) {
-			break
+		for _, mtx := range mempool {
+			if mtx.IsEqual(txid) {
+				break checkmempool
+			}
 		}
 
 		select {
@@ -110,7 +114,8 @@ func WaitForMempoolTx(miner *rpctest.Harness, txid *chainhash.Hash) error {
 // CreateSpendableOutput creates and returns an output that can be spent later
 // on.
 func CreateSpendableOutput(t *testing.T,
-	miner *rpctest.Harness) (*wire.OutPoint, *wire.TxOut, *secp256k1.PrivateKey) {
+	miner *rpctest.Harness,
+	vw *rpctest.VotingWallet) (*wire.OutPoint, *wire.TxOut, *secp256k1.PrivateKey) {
 
 	t.Helper()
 
@@ -122,7 +127,7 @@ func CreateSpendableOutput(t *testing.T,
 	}
 	output := &wire.TxOut{Value: 2e8, PkScript: pkScript}
 	// TODO(decred): SendOutputsWithoutChange
-	txid, err := miner.SendOutputs([]*wire.TxOut{output}, 10)
+	txid, err := miner.SendOutputs([]*wire.TxOut{output}, testFeeRate)
 	if err != nil {
 		t.Fatalf("unable to create tx: %v", err)
 	}
@@ -131,7 +136,11 @@ func CreateSpendableOutput(t *testing.T,
 	if err := WaitForMempoolTx(miner, txid); err != nil {
 		t.Fatalf("tx not relayed to miner: %v", err)
 	}
-	if _, err := miner.Node.Generate(context.TODO(), 1); err != nil {
+	generate := miner.Node.Generate
+	if vw != nil {
+		generate = vw.GenerateBlocks
+	}
+	if _, err := generate(context.Background(), 1); err != nil {
 		t.Fatalf("unable to generate single block: %v", err)
 	}
 
