@@ -67,6 +67,8 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 )
 
+replace go.etcd.io/bbolt => github.com/matheusd/bbolt v1.3.5-0.20200328154133-ef6e10561575
+
 replace github.com/decred/lightning-onion/v3 => github.com/matheusd/lightning-onion/v3 v3.0.0-20200108130659-ce91c24fe0c2
 
 replace (
