@@ -1844,6 +1844,12 @@ func (r *rpcServer) OpenChannelSync(ctx context.Context,
 		}
 	}
 
+	// Making a channel to ourselves wouldn't be of any use, so we
+	// explicitly disallow them.
+	if nodePubKey.IsEqual(r.server.identityPriv.PubKey()) {
+		return nil, fmt.Errorf("cannot open channel to self")
+	}
+
 	localFundingAmt := dcrutil.Amount(in.LocalFundingAmount)
 	remoteInitialBalance := dcrutil.Amount(in.PushAtoms)
 	minHtlcIn := lnwire.MilliAtom(in.MinHtlcMAtoms)
