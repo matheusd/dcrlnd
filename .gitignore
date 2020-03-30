@@ -42,6 +42,8 @@ lntest/itest/.backendlogs
 lntest/itest/.minerlogs
 lnwallet/output*.log
 lnwallet/.miner-logs*
+chainscan/csdrivers/.*
+chainscan/csdrivers/*.log
 
 cmd/cmd
 *.key
