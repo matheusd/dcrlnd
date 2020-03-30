@@ -195,7 +195,7 @@ func (b *DcrWallet) Stop() error {
 // TODO(matheusd) Remove witness argument, given that's not applicable to decred
 func (b *DcrWallet) ConfirmedBalance(confs int32) (dcrutil.Amount, error) {
 
-	balances, err := b.wallet.CalculateAccountBalance(context.TODO(), defaultAccount, confs)
+	balances, err := b.wallet.AccountBalance(context.TODO(), defaultAccount, confs)
 	if err != nil {
 		return 0, err
 	}
