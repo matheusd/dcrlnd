@@ -1,4 +1,4 @@
-// +build !rpctest
+// +build !rpctest,!unittest
 
 package loader
 

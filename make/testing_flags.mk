@@ -1,5 +1,6 @@
 DEV_TAGS = dev
 LOG_TAGS =
+UTEST_TAGS = unittest
 TEST_FLAGS =
 RACE_ENV = CGO_ENABLED=1 GORACE="history_size=7 halt_on_errors=1"
 COVER_PKG = $$(go list ./... | grep -v lnrpc)
@@ -53,13 +54,13 @@ UNIT_TARGETED ?= no
 # If a specific package/test case was requested, run the unit test for the
 # targeted case. Otherwise, default to running all tests.
 ifeq ($(UNIT_TARGETED), yes)
-UNIT := $(GOTEST) -count=1 -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) $(UNITPKG)
-UNIT_RACE := $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) -race -gcflags=all=-d=checkptr=0 $(UNITPKG)
+UNIT := $(GOTEST) -count=1 -tags="$(DEV_TAGS) $(LOG_TAGS) $(UTEST_TAGS)" $(TEST_FLAGS) $(UNITPKG)
+UNIT_RACE := $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS) $(UTEST_TAGS)" $(TEST_FLAGS) -race -gcflags=all=-d=checkptr=0 $(UNITPKG)
 endif
 
 ifeq ($(UNIT_TARGETED), no)
-UNIT := $(GOLIST) | xargs -I{} sh -c '$(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) {} || exit 255'
-UNIT_RACE := $(GOLIST) | xargs -I{} sh -c 'env $(RACE_ENV) $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS)" $(TEST_FLAGS) -race -gcflags=all=-d=checkptr=0 {} || exit 255'
+UNIT := $(GOLIST) | xargs -I{} sh -c '$(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS) $(UTEST_TAGS)" $(TEST_FLAGS) {} || exit 255'
+UNIT_RACE := $(GOLIST) | xargs -I{} sh -c 'env $(RACE_ENV) $(GOTEST) -tags="$(DEV_TAGS) $(LOG_TAGS) $(UTEST_TAGS)" $(TEST_FLAGS) -race -gcflags=all=-d=checkptr=0 {} || exit 255'
 endif
 
 
