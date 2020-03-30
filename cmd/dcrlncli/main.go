@@ -320,6 +320,7 @@ func main() {
 		verifyChanBackupCommand,
 		restoreChanBackupCommand,
 		bakeMacaroonCommand,
+		trackPaymentCommand,
 	}
 
 	// Add any extra commands determined by build flags.
