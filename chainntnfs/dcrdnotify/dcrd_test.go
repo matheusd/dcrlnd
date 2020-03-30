@@ -262,7 +262,7 @@ func TestInneficientRescan(t *testing.T) {
 
 	// Create an output and subsequently spend it.
 	outpoint, txout, privKey := chainntnfs.CreateSpendableOutput(
-		t, harness,
+		t, harness, nil,
 	)
 	spenderTx := chainntnfs.CreateSpendTx(
 		t, outpoint, txout, privKey,

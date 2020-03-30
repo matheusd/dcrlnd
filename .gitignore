@@ -45,6 +45,7 @@ lnwallet/.miner-logs*
 chainscan/csdrivers/.*
 chainscan/csdrivers/*.log
 chainntnfs/*.log
+chainntnfs/.miner-logs*
 
 cmd/cmd
 *.key
