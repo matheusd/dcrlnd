@@ -19,9 +19,6 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnrpc"
-	"github.com/decred/dcrlnd/lnrpc/routerrpc"
-	"github.com/decred/dcrlnd/lntypes"
-	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/walletunlocker"
 	"github.com/lightninglabs/protobuf-hex-display/json"
@@ -2374,7 +2371,7 @@ func queryRoutes(ctx *cli.Context) error {
 		return fmt.Errorf("amt argument missing")
 	}
 
-	feeLimit, err := retrieveFeeLimit(ctx)
+	feeLimit, err := retrieveFeeLimitLegacy(ctx)
 	if err != nil {
 		return err
 	}
@@ -2395,6 +2392,38 @@ func queryRoutes(ctx *cli.Context) error {
 
 	printRespJSON(route)
 	return nil
+}
+
+// retrieveFeeLimitLegacy retrieves the fee limit based on the different fee
+// limit flags passed. This function will eventually disappear in favor of
+// retrieveFeeLimit and the new payment rpc.
+func retrieveFeeLimitLegacy(ctx *cli.Context) (*lnrpc.FeeLimit, error) {
+	switch {
+	case ctx.IsSet("fee_limit") && ctx.IsSet("fee_limit_percent"):
+		return nil, fmt.Errorf("either fee_limit or fee_limit_percent " +
+			"can be set, but not both")
+	case ctx.IsSet("fee_limit"):
+		return &lnrpc.FeeLimit{
+			Limit: &lnrpc.FeeLimit_Fixed{
+				Fixed: ctx.Int64("fee_limit"),
+			},
+		}, nil
+	case ctx.IsSet("fee_limit_percent"):
+		feeLimitPercent := ctx.Int64("fee_limit_percent")
+		if feeLimitPercent < 0 {
+			return nil, errors.New("negative fee limit percentage " +
+				"provided")
+		}
+		return &lnrpc.FeeLimit{
+			Limit: &lnrpc.FeeLimit_Percent{
+				Percent: feeLimitPercent,
+			},
+		}, nil
+	}
+
+	// Since the fee limit flags aren't required, we don't return an error
+	// if they're not set.
+	return nil, nil
 }
 
 var getNetworkInfoCommand = cli.Command{
