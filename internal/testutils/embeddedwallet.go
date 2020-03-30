@@ -74,7 +74,7 @@ func NewSyncingTestWallet(t TB, rpcConfig *rpcclient.ConnConfig) (*wallet.Wallet
 
 	select {
 	case <-initialSync:
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("timeout waiting for initial wallet sync")
 	}
 
