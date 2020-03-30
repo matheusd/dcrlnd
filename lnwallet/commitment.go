@@ -378,11 +378,16 @@ type unsignedCommitmentTx struct {
 	// fee is the total fee of the commitment transaction.
 	fee dcrutil.Amount
 
-	// ourBalance|theirBalance are the balances of this commitment *after*
-	// subtracting commitment fees and anchor outputs. This can be
-	// different than the balances before creating the commitment
-	// transaction as one party must pay the commitment fee.
-	ourBalance   lnwire.MilliAtom
+	// ourBalance is our balance on this commitment *after* subtracting
+	// commitment fees and anchor outputs. This can be different than the
+	// balances before creating the commitment transaction as one party
+	// must pay the commitment fee.
+	ourBalance lnwire.MilliAtom
+
+	// theirBalance is their balance of this commitment *after* subtracting
+	// commitment fees and anchor outputs. This can be different than the
+	// balances before creating the commitment transaction as one party must
+	// pay the commitment fee.
 	theirBalance lnwire.MilliAtom
 }
 
