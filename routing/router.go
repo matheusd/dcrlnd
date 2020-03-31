@@ -542,9 +542,11 @@ func (r *ChannelRouter) Start() error {
 
 			// We pass in a zero timeout value, to indicate we
 			// don't need it to timeout. It will stop immediately
-			// after the existing attempt has finished anyway.
+			// after the existing attempt has finished anyway. We
+			// also set a zero fee limit, as no more routes should
+			// be tried.
 			_, _, err := r.sendPayment(
-				attempt,
+				attempt, payment.Info.Value, 0,
 				payment.Info.PaymentHash, 0, paySession,
 			)
 			if err != nil {
@@ -1642,7 +1644,7 @@ func (r *ChannelRouter) SendPayment(payment *LightningPayment) ([32]byte,
 	// Since this is the first time this payment is being made, we pass nil
 	// for the existing attempt.
 	return r.sendPayment(
-		nil, payment.PaymentHash,
+		nil, payment.Amount, payment.FeeLimit, payment.PaymentHash,
 		payment.PayAttemptTimeout, paySession,
 	)
 }
@@ -1665,8 +1667,9 @@ func (r *ChannelRouter) SendPaymentAsync(payment *LightningPayment) error {
 			spewPayment(payment))
 
 		_, _, err := r.sendPayment(
-			nil, payment.PaymentHash,
-			payment.PayAttemptTimeout, paySession,
+			nil, payment.Amount, payment.FeeLimit,
+			payment.PaymentHash, payment.PayAttemptTimeout,
+			paySession,
 		)
 		if err != nil {
 			log.Errorf("Payment with hash %x failed: %v",
@@ -1766,7 +1769,13 @@ func (r *ChannelRouter) SendToRoute(hash lntypes.Hash, route *route.Route) (
 	// timeout. It is only a single attempt, so no more attempts will be
 	// done anyway. Since this is the first time this payment is being
 	// made, we pass nil for the existing attempt.
-	preimage, _, err := r.sendPayment(nil, hash, 0, paySession)
+	// We pass the route receiver amount as the total payment amount such
+	// that the payment loop will request a route for this amount. As fee
+	// limit we pass the route's total fees, since we already know this is
+	// the route that is going to be used.
+	preimage, _, err := r.sendPayment(
+		nil, amt, route.TotalFees(), hash, 0, paySession,
+	)
 	if err != nil {
 		// SendToRoute should return a structured error. In case the
 		// provided route fails, payment lifecycle will return a
@@ -1804,7 +1813,7 @@ func (r *ChannelRouter) SendToRoute(hash lntypes.Hash, route *route.Route) (
 // the ControlTower.
 func (r *ChannelRouter) sendPayment(
 	existingAttempt *channeldb.HTLCAttemptInfo,
-	paymentHash lntypes.Hash,
+	totalAmt, feeLimit lnwire.MilliAtom, paymentHash lntypes.Hash,
 	timeout time.Duration,
 	paySession PaymentSession) ([32]byte, *route.Route, error) {
 
@@ -1819,6 +1828,8 @@ func (r *ChannelRouter) sendPayment(
 	// can resume the payment from the current state.
 	p := &paymentLifecycle{
 		router:        r,
+		totalAmount:   totalAmt,
+		feeLimit:      feeLimit,
 		paymentHash:   paymentHash,
 		paySession:    paySession,
 		currentHeight: currentHeight,
