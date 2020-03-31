@@ -2365,6 +2365,10 @@ func assertMinerBlockHeightDelta(t *harnessTest,
 func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	var ctxb = context.Background()
 
+	if net.BackendCfg.Name() == "spv" {
+		t.Skipf("Skipping for SPV for the moment")
+	}
+
 	// Set up a new miner that we can use to cause a reorg.
 	args := []string{"--rejectnonstd", "--txindex"}
 	tempMiner, err := rpctest.New(harnessNetParams,

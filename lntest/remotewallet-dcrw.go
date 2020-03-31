@@ -1,4 +1,4 @@
-// +build remotewallet
+// +build remotewallet,!spv
 
 package lntest
 
