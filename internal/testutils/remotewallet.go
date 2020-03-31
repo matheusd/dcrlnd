@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 )
 
@@ -121,9 +122,25 @@ func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 	if err != nil {
 		t.Logf("Wallet dir: %s", dataDir)
 		t.Fatalf("Unable to create credentials: %v", err)
-
 	}
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(creds))
+
+	opts := []grpc.DialOption{
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(creds),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.Config{
+				BaseDelay:  time.Millisecond * 20,
+				Multiplier: 1,
+				Jitter:     0.2,
+				MaxDelay:   time.Millisecond * 20,
+			},
+			MinConnectTimeout: time.Millisecond * 20,
+		}),
+	}
+	ctxb := context.Background()
+	ctx, cancel := context.WithTimeout(ctxb, time.Second*30)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
 		t.Logf("Wallet dir: %s", dataDir)
 		t.Fatalf("Unable to dial grpc: %v", err)
@@ -132,13 +149,12 @@ func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 	loader := pb.NewWalletLoaderServiceClient(conn)
 
 	// Create the wallet.
-	ctxb := context.Background()
 	reqCreate := &pb.CreateWalletRequest{
 		Seed:              hdSeed,
 		PublicPassphrase:  privatePass,
 		PrivatePassphrase: privatePass,
 	}
-	ctx, cancel := context.WithTimeout(ctxb, time.Second*30)
+	ctx, cancel = context.WithTimeout(ctxb, time.Second*30)
 	defer cancel()
 	_, err = loader.CreateWallet(ctx, reqCreate)
 	if err != nil {
