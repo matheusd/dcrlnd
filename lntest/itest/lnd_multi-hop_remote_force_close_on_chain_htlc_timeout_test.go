@@ -10,6 +10,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lntest/wait"
 )
@@ -45,20 +46,20 @@ func testMultiHopRemoteForceCloseOnChainHtlcTimeout(net *lntest.NetworkHarness,
 	ctx, cancel := context.WithCancel(ctxb)
 	defer cancel()
 
-	alicePayStream, err := alice.SendPayment(ctx)
-	if err != nil {
-		t.Fatalf("unable to create payment stream for alice: %v", err)
-	}
-
 	// We'll now send a single HTLC across our multi-hop network.
 	carolPubKey := carol.PubKey[:]
 	payHash := makeFakePayHash(t)
-	err = alicePayStream.Send(&lnrpc.SendRequest{
-		Dest:           carolPubKey,
-		Amt:            int64(htlcAmt),
-		PaymentHash:    payHash,
-		FinalCltvDelta: finalCltvDelta,
-	})
+	_, err := alice.RouterClient.SendPaymentV2(
+		ctx,
+		&routerrpc.SendPaymentRequest{
+			Dest:           carolPubKey,
+			Amt:            int64(htlcAmt),
+			PaymentHash:    payHash,
+			FinalCltvDelta: finalCltvDelta,
+			TimeoutSeconds: 60,
+			FeeLimitMAtoms:   noFeeLimitMAtoms,
+		},
+	)
 	if err != nil {
 		t.Fatalf("unable to send alice htlc: %v", err)
 	}

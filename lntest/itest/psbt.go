@@ -220,7 +220,8 @@ func testPsbtChanFunding(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	err = completePaymentRequests(
-		ctxt, carol, []string{resp.PaymentRequest}, true,
+		ctxt, carol, carol.RouterClient, []string{resp.PaymentRequest},
+		true,
 	)
 	if err != nil {
 		t.Fatalf("unable to make payments between Carol and Dave")
