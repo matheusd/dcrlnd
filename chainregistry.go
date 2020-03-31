@@ -317,6 +317,13 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			srvrLog.Info("Using underlying wallet for chain operations")
 		}
 
+	case "spv":
+		// TODO: support SPV mode with an embedded wallet.
+		if conn == nil {
+			return nil, fmt.Errorf("SPV mode is not supported when " +
+				"using an embedded wallet. Use --node=dcrd or " +
+				"--node=dcrw")
+		}
 	default:
 		return nil, fmt.Errorf("unknown node type: %s",
 			cfg.Node)
