@@ -3024,8 +3024,6 @@ func TestRouterPaymentStateMachine(t *testing.T) {
 			PaymentHash: payHash,
 		}
 
-		copy(preImage[:], bytes.Repeat([]byte{9}, 32))
-
 		router.cfg.SessionSource = &mockPaymentSessionSource{
 			routes: test.routes,
 		}
