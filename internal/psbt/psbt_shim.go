@@ -33,6 +33,10 @@ func NewFromRawBytes(r io.Reader, b64 bool) (*Packet, error) {
 	panic("psbt.NewFromRawBytes not implemented")
 }
 
+func NewFromUnsignedTx(tx *wire.MsgTx) (*Packet, error) {
+	panic("psbt.NewFromUnsignedTx not implemented")
+}
+
 type POutput struct{}
 
 func MaybeFinalize(p *Packet, inIndex int) (bool, error) {
