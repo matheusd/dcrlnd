@@ -604,6 +604,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		FundingFeePerKB:  feePerKB,
 		PushMAtoms:       0,
 		Flags:            lnwire.FFAnnounceChannel,
+		PendingChanID:    [32]byte{0, 1, 2, 3},
 	}
 	chanReservation, err := alice.InitChannelReservation(req)
 	if err != nil {
@@ -627,6 +628,7 @@ func testFundingTransactionLockedOutputs(miner *rpctest.Harness,
 		FundingFeePerKB:  feePerKB,
 		PushMAtoms:       0,
 		Flags:            lnwire.FFAnnounceChannel,
+		PendingChanID:    [32]byte{1, 2, 3, 4},
 	}
 	failedReservation, err := alice.InitChannelReservation(failedReq)
 	if err == nil {
@@ -671,6 +673,7 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 		FundingFeePerKB:  feePerKB,
 		PushMAtoms:       0,
 		Flags:            lnwire.FFAnnounceChannel,
+		PendingChanID:    [32]byte{2, 3, 4, 5},
 	}
 	chanReservation, err := alice.InitChannelReservation(req)
 	if err != nil {
@@ -679,6 +682,7 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 
 	// Attempt to create another channel spending the same amount. This
 	// should fail.
+	req.PendingChanID = [32]byte{3, 4, 5, 6}
 	_, err = alice.InitChannelReservation(req)
 	if _, ok := err.(*chanfunding.ErrInsufficientFunds); !ok {
 		t.Fatalf("coin selection succeeded should have insufficient funds: %v",
@@ -708,6 +712,7 @@ func testFundingCancellationNotEnoughFunds(miner *rpctest.Harness,
 	// attempting coin selection.
 
 	// Request to fund a new channel should now succeed.
+	req.PendingChanID = [32]byte{4, 5, 6, 7, 8}
 	if _, err := alice.InitChannelReservation(req); err != nil {
 		t.Fatalf("unable to initialize funding reservation: %v", err)
 	}
