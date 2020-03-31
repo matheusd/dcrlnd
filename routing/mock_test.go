@@ -9,7 +9,6 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	"github.com/decred/dcrlnd/zpay32"
 	"github.com/go-errors/errors"
 )
 
@@ -78,8 +77,8 @@ type mockPaymentSessionSource struct {
 
 var _ PaymentSessionSource = (*mockPaymentSessionSource)(nil)
 
-func (m *mockPaymentSessionSource) NewPaymentSession(routeHints [][]zpay32.HopHint,
-	target route.Vertex) (PaymentSession, error) {
+func (m *mockPaymentSessionSource) NewPaymentSession(
+	_ *LightningPayment) (PaymentSession, error) {
 
 	return &mockPaymentSession{m.routes}, nil
 }
@@ -123,9 +122,7 @@ type mockPaymentSession struct {
 
 var _ PaymentSession = (*mockPaymentSession)(nil)
 
-func (m *mockPaymentSession) RequestRoute(payment *LightningPayment,
-	height uint32, finalCltvDelta uint16) (*route.Route, error) {
-
+func (m *mockPaymentSession) RequestRoute(height uint32) (*route.Route, error) {
 	if len(m.routes) == 0 {
 		return nil, fmt.Errorf("no routes")
 	}
