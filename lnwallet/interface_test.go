@@ -2874,6 +2874,7 @@ func TestLightningWallet(t *testing.T) {
 	dcrwallet.UseLogger(logg)
 	remotedcrwallet.UseLogger(logg)
 	defer func() {
+		time.Sleep(time.Second * 5)
 		lnwallet.DisableLog()
 		dcrwallet.DisableLog()
 		remotedcrwallet.DisableLog()
