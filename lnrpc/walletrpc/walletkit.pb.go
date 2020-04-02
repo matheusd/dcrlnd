@@ -1363,6 +1363,9 @@ func (*UnimplementedWalletKitServer) PendingSweeps(ctx context.Context, req *Pen
 func (*UnimplementedWalletKitServer) BumpFee(ctx context.Context, req *BumpFeeRequest) (*BumpFeeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BumpFee not implemented")
 }
+func (*UnimplementedWalletKitServer) ListSweeps(ctx context.Context, req *ListSweepsRequest) (*ListSweepsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSweeps not implemented")
+}
 
 func RegisterWalletKitServer(s *grpc.Server, srv WalletKitServer) {
 	s.RegisterService(&_WalletKit_serviceDesc, srv)

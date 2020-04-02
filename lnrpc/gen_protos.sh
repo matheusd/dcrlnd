@@ -24,19 +24,19 @@ generate() {
     protoc -I. \
         -I$GOOGAPIS -I$PROTOBUFAPIS \
         --go_out=plugins=grpc,paths=source_relative:. \
-        rpc.proto
+        rpc.proto walletunlocker.proto
 
     # Generate the REST reverse proxy.
     protoc -I. \
         -I$GOOGAPIS -I$PROTOBUFAPIS \
         --grpc-gateway_out=logtostderr=true,paths=source_relative:. \
-        rpc.proto
+        rpc.proto walletunlocker.proto
 
     # Finally, generate the swagger file which describes the REST API in detail.
     protoc -I. \
         -I$GOOGAPIS -I$PROTOBUFAPIS \
         --swagger_out=logtostderr=true:. \
-        rpc.proto
+        rpc.proto walletunlocker.proto
 
     # For each of the sub-servers, we then generate their protos, but a restricted
     # set as they don't yet require REST proxies, or swagger docs.
