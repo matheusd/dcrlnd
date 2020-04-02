@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/route"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -223,6 +224,28 @@ func (s *Server) RegisterWithRootServer(grpcServer *grpc.Server) error {
 	log.Debugf("Router RPC server successfully register with root gRPC " +
 		"server")
 
+	return nil
+}
+
+// RegisterWithRestServer will be called by the root REST mux to direct a sub
+// RPC server to register itself with the main REST mux server. Until this is
+// called, each sub-server won't be able to have requests routed towards it.
+//
+// NOTE: This is part of the lnrpc.SubServer interface.
+func (s *Server) RegisterWithRestServer(ctx context.Context,
+	mux *runtime.ServeMux, dest string, opts []grpc.DialOption) error {
+
+	// We make sure that we register it with the main REST server to ensure
+	// all our methods are routed properly.
+	err := RegisterRouterHandlerFromEndpoint(ctx, mux, dest, opts)
+	if err != nil {
+		log.Errorf("Could not register Router REST server "+
+			"with root REST server: %v", err)
+		return err
+	}
+
+	log.Debugf("Router REST server successfully registered with " +
+		"root REST server")
 	return nil
 }
 
