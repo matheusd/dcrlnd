@@ -2365,6 +2365,9 @@ func assertMinerBlockHeightDelta(t *harnessTest,
 func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 	var ctxb = context.Background()
 
+	// Currently disabled due to
+	// https://github.com/decred/dcrwallet/issues/1710. Re-assess after
+	// that is fixed.
 	if net.BackendCfg.Name() == "spv" {
 		t.Skipf("Skipping for SPV for the moment")
 	}
@@ -8676,6 +8679,13 @@ func testRevokedCloseRetributionRemoteHodl(net *lntest.NetworkHarness,
 func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness,
 	t *harnessTest) {
 	ctxb := context.Background()
+
+	// Currently disabled in SPV due to
+	// https://github.com/decred/dcrlnd/issues/96. Re-assess after that is
+	// fixed.
+	if net.BackendCfg.Name() == "spv" {
+		t.Skipf("Skipping for SPV for the moment")
+	}
 
 	const (
 		initialBalance = int64(dcrutil.AtomsPerCoin)
