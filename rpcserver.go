@@ -2234,10 +2234,7 @@ func (r *rpcServer) AbandonChannel(ctx context.Context,
 		}
 		remotePub := dbChan.IdentityPub
 		if peer, err := r.server.FindPeer(remotePub); err == nil {
-			if err := peer.WipeChannel(chanPoint); err != nil {
-				return nil, fmt.Errorf("unable to wipe "+
-					"channel state: %v", err)
-			}
+			peer.WipeChannel(chanPoint)
 		}
 
 	default:

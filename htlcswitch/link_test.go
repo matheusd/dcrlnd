@@ -1653,9 +1653,7 @@ func (m *mockPeer) AddNewChannel(_ *channeldb.OpenChannel,
 	_ <-chan struct{}) error {
 	return nil
 }
-func (m *mockPeer) WipeChannel(*wire.OutPoint) error {
-	return nil
-}
+func (m *mockPeer) WipeChannel(*wire.OutPoint) {}
 func (m *mockPeer) PubKey() [33]byte {
 	return [33]byte{}
 }
