@@ -196,6 +196,10 @@ type UtxoSweeper struct {
 
 	relayFeeRate chainfee.AtomPerKByte
 
+	// List of outputs being spent by the lastTx we loaded during startup.
+	// This is used to prevent generating a double spend of inputs.
+	startupPending map[wire.OutPoint]struct{}
+
 	quit chan struct{}
 	wg   sync.WaitGroup
 }
@@ -296,6 +300,7 @@ func New(cfg *UtxoSweeperConfig) *UtxoSweeper {
 		pendingSweepsReqs: make(chan *pendingSweepsReq),
 		quit:              make(chan struct{}),
 		pendingInputs:     make(pendingInputs),
+		startupPending:    make(map[wire.OutPoint]struct{}),
 	}
 }
 
@@ -328,6 +333,10 @@ func (s *UtxoSweeper) Start() error {
 		err := s.cfg.Wallet.PublishTransaction(lastTx)
 		if err != nil && err != lnwallet.ErrDoubleSpend {
 			log.Errorf("last tx publish: %v", err)
+		}
+
+		for _, in := range lastTx.TxIn {
+			s.startupPending[in.PreviousOutPoint] = struct{}{}
 		}
 	}
 
@@ -478,6 +487,19 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch) {
 				continue
 			}
 
+			minPublishHeight := bestHeight
+
+			// If this input was sent on our last startup tx, delay
+			// trying to sweep it again.
+			if _, ok := s.startupPending[outpoint]; ok {
+				attemptDelta := s.cfg.NextAttemptDeltaFunc(1)
+				minPublishHeight = bestHeight + attemptDelta
+				log.Debugf("Delaying startup outpoint %s by %d "+
+					"blocks (up to height %d)", outpoint,
+					attemptDelta, minPublishHeight)
+				delete(s.startupPending, outpoint)
+			}
+
 			// Create a new pendingInput and initialize the
 			// listeners slice with the passed in result channel. If
 			// this input is offered for sweep again, the result
@@ -485,7 +507,7 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch) {
 			pendInput = &pendingInput{
 				listeners:        []chan Result{input.resultChan},
 				Input:            input.input,
-				minPublishHeight: bestHeight,
+				minPublishHeight: minPublishHeight,
 				params:           input.params,
 			}
 			s.pendingInputs[outpoint] = pendInput
@@ -794,6 +816,7 @@ func (s *UtxoSweeper) signalAndRemove(outpoint *wire.OutPoint, result Result) {
 
 	// Inputs are no longer pending after result has been sent.
 	delete(s.pendingInputs, *outpoint)
+	delete(s.startupPending, *outpoint)
 }
 
 // getInputLists goes through the given inputs and constructs multiple distinct
