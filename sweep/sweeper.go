@@ -1193,7 +1193,7 @@ func (s *UtxoSweeper) CreateSweepTx(inputs []input.Input, feePref FeePreference,
 // to prevent a stuck tx (for example because fee is too low and can't be bumped
 // in dcrd) from blocking all other retried inputs in the same tx.
 func DefaultNextAttemptDeltaFunc(attempts int) int32 {
-	return 1 + rand.Int31n(1<<uint(attempts-1))
+	return 2 + rand.Int31n(1<<uint(attempts-1))
 }
 
 // init initializes the random generator for random input rescheduling.
