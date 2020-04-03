@@ -891,6 +891,10 @@ func TestRestartRemoteSpend(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Notify of a new block so the sweeper re-attempts an input from its
+	// last tx.
+	ctx.notifier.NotifyEpoch(1000)
+
 	// Expect sweeper to construct a new tx, because input 1 was spend
 	// remotely.
 	ctx.tick()
@@ -936,9 +940,6 @@ func TestRestartConfirmed(t *testing.T) {
 
 	// Here we expect again a successful sweep.
 	ctx.expectResult(spendChan, nil)
-
-	// Timer started but not needed because spend ntfn was sent.
-	ctx.tick()
 
 	ctx.finish(1)
 }
