@@ -235,9 +235,7 @@ func (n *testNode) SendMessageLazy(sync bool, msgs ...lnwire.Message) error {
 	return n.SendMessage(sync, msgs...)
 }
 
-func (n *testNode) WipeChannel(_ *wire.OutPoint) error {
-	return nil
-}
+func (n *testNode) WipeChannel(_ *wire.OutPoint) {}
 
 func (n *testNode) QuitSignal() <-chan struct{} {
 	return n.shutdownChannel
