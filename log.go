@@ -7,6 +7,8 @@ import (
 	"github.com/decred/dcrlnd/autopilot"
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/chainscan"
+	"github.com/decred/dcrlnd/chainscan/csdrivers"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/chanfitness"
 	"github.com/decred/dcrlnd/channeldb"
@@ -109,6 +111,8 @@ func init() {
 	addSubLogger("DCRW", dcrwallet.UseLogger)
 	addSubLogger("RDCW", remotedcrwallet.UseLogger)
 	addSubLogger("KCHN", keychain.UseLogger)
+	addSubLogger("CSCN", chainscan.UseLogger)
+	addSubLogger("CSDR", csdrivers.UseLogger)
 }
 
 // addSubLogger is a helper method to conveniently create and register the
