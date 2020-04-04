@@ -18,7 +18,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
-	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 
 	_ "decred.org/dcrwallet/wallet/drivers/bdb"
@@ -2861,31 +2860,8 @@ func TestLightningWallet(t *testing.T) {
 		}
 	}()
 
-	// Direct the lnwallet and driver logs to the given files.
-	logFilename := fmt.Sprintf("output-lnwallet.log")
-	logFile, err := os.Create(logFilename)
-	if err != nil {
-		t.Fatalf("Cannot create lnwallet log file: %v", err)
-	}
-	bknd := slog.NewBackend(logFile)
-	logg := bknd.Logger("XXXX")
-	logg.SetLevel(slog.LevelDebug)
-	lnwallet.UseLogger(logg)
-	dcrwallet.UseLogger(logg)
-	remotedcrwallet.UseLogger(logg)
-	defer func() {
-		time.Sleep(time.Second * 5)
-		lnwallet.DisableLog()
-		dcrwallet.DisableLog()
-		remotedcrwallet.DisableLog()
-		logFile.Close()
-	}()
-
 	for _, walletDriver := range lnwallet.RegisteredWallets() {
 		for _, backEnd := range walletDriver.BackEnds() {
-			logg.Errorf("============ Starting tests for driver=%s backend=%s ===========",
-				walletDriver.WalletType, backEnd)
-
 			// Initialize the harness around a dcrd node which will
 			// serve as our dedicated miner to generate blocks,
 			// cause re-orgs, etc. We'll set up this node with a
@@ -2895,7 +2871,7 @@ func TestLightningWallet(t *testing.T) {
 				walletDriver.WalletType, backEnd)
 			minerArgs := []string{"--txindex", "--debuglevel=debug",
 				"--logdir=" + minerLogDir}
-			miningNode, err = rpctest.New(netParams, nil, minerArgs)
+			miningNode, err := rpctest.New(netParams, nil, minerArgs)
 			if err != nil {
 				t.Fatalf("unable to create mining node: %v", err)
 			}
