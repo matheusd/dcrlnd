@@ -16,5 +16,5 @@ var (
 	//
 	// No integration tests currently rely on sweeping multiple inputs
 	// simultaneously so this can be a really short time.
-	DefaultBatchWindowDuration = 20 * time.Millisecond
+	DefaultBatchWindowDuration = 250 * time.Millisecond
 )
