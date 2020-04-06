@@ -9,6 +9,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
@@ -227,7 +228,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		htlcWitnessScript, htlcPkScript []byte
 		htlcOutput                      *wire.TxOut
 		senderCommitTx, sweepTx         *wire.MsgTx
-		bobRecvrSig                     []byte
+		bobRecvrSig                     *ecdsa.Signature
 		bobSigHash                      txscript.SigHashType
 	)
 
@@ -304,9 +305,14 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 			HashType:      bobSigHash,
 			InputIndex:    0,
 		}
-		bobRecvrSig, err = bobSigner.SignOutputRaw(sweepTx, &bobSignDesc)
+		bobSigBytes, err := bobSigner.SignOutputRaw(sweepTx, &bobSignDesc)
 		if err != nil {
 			t.Fatalf("unable to generate alice signature: %v", err)
+		}
+
+		bobRecvrSig, err = ecdsa.ParseDERSignature(bobSigBytes)
+		if err != nil {
+			t.Fatalf("unable to parse signature: %v", err)
 		}
 	}
 
@@ -615,7 +621,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		htlcWitnessScript, htlcPkScript []byte
 		htlcOutput                      *wire.TxOut
 		receiverCommitTx, sweepTx       *wire.MsgTx
-		aliceSenderSig                  []byte
+		aliceSenderSig                  *ecdsa.Signature
 		aliceSigHash                    txscript.SigHashType
 	)
 
@@ -688,9 +694,14 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 			HashType:      aliceSigHash,
 			InputIndex:    0,
 		}
-		aliceSenderSig, err = aliceSigner.SignOutputRaw(sweepTx, &aliceSignDesc)
+		aliceSigBytes, err := aliceSigner.SignOutputRaw(sweepTx, &aliceSignDesc)
 		if err != nil {
 			t.Fatalf("unable to generate alice signature: %v", err)
+		}
+
+		aliceSenderSig, err = ecdsa.ParseDERSignature(aliceSigBytes)
+		if err != nil {
+			t.Fatalf("unable to parse signature: %v", err)
 		}
 	}
 
