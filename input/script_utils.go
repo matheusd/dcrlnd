@@ -250,7 +250,7 @@ func Ripemd160H(d []byte) []byte {
 //     OP_NOTIF
 //         OP_DROP 2 OP_SWAP <sender htlc key> 2 OP_CHECKMULTISIG
 //     OP_ELSE
-//         OP_HASH160 <ripemd160(payment hash)> OP_EQUALVERIFY
+//         OP_SHA256 OP_RIPEMD160 <ripemd160(payment hash)> OP_EQUALVERIFY
 //         OP_CHECKSIG
 //     OP_ENDIF
 //     [1 OP_CHECKSEQUENCEVERIFY OP_DROP] <- if allowing confirmed spend only.
