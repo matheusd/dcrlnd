@@ -238,6 +238,12 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 // CreateJusticeTxn computes the justice transaction that sweeps a breaching
 // commitment transaction. The justice transaction is constructed by assembling
 // the witnesses using data provided by the client in a prior state update.
+//
+// NOTE: An older version of ToLocalPenaltyWitnessSize underestimated the size
+// of the witness by one byte, which could cause the signature(s) to break if
+// the tower is reconstructing with the newer constant because the output values
+// might differ. This method retains that original behavior to not invalidate
+// historical signatures.
 func (p *JusticeDescriptor) CreateJusticeTxn() (*wire.MsgTx, error) {
 	var (
 		sweepInputs  = make([]*breachedInput, 0, 2)

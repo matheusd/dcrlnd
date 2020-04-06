@@ -1,11 +1,7 @@
 package input
 
 import (
-	"math/big"
-
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/keychain"
 )
 
 // Quick review of the serialized layout of decred transactions. This is
@@ -226,16 +222,16 @@ const (
 	//		        - remotekey                         33 bytes
 	//		        - OP_SWAP                            1 byte
 	//		        - OP_SIZE                            1 byte
-	//		        - OP_DATA_1                          1 byte
-	//		        - OP_DATA_32                         1 byte
+	//			- OP_DATA_1			     1 byte
+	//		        - OP_32                              1 byte
 	//		        - OP_EQUAL                           1 byte
 	//		        - OP_NOTIF                           1 byte
 	//		                - OP_DROP                    1 byte
-	//		                - OP_DATA_2                  1 byte
+	//		                - OP_2                       1 byte
 	//		                - OP_SWAP                    1 byte
 	//		                - OP_DATA_33                 1 byte
 	//		                - localkey                  33 bytes
-	//		                - OP_DATA_2                  1 byte
+	//		                - OP_2                       1 byte
 	//		                - OP_CHECKMULTISIG           1 byte
 	//		        - OP_ELSE                            1 byte
 	//		                - OP_SHA256                  1 byte
@@ -245,19 +241,36 @@ const (
 	//		                - OP_EQUALVERIFY             1 byte
 	//		                - OP_CHECKSIG                1 byte
 	//		        - OP_ENDIF                           1 byte
-	//			- OP_DATA_1			     1 byte
+	//			- OP_1				     1 byte
 	//			- OP_CHECKSEQUENCEVERIFY	     1 byte
 	//			- OP_DROP			     1 byte
 	//		- OP_ENDIF                                   1 byte
 	//
-	// Total: 136 bytes
+	// Total: 137 bytes
 	offeredHtlcRedeemScriptSize int64 = 3*1 + 20 + 5*1 + 33 + 10*1 + 33 + 6*1 + 20 + 7*1
+
+	// AnchorRedeemScriptSize is the size of the redeem script used for
+	// anchor outputs of commitment transactions.
+	//
+	// This is calculated as:
+	//
+	//      - pubkey_length 		 1 byte
+	//      - pubkey			33 bytes
+	//      - OP_CHECKSIG			 1 byte
+	//      - OP_IFDUP			 1 byte
+	//      - OP_NOTIF			 1 byte
+	//              - OP_16			 1 byte
+	//              - OP_CSV		 1 byte
+	//      - OP_ENDIF			 1 byte
+	//
+	// Total: 40 bytes
+	AnchorRedeemScriptSize = 1 + 33 + 6*1
 
 	// The following *SigScript constants record sizes for various types of
 	// LN-specific sigScripts, spending outputs that use one of the custom
-	// redeem scripts. These constants are the sum of the script data push plus
-	// the actual sig script data required for redeeming one of the script's
-	// code paths.
+	// redeem scripts. These constants are the sum of the script data push
+	// plus the actual sig script data required for redeeming one of the
+	// script's code paths.
 	//
 	// All constants are named according to the schema
 	// [tx-type][code-path]sigScriptSize. See the above *RedeemScriptSize
@@ -395,16 +408,14 @@ const (
 	//
 	//		- OP_DATA_73                      1 byte
 	//		- receiver_sig+hash_type         73 bytes
-	//		- OP_DATA_73                      1 byte
-	//		- sender_sig+hash_type           73 bytes
 	//		- OP_DATA_32                      1 byte
 	//		- payment_preimage               32 bytes
 	//		- OP_PUSHDATA1                    1 byte
-	//		- 133                             1 byte
-	//		- offered_htlc script           136 bytes
+	//		- 137                             1 byte
+	//		- offered_htlc script           137 bytes
 	//
-	// Total: 319 bytes
-	OfferedHtlcSuccessSigScriptSize int64 = 1 + 73 + 1 + 73 + 1 + 32 +
+	// Total: 246 bytes
+	OfferedHtlcSuccessSigScriptSize int64 = 1 + 73 + 1 + 32 +
 		1 + 1 + offeredHtlcRedeemScriptSize
 
 	// OfferedHtlcPenaltySigScriptSize is the size of a sigScript used
@@ -421,6 +432,32 @@ const (
 	// Total: 246 bytes
 	OfferedHtlcPenaltySigScriptSize int64 = 1 + 73 + 1 + 33 + 1 + 1 +
 		offeredHtlcRedeemScriptSize
+
+	// AnchorSigScriptSize is the size of the signature script used when
+	// redeeming anchor outputs of commitment transactions.
+	//
+	// It is calculated as:
+	//
+	//      - signature_length			 1 byte
+	//      - signature				73 bytes
+	//      - anchor_script_length			 1 byte
+	//      - anchor_script				40 bytes
+	//
+	// Total: 115 bytes
+	AnchorSigScriptSize = 1 + 73 + 1 + AnchorRedeemScriptSize
+
+	// AnchorAnyoneSigScriptSize is the size of the signature script used
+	// when redeeming anchor outputs via the anyone-can-redeem branch of
+	// the anchor script.
+	//
+	// It is calculated as:
+	//
+	//	- OP_FALSE 				 1 byte
+	//	- anchor_script_length			 1 byte
+	//	- anchor_script				40 bytes
+	//
+	// Total: 42 bytes
+	AnchorAnyoneSigScriptSize = 1 + 1 + AnchorRedeemScriptSize
 
 	// The following constants record pre-calculated inputs, outputs and
 	// transaction sizes for common transactions found in the LN ecosystem.
@@ -601,57 +638,6 @@ const (
 	// calculations, we'll further reduce this down by ~5% for the moment
 	// until others have thoroughly reviewed these numbers.
 	MaxHTLCNumber = 300
-)
-
-type dummySignature struct{}
-
-func (d *dummySignature) Serialize() []byte {
-	// Always return worst-case signature length, excluding the one byte
-	// sighash flag.
-	return make([]byte, 73-1)
-}
-
-func (d *dummySignature) Verify(_ []byte, _ *secp256k1.PublicKey) bool {
-	return true
-}
-
-// dummySigner is a fake signer used for size (upper bound) calculations.
-type dummySigner struct {
-	Signer
-}
-
-// SignOutputRaw generates a signature for the passed transaction according to
-// the data within the passed SignDescriptor.
-func (s *dummySigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *SignDescriptor) (Signature, error) {
-
-	return &dummySignature{}, nil
-}
-
-var (
-	// dummyPubKey is a pubkey used in script size calculation.
-	dummyPubKey = secp256k1.PublicKey{
-		X: &big.Int{},
-		Y: &big.Int{},
-	}
-
-	// dummyAnchorScript is a script used for size calculation.
-	dummyAnchorScript, _ = CommitScriptAnchor(&dummyPubKey)
-
-	// dummyAnchorWitness is a witness used for size calculation.
-	dummyAnchorWitness, _ = CommitSpendAnchor(
-		&dummySigner{},
-		&SignDescriptor{
-			KeyDesc: keychain.KeyDescriptor{
-				PubKey: &dummyPubKey,
-			},
-			WitnessScript: dummyAnchorScript,
-		},
-		nil,
-	)
-
-	// AnchorWitnessSize 116 bytes
-	AnchorWitnessSize = int64(dummyAnchorWitness.WitnessSerializeSize())
 )
 
 // EstimateCommitmentTxSize estimates the size of a commitment transaction
