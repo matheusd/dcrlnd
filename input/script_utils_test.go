@@ -222,7 +222,7 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 		htlcWitnessScript, htlcPkScript []byte
 		htlcOutput                      *wire.TxOut
 		senderCommitTx, sweepTx         *wire.MsgTx
-		bobRecvrSig                     []byte
+		bobRecvrSig                     *secp256k1.Signature
 		bobSigHash                      txscript.SigHashType
 	)
 
@@ -299,9 +299,14 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 			HashType:      bobSigHash,
 			InputIndex:    0,
 		}
-		bobRecvrSig, err = bobSigner.SignOutputRaw(sweepTx, &bobSignDesc)
+		bobSigBytes, err := bobSigner.SignOutputRaw(sweepTx, &bobSignDesc)
 		if err != nil {
 			t.Fatalf("unable to generate alice signature: %v", err)
+		}
+
+		bobRecvrSig, err = secp256k1.ParseDERSignature(bobSigBytes)
+		if err != nil {
+			t.Fatalf("unable to parse signature: %v", err)
 		}
 	}
 
@@ -610,7 +615,7 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 		htlcWitnessScript, htlcPkScript []byte
 		htlcOutput                      *wire.TxOut
 		receiverCommitTx, sweepTx       *wire.MsgTx
-		aliceSenderSig                  []byte
+		aliceSenderSig                  *secp256k1.Signature
 		aliceSigHash                    txscript.SigHashType
 	)
 
@@ -683,9 +688,14 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 			HashType:      aliceSigHash,
 			InputIndex:    0,
 		}
-		aliceSenderSig, err = aliceSigner.SignOutputRaw(sweepTx, &aliceSignDesc)
+		aliceSigBytes, err := aliceSigner.SignOutputRaw(sweepTx, &aliceSignDesc)
 		if err != nil {
 			t.Fatalf("unable to generate alice signature: %v", err)
+		}
+
+		aliceSenderSig, err = secp256k1.ParseDERSignature(aliceSigBytes)
+		if err != nil {
+			t.Fatalf("unable to parse signature: %v", err)
 		}
 	}
 
