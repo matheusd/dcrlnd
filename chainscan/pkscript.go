@@ -10,14 +10,20 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"
 )
 
 const (
-	// sigLen is the maximum length of a signature data push in a p2pkh
+	// maxSigLen is the maximum length of a signature data push in a p2pkh
 	// sigScript.
-	sigLen = 72
+	maxSigLen = 72
+
+	// minSigLen is the minimum length of a DER encoded signature and is
+	// when both R and S are 1 byte each.
+	// 0x30 + <1-byte> + 0x02 + 0x01 + <byte> + 0x2 + 0x01 + <byte>
+	minSigLen = 8
 
 	// compressedPubKeyLen is the length in bytes of a compressed public
 	// key.
@@ -230,10 +236,20 @@ func ComputePkScript(scriptVersion uint16, sigScript []byte) (PkScript, error) {
 	// standard p2pkh will only have an extra signature data push.
 	lastData := tokenizer.Data()
 	lastDataHash := dcrutil.Hash160(lastData)
-	firstDataIsSigLen := len(firstData) == sigLen ||
-		len(firstData) == sigLen-1
+	firstDataLen := len(firstData)
+	firstDataIsSigLen := firstDataLen >= minSigLen && firstDataLen <= maxSigLen
 	lastDataIsPubkeyLen := len(lastData) == compressedPubKeyLen
+
+	// Attempt to verify that the last data push is a valid pubkey. We only
+	// do this if all other conditions for the sigscript to be a p2pkh are
+	// fulfilled.
+	var lastDataValidPubkey bool
 	if opcodeCount == 2 && firstDataIsSigLen && lastDataIsPubkeyLen {
+		_, err := secp256k1.ParsePubKey(lastData)
+		lastDataValidPubkey = err == nil
+	}
+
+	if lastDataValidPubkey {
 		// The sigScript has the correct structure for spending a
 		// p2pkh, therefore assume it is one.
 		scriptClass = txscript.PubKeyHashTy
