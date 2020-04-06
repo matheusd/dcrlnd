@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lnwire"
@@ -90,7 +91,7 @@ type mockSigner struct {
 }
 
 func (n *mockSigner) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*ecdsa.Signature, error) {
+	msg []byte) (input.Signature, error) {
 
 	if !pubKey.IsEqual(n.privKey.PubKey()) {
 		return nil, fmt.Errorf("unknown public key")

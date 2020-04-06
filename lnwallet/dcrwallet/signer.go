@@ -128,7 +128,7 @@ func maybeTweakPrivKey(signDesc *input.SignDescriptor,
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) ([]byte, error) {
+	signDesc *input.SignDescriptor) (input.Signature, error) {
 
 	witnessScript := signDesc.WitnessScript
 
@@ -159,7 +159,7 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 	}
 
 	// Chop off the sighash flag at the end of the signature.
-	return sig[:len(sig)-1], nil
+	return ecdsa.ParseDERSignature(sig[:len(sig)-1])
 }
 
 // p2pkhSigScriptToWitness converts a raw sigScript that signs a p2pkh output
@@ -258,7 +258,7 @@ var _ input.Signer = (*DcrWallet)(nil)
 //
 // NOTE: This is a part of the Messageinput.Signer interface.
 func (b *DcrWallet) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*ecdsa.Signature, error) {
+	msg []byte) (input.Signature, error) {
 
 	keyDesc := keychain.KeyDescriptor{
 		PubKey: pubKey,

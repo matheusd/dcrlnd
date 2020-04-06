@@ -20,7 +20,6 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
@@ -977,7 +976,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 		Notifier:           cc.chainNotifier,
 		FeeEstimator:       cc.feeEstimator,
 		SignMessage: func(pubKey *secp256k1.PublicKey,
-			msg []byte) (*ecdsa.Signature, error) {
+			msg []byte) (input.Signature, error) {
 
 			if pubKey.IsEqual(privKey.PubKey()) {
 				return s.nodeSigner.SignMessage(pubKey, msg)

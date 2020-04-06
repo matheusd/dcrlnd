@@ -3417,7 +3417,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 		close(cancelChan)
 		return sig, htlcSigs, nil, err
 	}
-	sig, err = lnwire.NewSigFromRawSignature(rawSig)
+	sig, err = lnwire.NewSigFromSignature(rawSig)
 	if err != nil {
 		close(cancelChan)
 		return sig, htlcSigs, nil, err
@@ -5082,7 +5082,7 @@ func (lc *LightningChannel) getSignedCommitTx() (*wire.MsgTx, error) {
 		return nil, err
 	}
 
-	ourSig := append(ourSigRaw, byte(txscript.SigHashAll))
+	ourSig := append(ourSigRaw.Serialize(), byte(txscript.SigHashAll))
 
 	// With the final signature generated, create the witness stack
 	// required to spend from the multi-sig output.
@@ -5969,7 +5969,8 @@ func NewLocalForceCloseSummary(chanState *channeldb.OpenChannel, signer input.Si
 // settle any in flight.
 func (lc *LightningChannel) CreateCloseProposal(proposedFee dcrutil.Amount,
 	localDeliveryScript []byte,
-	remoteDeliveryScript []byte) ([]byte, *chainhash.Hash, dcrutil.Amount, error) {
+	remoteDeliveryScript []byte) (input.Signature, *chainhash.Hash,
+	dcrutil.Amount, error) {
 
 	lc.Lock()
 	defer lc.Unlock()
