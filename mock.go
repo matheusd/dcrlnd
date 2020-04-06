@@ -33,7 +33,7 @@ type mockSigner struct {
 }
 
 func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) ([]byte, error) {
+	signDesc *input.SignDescriptor) (input.Signature, error) {
 	witnessScript := signDesc.WitnessScript
 	privKey := m.key
 
@@ -57,7 +57,7 @@ func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
 		return nil, err
 	}
 
-	return sig[:len(sig)-1], nil
+	return secp256k1.ParseDERSignature(sig[:len(sig)-1])
 }
 
 func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx,

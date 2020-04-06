@@ -63,6 +63,10 @@ var (
 type Signature interface {
 	// Serialize returns a DER-encoded ECDSA signature.
 	Serialize() []byte
+
+	// Verify return true if the ECDSA signature is valid for the passed
+	// message digest under the provided public key.
+	Verify([]byte, *secp256k1.PublicKey) bool
 }
 
 // ScriptHashPkScript returns the p2sh pkscript for a given redeem script. This
@@ -362,7 +366,7 @@ func senderHtlcSpendRevoke(signer Signer, signDesc *SignDescriptor,
 	// manner in order to encode the revocation contract into a sig+key
 	// pair.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = revokeKey.SerializeCompressed()
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -411,7 +415,7 @@ func SenderHtlcSpendRedeem(signer Signer, signDesc *SignDescriptor,
 	// generated above under the receiver's public key, and the payment
 	// pre-image.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = paymentPreimage
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -436,7 +440,7 @@ func SenderHtlcSpendTimeout(receiverSig Signature,
 	// order to force Script execution to the HTLC timeout clause.
 	witnessStack := TxWitness(make([][]byte, 4))
 	witnessStack[0] = append(receiverSig.Serialize(), byte(receiverSigHash))
-	witnessStack[1] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[1] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[2] = nil
 	witnessStack[3] = signDesc.WitnessScript
 
@@ -602,7 +606,7 @@ func ReceiverHtlcSpendRedeem(senderSig Signature,
 	// pre-images matches.
 	witnessStack := TxWitness(make([][]byte, 4))
 	witnessStack[0] = append(senderSig.Serialize(), byte(senderSigHash))
-	witnessStack[1] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[1] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[2] = paymentPreimage
 	witnessStack[3] = signDesc.WitnessScript
 
@@ -629,7 +633,7 @@ func receiverHtlcSpendRevoke(signer Signer, signDesc *SignDescriptor,
 	// witness stack in order to force script execution to the HTLC
 	// revocation clause.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = revokeKey.SerializeCompressed()
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -694,7 +698,7 @@ func ReceiverHtlcSpendTimeout(signer Signer, signDesc *SignDescriptor,
 	}
 
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = nil
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -819,7 +823,7 @@ func HtlcSpendSuccess(signer Signer, signDesc *SignDescriptor,
 	// witness script), in order to force execution to the second portion
 	// of the if clause.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = nil
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -844,7 +848,7 @@ func HtlcSpendRevoke(signer Signer, signDesc *SignDescriptor,
 	// witness script), in order to force execution to the revocation
 	// clause in the second level HTLC script.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = []byte{1}
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -875,7 +879,7 @@ func HtlcSecondLevelSpend(signer Signer, signDesc *SignDescriptor,
 	// witness script), in order to force execution to the second portion
 	// of the if clause.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(txscript.SigHashAll))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(txscript.SigHashAll))
 	witnessStack[1] = nil
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -979,7 +983,7 @@ func CommitSpendTimeout(signer Signer, signDesc *SignDescriptor,
 	// place an empty byte in order to ensure our script is still valid
 	// from the PoV of nodes that are enforcing minimal OP_IF/OP_NOTIF.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = nil
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -1004,7 +1008,7 @@ func CommitSpendRevoke(signer Signer, signDesc *SignDescriptor,
 	// Place a 1 as the first item in the evaluated witness stack to
 	// force script execution to the revocation clause.
 	witnessStack := TxWitness(make([][]byte, 3))
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = []byte{1}
 	witnessStack[2] = signDesc.WitnessScript
 
@@ -1038,7 +1042,7 @@ func CommitSpendNoDelay(signer Signer, signDesc *SignDescriptor,
 	// exact same as a regular p2wkh witness, depending on the value of the
 	// tweakless bool.
 	witness := make([][]byte, 2)
-	witness[0] = append(sweepSig, byte(signDesc.HashType))
+	witness[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 
 	switch tweakless {
 	// If we're tweaking the key, then we use the tweaked public key as the
@@ -1120,7 +1124,7 @@ func CommitSpendToRemoteConfirmed(signer Signer, signDesc *SignDescriptor,
 	// Finally, we'll manually craft the witness. The witness here is the
 	// signature and the redeem script.
 	witnessStack := make([][]byte, 2)
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = signDesc.WitnessScript
 
 	return witnessStack, nil
@@ -1176,7 +1180,7 @@ func CommitSpendAnchor(signer Signer, signDesc *SignDescriptor,
 
 	// The witness here is just a signature and the redeem script.
 	witnessStack := make([][]byte, 2)
-	witnessStack[0] = append(sweepSig, byte(signDesc.HashType))
+	witnessStack[0] = append(sweepSig.Serialize(), byte(signDesc.HashType))
 	witnessStack[1] = signDesc.WitnessScript
 
 	return witnessStack, nil

@@ -1623,7 +1623,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 		return nil, fmt.Errorf("unable to generate signature: %v", err)
 	}
 	witness := make([][]byte, 2)
-	witness[0] = append(spendSig, byte(txscript.SigHashAll))
+	witness[0] = append(spendSig.Serialize(), byte(txscript.SigHashAll))
 	witness[1] = fromPubKey.SerializeCompressed()
 	tx1.TxIn[0].SignatureScript, err = input.WitnessStackToSigScript(witness)
 	if err != nil {
@@ -2020,7 +2020,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 			t.Fatalf("unable to generate signature: %v", err)
 		}
 		witness := make([][]byte, 2)
-		witness[0] = append(spendSig, byte(txscript.SigHashAll))
+		witness[0] = append(spendSig.Serialize(), byte(txscript.SigHashAll))
 		witness[1] = tweakedKey.SerializeCompressed()
 		sweepTx.TxIn[0].SignatureScript, err = input.WitnessStackToSigScript(witness)
 		if err != nil {

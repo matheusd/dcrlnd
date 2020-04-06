@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrlnd/input"
 )
 
 // Sig is a fixed-sized ECDSA signature. Unlike Bitcoin, we use fixed sized
@@ -64,7 +65,7 @@ func NewSigFromRawSignature(sig []byte) (Sig, error) {
 
 // NewSigFromSignature creates a new signature as used on the wire, from an
 // existing secp256k1.Signature.
-func NewSigFromSignature(e *secp256k1.Signature) (Sig, error) {
+func NewSigFromSignature(e input.Signature) (Sig, error) {
 	if e == nil {
 		return Sig{}, fmt.Errorf("cannot decode empty signature")
 	}

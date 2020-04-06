@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -16,12 +17,22 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
+type dummySignature struct{}
+
+func (s *dummySignature) Serialize() []byte {
+	return []byte{}
+}
+
+func (s *dummySignature) Verify(_ []byte, _ *secp256k1.PublicKey) bool {
+	return true
+}
+
 type mockSigner struct {
 }
 
 func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) ([]byte, error) {
-	return nil, nil
+	signDesc *input.SignDescriptor) (input.Signature, error) {
+	return &dummySignature{}, nil
 }
 
 func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx,
@@ -153,8 +164,8 @@ func TestHtlcTimeoutResolver(t *testing.T) {
 			timeout:      true,
 			txToBroadcast: func() (*wire.MsgTx, error) {
 				witness, err := input.SenderHtlcSpendTimeout(
-					nil, txscript.SigHashAll, signer,
-					fakeSignDesc, sweepTx,
+					&dummySignature{}, txscript.SigHashAll,
+					signer, fakeSignDesc, sweepTx,
 				)
 				if err != nil {
 					return nil, err
@@ -178,9 +189,9 @@ func TestHtlcTimeoutResolver(t *testing.T) {
 			timeout:      false,
 			txToBroadcast: func() (*wire.MsgTx, error) {
 				witness, err := input.ReceiverHtlcSpendRedeem(
-					nil, txscript.SigHashAll,
-					fakePreimageBytes, signer,
-					fakeSignDesc, sweepTx,
+					&dummySignature{}, txscript.SigHashAll,
+					fakePreimageBytes, signer, fakeSignDesc,
+					sweepTx,
 				)
 				if err != nil {
 					return nil, err

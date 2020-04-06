@@ -299,12 +299,14 @@ func TestHTLCSenderSpendValidation(t *testing.T) {
 			HashType:      bobSigHash,
 			InputIndex:    0,
 		}
-		bobSigBytes, err := bobSigner.SignOutputRaw(sweepTx, &bobSignDesc)
+		bobSig, err := bobSigner.SignOutputRaw(sweepTx, &bobSignDesc)
 		if err != nil {
 			t.Fatalf("unable to generate alice signature: %v", err)
 		}
 
-		bobRecvrSig, err = secp256k1.ParseDERSignature(bobSigBytes)
+		bobRecvrSig, err = secp256k1.ParseDERSignature(
+			bobSig.Serialize(),
+		)
 		if err != nil {
 			t.Fatalf("unable to parse signature: %v", err)
 		}
@@ -693,7 +695,9 @@ func TestHTLCReceiverSpendValidation(t *testing.T) {
 			t.Fatalf("unable to generate alice signature: %v", err)
 		}
 
-		aliceSenderSig, err = secp256k1.ParseDERSignature(aliceSigBytes)
+		aliceSenderSig, err = secp256k1.ParseDERSignature(
+			aliceSigBytes.Serialize(),
+		)
 		if err != nil {
 			t.Fatalf("unable to parse signature: %v", err)
 		}

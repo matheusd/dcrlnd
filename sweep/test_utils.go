@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/input"
@@ -18,13 +19,23 @@ var (
 	mockChainHeight    = int32(100)
 )
 
+type dummySignature struct{}
+
+func (s *dummySignature) Serialize() []byte {
+	return []byte{}
+}
+
+func (s *dummySignature) Verify(_ []byte, _ *secp256k1.PublicKey) bool {
+	return true
+}
+
 type mockSigner struct {
 }
 
 func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) ([]byte, error) {
+	signDesc *input.SignDescriptor) (input.Signature, error) {
 
-	return []byte{}, nil
+	return &dummySignature{}, nil
 }
 
 func (m *mockSigner) ComputeInputScript(tx *wire.MsgTx,

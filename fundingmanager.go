@@ -239,7 +239,8 @@ type fundingConfig struct {
 	//
 	// TODO(roasbeef): should instead pass on this responsibility to a
 	// distinct sub-system?
-	SignMessage func(pubKey *secp256k1.PublicKey, msg []byte) (*secp256k1.Signature, error)
+	SignMessage func(pubKey *secp256k1.PublicKey,
+		msg []byte) (input.Signature, error)
 
 	// CurrentNodeAnnouncement should return the latest, fully signed node
 	// announcement from the backing Lightning Network node.
@@ -1717,7 +1718,7 @@ func (f *fundingManager) continueFundingAccept(resCtx *reservationWithCtx,
 		PendingChannelID: pendingChanID,
 		FundingPoint:     *outPoint,
 	}
-	fundingCreated.CommitSig, err = lnwire.NewSigFromRawSignature(sig)
+	fundingCreated.CommitSig, err = lnwire.NewSigFromSignature(sig)
 	if err != nil {
 		fndgLog.Errorf("Unable to parse signature: %v", err)
 		f.failFundingFlow(resCtx.peer, pendingChanID, err)
@@ -1766,14 +1767,21 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 	fndgLog.Infof("completing pending_id(%x) with ChannelPoint(%v)",
 		pendingChanID[:], fundingOut)
 
+	commitSig, err := fmsg.msg.CommitSig.ToSignature()
+	if err != nil {
+		fndgLog.Errorf("unable to parse signature: %v", err)
+		f.failFundingFlow(fmsg.peer, pendingChanID, err)
+		return
+	}
+
 	// With all the necessary data available, attempt to advance the
 	// funding workflow to the next stage. If this succeeds then the
 	// funding transaction will broadcast after our next message.
 	// CompleteReservationSingle will also mark the channel as 'IsPending'
 	// in the database.
-	commitSig := fmsg.msg.CommitSig.ToSignatureBytes()
 	completeChan, err := resCtx.reservation.CompleteReservationSingle(
-		&fundingOut, commitSig)
+		&fundingOut, commitSig,
+	)
 	if err != nil {
 		// TODO(roasbeef): better error logging: peerID, channelID, etc.
 		fndgLog.Errorf("unable to complete single reservation: %v", err)
@@ -1828,7 +1836,7 @@ func (f *fundingManager) handleFundingCreated(fmsg *fundingCreatedMsg) {
 	// With their signature for our version of the commitment transaction
 	// verified, we can now send over our signature to the remote peer.
 	_, sig := resCtx.reservation.OurSignatures()
-	ourCommitSig, err := lnwire.NewSigFromRawSignature(sig)
+	ourCommitSig, err := lnwire.NewSigFromSignature(sig)
 	if err != nil {
 		fndgLog.Errorf("unable to parse signature: %v", err)
 		f.failFundingFlow(fmsg.peer, pendingChanID, err)
@@ -1941,7 +1949,13 @@ func (f *fundingManager) handleFundingSigned(fmsg *fundingSignedMsg) {
 	// The remote peer has responded with a signature for our commitment
 	// transaction. We'll verify the signature for validity, then commit
 	// the state to disk as we can now open the channel.
-	commitSig := fmsg.msg.CommitSig.ToSignatureBytes()
+	commitSig, err := fmsg.msg.CommitSig.ToSignature()
+	if err != nil {
+		fndgLog.Errorf("Unable to parse signature: %v", err)
+		f.failFundingFlow(fmsg.peer, pendingChanID, err)
+		return
+	}
+
 	completeChan, err := resCtx.reservation.CompleteReservation(
 		nil, commitSig,
 	)

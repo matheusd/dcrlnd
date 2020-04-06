@@ -603,6 +603,18 @@ const (
 	MaxHTLCNumber = 300
 )
 
+type dummySignature struct{}
+
+func (d *dummySignature) Serialize() []byte {
+	// Always return worst-case signature length, excluding the one byte
+	// sighash flag.
+	return make([]byte, 73-1)
+}
+
+func (d *dummySignature) Verify(_ []byte, _ *secp256k1.PublicKey) bool {
+	return true
+}
+
 // dummySigner is a fake signer used for size (upper bound) calculations.
 type dummySigner struct {
 	Signer
@@ -610,12 +622,10 @@ type dummySigner struct {
 
 // SignOutputRaw generates a signature for the passed transaction according to
 // the data within the passed SignDescriptor.
-func (s *dummySigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) (
-	[]byte, error) {
+func (s *dummySigner) SignOutputRaw(tx *wire.MsgTx,
+	signDesc *SignDescriptor) (Signature, error) {
 
-	// Always return worst-case signature length, excluding the one byte
-	// sighash flag.
-	return make([]byte, 73-1), nil
+	return &dummySignature{}, nil
 }
 
 var (

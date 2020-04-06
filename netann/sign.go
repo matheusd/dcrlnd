@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 )
@@ -11,7 +12,7 @@ import (
 // SignAnnouncement signs any type of gossip message that is announced on the
 // network.
 func SignAnnouncement(signer lnwallet.MessageSigner, pubKey *secp256k1.PublicKey,
-	msg lnwire.Message) (*secp256k1.Signature, error) {
+	msg lnwire.Message) (input.Signature, error) {
 
 	var (
 		data []byte

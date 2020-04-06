@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/netann"
@@ -17,7 +18,7 @@ type mockSigner struct {
 }
 
 func (m *mockSigner) SignMessage(pk *secp256k1.PublicKey,
-	msg []byte) (*secp256k1.Signature, error) {
+	msg []byte) (input.Signature, error) {
 
 	if m.err != nil {
 		return nil, m.err

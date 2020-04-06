@@ -635,7 +635,7 @@ func TestCooperativeChannelClosure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create alice coop close proposal: %v", err)
 	}
-	aliceCloseSig := append(aliceSig, byte(txscript.SigHashAll))
+	aliceCloseSig := append(aliceSig.Serialize(), byte(txscript.SigHashAll))
 
 	bobFee := bobChannel.CalcFee(bobFeeRate)
 	bobSig, _, _, err := bobChannel.CreateCloseProposal(
@@ -644,7 +644,7 @@ func TestCooperativeChannelClosure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create bob coop close proposal: %v", err)
 	}
-	bobCloseSig := append(bobSig, byte(txscript.SigHashAll))
+	bobCloseSig := append(bobSig.Serialize(), byte(txscript.SigHashAll))
 
 	// With the proposals created, both sides should be able to properly
 	// process the other party's signature. This indicates that the
@@ -2102,7 +2102,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to close channel: %v", err)
 	}
-	aliceCloseSig := append(aliceSig, byte(txscript.SigHashAll))
+	aliceCloseSig := append(aliceSig.Serialize(), byte(txscript.SigHashAll))
 
 	bobFee := bobChannel.CalcFee(bobFeeRate) + 1000
 	bobSig, _, _, err := bobChannel.CreateCloseProposal(bobFee,
@@ -2110,7 +2110,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to close channel: %v", err)
 	}
-	bobCloseSig := append(bobSig, byte(txscript.SigHashAll))
+	bobCloseSig := append(bobSig.Serialize(), byte(txscript.SigHashAll))
 
 	closeTx, _, err := bobChannel.CompleteCooperativeClose(
 		bobCloseSig, aliceCloseSig,
@@ -2141,14 +2141,14 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to close channel: %v", err)
 	}
-	aliceCloseSig = append(aliceSig, byte(txscript.SigHashAll))
+	aliceCloseSig = append(aliceSig.Serialize(), byte(txscript.SigHashAll))
 
 	bobSig, _, _, err = bobChannel.CreateCloseProposal(bobFee,
 		bobDeliveryScript, aliceDeliveryScript)
 	if err != nil {
 		t.Fatalf("unable to close channel: %v", err)
 	}
-	bobCloseSig = append(bobSig, byte(txscript.SigHashAll))
+	bobCloseSig = append(bobSig.Serialize(), byte(txscript.SigHashAll))
 
 	closeTx, _, err = bobChannel.CompleteCooperativeClose(
 		bobCloseSig, aliceCloseSig,
@@ -2184,7 +2184,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to close channel: %v", err)
 	}
-	aliceCloseSig = append(aliceSig, byte(txscript.SigHashAll))
+	aliceCloseSig = append(aliceSig.Serialize(), byte(txscript.SigHashAll))
 
 	bobSig, _, _, err = bobChannel.CreateCloseProposal(
 		bobFee, bobDeliveryScript, aliceDeliveryScript,
@@ -2192,7 +2192,7 @@ func TestCooperativeCloseDustAdherence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to close channel: %v", err)
 	}
-	bobCloseSig = append(bobSig, byte(txscript.SigHashAll))
+	bobCloseSig = append(bobSig.Serialize(), byte(txscript.SigHashAll))
 
 	closeTx, _, err = bobChannel.CompleteCooperativeClose(
 		bobCloseSig, aliceCloseSig,
