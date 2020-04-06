@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
@@ -48,7 +49,11 @@ type MockSigner struct {
 	NetParams *chaincfg.Params
 }
 
-func (m *MockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]byte, error) {
+// SignOutputRaw generates a signature for the passed transaction according to
+// the data within the passed SignDescriptor.
+func (m *MockSigner) SignOutputRaw(tx *wire.MsgTx,
+	signDesc *SignDescriptor) (Signature, error) {
+
 	pubkey := signDesc.KeyDesc.PubKey
 	switch {
 	case signDesc.SingleTweak != nil:
@@ -70,7 +75,7 @@ func (m *MockSigner) SignOutputRaw(tx *wire.MsgTx, signDesc *SignDescriptor) ([]
 		return nil, err
 	}
 
-	return sig[:len(sig)-1], nil
+	return ecdsa.ParseDERSignature(sig[:len(sig)-1])
 }
 
 func (m *MockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor) (*Script, error) {

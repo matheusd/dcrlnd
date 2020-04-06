@@ -319,7 +319,7 @@ func (s *Server) SignOutputRaw(ctx context.Context, in *SignReq) (*SignResp, err
 			return nil, err
 		}
 
-		resp.RawSigs[i] = sig
+		resp.RawSigs[i] = sig.Serialize()
 	}
 
 	return resp, nil

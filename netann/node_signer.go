@@ -6,6 +6,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 )
 
@@ -28,7 +29,7 @@ func NewNodeSigner(key *secp256k1.PrivateKey) *NodeSigner {
 // resident node's private key. If the target public key is _not_ the node's
 // private key, then an error will be returned.
 func (n *NodeSigner) SignMessage(pubKey *secp256k1.PublicKey,
-	msg []byte) (*ecdsa.Signature, error) {
+	msg []byte) (input.Signature, error) {
 
 	// If this isn't our identity public key, then we'll exit early with an
 	// error as we can't sign with this key.

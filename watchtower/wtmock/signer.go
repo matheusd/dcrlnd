@@ -5,6 +5,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
@@ -31,7 +32,7 @@ func NewMockSigner() *MockSigner {
 // in the sign descriptor. The returned signature is the raw DER-encoded
 // signature without the signhash flag.
 func (s *MockSigner) SignOutputRaw(tx *wire.MsgTx,
-	signDesc *input.SignDescriptor) ([]byte, error) {
+	signDesc *input.SignDescriptor) (input.Signature, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -51,7 +52,7 @@ func (s *MockSigner) SignOutputRaw(tx *wire.MsgTx,
 		return nil, err
 	}
 
-	return sig[:len(sig)-1], nil
+	return ecdsa.ParseDERSignature(sig[:len(sig)-1])
 }
 
 // ComputeInputScript is not implemented.

@@ -8,9 +8,9 @@ import (
 	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 )
 
@@ -311,7 +311,7 @@ type MessageSigner interface {
 	// that corresponds to the passed public key. If the target private key
 	// is unable to be found, then an error will be returned. The actual
 	// digest signed is the double SHA-256 of the passed message.
-	SignMessage(pubKey *secp256k1.PublicKey, msg []byte) (*ecdsa.Signature, error)
+	SignMessage(pubKey *secp256k1.PublicKey, msg []byte) (input.Signature, error)
 }
 
 // WalletDriver represents a "driver" for a particular concrete
