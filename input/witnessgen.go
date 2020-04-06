@@ -379,7 +379,7 @@ func (wt StandardWitnessType) SizeUpperBound() (int64, bool, error) {
 
 	// Anchor output on the commitment transaction.
 	case CommitmentAnchor:
-		return AnchorWitnessSize, false, nil
+		return AnchorSigScriptSize, false, nil
 
 	// Outgoing second layer HTLC's that have confirmed within the
 	// chain, and the output they produced is now mature enough to
