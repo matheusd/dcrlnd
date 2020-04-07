@@ -10706,6 +10706,14 @@ func subscribeGraphNotifications(t *harnessTest, ctxb context.Context,
 		t.Fatalf("unable to create topology client: %v", err)
 	}
 
+	// Wait for the client to get registered in the ChannelRouter. Since
+	// there isn't a specific signal that we can wait for, just sleep for a
+	// bit to give the ChannelRouter a chance to consume the relevant
+	// channel sends. This reduces test flakiness when trying to perform a
+	// graph change (such as closing a channel) immediately after
+	// registering for notifications.
+	time.Sleep(15 * time.Millisecond)
+
 	// We'll launch a goroutine that will be responsible for proxying all
 	// notifications recv'd from the client into the channel below.
 	errChan := make(chan error, 1)
