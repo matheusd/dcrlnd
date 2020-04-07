@@ -1370,6 +1370,7 @@ func (n *twoHopNetwork) makeHoldPayment(sendingPeer, receivingPeer lnpeer.Peer,
 		result, ok := <-resultChan
 		if !ok {
 			paymentErr <- fmt.Errorf("shutting down")
+			return
 		}
 
 		if result.Error != nil {
