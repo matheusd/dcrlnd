@@ -31,6 +31,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnpeer"
+	"github.com/decred/dcrlnd/lntest/wait"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
@@ -4646,15 +4647,24 @@ func checkHasPreimages(t *testing.T, coreLink *channelLink,
 
 	t.Helper()
 
-	for i := range htlcs {
-		_, ok := coreLink.cfg.PreimageCache.LookupPreimage(
-			htlcs[i].PaymentHash,
-		)
-		if ok != expOk {
-			t.Fatalf("expected to find witness: %v, "+
+	err := wait.NoError(func() error {
+		for i := range htlcs {
+			_, ok := coreLink.cfg.PreimageCache.LookupPreimage(
+				htlcs[i].PaymentHash,
+			)
+			if ok == expOk {
+				continue
+			}
+
+			return fmt.Errorf("expected to find witness: %v, "+
 				"got %v for hash=%x", expOk, ok,
 				htlcs[i].PaymentHash)
 		}
+
+		return nil
+	}, 5*time.Second)
+	if err != nil {
+		t.Fatalf("unable to find preimages: %v", err)
 	}
 }
 
