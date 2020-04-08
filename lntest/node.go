@@ -873,6 +873,12 @@ func (hn *HarnessNode) AddToLog(line string) error {
 	return nil
 }
 
+func (hn *HarnessNode) LogPrintf(format string, args ...interface{}) error {
+	now := time.Now().Format("2006-01-02 15:04:05.999")
+	f := now + " ----------: " + format + "\n"
+	return hn.AddToLog(fmt.Sprintf(f, args...))
+}
+
 // writePidFile writes the process ID of the running lnd process to a .pid file.
 func (hn *HarnessNode) writePidFile() error {
 	filePath := filepath.Join(hn.Cfg.BaseDir, fmt.Sprintf("%v.pid", hn.NodeID))
@@ -1118,8 +1124,11 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 			// We panic here in case of an error as failure to
 			// create the topology client will cause all subsequent
 			// tests to fail.
-			panic(fmt.Errorf("unable to create topology "+
-				"client: %v", err))
+			msg := fmt.Sprintf("%s(%d): unable to create topology "+
+				"client: %v (%s)", hn.Name(), hn.NodeID, err,
+				time.Now().String())
+			hn.LogPrintf(msg)
+			panic(fmt.Errorf(msg))
 		}
 
 		defer cancelFunc()
@@ -1129,6 +1138,7 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 			if err == io.EOF {
 				return
 			} else if err != nil {
+				hn.LogPrintf("main topology client error: %v", err)
 				return
 			}
 
@@ -1162,8 +1172,13 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 				// seen is less than two, then the channel
 				// hasn't been fully announced yet.
 				if numEdges := hn.openChans[op]; numEdges < 2 {
+					hn.LogPrintf("Delaying openchan edges=%d %s",
+						numEdges, op)
 					continue
 				}
+
+				hn.LogPrintf("Alerting of openchan clients=%d %s",
+					len(hn.openClients[op]), op)
 
 				// Otherwise, we'll notify all the registered
 				// clients and remove the dispatched clients.
@@ -1184,6 +1199,9 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 					Index: closedChan.ChanPoint.OutputIndex,
 				}
 				hn.closedChans[op] = struct{}{}
+
+				hn.LogPrintf("Alerting closedChan clients=%d %s",
+					len(hn.closeClients[op]), op)
 
 				// As the channel has been closed, we'll notify
 				// all register clients.
@@ -1206,9 +1224,13 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 				// dispatched if the number of edges seen for
 				// the channel is at least two.
 				if numEdges := hn.openChans[targetChan]; numEdges >= 2 {
+					hn.LogPrintf("Alerting already open chan %s",
+						targetChan)
 					close(watchRequest.eventChan)
 					continue
 				}
+				hn.LogPrintf("Going to wait for %s",
+					targetChan)
 
 				// Otherwise, we'll add this to the list of
 				// watch open clients for this out point.
@@ -1223,9 +1245,12 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 			// immediately dispatched if we've already seen a
 			// channel closure for this channel.
 			if _, ok := hn.closedChans[targetChan]; ok {
+				hn.LogPrintf("Alerting already closed %s",
+					targetChan)
 				close(watchRequest.eventChan)
 				continue
 			}
+			hn.LogPrintf("Going to wait for close %s", targetChan)
 
 			// Otherwise, we'll add this to the list of close watch
 			// clients for this out point.
@@ -1258,6 +1283,7 @@ func (hn *HarnessNode) WaitForNetworkChannelOpen(ctx context.Context,
 		return err
 	}
 
+	hn.LogPrintf(fmt.Sprintf("Going to wait for open of %s:%d", txid, op.OutputIndex))
 	hn.chanWatchRequests <- &chanWatchRequest{
 		chanPoint: wire.OutPoint{
 			Hash:  *txid,
