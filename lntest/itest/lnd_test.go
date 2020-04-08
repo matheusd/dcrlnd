@@ -198,6 +198,40 @@ func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash)
 	t.Fatalf("tx %s was not included in block", txid)
 }
 
+func assertWalletUnspent(t *harnessTest, node *lntest.HarnessNode, out *lnrpc.OutPoint) {
+	t.t.Helper()
+
+	err := wait.NoError(func() error {
+		ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+		defer cancel()
+		unspent, err := node.ListUnspent(ctxt, &lnrpc.ListUnspentRequest{})
+		if err != nil {
+			return err
+		}
+
+		err = errors.New("tx with wanted txhash never found")
+		for _, utxo := range unspent.Utxos {
+			if !bytes.Equal(utxo.Outpoint.TxidBytes, out.TxidBytes) {
+				continue
+			}
+
+			err = errors.New("wanted output is not a wallet utxo")
+			if utxo.Outpoint.OutputIndex != out.OutputIndex {
+				continue
+			}
+
+			return nil
+		}
+
+		t.Logf("nak %v", err)
+
+		return err
+	}, defaultTimeout)
+	if err != nil {
+		t.Fatalf("outpoint %s not unspent by %s's wallet", out, node.Name())
+	}
+}
+
 func rpcPointToWirePoint(t *harnessTest, chanPoint *lnrpc.ChannelPoint) wire.OutPoint {
 	txid, err := dcrlnd.GetChanPointFundingTxid(chanPoint)
 	if err != nil {
