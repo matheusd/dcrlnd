@@ -90,7 +90,7 @@ var (
 	testInvoiceAmt = lnwire.MilliAtom(100000)
 	testInvoice    = &channeldb.Invoice{
 		Terms: channeldb.ContractTerm{
-			PaymentPreimage: testInvoicePreimage,
+			PaymentPreimage: &testInvoicePreimage,
 			Value:           testInvoiceAmt,
 			Expiry:          time.Hour,
 			Features:        testFeatures,
@@ -100,12 +100,12 @@ var (
 
 	testHodlInvoice = &channeldb.Invoice{
 		Terms: channeldb.ContractTerm{
-			PaymentPreimage: channeldb.UnknownPreimage,
-			Value:           testInvoiceAmt,
-			Expiry:          time.Hour,
-			Features:        testFeatures,
+			Value:    testInvoiceAmt,
+			Expiry:   time.Hour,
+			Features: testFeatures,
 		},
 		CreationDate: testInvoiceCreationDate,
+		HodlInvoice:  true,
 	}
 )
 
@@ -223,7 +223,7 @@ func newTestInvoice(t *testing.T, preimage lntypes.Preimage,
 
 	return &channeldb.Invoice{
 		Terms: channeldb.ContractTerm{
-			PaymentPreimage: preimage,
+			PaymentPreimage: &preimage,
 			PaymentAddr:     payAddr,
 			Value:           testInvoiceAmount,
 			Expiry:          expiry,
