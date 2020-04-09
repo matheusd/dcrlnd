@@ -2050,7 +2050,7 @@ func (l *channelLink) UpdateShortChanID() (lnwire.ShortChannelID, error) {
 
 	sid := l.channel.ShortChanID()
 
-	l.log.Infof("updating to short_chan_id=%v for chan_id=%v", sid, chanID)
+	l.log.Infof("updating to short_chan_id=%s for chan_id=%v", sid, chanID)
 
 	l.Lock()
 	l.shortChanID = sid
