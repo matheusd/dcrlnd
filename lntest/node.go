@@ -969,14 +969,15 @@ func (hn *HarnessNode) ConnectRPCWithMacaroon(mac *macaroon.Macaroon) (
 	}
 	opts = append(opts, grpc.WithTransportCredentials(tlsCreds))
 
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
 	if mac == nil {
-		return grpc.Dial(hn.Cfg.RPCAddr(), opts...)
+		return grpc.DialContext(ctx, hn.Cfg.RPCAddr(), opts...)
 	}
 	macCred := macaroons.NewMacaroonCredential(mac)
 	opts = append(opts, grpc.WithPerRPCCredentials(macCred))
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
 	return grpc.DialContext(ctx, hn.Cfg.RPCAddr(), opts...)
 }
 
@@ -1129,6 +1130,7 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 			// We panic here in case of an error as failure to
 			// create the topology client will cause all subsequent
 			// tests to fail.
+			hn.LogPrintf("Unable to create topology client: %v", err)
 			panic(fmt.Errorf("unable to create topology "+
 				"client: %v", err))
 		}
