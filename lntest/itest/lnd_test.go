@@ -10746,7 +10746,7 @@ func subscribeGraphNotifications(t *harnessTest, ctxb context.Context,
 	// channel sends. This reduces test flakiness when trying to perform a
 	// graph change (such as closing a channel) immediately after
 	// registering for notifications.
-	time.Sleep(15 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	// We'll launch a goroutine that will be responsible for proxying all
 	// notifications recv'd from the client into the channel below.
