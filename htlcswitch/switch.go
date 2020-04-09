@@ -1913,12 +1913,12 @@ func (s *Switch) AddLink(link ChannelLink) error {
 
 	shortChanID := link.ShortChanID()
 	if shortChanID == hop.Source {
-		log.Infof("Adding pending link chan_id=%v, short_chan_id=%v",
+		log.Infof("Adding pending link chan_id=%v, short_chan_id=%s",
 			chanID, shortChanID)
 
 		s.pendingLinkIndex[chanID] = link
 	} else {
-		log.Infof("Adding live link chan_id=%v, short_chan_id=%v",
+		log.Infof("Adding live link chan_id=%v, short_chan_id=%s",
 			chanID, shortChanID)
 
 		s.addLiveLink(link)

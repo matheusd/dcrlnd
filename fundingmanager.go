@@ -2379,7 +2379,7 @@ func (f *fundingManager) annAfterSixConfs(completeChan *channeldb.OpenChannel,
 		fundingPoint := completeChan.FundingOutpoint
 		chanID := lnwire.NewChanIDFromOutPoint(&fundingPoint)
 
-		fndgLog.Infof("Announcing ChannelPoint(%v), short_chan_id=%v",
+		fndgLog.Infof("Announcing ChannelPoint(%v), short_chan_id=%s",
 			&fundingPoint, shortChanID)
 
 		// Create and broadcast the proofs required to make this
@@ -2394,7 +2394,7 @@ func (f *fundingManager) annAfterSixConfs(completeChan *channeldb.OpenChannel,
 			return fmt.Errorf("channel announcement failed: %v", err)
 		}
 
-		fndgLog.Debugf("Channel with ChannelPoint(%v), short_chan_id=%v "+
+		fndgLog.Debugf("Channel with ChannelPoint(%v), short_chan_id=%s "+
 			"announced", &fundingPoint, shortChanID)
 	}
 

@@ -1915,7 +1915,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 
 		default:
 			err := fmt.Errorf("unable to validate channel update "+
-				"short_chan_id=%v: %v", shortChanID, err)
+				"short_chan_id=%s: %v", msg.ShortChannelID, err)
 			log.Error(err)
 			nMsg.err <- err
 
@@ -1942,7 +1942,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		err = routing.ValidateChannelUpdateAnn(pubKey, chanInfo.Capacity, msg)
 		if err != nil {
 			rErr := fmt.Errorf("unable to validate channel "+
-				"update announcement for short_chan_id=%v: %v",
+				"update announcement for short_chan_id=%s: %v",
 				spew.Sdump(msg.ShortChannelID), err)
 
 			log.Error(rErr)
@@ -2026,7 +2026,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 	case *lnwire.AnnounceSignatures:
 		needBlockHeight := msg.ShortChannelID.BlockHeight +
 			d.cfg.ProofMatureDelta
-		shortChanID := msg.ShortChannelID.ToUint64()
+		shortChanID := msg.ShortChannelID
 
 		prefix := "local"
 		if nMsg.isRemote {
@@ -2034,7 +2034,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		}
 
 		log.Infof("Received new %v channel announcement for %v", prefix,
-			msg.ShortChannelID)
+			shortChanID)
 
 		// By the specification, channel announcement proofs should be
 		// sent after some number of confirmations after channel was
@@ -2042,7 +2042,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// proof is premature.  If so we'll halt processing until the
 		// expected announcement height.  This allows us to be tolerant
 		// to other clients if this constraint was changed.
-		if isPremature(msg.ShortChannelID, d.cfg.ProofMatureDelta) {
+		if isPremature(shortChanID, d.cfg.ProofMatureDelta) {
 			d.Lock()
 			d.prematureAnnouncements[needBlockHeight] = append(
 				d.prematureAnnouncements[needBlockHeight],
@@ -2066,7 +2066,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		defer d.channelMtx.Unlock(msg.ShortChannelID.ToUint64())
 
 		chanInfo, e1, e2, err := d.cfg.Router.GetChannelByID(
-			msg.ShortChannelID)
+			shortChanID)
 		if err != nil {
 			// TODO(andrew.shvv) this is dangerous because remote
 			// node might rewrite the waiting proof.
@@ -2074,7 +2074,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			err := d.cfg.WaitingProofStore.Add(proof)
 			if err != nil {
 				err := fmt.Errorf("unable to store "+
-					"the proof for short_chan_id=%v: %v",
+					"the proof for short_chan_id=%s: %v",
 					shortChanID, err)
 				log.Error(err)
 				nMsg.err <- err
@@ -2082,7 +2082,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			}
 
 			log.Infof("Orphan %v proof announcement with "+
-				"short_chan_id=%v, adding "+
+				"short_chan_id=%s, adding "+
 				"to waiting batch", prefix, shortChanID)
 			nMsg.err <- nil
 			return nil
@@ -2097,7 +2097,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		if !(isFirstNode || isSecondNode) {
 			err := fmt.Errorf("channel that was received not "+
 				"belongs to the peer which sent the proof, "+
-				"short_chan_id=%v", shortChanID)
+				"short_chan_id=%s", shortChanID)
 			log.Error(err)
 			nMsg.err <- err
 			return nil
@@ -2121,7 +2121,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			if err != nil {
 				err := fmt.Errorf("unable to reliably send %v "+
 					"for channel=%v to peer=%x: %v",
-					msg.MsgType(), msg.ShortChannelID,
+					msg.MsgType(), shortChanID,
 					remotePubKey, err)
 				nMsg.err <- err
 				return nil
@@ -2191,7 +2191,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		)
 		if err != nil && err != channeldb.ErrWaitingProofNotFound {
 			err := fmt.Errorf("unable to get "+
-				"the opposite proof for short_chan_id=%v: %v",
+				"the opposite proof for short_chan_id=%s: %v",
 				shortChanID, err)
 			log.Error(err)
 			nMsg.err <- err
@@ -2202,7 +2202,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			err := d.cfg.WaitingProofStore.Add(proof)
 			if err != nil {
 				err := fmt.Errorf("unable to store "+
-					"the proof for short_chan_id=%v: %v",
+					"the proof for short_chan_id=%s: %v",
 					shortChanID, err)
 				log.Error(err)
 				nMsg.err <- err
@@ -2210,7 +2210,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			}
 
 			log.Infof("1/2 of channel ann proof received for "+
-				"short_chan_id=%v, waiting for other half",
+				"short_chan_id=%s, waiting for other half",
 				shortChanID)
 
 			nMsg.err <- nil
@@ -2245,7 +2245,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		// full channel announcement proof.
 		if err := routing.ValidateChannelAnn(chanAnn); err != nil {
 			err := fmt.Errorf("channel  announcement proof "+
-				"for short_chan_id=%v isn't valid: %v",
+				"for short_chan_id=%s isn't valid: %v",
 				shortChanID, err)
 
 			log.Error(err)
@@ -2281,7 +2281,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 
 		// Proof was successfully created and now can announce the
 		// channel to the remain network.
-		log.Infof("Fully valid channel proof for short_chan_id=%v "+
+		log.Infof("Fully valid channel proof for short_chan_id=%s "+
 			"constructed, adding to next ann batch",
 			shortChanID)
 

@@ -1212,7 +1212,7 @@ func (g *GossipSyncer) FilterGossipMsgs(msgs ...msgWithSenders) {
 				)
 				if err != nil {
 					log.Warnf("no channel updates found for "+
-						"short_chan_id=%v",
+						"short_chan_id=%s",
 						msg.ShortChannelID)
 					continue
 				}
