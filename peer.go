@@ -1299,17 +1299,17 @@ func messageSummary(msg lnwire.Message) string {
 		return fmt.Sprintf("%v", msg.Error())
 
 	case *lnwire.AnnounceSignatures:
-		return fmt.Sprintf("chan_id=%v, short_chan_id=%v", msg.ChannelID,
-			msg.ShortChannelID.ToUint64())
+		return fmt.Sprintf("chan_id=%v, short_chan_id=%s", msg.ChannelID,
+			msg.ShortChannelID)
 
 	case *lnwire.ChannelAnnouncement:
-		return fmt.Sprintf("chain_hash=%v, short_chan_id=%v",
-			msg.ChainHash, msg.ShortChannelID.ToUint64())
+		return fmt.Sprintf("chain_hash=%v, short_chan_id=%s",
+			msg.ChainHash, msg.ShortChannelID)
 
 	case *lnwire.ChannelUpdate:
-		return fmt.Sprintf("chain_hash=%v, short_chan_id=%v, "+
+		return fmt.Sprintf("chain_hash=%v, short_chan_id=%s, "+
 			"mflags=%v, cflags=%v, update_time=%v", msg.ChainHash,
-			msg.ShortChannelID.ToUint64(), msg.MessageFlags,
+			msg.ShortChannelID, msg.MessageFlags,
 			msg.ChannelFlags, time.Unix(int64(msg.Timestamp), 0))
 
 	case *lnwire.NodeAnnouncement:
