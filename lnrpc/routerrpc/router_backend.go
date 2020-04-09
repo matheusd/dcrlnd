@@ -1112,12 +1112,6 @@ func (r *RouterBackend) MarshallPayment(payment *channeldb.MPPayment) (
 		}
 	}
 
-	// Encode the hops from the successful route, if any.
-	path := make([]string, len(route.Hops))
-	for i, hop := range route.Hops {
-		path[i] = hex.EncodeToString(hop.PubKeyBytes[:])
-	}
-
 	matomsValue := int64(payment.Info.Value)
 	atomsValue := int64(payment.Info.Value.ToAtoms())
 
@@ -1153,7 +1147,6 @@ func (r *RouterBackend) MarshallPayment(payment *channeldb.MPPayment) (
 		ValueAtoms:      atomsValue,
 		CreationDate:    payment.Info.CreationTime.Unix(),
 		CreationTimeNs:  creationTimeNS,
-		Path:            path,
 		Fee:             int64(route.TotalFees().ToAtoms()),
 		FeeAtoms:        int64(route.TotalFees().ToAtoms()),
 		FeeMAtoms:       int64(route.TotalFees()),
