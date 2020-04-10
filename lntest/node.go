@@ -1130,9 +1130,11 @@ func (hn *HarnessNode) lightningNetworkWatcher() {
 			// We panic here in case of an error as failure to
 			// create the topology client will cause all subsequent
 			// tests to fail.
-			hn.LogPrintf("Unable to create topology client: %v", err)
-			panic(fmt.Errorf("unable to create topology "+
-				"client: %v", err))
+			msg := fmt.Sprintf("%s(%d): unable to create topology "+
+				"client: %v (%s)", hn.Name(), hn.NodeID, err,
+				time.Now().String())
+			hn.LogPrintf(msg)
+			panic(fmt.Errorf(msg))
 		}
 
 		defer cancelFunc()
@@ -1287,6 +1289,7 @@ func (hn *HarnessNode) WaitForNetworkChannelOpen(ctx context.Context,
 		return err
 	}
 
+	hn.AddToLog(fmt.Sprintf("Going to wait for open of %s:%d", txid, op.OutputIndex))
 	hn.chanWatchRequests <- &chanWatchRequest{
 		chanPoint: wire.OutPoint{
 			Hash:  *txid,
@@ -1295,8 +1298,6 @@ func (hn *HarnessNode) WaitForNetworkChannelOpen(ctx context.Context,
 		eventChan: eventChan,
 		chanOpen:  true,
 	}
-
-	hn.AddToLog(fmt.Sprintf(""))
 
 	select {
 	case <-eventChan:
