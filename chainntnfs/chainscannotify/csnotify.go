@@ -216,6 +216,8 @@ func (n *ChainscanNotifier) Stop() error {
 		return nil
 	}
 
+	chainntnfs.Log.Debug("ChainscanNotifier shutting down")
+
 	// Cancel any outstanding request.
 	n.cancelCtx()
 
@@ -233,6 +235,8 @@ func (n *ChainscanNotifier) Stop() error {
 		close(epochClient.epochChan)
 	}
 	n.txNotifier.TearDown()
+
+	chainntnfs.Log.Info("ChainscanNotifier shut down")
 
 	return nil
 }
