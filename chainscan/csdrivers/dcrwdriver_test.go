@@ -136,7 +136,9 @@ func testCurrentTip(t *testHarness) {
 			t.Fatal(err)
 		}
 
-		t.generate(1)
+		if i < 4 {
+			t.generate(1)
+		}
 	}
 }
 
