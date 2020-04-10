@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package verrpc;
 
+option go_package = "github.com/decred/dcrlnd/lnrpc/verrpc";
+
 service Versioner {
     rpc GetVersion (VersionRequest) returns (Version);
 };

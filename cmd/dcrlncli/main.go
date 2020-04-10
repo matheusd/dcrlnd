@@ -321,6 +321,7 @@ func main() {
 		restoreChanBackupCommand,
 		bakeMacaroonCommand,
 		trackPaymentCommand,
+		versionCommand,
 	}
 
 	// Add any extra commands determined by build flags.
