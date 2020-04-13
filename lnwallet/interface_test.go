@@ -2765,7 +2765,7 @@ func testSingleFunderExternalFundingTx(miner *rpctest.Harness,
 	fundingIntent, err := aliceChanFunder.ProvisionChannel(&chanfunding.Request{
 		LocalAmt: dcrutil.Amount(chanAmt),
 		MinConfs: 1,
-		FeeRate:  253,
+		FeeRate:  1e4,
 		ChangeAddr: func() (dcrutil.Address, error) {
 			return alice.NewAddress(lnwallet.PubKeyHash, true)
 		},
@@ -2809,7 +2809,7 @@ func testSingleFunderExternalFundingTx(miner *rpctest.Harness,
 	).ProvisionChannel(&chanfunding.Request{
 		LocalAmt: dcrutil.Amount(chanAmt),
 		MinConfs: 1,
-		FeeRate:  253,
+		FeeRate:  1e4,
 		ChangeAddr: func() (dcrutil.Address, error) {
 			return bob.NewAddress(lnwallet.PubKeyHash, true)
 		},
