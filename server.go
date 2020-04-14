@@ -3035,18 +3035,31 @@ func (s *server) peerTerminationWatcher(p *peer, ready chan struct{}) {
 		//
 		// TODO(roasbeef): use them all?
 		if p.inbound {
-			advertisedAddr, err := s.fetchNodeAdvertisedAddr(
-				pubKey,
-			)
-			if err != nil {
-				srvrLog.Errorf("Unable to retrieve advertised "+
-					"address for node %x: %v",
-					pubKey.SerializeCompressed(), err)
+			advertisedAddr, err := s.fetchNodeAdvertisedAddr(pubKey)
+			switch {
+			// We found an advertised address, so use it.
+			case err == nil:
+				p.addr.Address = advertisedAddr
 
+			// The peer doesn't have an advertised address.
+			case err == errNoAdvertisedAddr:
 				// Do not attempt to re-connect if the only
 				// address we have for this peer was due to an
 				// inbound connection, since this is unlikely
 				// to succeed.
+				srvrLog.Debugf("Ignoring reconnection attempt "+
+					"to inbound peer %v without "+
+					"advertised address", p)
+				return
+
+			// We came across an error retrieving an advertised
+			// address, log it, and fall back to the existing peer
+			// address.
+			default:
+				srvrLog.Errorf("Unable to retrieve advertised "+
+					"address for node %x: %v", p.PubKey(),
+					err)
+
 				return
 			}
 
@@ -3447,6 +3460,10 @@ func computeNextBackoff(currBackoff time.Duration) time.Duration {
 	return nextBackoff + (time.Duration(wiggle.Uint64()) - margin/2)
 }
 
+// errNoAdvertisedAddr is an error returned when we attempt to retrieve the
+// advertised address of a node, but they don't have one.
+var errNoAdvertisedAddr = errors.New("no advertised address found")
+
 // fetchNodeAdvertisedAddr attempts to fetch an advertised address of a node.
 func (s *server) fetchNodeAdvertisedAddr(pub *secp256k1.PublicKey) (net.Addr, error) {
 	vertex, err := route.NewVertexFromBytes(pub.SerializeCompressed())
@@ -3460,7 +3477,7 @@ func (s *server) fetchNodeAdvertisedAddr(pub *secp256k1.PublicKey) (net.Addr, er
 	}
 
 	if len(node.Addresses) == 0 {
-		return nil, errors.New("no advertised addresses found")
+		return nil, errNoAdvertisedAddr
 	}
 
 	return node.Addresses[0], nil
