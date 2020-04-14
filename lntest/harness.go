@@ -253,6 +253,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 	expectedBalance := int64(dcrutil.AtomsPerCoin * 10)
 	balReq := &lnrpc.WalletBalanceRequest{}
 	balanceTicker := time.NewTicker(time.Millisecond * 50)
+	defer balanceTicker.Stop()
 	balanceTimeout := time.After(time.Second * 30)
 out:
 	for {
