@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
+	"github.com/decred/slog"
 )
 
 const (
@@ -1972,13 +1973,13 @@ func (s *Switch) reforwardSettleFails(fwdPkgs []*channeldb.FwdPkg) {
 		// link quit channel, meaning the send will fail only if the
 		// switch receives a shutdown request.
 		errChan := s.ForwardPackets(nil, switchPackets...)
-		go handleBatchFwdErrs(errChan)
+		go handleBatchFwdErrs(errChan, log)
 	}
 }
 
 // handleBatchFwdErrs waits on the given errChan until it is closed, logging the
 // errors returned from any unsuccessful forwarding attempts.
-func handleBatchFwdErrs(errChan chan error) {
+func handleBatchFwdErrs(errChan chan error, l slog.Logger) {
 	for {
 		err, ok := <-errChan
 		if !ok {
@@ -1991,7 +1992,7 @@ func handleBatchFwdErrs(errChan chan error) {
 			continue
 		}
 
-		log.Errorf("unhandled error while reforwarding htlc "+
+		l.Errorf("Unhandled error while reforwarding htlc "+
 			"settle/fail over htlcswitch: %v", err)
 	}
 }
