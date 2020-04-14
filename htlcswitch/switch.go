@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/channeldb/kvdb"
+	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lntypes"
@@ -36,6 +37,10 @@ const (
 	// DefaultAckInterval is the duration between attempts to ack any settle
 	// fails in a forwarding package.
 	DefaultAckInterval = 15 * time.Second
+
+	// DefaultHTLCExpiry is the duration after which Adds will be cancelled
+	// if they could not get added to an outgoing commitment.
+	DefaultHTLCExpiry = time.Minute
 )
 
 var (
@@ -174,6 +179,15 @@ type Config struct {
 	// RejectHTLC is a flag that instructs the htlcswitch to reject any
 	// HTLCs that are not from the source hop.
 	RejectHTLC bool
+
+	// Clock is a time source for the switch.
+	Clock clock.Clock
+
+	// HTLCExpiry is the interval after which Adds will be cancelled if they
+	// have not been yet been delivered to a link. The computed deadline
+	// will expiry this long after the Adds are added to a mailbox via
+	// AddPacket.
+	HTLCExpiry time.Duration
 }
 
 // Switch is the central messaging bus for all incoming/outgoing HTLCs.
@@ -301,6 +315,8 @@ func New(cfg Config, currentHeight uint32) (*Switch, error) {
 	s.mailOrchestrator = newMailOrchestrator(&mailOrchConfig{
 		fetchUpdate:    s.cfg.FetchLastChannelUpdate,
 		forwardPackets: s.ForwardPackets,
+		clock:          s.cfg.Clock,
+		expiry:         s.cfg.HTLCExpiry,
 	})
 
 	return s, nil

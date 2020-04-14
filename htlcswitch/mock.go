@@ -179,6 +179,8 @@ func initSwitchWithDB(startingHeight uint32, db *channeldb.DB) (*Switch, error) 
 		LogEventTicker: ticker.NewForce(DefaultLogInterval),
 		AckEventTicker: ticker.NewForce(DefaultAckInterval),
 		HtlcNotifier:   &mockHTLCNotifier{},
+		Clock:          clock.NewDefaultClock(),
+		HTLCExpiry:     time.Hour,
 	}
 
 	return New(cfg, startingHeight)
