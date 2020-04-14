@@ -2022,7 +2022,8 @@ func (s *server) createNewHiddenService() error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("unable to generate new node announcement: %v", err)
+		return fmt.Errorf("unable to generate new node "+
+			"announcement: %v", err)
 	}
 
 	// Finally, we'll update the on-disk version of our announcement so it

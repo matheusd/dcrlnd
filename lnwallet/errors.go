@@ -34,7 +34,7 @@ func ErrZeroCapacity() ReservationError {
 func ErrChainMismatch(knownChain,
 	unknownChain *chainhash.Hash) ReservationError {
 	return ReservationError{
-		fmt.Errorf("unknown chain=%v. Supported chain=%v",
+		fmt.Errorf("unknown chain=%v, supported chain=%v",
 			unknownChain, knownChain),
 	}
 }
@@ -45,7 +45,8 @@ func ErrFunderBalanceDust(commitFee, funderBalance,
 	minBalance int64) ReservationError {
 	return ReservationError{
 		fmt.Errorf("funder balance too small (%v) with fee=%v atoms, "+
-			"minimum=%v atoms required", funderBalance, commitFee, minBalance),
+			"minimum=%v atoms required", funderBalance,
+			commitFee, minBalance),
 	}
 }
 

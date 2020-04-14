@@ -635,7 +635,7 @@ func (l *channelLink) syncChanStates() error {
 	}
 
 	if err := l.cfg.Peer.SendMessage(true, localChanSyncMsg); err != nil {
-		return fmt.Errorf("Unable to send chan sync message for "+
+		return fmt.Errorf("unable to send chan sync message for "+
 			"ChannelPoint(%v): %v", l.channel.ChannelPoint(), err)
 	}
 

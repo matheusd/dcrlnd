@@ -645,7 +645,8 @@ func (a *Agent) openChans(availableFunds dcrutil.Amount, numChans uint32,
 	// to open channels to.
 	scores, err = chooseN(numChans, scores)
 	if err != nil {
-		return fmt.Errorf("unable to make weighted choice: %v", err)
+		return fmt.Errorf("unable to make weighted choice: %v",
+			err)
 	}
 
 	chanCandidates := make(map[NodeID]*AttachmentDirective)

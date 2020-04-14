@@ -185,8 +185,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			defaultDecredStaticMinRelayFeeRate,
 		)
 	default:
-		return nil, fmt.Errorf("default routing policy for "+
-			"chain %v is unknown", registeredChains.PrimaryChain())
+		return nil, fmt.Errorf("default routing policy for chain %v is "+
+			"unknown", registeredChains.PrimaryChain())
 	}
 
 	var (

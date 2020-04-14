@@ -3213,7 +3213,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 		UpfrontShutdownScript: shutdown,
 	}
 	if err := msg.peer.SendMessage(true, &fundingOpen); err != nil {
-		e := fmt.Errorf("Unable to send funding request message: %v",
+		e := fmt.Errorf("unable to send funding request message: %v",
 			err)
 		fndgLog.Errorf(e.Error())
 

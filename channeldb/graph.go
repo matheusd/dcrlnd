@@ -3086,7 +3086,8 @@ func (c *ChannelGraph) IsPublicNode(pubKey [33]byte) (bool, error) {
 // genMultiSigP2SH generates the p2wsh'd multisig script for 2 of 2 pubkeys.
 func genMultiSigP2SH(aPub, bPub []byte) ([]byte, error) {
 	if len(aPub) != 33 || len(bPub) != 33 {
-		return nil, fmt.Errorf("pubkey size error. Compressed pubkeys only")
+		return nil, fmt.Errorf("pubkey size error. Compressed " +
+			"pubkeys only")
 	}
 
 	// Swap to sort pubkeys if needed. Keys are sorted in lexicographical

@@ -93,7 +93,7 @@ func (d *DecayedLog) Start() error {
 		kvdb.BoltBackendName, d.dbPath, true,
 	)
 	if err != nil {
-		return fmt.Errorf("Could not open boltdb: %v", err)
+		return fmt.Errorf("could not open boltdb: %v", err)
 	}
 
 	// Initialize the primary buckets used by the decayed log.

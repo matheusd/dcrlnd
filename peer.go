@@ -1633,7 +1633,7 @@ func (p *peer) writeHandler() {
 	// We'll stop the timer after a new messages is sent, and also reset it
 	// after we process the next message.
 	idleTimer := time.AfterFunc(idleTimeout, func() {
-		err := fmt.Errorf("Peer %s no write for %s -- disconnecting",
+		err := fmt.Errorf("peer %s no write for %s -- disconnecting",
 			p, idleTimeout)
 		p.Disconnect(err)
 	})
