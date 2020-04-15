@@ -35,12 +35,14 @@ require (
 	github.com/decred/lightning-onion/v3 v3.0.0-20200707162618-08f2e355dbb0
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
+	github.com/go-openapi/strfmt v0.19.5 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.8.6
 	github.com/jackpal/gateway v1.0.5
 	github.com/jackpal/go-nat-pmp v0.0.0-20170405195558-28a68d0c24ad
+	github.com/jedib0t/go-pretty v4.3.0+incompatible
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jrick/logrotate v1.0.0
 	github.com/juju/clock v0.0.0-20180808021310-bab88fc67299 // indirect
@@ -53,6 +55,7 @@ require (
 	github.com/kkdai/bstream v0.0.0-20181106074824-b3251f7901ec
 	github.com/lightninglabs/protobuf-hex-display v1.3.3-0.20191212020323-b444784ce75d
 	github.com/matheusd/google-protobuf-protos v0.0.0-20200707194502-ef6ec5c2266f
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/miekg/dns v1.1.3
 	github.com/prometheus/client_golang v0.9.3
 	github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02
