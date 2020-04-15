@@ -1289,7 +1289,7 @@ func (hn *HarnessNode) WaitForNetworkChannelOpen(ctx context.Context,
 		return err
 	}
 
-	hn.AddToLog(fmt.Sprintf("Going to wait for open of %s:%d", txid, op.OutputIndex))
+	hn.LogPrintf(fmt.Sprintf("Going to wait for open of %s:%d", txid, op.OutputIndex))
 	hn.chanWatchRequests <- &chanWatchRequest{
 		chanPoint: wire.OutPoint{
 			Hash:  *txid,
