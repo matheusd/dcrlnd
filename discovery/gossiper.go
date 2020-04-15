@@ -1404,7 +1404,7 @@ func (d *AuthenticatedGossiper) processRejectedEdge(
 	err = routing.ValidateChannelAnn(chanAnn)
 	if err != nil {
 		err := fmt.Errorf("assembled channel announcement proof "+
-			"for shortChanID=%v isn't valid: %v",
+			"for shortChanID=%s isn't valid: %v",
 			chanAnnMsg.ShortChannelID, err)
 		log.Error(err)
 		return nil, err
@@ -1414,7 +1414,7 @@ func (d *AuthenticatedGossiper) processRejectedEdge(
 	// to the database.
 	err = d.cfg.Router.AddProof(chanAnnMsg.ShortChannelID, proof)
 	if err != nil {
-		err := fmt.Errorf("unable add proof to shortChanID=%v: %v",
+		err := fmt.Errorf("unable add proof to shortChanID=%s: %v",
 			chanAnnMsg.ShortChannelID, err)
 		log.Error(err)
 		return nil, err
@@ -1736,8 +1736,8 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 				case *lnwire.ChannelUpdate:
 					log.Debugf("Reprocessing"+
 						" ChannelUpdate for "+
-						"shortChanID=%v",
-						msg.ShortChannelID.ToUint64())
+						"shortChanID=%s",
+						msg.ShortChannelID)
 
 					select {
 					case d.networkMsgs <- nMsg:
@@ -1790,14 +1790,14 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 		}
 
 		blockHeight := msg.ShortChannelID.BlockHeight
-		shortChanID := msg.ShortChannelID.ToUint64()
+		shortChanID := msg.ShortChannelID
 
 		// If the advertised inclusionary block is beyond our knowledge
 		// of the chain tip, then we'll put the announcement in limbo
 		// to be fully verified once we advance forward in the chain.
 		if nMsg.isRemote && isPremature(msg.ShortChannelID, 0) {
 			log.Infof("Update announcement for "+
-				"short_chan_id(%v), is premature: advertises "+
+				"short_chan_id(%s), is premature: advertises "+
 				"height %v, only height %v is known",
 				shortChanID, blockHeight,
 				atomic.LoadUint32(&d.bestHeight))
@@ -1874,7 +1874,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 				return nil
 			}
 
-			log.Debugf("Removed edge with chan_id=%v from zombie "+
+			log.Debugf("Removed edge with chan_id=%s from zombie "+
 				"index", msg.ShortChannelID)
 
 			// We'll fallthrough to ensure we stash the update until
@@ -1902,13 +1902,13 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			// reprocess it after our own ChannelAnnouncement has
 			// been processed.
 			d.pChanUpdMtx.Lock()
-			d.prematureChannelUpdates[shortChanID] = append(
-				d.prematureChannelUpdates[shortChanID], nMsg,
+			d.prematureChannelUpdates[shortChanID.ToUint64()] = append(
+				d.prematureChannelUpdates[shortChanID.ToUint64()], nMsg,
 			)
 			d.pChanUpdMtx.Unlock()
 
 			log.Debugf("Got ChannelUpdate for edge not found in "+
-				"graph(shortChanID=%v), saving for "+
+				"graph(shortChanID=%s), saving for "+
 				"reprocessing later", shortChanID)
 
 			// NOTE: We don't return anything on the error channel
@@ -1955,7 +1955,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 
 		update := &channeldb.ChannelEdgePolicy{
 			SigBytes:                  msg.Signature.ToSignatureBytes(),
-			ChannelID:                 shortChanID,
+			ChannelID:                 shortChanID.ToUint64(),
 			LastUpdate:                timestamp,
 			MessageFlags:              msg.MessageFlags,
 			ChannelFlags:              msg.ChannelFlags,
