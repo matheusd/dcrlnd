@@ -1758,7 +1758,7 @@ func TestPathInsufficientCapacity(t *testing.T) {
 		noRestrictions, testPathFindingConfig,
 		sourceNode.PubKeyBytes, target, payAmt, 0,
 	)
-	if err != errNoPathFound {
+	if err != errInsufficientBalance {
 		t.Fatalf("graph shouldn't be able to support payment: %v", err)
 	}
 }
@@ -2780,6 +2780,7 @@ type pathFindingTestContext struct {
 	t                 *testing.T
 	graph             *channeldb.ChannelGraph
 	restrictParams    RestrictParams
+	bandwidthHints    map[uint64]lnwire.MilliAtom
 	pathFindingConfig PathFindingConfig
 	testGraphInstance *testGraphInstance
 	source            route.Vertex
@@ -2834,8 +2835,8 @@ func (c *pathFindingTestContext) findPath(target route.Vertex,
 	error) {
 
 	return dbFindPath(
-		c.graph, nil, nil, &c.restrictParams, &c.pathFindingConfig,
-		c.source, target, amt, 0,
+		c.graph, nil, c.bandwidthHints, &c.restrictParams,
+		&c.pathFindingConfig, c.source, target, amt, 0,
 	)
 }
 
