@@ -1,9 +1,13 @@
 package routing
 
 import (
+	"fmt"
+
+	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
+	"github.com/decred/slog"
 )
 
 // BlockPadding is used to increment the finalCltvDelta value for the last hop
@@ -124,6 +128,9 @@ type paymentSession struct {
 	// specified in the payment is one, under no circumstances splitting
 	// will happen and this value remains unused.
 	minShardAmt lnwire.MilliAtom
+
+	// log is a payment session-specific logger.
+	log slog.Logger
 }
 
 // newPaymentSession instantiates a new payment session.
@@ -138,6 +145,8 @@ func newPaymentSession(p *LightningPayment,
 		return nil, err
 	}
 
+	logPrefix := fmt.Sprintf("PaymentSession(%x):", p.PaymentHash)
+
 	return &paymentSession{
 		additionalEdges:   edges,
 		getBandwidthHints: getBandwidthHints,
@@ -147,6 +156,7 @@ func newPaymentSession(p *LightningPayment,
 		pathFindingConfig: pathFindingConfig,
 		missionControl:    missionControl,
 		minShardAmt:       DefaultShardMinAmt,
+		log:               build.NewPrefixLog(logPrefix, log),
 	}, nil
 }
 
@@ -206,8 +216,7 @@ func (p *paymentSession) RequestRoute(maxAmt, feeLimit lnwire.MilliAtom,
 			return nil, err
 		}
 
-		log.Debugf("PaymentSession for %x: trying pathfinding with %v",
-			p.payment.PaymentHash, maxAmt)
+		p.log.Debugf("pathfinding for amt=%v", maxAmt)
 
 		// Get a routing graph.
 		routingGraph, cleanup, err := p.getRoutingGraph()
@@ -237,6 +246,10 @@ func (p *paymentSession) RequestRoute(maxAmt, feeLimit lnwire.MilliAtom,
 			// No splitting if this is the last shard.
 			isLastShard := activeShards+1 >= p.payment.MaxShards
 			if isLastShard {
+				p.log.Debugf("not splitting because shard "+
+					"limit %v has been reached",
+					p.payment.MaxShards)
+
 				return nil, errNoPathFound
 			}
 
@@ -246,6 +259,10 @@ func (p *paymentSession) RequestRoute(maxAmt, feeLimit lnwire.MilliAtom,
 
 			// Put a lower bound on the minimum shard size.
 			if maxAmt < p.minShardAmt {
+				p.log.Debugf("not splitting because minimum "+
+					"shard amount %v has been reached",
+					p.minShardAmt)
+
 				return nil, errNoPathFound
 			}
 
