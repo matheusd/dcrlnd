@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -248,7 +247,8 @@ type AuthenticatedGossiper struct {
 	stopped sync.Once
 
 	// bestHeight is the height of the block at the tip of the main chain
-	// as we know it. To be used atomically.
+	// as we know it. Accesses *MUST* be done with the gossiper's lock
+	// held.
 	bestHeight uint32
 
 	quit chan struct{}
@@ -1031,13 +1031,13 @@ func (d *AuthenticatedGossiper) networkHandler() {
 				return
 			}
 
-			// Once a new block arrives, we updates our running
+			// Once a new block arrives, we update our running
 			// track of the height of the chain tip.
 			d.Lock()
 			blockHeight := uint32(newBlock.Height)
-			atomic.StoreUint32(&d.bestHeight, blockHeight)
+			d.bestHeight = blockHeight
 
-			log.Debugf("New Block: height=%d hash=%s", blockHeight,
+			log.Debugf("New block: height=%d, hash=%s", blockHeight,
 				newBlock.Hash)
 
 			// Next we check if we have any premature announcements
@@ -1492,11 +1492,11 @@ func (d *AuthenticatedGossiper) addNode(msg *lnwire.NodeAnnouncement) error {
 func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 	nMsg *networkMsg) []networkMsg {
 
+	// isPremature *MUST* be called with the gossiper's lock held.
 	isPremature := func(chanID lnwire.ShortChannelID, delta uint32) bool {
 		// TODO(roasbeef) make height delta 6
 		//  * or configurable
-		bestHeight := atomic.LoadUint32(&d.bestHeight)
-		return chanID.BlockHeight+delta > bestHeight
+		return chanID.BlockHeight+delta > d.bestHeight
 	}
 
 	var announcements []networkMsg
@@ -1590,7 +1590,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 				"height %v is known",
 				msg.ShortChannelID.ToUint64(),
 				msg.ShortChannelID.BlockHeight,
-				atomic.LoadUint32(&d.bestHeight))
+				d.bestHeight)
 
 			d.prematureAnnouncements[blockHeight] = append(
 				d.prematureAnnouncements[blockHeight],
@@ -1816,7 +1816,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 				"short_chan_id(%s), is premature: advertises "+
 				"height %v, only height %v is known",
 				shortChanID, blockHeight,
-				atomic.LoadUint32(&d.bestHeight))
+				d.bestHeight)
 
 			d.prematureAnnouncements[blockHeight] = append(
 				d.prematureAnnouncements[blockHeight],
@@ -2070,7 +2070,7 @@ func (d *AuthenticatedGossiper) processNetworkAnnouncement(
 			log.Infof("Premature proof announcement, "+
 				"current block height lower than needed: %v <"+
 				" %v, add announcement to reprocessing batch",
-				atomic.LoadUint32(&d.bestHeight), needBlockHeight)
+				d.bestHeight, needBlockHeight)
 			d.Unlock()
 			return nil
 		}
