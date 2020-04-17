@@ -1373,11 +1373,12 @@ func testBreachSpends(t *testing.T, test breachTest) {
 	// Make PublishTransaction always return ErrDoubleSpend to begin with.
 	publErr = lnwallet.ErrDoubleSpend
 	brar.cfg.PublishTransaction = func(tx *wire.MsgTx) error {
+		publMtx.Lock()
+		err := publErr
+		publMtx.Unlock()
 		publTx <- tx
 
-		publMtx.Lock()
-		defer publMtx.Unlock()
-		return publErr
+		return err
 	}
 
 	// Notify the breach arbiter about the breach.
