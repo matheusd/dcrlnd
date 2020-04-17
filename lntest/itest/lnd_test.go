@@ -7550,6 +7550,13 @@ func testGarbageCollectLinkNodes(net *lntest.NetworkHarness, t *harnessTest) {
 		return false
 	}
 
+	// Ensure there's enough time after opening the channel for all nodes
+	// to process it before shutting them down, otherwise we might deadlock
+	// waiting for the chain to shut down.
+	//
+	// See https://github.com/decred/dcrlnd/issues/97
+	time.Sleep(time.Second)
+
 	// Restart both Bob and Carol to ensure Alice is able to reconnect to
 	// them.
 	if err := net.RestartNode(net.Bob, nil); err != nil {
