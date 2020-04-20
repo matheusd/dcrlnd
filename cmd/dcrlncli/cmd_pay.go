@@ -401,7 +401,7 @@ func sendPaymentRequest(ctx *cli.Context,
 
 	req.FeeLimitAtoms = feeLimit
 
-	showInflight := ctx.Bool(showInflightFlag.Name)
+	req.NoInflightUpdates = !ctx.Bool(showInflightFlag.Name)
 
 	stream, err := routerClient.SendPaymentV2(context.Background(), req)
 	if err != nil {
@@ -414,9 +414,9 @@ func sendPaymentRequest(ctx *cli.Context,
 			return err
 		}
 
-		if status.Status != lnrpc.Payment_IN_FLIGHT {
-			printRespJSON(status)
+		printRespJSON(status)
 
+		if status.Status != lnrpc.Payment_IN_FLIGHT {
 			// If we get a payment error back, we pass an error up
 			// to main which eventually calls fatal() and returns
 			// with a non-zero exit code.
@@ -425,10 +425,6 @@ func sendPaymentRequest(ctx *cli.Context,
 			}
 
 			return nil
-		}
-
-		if showInflight {
-			printRespJSON(status)
 		}
 	}
 }
