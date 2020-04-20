@@ -36,7 +36,7 @@ DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD
 DCRD_TMPDIR := $(shell mktemp -d)
 
 DCRWALLET_REPO := github.com/matheusd/dcrwallet
-DCRWALLET_COMMIT := 7fe0e69271494db7d61a6d855bdf2c44ee4bd5f0
+DCRWALLET_COMMIT := 5eb83e092aa828367c96f59789f4ae70775b76bc
 DCRWALLET_META := $(DCRWALLET_COMMIT).from-dcrlnd
 DCRWALLET_LDFLAGS := "-X decred.org/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
 DCRWALLET_TMPDIR := $(shell mktemp -d)

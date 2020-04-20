@@ -226,10 +226,8 @@ github.com/matheusd/dcrd/rpc/jsonrpc/types/v2 v2.0.0-20200304154418-6667f0315aab
 github.com/matheusd/dcrd/rpc/jsonrpc/types/v2 v2.0.0-20200304154418-6667f0315aab/go.mod h1:c5S+PtQWNIA2aUakgrLhrlopkMadcOv51dWhCEdo49c=
 github.com/matheusd/dcrd/rpcclient/v5 v5.0.0-20200321185658-73449c01a3eb h1:9QBHNgfK7zXnGYZogfvEWc7ICkVRQMR1dysxSRExopg=
 github.com/matheusd/dcrd/rpcclient/v5 v5.0.0-20200321185658-73449c01a3eb/go.mod h1:fQggnO74lPLXeTSNOHn417OLR18ggKDnAw4YqRlYDoU=
-github.com/matheusd/dcrwallet v1.0.9-0.20200324161401-f30f9f49ab69 h1:vED+JmuOldVDit35H8h3hHiOZeInrBlnUk8PDGyHIMA=
-github.com/matheusd/dcrwallet v1.0.9-0.20200324161401-f30f9f49ab69/go.mod h1:C6P1sFdSDekKN4QDOHJgsIYeX/7A6MQNUQ0ES/fruqo=
-github.com/matheusd/dcrwallet v1.0.9-0.20200403143348-7fe0e6927149 h1:T2d4X35xp7qWGo9+vgN1azNRJ0eyq+Wh4W3adiUGFso=
-github.com/matheusd/dcrwallet v1.0.9-0.20200403143348-7fe0e6927149/go.mod h1:ZwVt5N8ncfaH78UOR6WXU9565gJJoi+XfP42ARdHXis=
+github.com/matheusd/dcrwallet v1.0.9-0.20200417164917-5eb83e092aa8 h1:HtbDV4iEZmKw0l3e8HH5IoK/XCmLBPBlgTLUu3owDzE=
+github.com/matheusd/dcrwallet v1.0.9-0.20200417164917-5eb83e092aa8/go.mod h1:Empli6RQrC/AF85dmqVkOtW4MaeiNnkQFZeJUaU3Qto=
 github.com/matheusd/lightning-onion/v3 v3.0.0-20200108130659-ce91c24fe0c2 h1:qu945IfB+SKFiCms5zSBV9EPc3Uu6IWj+uSGevMd8n4=
 github.com/matheusd/lightning-onion/v3 v3.0.0-20200108130659-ce91c24fe0c2/go.mod h1:14rsw0FtdMg9o0YhYqfUhiitcsNCXPV8nLPDAg6Nl+Q=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=

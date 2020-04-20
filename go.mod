@@ -73,7 +73,7 @@ replace go.etcd.io/bbolt => github.com/matheusd/bbolt v1.3.5-0.20200328154133-ef
 replace github.com/decred/lightning-onion/v3 => github.com/matheusd/lightning-onion/v3 v3.0.0-20200108130659-ce91c24fe0c2
 
 replace (
-	decred.org/dcrwallet => github.com/matheusd/dcrwallet v1.0.9-0.20200403143348-7fe0e6927149
+	decred.org/dcrwallet => github.com/matheusd/dcrwallet v1.0.9-0.20200417164917-5eb83e092aa8
 	github.com/decred/dcrd/rpc/jsonrpc/types/v2 => github.com/matheusd/dcrd/rpc/jsonrpc/types/v2 v2.0.0-20200304154418-6667f0315aab
 	github.com/decred/dcrd/rpcclient/v5 => github.com/matheusd/dcrd/rpcclient/v5 v5.0.0-20200321185658-73449c01a3eb
 	github.com/jrick/wsrpc/v2 => github.com/jrick/wsrpc/v2 v2.3.3-0.20200304154051-c15991053cce
