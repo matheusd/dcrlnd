@@ -910,28 +910,25 @@ func (hn *HarnessNode) writePidFile() error {
 func (hn *HarnessNode) ReadMacaroon(macPath string, timeout time.Duration) (
 	*macaroon.Macaroon, error) {
 
-	// Wait until macaroon file is created before using it.
-	macTimeout := time.After(timeout)
-	for !fileExists(macPath) {
-		select {
-		case <-macTimeout:
-			return nil, fmt.Errorf("timeout waiting for macaroon "+
-				"file %s to be created after %d seconds",
-				macPath, timeout/time.Second)
-		case <-time.After(100 * time.Millisecond):
+	// Wait until macaroon file is created and has valid content before
+	// using it.
+	var mac *macaroon.Macaroon
+	err := wait.NoError(func() error {
+		macBytes, err := ioutil.ReadFile(macPath)
+		if err != nil {
+			return fmt.Errorf("error reading macaroon file: %v", err)
 		}
-	}
 
-	// Now that we know the file exists, read it and return the macaroon.
-	macBytes, err := ioutil.ReadFile(macPath)
-	if err != nil {
-		return nil, err
-	}
-	mac := &macaroon.Macaroon{}
-	if err = mac.UnmarshalBinary(macBytes); err != nil {
-		return nil, err
-	}
-	return mac, nil
+		newMac := &macaroon.Macaroon{}
+		if err = newMac.UnmarshalBinary(macBytes); err != nil {
+			return fmt.Errorf("error unmarshalling macaroon file: %v", err)
+		}
+		mac = newMac
+
+		return nil
+	}, time.Second*30)
+
+	return mac, err
 }
 
 // ConnectRPCWithMacaroon uses the TLS certificate and given macaroon to
@@ -939,19 +936,23 @@ func (hn *HarnessNode) ReadMacaroon(macPath string, timeout time.Duration) (
 func (hn *HarnessNode) ConnectRPCWithMacaroon(mac *macaroon.Macaroon) (
 	*grpc.ClientConn, error) {
 
-	// Wait until TLS certificate is created before using it, up to 30 sec.
-	tlsTimeout := time.After(DefaultTimeout)
-	for !fileExists(hn.Cfg.TLSCertPath) {
-		select {
-		case <-tlsTimeout:
-			return nil, fmt.Errorf("timeout waiting for TLS cert " +
-				"file to be created")
-		case <-time.After(100 * time.Millisecond):
-		}
+	// Wait until TLS certificate is created and has valid content before
+	// using it, up to 30 sec.
+	var tlsCreds credentials.TransportCredentials
+	err := wait.NoError(func() error {
+		var err error
+		tlsCreds, err = credentials.NewClientTLSFromFile(
+			hn.Cfg.TLSCertPath, "",
+		)
+		return err
+	}, time.Second*30)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS cert: %v", err)
 	}
 
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
+		grpc.WithTransportCredentials(tlsCreds),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{
 				BaseDelay:  time.Millisecond * 20,
@@ -962,13 +963,6 @@ func (hn *HarnessNode) ConnectRPCWithMacaroon(mac *macaroon.Macaroon) (
 			MinConnectTimeout: time.Millisecond * 20,
 		}),
 	}
-	tlsCreds, err := credentials.NewClientTLSFromFile(
-		hn.Cfg.TLSCertPath, "",
-	)
-	if err != nil {
-		return nil, err
-	}
-	opts = append(opts, grpc.WithTransportCredentials(tlsCreds))
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -1462,15 +1456,4 @@ func (hn *HarnessNode) WaitForBalance(expectedBalance dcrutil.Amount, confirmed 
 	}
 
 	return nil
-}
-
-// fileExists reports whether the named file or directory exists.
-// This function is taken from https://github.com/decred/dcrd
-func fileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
