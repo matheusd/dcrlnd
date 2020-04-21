@@ -9,19 +9,9 @@
 
 set -e
 
-# If no tag specified, use date + version otherwise use tag.
-if [[ $1x = x ]]; then
-    DATE=`date +%Y%m%d`
-    VERSION="01"
-    TAG=$DATE-$VERSION
-else
-    TAG=$1
-
-    # If a tag is specified, ensure that that tag is present and checked out.
-    if [[ $TAG != $(git describe) ]]; then
-        echo "tag $TAG not checked out"
-        exit 1
-    fi
+LND_VERSION_REGEX="lnd version (.+) commit"
+PKG="github.com/lightningnetwork/lnd"
+PACKAGE=lnd
 
     # Build dcrlnd to extract version.
     go build github.com/decred/dcrlnd/cmd/dcrlnd
@@ -52,10 +42,6 @@ else
         echo "malformed dcrlnd version output"
         exit 1
     fi
-fi
-
-go mod vendor
-tar -cvzf vendor.tar.gz vendor
 
 PACKAGE=dcrlnd
 MAINDIR=$PACKAGE-$TAG
@@ -129,21 +115,38 @@ for i in $SYS; do
       ARM=7
     fi
 
-    mkdir $PACKAGE-$i-$TAG
-    cd $PACKAGE-$i-$TAG
+    dir="${PACKAGE}-${i}-${tag}"
+    mkdir "${dir}"
+    pushd "${dir}"
 
     echo "Building:" $OS $ARCH $ARM
     env CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -trimpath -ldflags "-s -w -buildid= $COMMITFLAGS" github.com/decred/dcrlnd/cmd/dcrlnd
     env CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH GOARM=$ARM go build -v -trimpath -ldflags "-s -w -buildid= $COMMITFLAGS" github.com/decred/dcrlnd/cmd/dcrlncli
     cd ..
 
-    if [[ $OS = "windows" ]]; then
-	zip -r $PACKAGE-$i-$TAG.zip $PACKAGE-$i-$TAG
+    if [[ $os == "windows" ]]; then
+      zip -r "${dir}.zip" "${dir}"
     else
-	tar -cvzf $PACKAGE-$i-$TAG.tar.gz $PACKAGE-$i-$TAG
+      tar -cvzf "${dir}.tar.gz" "${dir}"
     fi
 
-    rm -r $PACKAGE-$i-$TAG
-done
+    rm -r "${dir}"
+  done
+
+  shasum -a 256 * >manifest-$tag.txt
+}
+
+# usage prints the usage of the whole script.
+function usage() {
+  red "Usage: "
+  red "release.sh check-tag <version-tag>"
+  red "release.sh build-release <version-tag> <build-system(s)> <build-tags> <ldflags>"
+}
+
+# Whatever sub command is passed in, we need at least 2 arguments.
+if [ "$#" -lt 2 ]; then
+  usage
+  exit 1
+fi
 
 shasum -a 256 * > manifest-$PACKAGE-$TAG.txt
