@@ -30,6 +30,10 @@ WTDIRTY := $(shell git diff-index --quiet HEAD -- || echo "-dirty" || echo "")
 COMMIT := $(shell git log -1 --format="%H$(WTDIRTY)")
 LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
 
+# For the release, we want to remove the symbol table and debug information (-s)
+# and omit the DWARF symbol table (-w). Also we clear the build ID.
+RELEASE_LDFLAGS := $(call make_ldflags, $(RELEASE_TAGS), -s -w -buildid=)
+
 DCRD_COMMIT := b10c942130f497f2285697899d6d562f75cded84
 DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
@@ -60,6 +64,7 @@ CP := cp
 MAKE := make
 
 include make/testing_flags.mk
+include make/release_flags.mk
 
 DEV_TAGS := $(if ${tags},$(DEV_TAGS) ${tags},$(DEV_TAGS))
 
@@ -141,6 +146,11 @@ install:
 	@$(call print, "Installing dcrlnd and dcrlncli.")
 	$(GOINSTALL) -tags="${tags}" $(LDFLAGS) $(PKG)/cmd/dcrlnd
 	$(GOINSTALL) -tags="${tags}" $(LDFLAGS) $(PKG)/cmd/dcrlncli
+
+release:
+	@$(call print, "Releasing dcrlnd and dcrlncli binaries.")
+	$(VERSION_CHECK)
+	./build/release/release.sh build-release "$(VERSION_TAG)" "$(BUILD_SYSTEM)" "$(RELEASE_TAGS)" "$(RELEASE_LDFLAGS)"
 
 scratch: build
 
