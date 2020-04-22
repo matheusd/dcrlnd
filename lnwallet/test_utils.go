@@ -474,10 +474,6 @@ func txFromHex(txHex string) (*dcrutil.Tx, error) {
 // TODO(bvu): Refactor when dynamic fee estimation is added.
 func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		// TODO(decred) This was hardcoded here. Should I use static, hardcoded
-		// values instead of estimateCommitmentTxSize?
-		// commitWeight = dcrutil.Amount(724)
-		// htlcWeight   = 172
 		feePerKB = dcrutil.Amount(1e5)
 	)
 	commitSize := input.EstimateCommitmentTxSize(numHTLCs)

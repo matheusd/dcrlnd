@@ -818,10 +818,6 @@ func shutdownAndAssert(net *lntest.NetworkHarness, t *harnessTest,
 // TODO(conner) remove code duplication
 func calcStaticFee(numHTLCs int) dcrutil.Amount {
 	const (
-		// TODO(decred) This was hardcoded here. Should I use static, hardcoded
-		// values instead of estimateCommitmentTxSize?
-		// commitWeight = dcrutil.Amount(724)
-		// htlcWeight   = 172
 		feePerKB = dcrutil.Amount(1e4)
 	)
 	commitSize := input.EstimateCommitmentTxSize(numHTLCs)
