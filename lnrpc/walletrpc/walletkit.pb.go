@@ -717,8 +717,8 @@ type BumpFeeRequest struct {
 	// The target number of blocks that the input should be spent within.
 	TargetConf uint32 `protobuf:"varint,2,opt,name=target_conf,json=targetConf,proto3" json:"target_conf,omitempty"`
 	//
-	//The fee rate, expressed in atoms/byte, that should be used to spend the input
-	//with.
+	//The fee rate, expressed in atoms/byte, that should be used to spend the
+	//input with.
 	AtomsPerByte uint32 `protobuf:"varint,3,opt,name=atoms_per_byte,json=atomsPerByte,proto3" json:"atoms_per_byte,omitempty"`
 	//*
 	//Whether this input must be force-swept. This means that it is swept even

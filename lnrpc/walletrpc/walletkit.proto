@@ -166,7 +166,7 @@ enum WitnessType {
     NESTED_WITNESS_KEY_HASH = 12;
 
     /*
-    A witness type that allows us to sweep an output that sends to a P2PKH 
+    A witness type that allows us to sweep an output that sends to a P2PKH
     script.
     */
     PUBKEY_HASH = 128;
@@ -229,8 +229,8 @@ message BumpFeeRequest {
     uint32 target_conf = 2;
 
     /*
-    The fee rate, expressed in atoms/byte, that should be used to spend the input
-    with.
+    The fee rate, expressed in atoms/byte, that should be used to spend the
+    input with.
     */
     uint32 atoms_per_byte = 3;
 
@@ -254,7 +254,7 @@ service WalletKit {
 
     /**
     DeriveKey attempts to derive an arbitrary key specified by the passed
-    KeyLocator. 
+    KeyLocator.
     */
     rpc DeriveKey (signrpc.KeyLocator) returns (signrpc.KeyDescriptor);
 

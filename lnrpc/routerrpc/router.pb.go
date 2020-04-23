@@ -819,7 +819,8 @@ type PairData struct {
 	FailAmtMAtoms int64 `protobuf:"varint,4,opt,name=fail_amt_m_atoms,json=failAmtMAtoms,proto3" json:"fail_amt_m_atoms,omitempty"`
 	/// Time of last success.
 	SuccessTime int64 `protobuf:"varint,5,opt,name=success_time,json=successTime,proto3" json:"success_time,omitempty"`
-	/// Highest amount that we could successfully forward rounded to whole atoms.
+	/// Highest amount that we could successfully forward rounded to whole
+	/// atoms.
 	SuccessAmtAtoms int64 `protobuf:"varint,6,opt,name=success_amt_atoms,json=successAmtAtoms,proto3" json:"success_amt_atoms,omitempty"`
 	/// Highest amount that we could successfully forward in milliatoms.
 	SuccessAmtMAtoms     int64    `protobuf:"varint,7,opt,name=success_amt_m_atoms,json=successAmtMAtoms,proto3" json:"success_amt_m_atoms,omitempty"`
