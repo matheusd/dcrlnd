@@ -417,7 +417,7 @@ const (
 	//		- base tx size                             12 bytes
 	//		- input count prefix varint                 1 byte
 	//		- input                                    57 bytes
-	//		- output count prefix varint                2 bytes
+	//		- output count prefix varint                3 bytes
 	//		- remote output                            10 bytes
 	//		- p2pkh remote varint                       1 byte
 	//		- p2pkh remote pkscript                    25 bytes
@@ -428,8 +428,8 @@ const (
 	//		- funding tx sigscript varint               1 byte
 	//		- funding tx sigscript                    220 bytes
 	//
-	// Total: 364 bytes
-	CommitmentTxSize int64 = baseTxSize + 1 + InputSize + 2 +
+	// Total: 365 bytes
+	CommitmentTxSize int64 = baseTxSize + 1 + InputSize + 3 +
 		OutputSize + 1 + P2PKHPkScriptSize + OutputSize + 1 + P2SHPkScriptSize +
 		1 + 1 + FundingOutputSigScriptSize
 
@@ -447,13 +447,13 @@ const (
 	//		- p2sh pkscript varint                              1 byte
 	//		- p2sh pkscript                                    23 bytes
 	//		- input count witness varint                        1 byte
-	//		- offered_htlc_timeout sigscript varint             2 bytes
+	//		- offered_htlc_timeout sigscript varint             3 bytes
 	//		- offered_htlc_timeout sigscript                  284 bytes
 	//
-	// Total: 392 bytes
+	// Total: 393 bytes
 	// TODO(decred) Double check correctness of selected sigScript alternative
 	HTLCTimeoutTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
-		P2SHPkScriptSize + 1 + 2 + OfferedHtlcTimeoutSigScriptSize
+		P2SHPkScriptSize + 1 + 3 + OfferedHtlcTimeoutSigScriptSize
 
 	// HTLCSuccessSize is the worst case (largest) size of the HTLC success
 	// transaction which will transition an HTLC tx to the delay-and-claim
@@ -468,13 +468,13 @@ const (
 	//		- p2pkh pkscript varint                           1 byte
 	//		- p2pkh pkscript                                 25 bytes
 	//		- input count witness varint                      1 byte
-	//		- accepted_htlc_success sigscript varint          2 bytes
+	//		- accepted_htlc_success sigscript varint          3 bytes
 	//		- accepted_htlc_timeout sigscript               323 bytes
 	//
-	// Total: 433 bytes
+	// Total: 434 bytes
 	// TODO(decred) Double check correctness of selected sigScript alternative
 	HTLCSuccessTxSize int64 = baseTxSize + 1 + InputSize + 1 + OutputSize + 1 +
-		P2PKHPkScriptSize + 1 + 2 + AcceptedHtlcSuccessSigScriptSize
+		P2PKHPkScriptSize + 1 + 3 + AcceptedHtlcSuccessSigScriptSize
 
 	// MaxHTLCNumber is the maximum number HTLCs which can be included in a
 	// commitment transaction. This limit was chosen such that, in the case
@@ -489,8 +489,8 @@ const (
 	// 		- base tx size				 12 bytes
 	//		- output count varint			  1 byte
 	//		- p2pkh output				 36 bytes
-	//		- input count prefix varint		  2 bytes
-	//		- input count witness varint		  2 bytes
+	//		- input count prefix varint		  3 bytes
+	//		- input count witness varint		  3 bytes
 	//		- to_remote commitment output
 	//			- input 			 57 bytes
 	//			- sigscript varint		  1 byte
@@ -501,17 +501,21 @@ const (
 	//			- to_local penalty sigscript	157 bytes
 	//		- n accepted_htlc_penalty inputs
 	//			- input				 57 bytes
-	//			- sigscript varint		  1 byte
-	//			- sigscript			250 bytes
+	//			- sigscript varint		  3 bytes
+	//			- sigscript			253 bytes
 	//
 	// The "n" maximum number of redeemable htlcs can thus be calculated
 	// (where static_data is everything _except_ the variable number of
 	// htlc outputs):
 	//
 	//	= (max_tx_size - static_data) / accepted_htlc_penalty_size
-	//      = (  100000    -     546   )  /      308
-	//      = 322 htlcs
-	MaxHTLCNumber = 322
+	//      = (  100000    -     548   )  /      313
+	//      = 317 htlcs
+	//
+	// To guard for the fact that we might have made a mistake in the above
+	// calculations, we'll further reduce this down by ~5% for the moment
+	// until others have thoroughly reviewed these numbers.
+	MaxHTLCNumber = 300
 )
 
 // EstimateCommitmentTxSize estimates the size of a commitment transaction

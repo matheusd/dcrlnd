@@ -3923,7 +3923,7 @@ func TestChannelLinkUpdateCommitFee(t *testing.T) {
 	// Triggering the link to update the fee of the channel with a fee rate
 	// that exceeds its maximum fee allocation should result in a fee rate
 	// corresponding to the maximum fee allocation.
-	const maxFeeRate chainfee.AtomPerKByte = 412087912
+	const maxFeeRate chainfee.AtomPerKByte = 410958904
 	triggerFeeUpdate(maxFeeRate+1, maxFeeRate, true)
 }
 
