@@ -355,6 +355,7 @@ func (tc *testContext) extractFundingInput() (*Utxo, *wire.TxOut, error) {
 // level HTLC transactions and checks that they match the expected values.
 func TestCommitmentAndHTLCTransactions(t *testing.T) {
 	t.Parallel()
+	t.Skip("FIXME: re-enable after upstram #3821")
 
 	tc, err := newTestContext()
 	if err != nil {
