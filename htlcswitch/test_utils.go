@@ -170,7 +170,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	csvTimeoutBob := uint32(4)
 
 	aliceConstraints := &channeldb.ChannelConstraints{
-		DustLimit: dcrutil.Amount(200),
+		DustLimit: dcrutil.Amount(6030),
 		MaxPendingAmount: lnwire.NewMAtomsFromAtoms(
 			channelCapacity),
 		ChanReserve:      aliceReserve,
@@ -180,7 +180,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 	}
 
 	bobConstraints := &channeldb.ChannelConstraints{
-		DustLimit: dcrutil.Amount(800),
+		DustLimit: dcrutil.Amount(12060),
 		MaxPendingAmount: lnwire.NewMAtomsFromAtoms(
 			channelCapacity),
 		ChanReserve:      bobReserve,

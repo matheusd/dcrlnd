@@ -4377,7 +4377,7 @@ func generateHtlcAndInvoice(t *testing.T,
 
 	t.Helper()
 
-	htlcAmt := lnwire.NewMAtomsFromAtoms(10000)
+	htlcAmt := lnwire.NewMAtomsFromAtoms(20000)
 	htlcExpiry := testStartingHeight + testInvoiceCltvExpiry
 	hops := []*hop.Payload{
 		hop.NewLegacyPayload(&sphinx.HopData{
