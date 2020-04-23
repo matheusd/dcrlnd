@@ -1723,7 +1723,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		return nil, nil, nil, err
 	}
 
-	estimator := chainfee.NewStaticEstimator(12500, 0)
+	estimator := chainfee.NewStaticEstimator(1e4, 0)
 	feePerKB, err := estimator.EstimateFeePerKB(1)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1731,8 +1731,8 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 	initiatorFee := feePerKB.FeeForSize(input.EstimateCommitmentTxSize(0))
 
 	channelBal := channelCapacity / 2
-	aliceDustLimit := dcrutil.Amount(200)
-	bobDustLimit := dcrutil.Amount(1300)
+	aliceDustLimit := dcrutil.Amount(6030)
+	bobDustLimit := dcrutil.Amount(12060)
 	csvTimeoutAlice := uint32(5)
 	csvTimeoutBob := uint32(4)
 
@@ -1848,7 +1848,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal - initiatorFee),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal),
 		FeePerKB:      dcrutil.Amount(feePerKB),
-		CommitFee:     8688,
+		CommitFee:     3640,
 		CommitTx:      aliceCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
@@ -1857,7 +1857,7 @@ func createInitChannels(revocationWindow int) (*lnwallet.LightningChannel, *lnwa
 		LocalBalance:  lnwire.NewMAtomsFromAtoms(channelBal),
 		RemoteBalance: lnwire.NewMAtomsFromAtoms(channelBal - initiatorFee),
 		FeePerKB:      dcrutil.Amount(feePerKB),
-		CommitFee:     8688,
+		CommitFee:     3640,
 		CommitTx:      bobCommitTx,
 		CommitSig:     bytes.Repeat([]byte{1}, 71),
 	}
