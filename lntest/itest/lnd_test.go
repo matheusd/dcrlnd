@@ -9813,6 +9813,8 @@ func assertDLPExecuted(net *lntest.NetworkHarness, t *harnessTest,
 	// Carol should force close the channel using her latest commitment.
 	expectedTxes := 1
 	if anchors {
+		// The two expected transactions for Carol are the force close
+		// transaction and the anchor sweep transaction.
 		expectedTxes = 2
 	}
 
@@ -9845,6 +9847,15 @@ func assertDLPExecuted(net *lntest.NetworkHarness, t *harnessTest,
 
 	// Dave should sweep his funds immediately, as they are not timelocked.
 	// We also expect Dave to sweep his anchor, if present.
+
+	if anchors {
+		// Note(decred): in lnd due to a large difference in fees, two
+		// transactions are expected at this point: one sweeping the
+		// commitment output and one the anchor output. In decred,
+		// since fees are all using the default relay fee only a single
+		// transaction sweeping both outputs is expected.
+		expectedTxes = 1
+	}
 
 	_, err = waitForNTxsInMempool(
 		net.Miner.Node, expectedTxes, minerMempoolTimeout,
