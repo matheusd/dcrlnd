@@ -150,7 +150,7 @@ install:
 release:
 	@$(call print, "Releasing dcrlnd and dcrlncli binaries.")
 	$(VERSION_CHECK)
-	./build/release/release.sh build-release "$(VERSION_TAG)" "$(BUILD_SYSTEM)" "$(RELEASE_TAGS)" "$(RELEASE_LDFLAGS)"
+	./scripts/release.sh build-release "$(VERSION_TAG)" "$(BUILD_SYSTEM)" "$(RELEASE_TAGS)" "$(RELEASE_LDFLAGS)"
 
 scratch: build
 
