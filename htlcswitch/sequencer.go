@@ -5,7 +5,7 @@ import (
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 // defaultSequenceBatchSize specifies the window of sequence numbers that are

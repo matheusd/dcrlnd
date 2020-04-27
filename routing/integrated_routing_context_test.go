@@ -8,7 +8,7 @@ import (
 
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 // integratedRoutingContext defines the context in which integrated routing

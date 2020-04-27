@@ -10,7 +10,7 @@ import (
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	sphinx "github.com/decred/lightning-onion/v3"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 const (

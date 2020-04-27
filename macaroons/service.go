@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 

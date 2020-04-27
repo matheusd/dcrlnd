@@ -7,7 +7,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/watchtower/blob"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 const (

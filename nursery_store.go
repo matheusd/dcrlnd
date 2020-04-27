@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 //	              Overview of Nursery Store Storage Hierarchy

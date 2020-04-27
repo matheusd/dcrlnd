@@ -63,7 +63,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 const (

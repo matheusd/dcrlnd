@@ -18,7 +18,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 
 	_ "decred.org/dcrwallet/wallet/drivers/bdb"
 

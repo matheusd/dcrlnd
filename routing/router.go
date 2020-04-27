@@ -14,7 +14,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/clock"

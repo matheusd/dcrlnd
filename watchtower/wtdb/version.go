@@ -2,7 +2,7 @@ package wtdb
 
 import (
 	"github.com/decred/dcrlnd/channeldb"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 // migration is a function which takes a prior outdated version of the database

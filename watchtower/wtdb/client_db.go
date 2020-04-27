@@ -9,7 +9,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/lnwire"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 const (

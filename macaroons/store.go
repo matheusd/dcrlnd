@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrlnd/internal/snacl"
 )

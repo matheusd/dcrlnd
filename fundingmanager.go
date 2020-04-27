@@ -27,7 +27,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 	"golang.org/x/crypto/salsa20"
 )
 

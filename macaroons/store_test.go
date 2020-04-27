@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 
 	"github.com/decred/dcrlnd/macaroons"
 

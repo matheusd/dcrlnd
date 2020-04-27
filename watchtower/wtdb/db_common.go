@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	bbolt "go.etcd.io/bbbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -63,7 +63,7 @@ func createDBIfNotExist(dbPath, name string) (*bbolt.DB, bool, error) {
 		}
 	}
 
-	// Specify bbbolt freelist options to reduce heap pressure in case the
+	// Specify bbolt freelist options to reduce heap pressure in case the
 	// freelist grows to be very large.
 	options := &bbolt.Options{
 		NoFreelistSync: true,
