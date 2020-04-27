@@ -15,7 +15,7 @@ import (
 // NOTE: The passed channeldb, and ChainNotifier should already be fully
 // initialized/started before being passed as a function argument.
 type Config struct {
-	// Database is a wrapper around a namespace within boltdb reserved for
+	// Database is a wrapper around a namespace within bboltdb reserved for
 	// ln-based wallet metadata. See the 'channeldb' package for further
 	// information.
 	Database *channeldb.DB

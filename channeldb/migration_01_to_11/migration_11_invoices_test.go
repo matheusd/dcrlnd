@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/zpay32"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 
 // beforeMigrationFuncV11 insert the test invoices in the database.
 func beforeMigrationFuncV11(t *testing.T, d *DB, invoices []Invoice) {
-	err := d.Update(func(tx *bolt.Tx) error {
+	err := d.Update(func(tx *bbolt.Tx) error {
 		invoicesBucket, err := tx.CreateBucketIfNotExists(
 			invoiceBucket,
 		)

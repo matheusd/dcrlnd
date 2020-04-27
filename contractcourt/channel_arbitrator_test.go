@@ -20,7 +20,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -396,7 +396,7 @@ func createTestChannelArbitrator(t *testing.T, log ArbitratorLog,
 			return nil, err
 		}
 		dbPath := filepath.Join(dbDir, "testdb")
-		db, err := bolt.Open(dbPath, 0600, nil)
+		db, err := bbolt.Open(dbPath, 0600, nil)
 		if err != nil {
 			return nil, err
 		}

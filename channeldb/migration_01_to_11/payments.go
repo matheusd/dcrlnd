@@ -14,7 +14,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/tlv"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -254,7 +254,7 @@ type Payment struct {
 func (db *DB) FetchPayments() ([]*Payment, error) {
 	var payments []*Payment
 
-	err := db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bbolt.Tx) error {
 		paymentsBucket := tx.Bucket(paymentsRootBucket)
 		if paymentsBucket == nil {
 			return nil
@@ -316,7 +316,7 @@ func (db *DB) FetchPayments() ([]*Payment, error) {
 	return payments, nil
 }
 
-func fetchPayment(bucket *bolt.Bucket) (*Payment, error) {
+func fetchPayment(bucket *bbolt.Bucket) (*Payment, error) {
 	var (
 		err error
 		p   = &Payment{}

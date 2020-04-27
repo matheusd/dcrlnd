@@ -11,7 +11,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/tlv"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -252,7 +252,7 @@ func validateInvoice(i *Invoice) error {
 func (d *DB) FetchAllInvoices(pendingOnly bool) ([]Invoice, error) {
 	var invoices []Invoice
 
-	err := d.View(func(tx *bolt.Tx) error {
+	err := d.View(func(tx *bbolt.Tx) error {
 		invoiceB := tx.Bucket(invoiceBucket)
 		if invoiceB == nil {
 			return ErrNoInvoicesCreated

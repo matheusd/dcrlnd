@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/decred/dcrlnd/channeldb/migtest"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -111,10 +111,10 @@ func TestMigrateMpp(t *testing.T) {
 
 	migtest.ApplyMigration(
 		t,
-		func(tx *bolt.Tx) error {
+		func(tx *bbolt.Tx) error {
 			return migtest.RestoreDB(tx, paymentsRootBucket, pre)
 		},
-		func(tx *bolt.Tx) error {
+		func(tx *bbolt.Tx) error {
 			return migtest.VerifyDB(tx, paymentsRootBucket, post)
 		},
 		MigrateMPP,

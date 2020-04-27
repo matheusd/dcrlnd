@@ -14,7 +14,7 @@ import (
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/decred/dcrlnd/tlv"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -200,7 +200,7 @@ type PaymentCreationInfo struct {
 func (db *DB) FetchPayments() ([]*MPPayment, error) {
 	var payments []*MPPayment
 
-	err := db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bbolt.Tx) error {
 		paymentsBucket := tx.Bucket(paymentsRootBucket)
 		if paymentsBucket == nil {
 			return nil
@@ -248,7 +248,7 @@ func (db *DB) FetchPayments() ([]*MPPayment, error) {
 	return payments, nil
 }
 
-func fetchPayment(bucket *bolt.Bucket) (*MPPayment, error) {
+func fetchPayment(bucket *bbolt.Bucket) (*MPPayment, error) {
 	seqBytes := bucket.Get(paymentSequenceKey)
 	if seqBytes == nil {
 		return nil, fmt.Errorf("sequence number not found")
@@ -304,7 +304,7 @@ func fetchPayment(bucket *bolt.Bucket) (*MPPayment, error) {
 
 // fetchHtlcAttempts retrives all htlc attempts made for the payment found in
 // the given bucket.
-func fetchHtlcAttempts(bucket *bolt.Bucket) ([]HTLCAttempt, error) {
+func fetchHtlcAttempts(bucket *bbolt.Bucket) ([]HTLCAttempt, error) {
 	htlcs := make([]HTLCAttempt, 0)
 
 	err := bucket.ForEach(func(k, _ []byte) error {
@@ -347,7 +347,7 @@ func fetchHtlcAttempts(bucket *bolt.Bucket) ([]HTLCAttempt, error) {
 
 // fetchHtlcAttemptInfo fetches the payment attempt info for this htlc from the
 // bucket.
-func fetchHtlcAttemptInfo(bucket *bolt.Bucket) (*HTLCAttemptInfo, error) {
+func fetchHtlcAttemptInfo(bucket *bbolt.Bucket) (*HTLCAttemptInfo, error) {
 	b := bucket.Get(htlcAttemptInfoKey)
 	if b == nil {
 		return nil, errNoAttemptInfo
@@ -359,7 +359,7 @@ func fetchHtlcAttemptInfo(bucket *bolt.Bucket) (*HTLCAttemptInfo, error) {
 
 // fetchHtlcSettleInfo retrieves the settle info for the htlc. If the htlc isn't
 // settled, nil is returned.
-func fetchHtlcSettleInfo(bucket *bolt.Bucket) (*HTLCSettleInfo, error) {
+func fetchHtlcSettleInfo(bucket *bbolt.Bucket) (*HTLCSettleInfo, error) {
 	b := bucket.Get(htlcSettleInfoKey)
 	if b == nil {
 		// Settle info is optional.
@@ -372,7 +372,7 @@ func fetchHtlcSettleInfo(bucket *bolt.Bucket) (*HTLCSettleInfo, error) {
 
 // fetchHtlcFailInfo retrieves the failure info for the htlc. If the htlc hasn't
 // failed, nil is returned.
-func fetchHtlcFailInfo(bucket *bolt.Bucket) (*HTLCFailInfo, error) {
+func fetchHtlcFailInfo(bucket *bbolt.Bucket) (*HTLCFailInfo, error) {
 	b := bucket.Get(htlcFailInfoKey)
 	if b == nil {
 		// Fail info is optional.
@@ -385,7 +385,7 @@ func fetchHtlcFailInfo(bucket *bolt.Bucket) (*HTLCFailInfo, error) {
 
 // DeletePayments deletes all completed and failed payments from the DB.
 func (db *DB) DeletePayments() error {
-	return db.Update(func(tx *bolt.Tx) error {
+	return db.Update(func(tx *bbolt.Tx) error {
 		payments := tx.Bucket(paymentsRootBucket)
 		if payments == nil {
 			return nil
