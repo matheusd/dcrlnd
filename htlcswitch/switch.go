@@ -21,7 +21,6 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/ticker"
-	bbolt "go.etcd.io/bbolt"
 )
 
 const (

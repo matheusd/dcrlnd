@@ -36,7 +36,6 @@ import (
 	"github.com/decred/dcrlnd/ticker"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bbolt "go.etcd.io/bbolt"
 )
 
 var (
