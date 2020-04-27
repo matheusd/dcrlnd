@@ -141,7 +141,7 @@ func (l *Loader) CreateWatchingOnlyWallet(ctx context.Context, extendedPubKey st
 		}
 	}()
 
-	// Create the wallet database backed by bolt db.
+	// Create the wallet database backed by bbolt db.
 	err = os.MkdirAll(l.dbDirPath, 0700)
 	if err != nil {
 		return nil, errors.E(op, err)
@@ -224,7 +224,7 @@ func (l *Loader) CreateNewWallet(ctx context.Context, pubPassphrase, privPassphr
 		}
 	}()
 
-	// Create the wallet database backed by bolt db.
+	// Create the wallet database backed by bbolt db.
 	err = os.MkdirAll(l.dbDirPath, 0700)
 	if err != nil {
 		return nil, errors.E(op, err)
@@ -274,7 +274,7 @@ func (l *Loader) OpenExistingWallet(ctx context.Context, pubPassphrase []byte) (
 		return nil, errors.E(op, errors.Exist, "wallet already opened")
 	}
 
-	// Open the database using the boltdb backend.
+	// Open the database using the bboltdb backend.
 	dbPath := filepath.Join(l.dbDirPath, walletDbName)
 	l.mu.Unlock()
 	db, err := wallet.OpenDB(driver, dbPath)

@@ -10,12 +10,12 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/zpay32"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // MigrateInvoices adds invoice htlcs and a separate cltv delta field to the
 // invoices.
-func MigrateInvoices(tx *bolt.Tx) error {
+func MigrateInvoices(tx *bbolt.Tx) error {
 	log.Infof("Migrating invoices to new invoice format")
 
 	invoiceB := tx.Bucket(invoiceBucket)

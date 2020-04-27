@@ -13,7 +13,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/tlv"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -401,7 +401,7 @@ func (d *DB) AddInvoice(newInvoice *Invoice, paymentHash lntypes.Hash) (
 	}
 
 	var invoiceAddIndex uint64
-	err := d.Update(func(tx *bolt.Tx) error {
+	err := d.Update(func(tx *bbolt.Tx) error {
 		invoices, err := tx.CreateBucketIfNotExists(invoiceBucket)
 		if err != nil {
 			return err
@@ -479,7 +479,7 @@ func (d *DB) InvoicesAddedSince(sinceAddIndex uint64) ([]Invoice, error) {
 	var startIndex [8]byte
 	byteOrder.PutUint64(startIndex[:], sinceAddIndex)
 
-	err := d.DB.View(func(tx *bolt.Tx) error {
+	err := d.DB.View(func(tx *bbolt.Tx) error {
 		invoices := tx.Bucket(invoiceBucket)
 		if invoices == nil {
 			return ErrNoInvoicesCreated
@@ -534,7 +534,7 @@ func (d *DB) InvoicesAddedSince(sinceAddIndex uint64) ([]Invoice, error) {
 // terms of the payment.
 func (d *DB) LookupInvoice(paymentHash [32]byte) (Invoice, error) {
 	var invoice Invoice
-	err := d.View(func(tx *bolt.Tx) error {
+	err := d.View(func(tx *bbolt.Tx) error {
 		invoices := tx.Bucket(invoiceBucket)
 		if invoices == nil {
 			return ErrNoInvoicesCreated
@@ -589,7 +589,7 @@ func (d *DB) FetchAllInvoicesWithPaymentHash(pendingOnly bool) (
 
 	var result []InvoiceWithPaymentHash
 
-	err := d.View(func(tx *bolt.Tx) error {
+	err := d.View(func(tx *bbolt.Tx) error {
 		invoices := tx.Bucket(invoiceBucket)
 		if invoices == nil {
 			return ErrNoInvoicesCreated
@@ -695,7 +695,7 @@ func (d *DB) QueryInvoices(q InvoiceQuery) (InvoiceSlice, error) {
 		InvoiceQuery: q,
 	}
 
-	err := d.View(func(tx *bolt.Tx) error {
+	err := d.View(func(tx *bbolt.Tx) error {
 		// If the bucket wasn't found, then there aren't any invoices
 		// within the database yet, so we can simply exit.
 		invoices := tx.Bucket(invoiceBucket)
@@ -709,7 +709,7 @@ func (d *DB) QueryInvoices(q InvoiceQuery) (InvoiceSlice, error) {
 
 		// keyForIndex is a helper closure that retrieves the invoice
 		// key for the given add index of an invoice.
-		keyForIndex := func(c *bolt.Cursor, index uint64) []byte {
+		keyForIndex := func(c *bbolt.Cursor, index uint64) []byte {
 			var keyIndex [8]byte
 			byteOrder.PutUint64(keyIndex[:], index)
 			_, invoiceKey := c.Seek(keyIndex[:])
@@ -718,7 +718,7 @@ func (d *DB) QueryInvoices(q InvoiceQuery) (InvoiceSlice, error) {
 
 		// nextKey is a helper closure to determine what the next
 		// invoice key is when iterating over the invoice add index.
-		nextKey := func(c *bolt.Cursor) ([]byte, []byte) {
+		nextKey := func(c *bbolt.Cursor) ([]byte, []byte) {
 			if q.Reversed {
 				return c.Prev()
 			}
@@ -822,7 +822,7 @@ func (d *DB) UpdateInvoice(paymentHash lntypes.Hash,
 	callback InvoiceUpdateCallback) (*Invoice, error) {
 
 	var updatedInvoice *Invoice
-	err := d.Update(func(tx *bolt.Tx) error {
+	err := d.Update(func(tx *bbolt.Tx) error {
 		invoices, err := tx.CreateBucketIfNotExists(invoiceBucket)
 		if err != nil {
 			return err
@@ -877,7 +877,7 @@ func (d *DB) InvoicesSettledSince(sinceSettleIndex uint64) ([]Invoice, error) {
 	var startIndex [8]byte
 	byteOrder.PutUint64(startIndex[:], sinceSettleIndex)
 
-	err := d.DB.View(func(tx *bolt.Tx) error {
+	err := d.DB.View(func(tx *bbolt.Tx) error {
 		invoices := tx.Bucket(invoiceBucket)
 		if invoices == nil {
 			return ErrNoInvoicesCreated
@@ -919,7 +919,7 @@ func (d *DB) InvoicesSettledSince(sinceSettleIndex uint64) ([]Invoice, error) {
 	return settledInvoices, nil
 }
 
-func putInvoice(invoices, invoiceIndex, addIndex *bolt.Bucket,
+func putInvoice(invoices, invoiceIndex, addIndex *bbolt.Bucket,
 	i *Invoice, invoiceNum uint32, paymentHash lntypes.Hash) (
 	uint64, error) {
 
@@ -1112,7 +1112,7 @@ func serializeHtlcs(w io.Writer, htlcs map[CircuitKey]*InvoiceHTLC) error {
 	return nil
 }
 
-func fetchInvoice(invoiceNum []byte, invoices *bolt.Bucket) (Invoice, error) {
+func fetchInvoice(invoiceNum []byte, invoices *bbolt.Bucket) (Invoice, error) {
 	invoiceBytes := invoices.Get(invoiceNum)
 	if invoiceBytes == nil {
 		return Invoice{}, ErrInvoiceNotFound
@@ -1325,7 +1325,7 @@ func copyInvoice(src *Invoice) *Invoice {
 
 // updateInvoice fetches the invoice, obtains the update descriptor from the
 // callback and applies the updates in a single db transaction.
-func (d *DB) updateInvoice(hash lntypes.Hash, invoices, settleIndex *bolt.Bucket,
+func (d *DB) updateInvoice(hash lntypes.Hash, invoices, settleIndex *bbolt.Bucket,
 	invoiceNum []byte, callback InvoiceUpdateCallback) (*Invoice, error) {
 
 	invoice, err := fetchInvoice(invoiceNum, invoices)
@@ -1572,7 +1572,7 @@ func updateHtlc(resolveTime time.Time, htlc *InvoiceHTLC,
 
 // setSettleMetaFields updates the metadata associated with settlement of an
 // invoice.
-func setSettleMetaFields(settleIndex *bolt.Bucket, invoiceNum []byte,
+func setSettleMetaFields(settleIndex *bbolt.Bucket, invoiceNum []byte,
 	invoice *Invoice, now time.Time) error {
 
 	// Now that we know the invoice hasn't already been settled, we'll

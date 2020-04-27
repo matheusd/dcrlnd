@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/decred/dcrlnd/channeldb"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -95,7 +95,7 @@ func NewHeightHintCache(db *channeldb.DB) (*HeightHintCache, error) {
 // initBuckets ensures that the primary buckets used by the circuit are
 // initialized so that we can assume their existence after startup.
 func (c *HeightHintCache) initBuckets() error {
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(spendHintBucket)
 		if err != nil {
 			return err
@@ -117,7 +117,7 @@ func (c *HeightHintCache) CommitSpendHint(height uint32,
 	Log.Tracef("Updating spend hint to height %d for %v", height,
 		spendRequests)
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Batch(func(tx *bbolt.Tx) error {
 		spendHints := tx.Bucket(spendHintBucket)
 		if spendHints == nil {
 			return ErrCorruptedHeightHintCache
@@ -148,7 +148,7 @@ func (c *HeightHintCache) CommitSpendHint(height uint32,
 // cache for the outpoint.
 func (c *HeightHintCache) QuerySpendHint(spendRequest SpendRequest) (uint32, error) {
 	var hint uint32
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		spendHints := tx.Bucket(spendHintBucket)
 		if spendHints == nil {
 			return ErrCorruptedHeightHintCache
@@ -180,7 +180,7 @@ func (c *HeightHintCache) PurgeSpendHint(spendRequests ...SpendRequest) error {
 
 	Log.Tracef("Removing spend hints for %v", spendRequests)
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Batch(func(tx *bbolt.Tx) error {
 		spendHints := tx.Bucket(spendHintBucket)
 		if spendHints == nil {
 			return ErrCorruptedHeightHintCache
@@ -211,7 +211,7 @@ func (c *HeightHintCache) CommitConfirmHint(height uint32,
 	Log.Tracef("Updating confirm hints to height %d for %v", height,
 		confRequests)
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Batch(func(tx *bbolt.Tx) error {
 		confirmHints := tx.Bucket(confirmHintBucket)
 		if confirmHints == nil {
 			return ErrCorruptedHeightHintCache
@@ -242,7 +242,7 @@ func (c *HeightHintCache) CommitConfirmHint(height uint32,
 // the cache for the transaction hash.
 func (c *HeightHintCache) QueryConfirmHint(confRequest ConfRequest) (uint32, error) {
 	var hint uint32
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		confirmHints := tx.Bucket(confirmHintBucket)
 		if confirmHints == nil {
 			return ErrCorruptedHeightHintCache
@@ -275,7 +275,7 @@ func (c *HeightHintCache) PurgeConfirmHint(confRequests ...ConfRequest) error {
 
 	Log.Tracef("Removing confirm hints for %v", confRequests)
 
-	return c.db.Batch(func(tx *bolt.Tx) error {
+	return c.db.Batch(func(tx *bbolt.Tx) error {
 		confirmHints := tx.Bucket(confirmHintBucket)
 		if confirmHints == nil {
 			return ErrCorruptedHeightHintCache

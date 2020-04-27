@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var emptyFeatures = lnwire.NewFeatureVector(nil, nil)
@@ -12,7 +12,7 @@ var emptyFeatures = lnwire.NewFeatureVector(nil, nil)
 // MigrateInvoiceTLV migrates all existing invoice bodies over to be serialized
 // in a single TLV stream. In the process, we drop the Receipt field and add
 // PaymentAddr and Features to the invoice Terms.
-func MigrateInvoiceTLV(tx *bolt.Tx) error {
+func MigrateInvoiceTLV(tx *bbolt.Tx) error {
 	log.Infof("Migrating invoice bodies to TLV, " +
 		"adding payment addresses and feature vectors.")
 

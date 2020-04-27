@@ -3,7 +3,7 @@ package channeldb
 import (
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // TestSaneNextKeyFamilyIndex tests that the generation of key family indices
@@ -54,7 +54,7 @@ func TestSaneNextKeyFamilyIndex(t *testing.T) {
 	}
 
 	// Manually change the db to simulate exhausting a key family
-	err = db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bbolt.Tx) error {
 		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
 		if err != nil {
 			return err

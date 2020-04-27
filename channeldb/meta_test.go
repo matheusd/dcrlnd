@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // applyMigration is a helper test function that encapsulates the general steps
@@ -121,11 +121,11 @@ func TestOrderOfMigrations(t *testing.T) {
 	versions := []version{
 		{0, nil},
 		{1, nil},
-		{2, func(tx *bolt.Tx) error {
+		{2, func(tx *bbolt.Tx) error {
 			appliedMigration = 2
 			return nil
 		}},
-		{3, func(tx *bolt.Tx) error {
+		{3, func(tx *bbolt.Tx) error {
 			appliedMigration = 3
 			return nil
 		}},
@@ -197,7 +197,7 @@ func TestMigrationWithPanic(t *testing.T) {
 	beforeMigrationFunc := func(d *DB) {
 		// Insert data in database and in order then make sure that the
 		// key isn't changes in case of panic or fail.
-		d.Update(func(tx *bolt.Tx) error {
+		d.Update(func(tx *bbolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 			if err != nil {
 				return err
@@ -210,7 +210,7 @@ func TestMigrationWithPanic(t *testing.T) {
 
 	// Create migration function which changes the initially created data and
 	// throw the panic, in this case we pretending that something goes.
-	migrationWithPanic := func(tx *bolt.Tx) error {
+	migrationWithPanic := func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 		if err != nil {
 			return err
@@ -231,7 +231,7 @@ func TestMigrationWithPanic(t *testing.T) {
 			t.Fatal("migration panicked but version is changed")
 		}
 
-		err = d.Update(func(tx *bolt.Tx) error {
+		err = d.Update(func(tx *bbolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 			if err != nil {
 				return err
@@ -268,7 +268,7 @@ func TestMigrationWithFatal(t *testing.T) {
 	afterMigration := []byte("aftermigration")
 
 	beforeMigrationFunc := func(d *DB) {
-		d.Update(func(tx *bolt.Tx) error {
+		d.Update(func(tx *bbolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 			if err != nil {
 				return err
@@ -282,7 +282,7 @@ func TestMigrationWithFatal(t *testing.T) {
 	// Create migration function which changes the initially created data and
 	// return the error, in this case we pretending that something goes
 	// wrong.
-	migrationWithFatal := func(tx *bolt.Tx) error {
+	migrationWithFatal := func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 		if err != nil {
 			return err
@@ -303,7 +303,7 @@ func TestMigrationWithFatal(t *testing.T) {
 			t.Fatal("migration failed but version is changed")
 		}
 
-		err = d.Update(func(tx *bolt.Tx) error {
+		err = d.Update(func(tx *bbolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 			if err != nil {
 				return err
@@ -341,7 +341,7 @@ func TestMigrationWithoutErrors(t *testing.T) {
 
 	// Populate database with initial data.
 	beforeMigrationFunc := func(d *DB) {
-		d.Update(func(tx *bolt.Tx) error {
+		d.Update(func(tx *bbolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 			if err != nil {
 				return err
@@ -353,7 +353,7 @@ func TestMigrationWithoutErrors(t *testing.T) {
 	}
 
 	// Create migration function which changes the initially created data.
-	migrationWithoutErrors := func(tx *bolt.Tx) error {
+	migrationWithoutErrors := func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 		if err != nil {
 			return err
@@ -375,7 +375,7 @@ func TestMigrationWithoutErrors(t *testing.T) {
 				"successfully applied migration")
 		}
 
-		err = d.Update(func(tx *bolt.Tx) error {
+		err = d.Update(func(tx *bbolt.Tx) error {
 			bucket, err := tx.CreateBucketIfNotExists(bucketPrefix)
 			if err != nil {
 				return err
@@ -419,7 +419,7 @@ func TestMigrationReversion(t *testing.T) {
 
 	// Update the database metadata to point to one more than the highest
 	// known version.
-	err = cdb.Update(func(tx *bolt.Tx) error {
+	err = cdb.Update(func(tx *bbolt.Tx) error {
 		newMeta := &Meta{
 			DbVersionNumber: getLatestDBVersion(dbVersions) + 1,
 		}

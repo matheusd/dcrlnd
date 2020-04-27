@@ -6,5 +6,5 @@ import (
 
 // BoltBackendName is the name of the backend that should be passed into
 // kvdb.Create to initialize a new instance of kvdb.Backend backed by a live
-// instance of bolt.
+// instance of bbolt.
 const BoltBackendName = "bdb"

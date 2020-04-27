@@ -36,7 +36,7 @@ import (
 	"github.com/decred/dcrlnd/ticker"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbolt"
 )
 
 func modNScalar(b []byte) *secp256k1.ModNScalar {
@@ -425,7 +425,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		aliceStoredChannels, err := dbAlice.FetchOpenChannels(aliceKeyPub)
 		switch err {
 		case nil:
-		case bolt.ErrDatabaseNotOpen:
+		case bbolt.ErrDatabaseNotOpen:
 			dbAlice, err = channeldb.Open(dbAlice.Path())
 			if err != nil {
 				return nil, errors.Errorf("unable to reopen alice "+
@@ -469,7 +469,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		bobStoredChannels, err := dbBob.FetchOpenChannels(bobKeyPub)
 		switch err {
 		case nil:
-		case bolt.ErrDatabaseNotOpen:
+		case bbolt.ErrDatabaseNotOpen:
 			dbBob, err = channeldb.Open(dbBob.Path())
 			if err != nil {
 				return nil, errors.Errorf("unable to reopen bob "+
