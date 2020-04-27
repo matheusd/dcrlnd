@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrlnd/lntypes"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -106,7 +106,7 @@ func (w *WitnessCache) addWitnessEntries(wType WitnessType,
 		return nil
 	}
 
-	return w.db.Batch(func(tx *bolt.Tx) error {
+	return w.db.Batch(func(tx *bbolt.Tx) error {
 		witnessBucket, err := tx.CreateBucketIfNotExists(witnessBucketKey)
 		if err != nil {
 			return err
@@ -150,7 +150,7 @@ func (w *WitnessCache) LookupSha256Witness(hash lntypes.Hash) (lntypes.Preimage,
 // will be returned.
 func (w *WitnessCache) lookupWitness(wType WitnessType, witnessKey []byte) ([]byte, error) {
 	var witness []byte
-	err := w.db.View(func(tx *bolt.Tx) error {
+	err := w.db.View(func(tx *bbolt.Tx) error {
 		witnessBucket := tx.Bucket(witnessBucketKey)
 		if witnessBucket == nil {
 			return ErrNoWitnesses
@@ -189,7 +189,7 @@ func (w *WitnessCache) DeleteSha256Witness(hash lntypes.Hash) error {
 
 // deleteWitness attempts to delete a particular witness from the database.
 func (w *WitnessCache) deleteWitness(wType WitnessType, witnessKey []byte) error {
-	return w.db.Batch(func(tx *bolt.Tx) error {
+	return w.db.Batch(func(tx *bbolt.Tx) error {
 		witnessBucket, err := tx.CreateBucketIfNotExists(witnessBucketKey)
 		if err != nil {
 			return err
@@ -213,7 +213,7 @@ func (w *WitnessCache) deleteWitness(wType WitnessType, witnessKey []byte) error
 // DeleteWitnessClass attempts to delete an *entire* class of witnesses. After
 // this function return with a non-nil error,
 func (w *WitnessCache) DeleteWitnessClass(wType WitnessType) error {
-	return w.db.Batch(func(tx *bolt.Tx) error {
+	return w.db.Batch(func(tx *bbolt.Tx) error {
 		witnessBucket, err := tx.CreateBucketIfNotExists(witnessBucketKey)
 		if err != nil {
 			return err

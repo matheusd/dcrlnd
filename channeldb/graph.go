@@ -19,7 +19,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -205,7 +205,7 @@ func (c *ChannelGraph) Database() *DB {
 func (c *ChannelGraph) ForEachChannel(cb func(*ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
 	// TODO(roasbeef): ptr map to reduce # of allocs? no duplicates
 
-	return c.db.View(func(tx *bolt.Tx) error {
+	return c.db.View(func(tx *bbolt.Tx) error {
 		// First, grab the node bucket. This will be used to populate
 		// the Node pointers in each edge read from disk.
 		nodes := tx.Bucket(nodeBucket)
@@ -260,12 +260,12 @@ func (c *ChannelGraph) ForEachChannel(cb func(*ChannelEdgeInfo, *ChannelEdgePoli
 //
 // Unknown policies are passed into the callback as nil values.
 //
-// If the caller wishes to re-use an existing boltdb transaction, then it
+// If the caller wishes to re-use an existing bboltdb transaction, then it
 // should be passed as the first argument.  Otherwise the first argument should
 // be nil and a fresh transaction will be created to execute the graph
 // traversal.
-func (c *ChannelGraph) ForEachNodeChannel(tx *bolt.Tx, nodePub []byte,
-	cb func(*bolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy,
+func (c *ChannelGraph) ForEachNodeChannel(tx *bbolt.Tx, nodePub []byte,
+	cb func(*bbolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy,
 		*ChannelEdgePolicy) error) error {
 
 	db := c.db
@@ -280,7 +280,7 @@ func (c *ChannelGraph) DisabledChannelIDs() ([]uint64, error) {
 	var disabledChanIDs []uint64
 	chanEdgeFound := make(map[uint64]struct{})
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -318,15 +318,15 @@ func (c *ChannelGraph) DisabledChannelIDs() ([]uint64, error) {
 // returns an error, then the transaction is aborted and the iteration stops
 // early.
 //
-// If the caller wishes to re-use an existing boltdb transaction, then it
+// If the caller wishes to re-use an existing bboltdb transaction, then it
 // should be passed as the first argument.  Otherwise the first argument should
 // be nil and a fresh transaction will be created to execute the graph
 // traversal
 //
 // TODO(roasbeef): add iterator interface to allow for memory efficient graph
 // traversal when graph gets mega
-func (c *ChannelGraph) ForEachNode(tx *bolt.Tx, cb func(*bolt.Tx, *LightningNode) error) error {
-	traversal := func(tx *bolt.Tx) error {
+func (c *ChannelGraph) ForEachNode(tx *bbolt.Tx, cb func(*bbolt.Tx, *LightningNode) error) error {
+	traversal := func(tx *bbolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes := tx.Bucket(nodeBucket)
@@ -372,7 +372,7 @@ func (c *ChannelGraph) ForEachNode(tx *bolt.Tx, cb func(*bolt.Tx, *LightningNode
 // node based off the source node.
 func (c *ChannelGraph) SourceNode() (*LightningNode, error) {
 	var source *LightningNode
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes := tx.Bucket(nodeBucket)
@@ -399,7 +399,7 @@ func (c *ChannelGraph) SourceNode() (*LightningNode, error) {
 // of the graph. The source node is treated as the center node within a
 // star-graph. This method may be used to kick off a path finding algorithm in
 // order to explore the reachability of another node based off the source node.
-func (c *ChannelGraph) sourceNode(nodes *bolt.Bucket) (*LightningNode, error) {
+func (c *ChannelGraph) sourceNode(nodes *bbolt.Bucket) (*LightningNode, error) {
 	selfPub := nodes.Get(sourceKey)
 	if selfPub == nil {
 		return nil, ErrSourceNodeNotSet
@@ -422,7 +422,7 @@ func (c *ChannelGraph) sourceNode(nodes *bolt.Bucket) (*LightningNode, error) {
 func (c *ChannelGraph) SetSourceNode(node *LightningNode) error {
 	nodePubBytes := node.PubKeyBytes[:]
 
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes, err := tx.CreateBucketIfNotExists(nodeBucket)
@@ -451,12 +451,12 @@ func (c *ChannelGraph) SetSourceNode(node *LightningNode) error {
 //
 // TODO(roasbeef): also need sig of announcement
 func (c *ChannelGraph) AddLightningNode(node *LightningNode) error {
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		return addLightningNode(tx, node)
 	})
 }
 
-func addLightningNode(tx *bolt.Tx, node *LightningNode) error {
+func addLightningNode(tx *bbolt.Tx, node *LightningNode) error {
 	nodes, err := tx.CreateBucketIfNotExists(nodeBucket)
 	if err != nil {
 		return err
@@ -482,7 +482,7 @@ func addLightningNode(tx *bolt.Tx, node *LightningNode) error {
 func (c *ChannelGraph) LookupAlias(pub *secp256k1.PublicKey) (string, error) {
 	var alias string
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodesNotFound
@@ -515,7 +515,7 @@ func (c *ChannelGraph) LookupAlias(pub *secp256k1.PublicKey) (string, error) {
 // from the database according to the node's public key.
 func (c *ChannelGraph) DeleteLightningNode(nodePub route.Vertex) error {
 	// TODO(roasbeef): ensure dangling edges are removed...
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodeNotFound
@@ -527,7 +527,7 @@ func (c *ChannelGraph) DeleteLightningNode(nodePub route.Vertex) error {
 
 // deleteLightningNode uses an existing database transaction to remove a
 // vertex/node from the database according to the node's public key.
-func (c *ChannelGraph) deleteLightningNode(nodes *bolt.Bucket,
+func (c *ChannelGraph) deleteLightningNode(nodes *bbolt.Bucket,
 	compressedPubKey []byte) error {
 
 	aliases := nodes.Bucket(aliasIndexBucket)
@@ -580,7 +580,7 @@ func (c *ChannelGraph) AddChannelEdge(edge *ChannelEdgeInfo) error {
 	c.cacheMu.Lock()
 	defer c.cacheMu.Unlock()
 
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		return c.addChannelEdge(tx, edge)
 	})
 	if err != nil {
@@ -595,7 +595,7 @@ func (c *ChannelGraph) AddChannelEdge(edge *ChannelEdgeInfo) error {
 
 // addChannelEdge is the private form of AddChannelEdge that allows callers to
 // utilize an existing db transaction.
-func (c *ChannelGraph) addChannelEdge(tx *bolt.Tx, edge *ChannelEdgeInfo) error {
+func (c *ChannelGraph) addChannelEdge(tx *bbolt.Tx, edge *ChannelEdgeInfo) error {
 	// Construct the channel's primary key which is the 8-byte channel ID.
 	var chanKey [8]byte
 	binary.BigEndian.PutUint64(chanKey[:], edge.ChannelID)
@@ -730,7 +730,7 @@ func (c *ChannelGraph) HasChannelEdge(
 		return upd1Time, upd2Time, exists, isZombie, nil
 	}
 
-	if err := c.db.View(func(tx *bolt.Tx) error {
+	if err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -807,7 +807,7 @@ func (c *ChannelGraph) UpdateChannelEdge(edge *ChannelEdgeInfo) error {
 	var chanKey [8]byte
 	binary.BigEndian.PutUint64(chanKey[:], edge.ChannelID)
 
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edge == nil {
 			return ErrEdgeNotFound
@@ -850,7 +850,7 @@ func (c *ChannelGraph) PruneGraph(spentOutputs []*wire.OutPoint,
 
 	var chansClosed []*ChannelEdgeInfo
 
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		// First grab the edges bucket which houses the information
 		// we'd like to delete
 		edges, err := tx.CreateBucketIfNotExists(edgeBucket)
@@ -964,7 +964,7 @@ func (c *ChannelGraph) PruneGraph(spentOutputs []*wire.OutPoint,
 // that we only maintain a graph of reachable nodes. In the event that a pruned
 // node gains more channels, it will be re-added back to the graph.
 func (c *ChannelGraph) PruneGraphNodes() error {
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodesNotFound
@@ -985,8 +985,8 @@ func (c *ChannelGraph) PruneGraphNodes() error {
 // pruneGraphNodes attempts to remove any nodes from the graph who have had a
 // channel closed within the current block. If the node still has existing
 // channels in the graph, this will act as a no-op.
-func (c *ChannelGraph) pruneGraphNodes(nodes *bolt.Bucket,
-	edgeIndex *bolt.Bucket) error {
+func (c *ChannelGraph) pruneGraphNodes(nodes *bbolt.Bucket,
+	edgeIndex *bbolt.Bucket) error {
 
 	log.Trace("Pruning nodes from graph with no open channels")
 
@@ -1112,7 +1112,7 @@ func (c *ChannelGraph) DisconnectBlockAtHeight(height uint32) ([]*ChannelEdgeInf
 	// Keep track of the channels that are removed from the graph.
 	var removedChans []*ChannelEdgeInfo
 
-	if err := c.db.Update(func(tx *bolt.Tx) error {
+	if err := c.db.Update(func(tx *bbolt.Tx) error {
 		edges, err := tx.CreateBucketIfNotExists(edgeBucket)
 		if err != nil {
 			return err
@@ -1220,7 +1220,7 @@ func (c *ChannelGraph) PruneTip() (*chainhash.Hash, uint32, error) {
 		tipHeight uint32
 	)
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		graphMeta := tx.Bucket(graphMetaBucket)
 		if graphMeta == nil {
 			return ErrGraphNotFound
@@ -1265,7 +1265,7 @@ func (c *ChannelGraph) DeleteChannelEdges(chanIDs ...uint64) error {
 	c.cacheMu.Lock()
 	defer c.cacheMu.Unlock()
 
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrEdgeNotFound
@@ -1318,7 +1318,7 @@ func (c *ChannelGraph) DeleteChannelEdges(chanIDs ...uint64) error {
 // the database, then ErrEdgeNotFound is returned.
 func (c *ChannelGraph) ChannelID(chanPoint *wire.OutPoint) (uint64, error) {
 	var chanID uint64
-	if err := c.db.View(func(tx *bolt.Tx) error {
+	if err := c.db.View(func(tx *bbolt.Tx) error {
 		var err error
 		chanID, err = getChanID(tx, chanPoint)
 		return err
@@ -1330,7 +1330,7 @@ func (c *ChannelGraph) ChannelID(chanPoint *wire.OutPoint) (uint64, error) {
 }
 
 // getChanID returns the assigned channel ID for a given channel point.
-func getChanID(tx *bolt.Tx, chanPoint *wire.OutPoint) (uint64, error) {
+func getChanID(tx *bbolt.Tx, chanPoint *wire.OutPoint) (uint64, error) {
 	var b bytes.Buffer
 	if err := writeOutpoint(&b, chanPoint); err != nil {
 		return 0, err
@@ -1363,7 +1363,7 @@ func getChanID(tx *bolt.Tx, chanPoint *wire.OutPoint) (uint64, error) {
 func (c *ChannelGraph) HighestChanID() (uint64, error) {
 	var cid uint64
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -1427,7 +1427,7 @@ func (c *ChannelGraph) ChanUpdatesInHorizon(startTime, endTime time.Time) ([]Cha
 	defer c.cacheMu.Unlock()
 
 	var hits int
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -1547,7 +1547,7 @@ func (c *ChannelGraph) ChanUpdatesInHorizon(startTime, endTime time.Time) ([]Cha
 func (c *ChannelGraph) NodeUpdatesInHorizon(startTime, endTime time.Time) ([]LightningNode, error) {
 	var nodesInHorizon []LightningNode
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodesNotFound
@@ -1609,7 +1609,7 @@ func (c *ChannelGraph) NodeUpdatesInHorizon(startTime, endTime time.Time) ([]Lig
 func (c *ChannelGraph) FilterKnownChanIDs(chanIDs []uint64) ([]uint64, error) {
 	var newChanIDs []uint64
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -1685,7 +1685,7 @@ func (c *ChannelGraph) FilterChannelRange(startHeight, endHeight uint32) ([]uint
 	byteOrder.PutUint64(chanIDStart[:], startChanID.ToUint64())
 	byteOrder.PutUint64(chanIDEnd[:], endChanID.ToUint64())
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -1738,7 +1738,7 @@ func (c *ChannelGraph) FetchChanInfos(chanIDs []uint64) ([]ChannelEdge, error) {
 		cidBytes  [8]byte
 	)
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -1793,7 +1793,7 @@ func (c *ChannelGraph) FetchChanInfos(chanIDs []uint64) ([]ChannelEdge, error) {
 	return chanEdges, nil
 }
 
-func delEdgeUpdateIndexEntry(edgesBucket *bolt.Bucket, chanID uint64,
+func delEdgeUpdateIndexEntry(edgesBucket *bbolt.Bucket, chanID uint64,
 	edge1, edge2 *ChannelEdgePolicy) error {
 
 	// First, we'll fetch the edge update index bucket which currently
@@ -1832,7 +1832,7 @@ func delEdgeUpdateIndexEntry(edgesBucket *bolt.Bucket, chanID uint64,
 }
 
 func delChannelEdge(edges, edgeIndex, chanIndex, zombieIndex,
-	nodes *bolt.Bucket, chanID []byte, isZombie bool) error {
+	nodes *bbolt.Bucket, chanID []byte, isZombie bool) error {
 
 	edgeInfo, err := fetchChanEdgeInfo(edgeIndex, chanID)
 	if err != nil {
@@ -1918,7 +1918,7 @@ func (c *ChannelGraph) UpdateEdgePolicy(edge *ChannelEdgePolicy) error {
 	defer c.cacheMu.Unlock()
 
 	var isUpdate1 bool
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		var err error
 		isUpdate1, err = updateEdgePolicy(tx, edge)
 		return err
@@ -1960,7 +1960,7 @@ func (c *ChannelGraph) UpdateEdgePolicy(edge *ChannelEdgePolicy) error {
 // buckets using an existing database transaction. The returned boolean will be
 // true if the updated policy belongs to node1, and false if the policy
 // belonged to node2.
-func updateEdgePolicy(tx *bolt.Tx, edge *ChannelEdgePolicy) (bool, error) {
+func updateEdgePolicy(tx *bbolt.Tx, edge *ChannelEdgePolicy) (bool, error) {
 	edges := tx.Bucket(edgeBucket)
 	if edges == nil {
 		return false, ErrEdgeNotFound
@@ -2137,14 +2137,14 @@ func (l *LightningNode) NodeAnnouncement(signed bool) (*lnwire.NodeAnnouncement,
 // isPublic determines whether the node is seen as public within the graph from
 // the source node's point of view. An existing database transaction can also be
 // specified.
-func (l *LightningNode) isPublic(tx *bolt.Tx, sourcePubKey []byte) (bool, error) {
+func (l *LightningNode) isPublic(tx *bbolt.Tx, sourcePubKey []byte) (bool, error) {
 	// In order to determine whether this node is publicly advertised within
 	// the graph, we'll need to look at all of its edges and check whether
 	// they extend to any other node than the source node. errDone will be
 	// used to terminate the check early.
 	nodeIsPublic := false
 	errDone := errors.New("done")
-	err := l.ForEachChannel(tx, func(_ *bolt.Tx, info *ChannelEdgeInfo,
+	err := l.ForEachChannel(tx, func(_ *bbolt.Tx, info *ChannelEdgeInfo,
 		_, _ *ChannelEdgePolicy) error {
 
 		// If this edge doesn't extend to the source node, we'll
@@ -2179,16 +2179,16 @@ func (l *LightningNode) isPublic(tx *bolt.Tx, sourcePubKey []byte) (bool, error)
 // key. If the node isn't found in the database, then ErrGraphNodeNotFound is
 // returned.
 //
-// If the caller wishes to re-use an existing boltdb transaction, then it
+// If the caller wishes to re-use an existing bboltdb transaction, then it
 // should be passed as the first argument.  Otherwise the first argument should
 // be nil and a fresh transaction will be created to execute the graph
 // traversal.
-func (c *ChannelGraph) FetchLightningNode(tx *bolt.Tx, nodePub route.Vertex) (
+func (c *ChannelGraph) FetchLightningNode(tx *bbolt.Tx, nodePub route.Vertex) (
 	*LightningNode, error) {
 
 	var node *LightningNode
 
-	fetchNode := func(tx *bolt.Tx) error {
+	fetchNode := func(tx *bbolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes := tx.Bucket(nodeBucket)
@@ -2241,7 +2241,7 @@ func (c *ChannelGraph) HasLightningNode(nodePub [33]byte) (time.Time, bool, erro
 		exists     bool
 	)
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes := tx.Bucket(nodeBucket)
@@ -2279,10 +2279,10 @@ func (c *ChannelGraph) HasLightningNode(nodePub [33]byte) (time.Time, bool, erro
 
 // nodeTraversal is used to traverse all channels of a node given by its public
 // key and passes channel information into the specified callback.
-func nodeTraversal(tx *bolt.Tx, nodePub []byte, db *DB,
-	cb func(*bolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
+func nodeTraversal(tx *bbolt.Tx, nodePub []byte, db *DB,
+	cb func(*bbolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
 
-	traversal := func(tx *bolt.Tx) error {
+	traversal := func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNotFound
@@ -2373,12 +2373,12 @@ func nodeTraversal(tx *bolt.Tx, nodePub []byte, db *DB,
 //
 // Unknown policies are passed into the callback as nil values.
 //
-// If the caller wishes to re-use an existing boltdb transaction, then it
+// If the caller wishes to re-use an existing bboltdb transaction, then it
 // should be passed as the first argument.  Otherwise the first argument should
 // be nil and a fresh transaction will be created to execute the graph
 // traversal.
-func (l *LightningNode) ForEachChannel(tx *bolt.Tx,
-	cb func(*bolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
+func (l *LightningNode) ForEachChannel(tx *bbolt.Tx,
+	cb func(*bbolt.Tx, *ChannelEdgeInfo, *ChannelEdgePolicy, *ChannelEdgePolicy) error) error {
 
 	nodePub := l.PubKeyBytes[:]
 	db := l.db
@@ -2569,7 +2569,7 @@ func (c *ChannelEdgeInfo) OtherNodeKeyBytes(thisNodeKey []byte) (
 // the target node in the channel. This is useful when one knows the pubkey of
 // one of the nodes, and wishes to obtain the full LightningNode for the other
 // end of the channel.
-func (c *ChannelEdgeInfo) FetchOtherNode(tx *bolt.Tx, thisNodeKey []byte) (*LightningNode, error) {
+func (c *ChannelEdgeInfo) FetchOtherNode(tx *bbolt.Tx, thisNodeKey []byte) (*LightningNode, error) {
 
 	// Ensure that the node passed in is actually a member of the channel.
 	var targetNodeBytes [33]byte
@@ -2583,7 +2583,7 @@ func (c *ChannelEdgeInfo) FetchOtherNode(tx *bolt.Tx, thisNodeKey []byte) (*Ligh
 	}
 
 	var targetNode *LightningNode
-	fetchNodeFunc := func(tx *bolt.Tx) error {
+	fetchNodeFunc := func(tx *bbolt.Tx) error {
 		// First grab the nodes bucket which stores the mapping from
 		// pubKey to node information.
 		nodes := tx.Bucket(nodeBucket)
@@ -2882,7 +2882,7 @@ func (c *ChannelGraph) FetchChannelEdgesByOutpoint(op *wire.OutPoint,
 		policy2  *ChannelEdgePolicy
 	)
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		// First, grab the node bucket. This will be used to populate
 		// the Node pointers in each edge read from disk.
 		nodes := tx.Bucket(nodeBucket)
@@ -2966,7 +2966,7 @@ func (c *ChannelGraph) FetchChannelEdgesByID(chanID uint64,
 		channelID [8]byte
 	)
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		// First, grab the node bucket. This will be used to populate
 		// the Node pointers in each edge read from disk.
 		nodes := tx.Bucket(nodeBucket)
@@ -3056,7 +3056,7 @@ func (c *ChannelGraph) FetchChannelEdgesByID(chanID uint64,
 // source node's point of view.
 func (c *ChannelGraph) IsPublicNode(pubKey [33]byte) (bool, error) {
 	var nodeIsPublic bool
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		nodes := tx.Bucket(nodeBucket)
 		if nodes == nil {
 			return ErrGraphNodesNotFound
@@ -3137,7 +3137,7 @@ func (e *EdgePoint) String() string {
 // closes on the resident blockchain.
 func (c *ChannelGraph) ChannelView() ([]EdgePoint, error) {
 	var edgePoints []EdgePoint
-	if err := c.db.View(func(tx *bolt.Tx) error {
+	if err := c.db.View(func(tx *bbolt.Tx) error {
 		// We're going to iterate over the entire channel index, so
 		// we'll need to fetch the edgeBucket to get to the index as
 		// it's a sub-bucket.
@@ -3205,7 +3205,7 @@ func (c *ChannelGraph) NewChannelEdgePolicy() *ChannelEdgePolicy {
 // markEdgeZombie marks an edge as a zombie within our zombie index. The public
 // keys should represent the node public keys of the two parties involved in
 // the edge.
-func markEdgeZombie(zombieIndex *bolt.Bucket, chanID uint64, pubKey1,
+func markEdgeZombie(zombieIndex *bbolt.Bucket, chanID uint64, pubKey1,
 	pubKey2 [33]byte) error {
 
 	var k [8]byte
@@ -3223,7 +3223,7 @@ func (c *ChannelGraph) MarkEdgeLive(chanID uint64) error {
 	c.cacheMu.Lock()
 	defer c.cacheMu.Unlock()
 
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -3256,7 +3256,7 @@ func (c *ChannelGraph) IsZombieEdge(chanID uint64) (bool, [33]byte, [33]byte) {
 		pubKey1, pubKey2 [33]byte
 	)
 
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return ErrGraphNoEdgesFound
@@ -3279,7 +3279,7 @@ func (c *ChannelGraph) IsZombieEdge(chanID uint64) (bool, [33]byte, [33]byte) {
 // isZombieEdge returns whether an entry exists for the given channel in the
 // zombie index. If an entry exists, then the two node public keys corresponding
 // to this edge are also returned.
-func isZombieEdge(zombieIndex *bolt.Bucket,
+func isZombieEdge(zombieIndex *bbolt.Bucket,
 	chanID uint64) (bool, [33]byte, [33]byte) {
 
 	var k [8]byte
@@ -3300,7 +3300,7 @@ func isZombieEdge(zombieIndex *bolt.Bucket,
 // NumZombies returns the current number of zombie channels in the graph.
 func (c *ChannelGraph) NumZombies() (uint64, error) {
 	var numZombies uint64
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		edges := tx.Bucket(edgeBucket)
 		if edges == nil {
 			return nil
@@ -3322,8 +3322,8 @@ func (c *ChannelGraph) NumZombies() (uint64, error) {
 	return numZombies, nil
 }
 
-func putLightningNode(nodeBucket *bolt.Bucket, aliasBucket *bolt.Bucket,
-	updateIndex *bolt.Bucket, node *LightningNode) error {
+func putLightningNode(nodeBucket *bbolt.Bucket, aliasBucket *bbolt.Bucket,
+	updateIndex *bbolt.Bucket, node *LightningNode) error {
 
 	var (
 		scratch [16]byte
@@ -3451,7 +3451,7 @@ func putLightningNode(nodeBucket *bolt.Bucket, aliasBucket *bolt.Bucket,
 	return nodeBucket.Put(nodePub, b.Bytes())
 }
 
-func fetchLightningNode(nodeBucket *bolt.Bucket,
+func fetchLightningNode(nodeBucket *bbolt.Bucket,
 	nodePub []byte) (LightningNode, error) {
 
 	nodeBytes := nodeBucket.Get(nodePub)
@@ -3559,7 +3559,7 @@ func deserializeLightningNode(r io.Reader) (LightningNode, error) {
 	return node, nil
 }
 
-func putChanEdgeInfo(edgeIndex *bolt.Bucket, edgeInfo *ChannelEdgeInfo, chanID [8]byte) error {
+func putChanEdgeInfo(edgeIndex *bbolt.Bucket, edgeInfo *ChannelEdgeInfo, chanID [8]byte) error {
 	var b bytes.Buffer
 
 	if _, err := b.Write(edgeInfo.NodeKey1Bytes[:]); err != nil {
@@ -3625,7 +3625,7 @@ func putChanEdgeInfo(edgeIndex *bolt.Bucket, edgeInfo *ChannelEdgeInfo, chanID [
 	return edgeIndex.Put(chanID[:], b.Bytes())
 }
 
-func fetchChanEdgeInfo(edgeIndex *bolt.Bucket,
+func fetchChanEdgeInfo(edgeIndex *bbolt.Bucket,
 	chanID []byte) (ChannelEdgeInfo, error) {
 
 	edgeInfoBytes := edgeIndex.Get(chanID)
@@ -3714,7 +3714,7 @@ func deserializeChanEdgeInfo(r io.Reader) (ChannelEdgeInfo, error) {
 	return edgeInfo, nil
 }
 
-func putChanEdgePolicy(edges, nodes *bolt.Bucket, edge *ChannelEdgePolicy,
+func putChanEdgePolicy(edges, nodes *bbolt.Bucket, edge *ChannelEdgePolicy,
 	from, to []byte) error {
 
 	var edgeKey [33 + 8]byte
@@ -3794,7 +3794,7 @@ func putChanEdgePolicy(edges, nodes *bolt.Bucket, edge *ChannelEdgePolicy,
 // in this bucket.
 // Maintaining the bucket this way allows a fast retrieval of disabled
 // channels, for example when prune is needed.
-func updateEdgePolicyDisabledIndex(edges *bolt.Bucket, chanID uint64,
+func updateEdgePolicyDisabledIndex(edges *bbolt.Bucket, chanID uint64,
 	direction bool, disabled bool) error {
 
 	var disabledEdgeKey [8 + 1]byte
@@ -3819,7 +3819,7 @@ func updateEdgePolicyDisabledIndex(edges *bolt.Bucket, chanID uint64,
 
 // putChanEdgePolicyUnknown marks the edge policy as unknown
 // in the edges bucket.
-func putChanEdgePolicyUnknown(edges *bolt.Bucket, channelID uint64,
+func putChanEdgePolicyUnknown(edges *bbolt.Bucket, channelID uint64,
 	from []byte) error {
 
 	var edgeKey [33 + 8]byte
@@ -3834,8 +3834,8 @@ func putChanEdgePolicyUnknown(edges *bolt.Bucket, channelID uint64,
 	return edges.Put(edgeKey[:], unknownPolicy)
 }
 
-func fetchChanEdgePolicy(edges *bolt.Bucket, chanID []byte,
-	nodePub []byte, nodes *bolt.Bucket) (*ChannelEdgePolicy, error) {
+func fetchChanEdgePolicy(edges *bbolt.Bucket, chanID []byte,
+	nodePub []byte, nodes *bbolt.Bucket) (*ChannelEdgePolicy, error) {
 
 	var edgeKey [33 + 8]byte
 	copy(edgeKey[:], nodePub)
@@ -3867,8 +3867,8 @@ func fetchChanEdgePolicy(edges *bolt.Bucket, chanID []byte,
 	return ep, nil
 }
 
-func fetchChanEdgePolicies(edgeIndex *bolt.Bucket, edges *bolt.Bucket,
-	nodes *bolt.Bucket, chanID []byte,
+func fetchChanEdgePolicies(edgeIndex *bbolt.Bucket, edges *bbolt.Bucket,
+	nodes *bbolt.Bucket, chanID []byte,
 	db *DB) (*ChannelEdgePolicy, *ChannelEdgePolicy, error) {
 
 	edgeInfo := edgeIndex.Get(chanID)
@@ -3976,7 +3976,7 @@ func serializeChanEdgePolicy(w io.Writer, edge *ChannelEdgePolicy,
 }
 
 func deserializeChanEdgePolicy(r io.Reader,
-	nodes *bolt.Bucket) (*ChannelEdgePolicy, error) {
+	nodes *bbolt.Bucket) (*ChannelEdgePolicy, error) {
 
 	edge := &ChannelEdgePolicy{}
 

@@ -11,7 +11,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const testMaxRecords = 2
@@ -31,7 +31,7 @@ func TestMissionControlStore(t *testing.T) {
 
 	dbPath := file.Name()
 
-	db, err := bolt.Open(dbPath, 0600, nil)
+	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -45,11 +45,11 @@ func fileExists(path string) bool {
 	return true
 }
 
-// createDBIfNotExist opens the boltdb database at dbPath/name, creating one if
+// createDBIfNotExist opens the bboltdb database at dbPath/name, creating one if
 // one doesn't exist. The boolean returned indicates if the database did not
 // exist before, or if it has been created but no version metadata exists within
 // it.
-func createDBIfNotExist(dbPath, name string) (*bolt.DB, bool, error) {
+func createDBIfNotExist(dbPath, name string) (*bbolt.DB, bool, error) {
 	path := filepath.Join(dbPath, name)
 
 	// If the database file doesn't exist, this indicates we much initialize
@@ -63,14 +63,14 @@ func createDBIfNotExist(dbPath, name string) (*bolt.DB, bool, error) {
 		}
 	}
 
-	// Specify bbolt freelist options to reduce heap pressure in case the
+	// Specify bbbolt freelist options to reduce heap pressure in case the
 	// freelist grows to be very large.
-	options := &bolt.Options{
+	options := &bbolt.Options{
 		NoFreelistSync: true,
-		FreelistType:   bolt.FreelistMapType,
+		FreelistType:   bbolt.FreelistMapType,
 	}
 
-	bdb, err := bolt.Open(path, dbFilePermission, options)
+	bdb, err := bbolt.Open(path, dbFilePermission, options)
 	if err != nil {
 		return nil, false, err
 	}
@@ -82,7 +82,7 @@ func createDBIfNotExist(dbPath, name string) (*bolt.DB, bool, error) {
 	// set firstInit to true so that we can treat is initialize the bucket.
 	if !firstInit {
 		var metadataExists bool
-		err = bdb.View(func(tx *bolt.Tx) error {
+		err = bdb.View(func(tx *bbolt.Tx) error {
 			metadataExists = tx.Bucket(metadataBkt) != nil
 			return nil
 		})

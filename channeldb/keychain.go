@@ -3,7 +3,7 @@ package channeldb
 import (
 	"bytes"
 	"errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -69,7 +69,7 @@ func (d *DB) NextKeyFamilyIndex(keyFamily uint32) (uint32, error) {
 		return 0, errInvalidKeyFamily
 	}
 
-	err := d.Update(func(tx *bolt.Tx) error {
+	err := d.Update(func(tx *bbolt.Tx) error {
 		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
 		if err != nil {
 			return err
@@ -113,7 +113,7 @@ func (d *DB) NextKeyFamilyIndex(keyFamily uint32) (uint32, error) {
 // given parameter if the ID exists in the database and returns an error if the
 // IDs don't match. If the database is empty, then the ID is stored.
 func (d *DB) CompareAndStoreAccountID(id []byte) error {
-	return d.Update(func(tx *bolt.Tx) error {
+	return d.Update(func(tx *bbolt.Tx) error {
 		keychain, err := tx.CreateBucketIfNotExists(keychainBucket)
 		if err != nil {
 			return err

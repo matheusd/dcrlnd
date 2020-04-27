@@ -8,7 +8,7 @@ import (
 
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // integratedRoutingContext defines the context in which integrated routing
@@ -82,7 +82,7 @@ func (c *integratedRoutingContext) testPayment(expectedNofAttempts int) {
 	dbPath := file.Name()
 	defer os.Remove(dbPath)
 
-	db, err := bolt.Open(dbPath, 0600, nil)
+	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		c.t.Fatal(err)
 	}

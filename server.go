@@ -63,7 +63,7 @@ import (
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -2153,7 +2153,7 @@ func (s *server) establishPersistentConnections() error {
 	// each of the nodes.
 	selfPub := s.identityPriv.PubKey().SerializeCompressed()
 	err = sourceNode.ForEachChannel(nil, func(
-		tx *bolt.Tx,
+		tx *bbolt.Tx,
 		chanInfo *channeldb.ChannelEdgeInfo,
 		policy, _ *channeldb.ChannelEdgePolicy) error {
 

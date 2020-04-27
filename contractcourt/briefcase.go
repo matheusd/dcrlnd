@@ -11,7 +11,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // ContractResolutions is a wrapper struct around the two forms of resolutions
@@ -306,38 +306,38 @@ var (
 	errNoCommitSet = fmt.Errorf("no commit set exists")
 )
 
-// boltArbitratorLog is an implementation of the ArbitratorLog interface backed
-// by a bolt DB instance.
-type boltArbitratorLog struct {
-	db *bolt.DB
+// bboltArbitratorLog is an implementation of the ArbitratorLog interface backed
+// by a bbolt DB instance.
+type bboltArbitratorLog struct {
+	db *bbolt.DB
 
 	cfg ChannelArbitratorConfig
 
 	scopeKey logScope
 }
 
-// newBoltArbitratorLog returns a new instance of the boltArbitratorLog given
+// newBoltArbitratorLog returns a new instance of the bboltArbitratorLog given
 // an arbitrator config, and the items needed to create its log scope.
-func newBoltArbitratorLog(db *bolt.DB, cfg ChannelArbitratorConfig,
-	chainHash chainhash.Hash, chanPoint wire.OutPoint) (*boltArbitratorLog, error) {
+func newBoltArbitratorLog(db *bbolt.DB, cfg ChannelArbitratorConfig,
+	chainHash chainhash.Hash, chanPoint wire.OutPoint) (*bboltArbitratorLog, error) {
 
 	scope, err := newLogScope(chainHash, chanPoint)
 	if err != nil {
 		return nil, err
 	}
 
-	return &boltArbitratorLog{
+	return &bboltArbitratorLog{
 		db:       db,
 		cfg:      cfg,
 		scopeKey: *scope,
 	}, nil
 }
 
-// A compile time check to ensure boltArbitratorLog meets the ArbitratorLog
+// A compile time check to ensure bboltArbitratorLog meets the ArbitratorLog
 // interface.
-var _ ArbitratorLog = (*boltArbitratorLog)(nil)
+var _ ArbitratorLog = (*bboltArbitratorLog)(nil)
 
-func fetchContractReadBucket(tx *bolt.Tx, scopeKey []byte) (*bolt.Bucket, error) {
+func fetchContractReadBucket(tx *bbolt.Tx, scopeKey []byte) (*bbolt.Bucket, error) {
 	scopeBucket := tx.Bucket(scopeKey)
 	if scopeBucket == nil {
 		return nil, errScopeBucketNoExist
@@ -351,7 +351,7 @@ func fetchContractReadBucket(tx *bolt.Tx, scopeKey []byte) (*bolt.Bucket, error)
 	return contractBucket, nil
 }
 
-func fetchContractWriteBucket(tx *bolt.Tx, scopeKey []byte) (*bolt.Bucket, error) {
+func fetchContractWriteBucket(tx *bbolt.Tx, scopeKey []byte) (*bbolt.Bucket, error) {
 	scopeBucket, err := tx.CreateBucketIfNotExists(scopeKey)
 	if err != nil {
 		return nil, err
@@ -369,7 +369,7 @@ func fetchContractWriteBucket(tx *bolt.Tx, scopeKey []byte) (*bolt.Bucket, error
 
 // writeResolver is a helper method that writes a contract resolver and stores
 // it it within the passed contractBucket using its unique resolutionsKey key.
-func (b *boltArbitratorLog) writeResolver(contractBucket *bolt.Bucket,
+func (b *bboltArbitratorLog) writeResolver(contractBucket *bbolt.Bucket,
 	res ContractResolver) error {
 
 	// Only persist resolvers that are stateful. Stateless resolvers don't
@@ -413,9 +413,9 @@ func (b *boltArbitratorLog) writeResolver(contractBucket *bolt.Bucket,
 // CurrentState returns the current state of the ChannelArbitrator.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) CurrentState() (ArbitratorState, error) {
+func (b *bboltArbitratorLog) CurrentState() (ArbitratorState, error) {
 	var s ArbitratorState
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bbolt.Tx) error {
 		scopeBucket := tx.Bucket(b.scopeKey[:])
 		if scopeBucket == nil {
 			return errScopeBucketNoExist
@@ -439,8 +439,8 @@ func (b *boltArbitratorLog) CurrentState() (ArbitratorState, error) {
 // CommitState persists, the current state of the chain attendant.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) CommitState(s ArbitratorState) error {
-	return b.db.Batch(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) CommitState(s ArbitratorState) error {
+	return b.db.Batch(func(tx *bbolt.Tx) error {
 		scopeBucket, err := tx.CreateBucketIfNotExists(b.scopeKey[:])
 		if err != nil {
 			return err
@@ -454,13 +454,13 @@ func (b *boltArbitratorLog) CommitState(s ArbitratorState) error {
 // previously written to the log.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) FetchUnresolvedContracts() ([]ContractResolver, error) {
+func (b *bboltArbitratorLog) FetchUnresolvedContracts() ([]ContractResolver, error) {
 	resolverCfg := ResolverConfig{
 		ChannelArbitratorConfig: b.cfg,
 		Checkpoint:              b.checkpointContract,
 	}
 	var contracts []ContractResolver
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bbolt.Tx) error {
 		contractBucket, err := fetchContractReadBucket(tx, b.scopeKey[:])
 		if err != nil {
 			return err
@@ -532,8 +532,8 @@ func (b *boltArbitratorLog) FetchUnresolvedContracts() ([]ContractResolver, erro
 // swapped out, or resolved.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) InsertUnresolvedContracts(resolvers ...ContractResolver) error {
-	return b.db.Batch(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) InsertUnresolvedContracts(resolvers ...ContractResolver) error {
+	return b.db.Batch(func(tx *bbolt.Tx) error {
 		contractBucket, err := fetchContractWriteBucket(tx, b.scopeKey[:])
 		if err != nil {
 			return err
@@ -555,8 +555,8 @@ func (b *boltArbitratorLog) InsertUnresolvedContracts(resolvers ...ContractResol
 // it produces another contract that needs to be resolved.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) SwapContract(oldContract, newContract ContractResolver) error {
-	return b.db.Batch(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) SwapContract(oldContract, newContract ContractResolver) error {
+	return b.db.Batch(func(tx *bbolt.Tx) error {
 		contractBucket, err := fetchContractWriteBucket(tx, b.scopeKey[:])
 		if err != nil {
 			return err
@@ -575,8 +575,8 @@ func (b *boltArbitratorLog) SwapContract(oldContract, newContract ContractResolv
 // fully resolved, it is deleted from persistent storage.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) ResolveContract(res ContractResolver) error {
-	return b.db.Batch(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) ResolveContract(res ContractResolver) error {
+	return b.db.Batch(func(tx *bbolt.Tx) error {
 		contractBucket, err := fetchContractWriteBucket(tx, b.scopeKey[:])
 		if err != nil {
 			return err
@@ -593,8 +593,8 @@ func (b *boltArbitratorLog) ResolveContract(res ContractResolver) error {
 // that the remote party has gone on-chain.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) LogContractResolutions(c *ContractResolutions) error {
-	return b.db.Batch(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) LogContractResolutions(c *ContractResolutions) error {
+	return b.db.Batch(func(tx *bbolt.Tx) error {
 		scopeBucket, err := tx.CreateBucketIfNotExists(b.scopeKey[:])
 		if err != nil {
 			return err
@@ -672,9 +672,9 @@ func (b *boltArbitratorLog) LogContractResolutions(c *ContractResolutions) error
 // resolutions from persistent storage.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) FetchContractResolutions() (*ContractResolutions, error) {
+func (b *bboltArbitratorLog) FetchContractResolutions() (*ContractResolutions, error) {
 	c := &ContractResolutions{}
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bbolt.Tx) error {
 		scopeBucket := tx.Bucket(b.scopeKey[:])
 		if scopeBucket == nil {
 			return errScopeBucketNoExist
@@ -770,10 +770,10 @@ func (b *boltArbitratorLog) FetchContractResolutions() (*ContractResolutions, er
 // forward.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) FetchChainActions() (ChainActionMap, error) {
+func (b *bboltArbitratorLog) FetchChainActions() (ChainActionMap, error) {
 	actionsMap := make(ChainActionMap)
 
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bbolt.Tx) error {
 		scopeBucket := tx.Bucket(b.scopeKey[:])
 		if scopeBucket == nil {
 			return errScopeBucketNoExist
@@ -814,8 +814,8 @@ func (b *boltArbitratorLog) FetchChainActions() (ChainActionMap, error) {
 // based on the confirmed and pending commitment state.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) InsertConfirmedCommitSet(c *CommitSet) error {
-	return b.db.Update(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) InsertConfirmedCommitSet(c *CommitSet) error {
+	return b.db.Update(func(tx *bbolt.Tx) error {
 		scopeBucket, err := tx.CreateBucketIfNotExists(b.scopeKey[:])
 		if err != nil {
 			return err
@@ -834,9 +834,9 @@ func (b *boltArbitratorLog) InsertConfirmedCommitSet(c *CommitSet) error {
 // database.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) FetchConfirmedCommitSet() (*CommitSet, error) {
+func (b *bboltArbitratorLog) FetchConfirmedCommitSet() (*CommitSet, error) {
 	var c *CommitSet
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bbolt.Tx) error {
 		scopeBucket := tx.Bucket(b.scopeKey[:])
 		if scopeBucket == nil {
 			return errScopeBucketNoExist
@@ -867,8 +867,8 @@ func (b *boltArbitratorLog) FetchConfirmedCommitSet() (*CommitSet, error) {
 // on-disk state within the persistent log.
 //
 // NOTE: Part of the ContractResolver interface.
-func (b *boltArbitratorLog) WipeHistory() error {
-	return b.db.Update(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) WipeHistory() error {
+	return b.db.Update(func(tx *bbolt.Tx) error {
 		scopeBucket, err := tx.CreateBucketIfNotExists(b.scopeKey[:])
 		if err != nil {
 			return err
@@ -883,7 +883,7 @@ func (b *boltArbitratorLog) WipeHistory() error {
 		// Next, we'll delete any lingering contract state within the
 		// contracts bucket by removing the bucket itself.
 		err = scopeBucket.DeleteBucket(contractsBucketKey)
-		if err != nil && err != bolt.ErrBucketNotFound {
+		if err != nil && err != bbolt.ErrBucketNotFound {
 			return err
 		}
 
@@ -896,7 +896,7 @@ func (b *boltArbitratorLog) WipeHistory() error {
 		// We'll delete any chain actions that are still stored by
 		// removing the enclosing bucket.
 		err = scopeBucket.DeleteBucket(actionsBucketKey)
-		if err != nil && err != bolt.ErrBucketNotFound {
+		if err != nil && err != bbolt.ErrBucketNotFound {
 			return err
 		}
 
@@ -908,8 +908,8 @@ func (b *boltArbitratorLog) WipeHistory() error {
 // checkpointContract is a private method that will be fed into
 // ContractResolver instances to checkpoint their state once they reach
 // milestones during contract resolution.
-func (b *boltArbitratorLog) checkpointContract(c ContractResolver) error {
-	return b.db.Batch(func(tx *bolt.Tx) error {
+func (b *bboltArbitratorLog) checkpointContract(c ContractResolver) error {
+	return b.db.Batch(func(tx *bbolt.Tx) error {
 		contractBucket, err := fetchContractWriteBucket(tx, b.scopeKey[:])
 		if err != nil {
 			return err

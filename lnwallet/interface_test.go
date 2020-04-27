@@ -18,7 +18,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 
 	_ "decred.org/dcrwallet/wallet/drivers/bdb"
 
@@ -3221,7 +3221,7 @@ func runTests(t *testing.T, walletDriver *lnwallet.WalletDriver,
 		// node's chainstate to initial level, cleanly
 		// wipe buckets
 		if err := clearWalletStates(alice, bob); err !=
-			nil && err != bolt.ErrBucketNotFound {
+			nil && err != bbolt.ErrBucketNotFound {
 			t.Fatalf("unable to wipe wallet state: %v", err)
 		}
 	}

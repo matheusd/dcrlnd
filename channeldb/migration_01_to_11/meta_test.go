@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // applyMigration is a helper test function that encapsulates the general steps
@@ -49,7 +49,7 @@ func applyMigration(t *testing.T, beforeMigration, afterMigration func(d *DB),
 	}()
 
 	// Apply migration.
-	err = cdb.Update(func(tx *bolt.Tx) error {
+	err = cdb.Update(func(tx *bbolt.Tx) error {
 		return migrationFunc(tx)
 	})
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/multimutex"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -137,7 +137,7 @@ func (store *networkResultStore) storeResult(paymentID uint64,
 	var paymentIDBytes [8]byte
 	binary.BigEndian.PutUint64(paymentIDBytes[:], paymentID)
 
-	err := store.db.Batch(func(tx *bolt.Tx) error {
+	err := store.db.Batch(func(tx *bbolt.Tx) error {
 		networkResults, err := tx.CreateBucketIfNotExists(
 			networkResultStoreBucketKey,
 		)
@@ -180,7 +180,7 @@ func (store *networkResultStore) subscribeResult(paymentID uint64) (
 		resultChan = make(chan *networkResult, 1)
 	)
 
-	err := store.db.View(func(tx *bolt.Tx) error {
+	err := store.db.View(func(tx *bbolt.Tx) error {
 		var err error
 		result, err = fetchResult(tx, paymentID)
 		switch {
@@ -226,7 +226,7 @@ func (store *networkResultStore) getResult(pid uint64) (
 	*networkResult, error) {
 
 	var result *networkResult
-	err := store.db.View(func(tx *bolt.Tx) error {
+	err := store.db.View(func(tx *bbolt.Tx) error {
 		var err error
 		result, err = fetchResult(tx, pid)
 		return err
@@ -238,7 +238,7 @@ func (store *networkResultStore) getResult(pid uint64) (
 	return result, nil
 }
 
-func fetchResult(tx *bolt.Tx, pid uint64) (*networkResult, error) {
+func fetchResult(tx *bbolt.Tx, pid uint64) (*networkResult, error) {
 	var paymentIDBytes [8]byte
 	binary.BigEndian.PutUint64(paymentIDBytes[:], pid)
 

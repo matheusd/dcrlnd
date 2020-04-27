@@ -9,7 +9,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -28,26 +28,26 @@ const (
 	unknownFailureSourceIdx = -1
 )
 
-// missionControlStore is a bolt db based implementation of a mission control
+// missionControlStore is a bbolt db based implementation of a mission control
 // store. It stores the raw payment attempt data from which the internal mission
 // controls state can be rederived on startup. This allows the mission control
 // internal data structure to be changed without requiring a database migration.
 // Also changes to mission control parameters can be applied to historical data.
 // Finally, it enables importing raw data from an external source.
 type missionControlStore struct {
-	db         *bolt.DB
+	db         *bbolt.DB
 	maxRecords int
 	numRecords int
 }
 
-func newMissionControlStore(db *bolt.DB, maxRecords int) (*missionControlStore, error) {
+func newMissionControlStore(db *bbolt.DB, maxRecords int) (*missionControlStore, error) {
 	store := &missionControlStore{
 		db:         db,
 		maxRecords: maxRecords,
 	}
 
 	// Create buckets if not yet existing.
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bbolt.Tx) error {
 		resultsBucket, err := tx.CreateBucketIfNotExists(resultsKey)
 		if err != nil {
 			return fmt.Errorf("cannot create results bucket: %v",
@@ -74,7 +74,7 @@ func newMissionControlStore(db *bolt.DB, maxRecords int) (*missionControlStore, 
 
 // clear removes all results from the db.
 func (b *missionControlStore) clear() error {
-	return b.db.Update(func(tx *bolt.Tx) error {
+	return b.db.Update(func(tx *bbolt.Tx) error {
 		if err := tx.DeleteBucket(resultsKey); err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (b *missionControlStore) clear() error {
 func (b *missionControlStore) fetchAll() ([]*paymentResult, error) {
 	var results []*paymentResult
 
-	err := b.db.View(func(tx *bolt.Tx) error {
+	err := b.db.View(func(tx *bbolt.Tx) error {
 		resultBucket := tx.Bucket(resultsKey)
 		results = make([]*paymentResult, 0)
 
@@ -218,7 +218,7 @@ func deserializeResult(k, v []byte) (*paymentResult, error) {
 
 // AddResult adds a new result to the db.
 func (b *missionControlStore) AddResult(rp *paymentResult) error {
-	return b.db.Update(func(tx *bolt.Tx) error {
+	return b.db.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(resultsKey)
 
 		// Prune oldest entries.

@@ -6,13 +6,13 @@ import (
 	"os"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // MakeDB creates a new instance of the ChannelDB for testing purposes. A
 // callback which cleans up the created temporary directories is also returned
 // and intended to be executed after the test completes.
-func MakeDB() (*bolt.DB, func(), error) {
+func MakeDB() (*bbolt.DB, func(), error) {
 	// Create temporary database for mission control.
 	file, err := ioutil.TempFile("", "*.db")
 	if err != nil {
@@ -20,7 +20,7 @@ func MakeDB() (*bolt.DB, func(), error) {
 	}
 
 	dbPath := file.Name()
-	db, err := bolt.Open(dbPath, 0600, nil)
+	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -36,7 +36,7 @@ func MakeDB() (*bolt.DB, func(), error) {
 // ApplyMigration is a helper test function that encapsulates the general steps
 // which are needed to properly check the result of applying migration function.
 func ApplyMigration(t *testing.T,
-	beforeMigration, afterMigration, migrationFunc func(tx *bolt.Tx) error,
+	beforeMigration, afterMigration, migrationFunc func(tx *bbolt.Tx) error,
 	shouldFail bool) {
 
 	cdb, cleanUp, err := MakeDB()

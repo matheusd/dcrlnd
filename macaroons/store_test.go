@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 
 	"github.com/decred/dcrlnd/macaroons"
 
@@ -22,8 +22,8 @@ func TestStore(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	db, err := bolt.Open(path.Join(tempDir, "weks.db"), 0600,
-		bolt.DefaultOptions)
+	db, err := bbolt.Open(path.Join(tempDir, "weks.db"), 0600,
+		bbolt.DefaultOptions)
 	if err != nil {
 		t.Fatalf("Error opening store DB: %v", err)
 	}
@@ -76,8 +76,8 @@ func TestStore(t *testing.T) {
 	// Between here and the re-opening of the store, it's possible to get
 	// a double-close, but that's not such a big deal since the tests will
 	// fail anyway in that case.
-	db, err = bolt.Open(path.Join(tempDir, "weks.db"), 0600,
-		bolt.DefaultOptions)
+	db, err = bbolt.Open(path.Join(tempDir, "weks.db"), 0600,
+		bbolt.DefaultOptions)
 	if err != nil {
 		t.Fatalf("Error opening store DB: %v", err)
 	}

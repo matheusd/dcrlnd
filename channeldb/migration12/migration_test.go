@@ -8,7 +8,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migtest"
 	"github.com/decred/dcrlnd/lntypes"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -121,15 +121,15 @@ var (
 
 type migrationTest struct {
 	name            string
-	beforeMigration func(*bolt.Tx) error
-	afterMigration  func(*bolt.Tx) error
+	beforeMigration func(*bbolt.Tx) error
+	afterMigration  func(*bbolt.Tx) error
 }
 
 var migrationTests = []migrationTest{
 	{
 		name:            "no invoices",
-		beforeMigration: func(*bolt.Tx) error { return nil },
-		afterMigration:  func(*bolt.Tx) error { return nil },
+		beforeMigration: func(*bbolt.Tx) error { return nil },
+		afterMigration:  func(*bbolt.Tx) error { return nil },
 	},
 	{
 		name:            "zero htlcs",
@@ -145,8 +145,8 @@ var migrationTests = []migrationTest{
 
 // genBeforeMigration creates a closure that inserts an invoice serialized under
 // the old format under the test payment hash.
-func genBeforeMigration(beforeBytes []byte) func(*bolt.Tx) error {
-	return func(tx *bolt.Tx) error {
+func genBeforeMigration(beforeBytes []byte) func(*bbolt.Tx) error {
+	return func(tx *bbolt.Tx) error {
 		invoices, err := tx.CreateBucketIfNotExists(
 			invoiceBucket,
 		)
@@ -162,8 +162,8 @@ func genBeforeMigration(beforeBytes []byte) func(*bolt.Tx) error {
 // succeeded, but comparing the resulting encoding of the invoice to the
 // expected serialization. In addition, the decoded invoice is compared against
 // the expected invoice for equality.
-func genAfterMigration(afterBytes []byte) func(*bolt.Tx) error {
-	return func(tx *bolt.Tx) error {
+func genAfterMigration(afterBytes []byte) func(*bbolt.Tx) error {
+	return func(tx *bbolt.Tx) error {
 		invoices := tx.Bucket(invoiceBucket)
 		if invoices == nil {
 			return fmt.Errorf("invoice bucket not found")

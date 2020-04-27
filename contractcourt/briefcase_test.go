@@ -18,7 +18,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -104,7 +104,7 @@ var (
 	}
 )
 
-func makeTestDB() (*bolt.DB, func(), error) {
+func makeTestDB() (*bbolt.DB, func(), error) {
 	// First, create a temporary directory to be used for the duration of
 	// this test.
 	tempDirName, err := ioutil.TempDir("", "arblog")
@@ -112,7 +112,7 @@ func makeTestDB() (*bolt.DB, func(), error) {
 		return nil, nil, err
 	}
 
-	db, err := bolt.Open(tempDirName+"/test.db", 0600, nil)
+	db, err := bbolt.Open(tempDirName+"/test.db", 0600, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -252,7 +252,7 @@ func TestContractInsertionRetrieval(t *testing.T) {
 	t.Parallel()
 
 	// First, we'll create a test instance of the ArbitratorLog
-	// implementation backed by boltdb.
+	// implementation backed by bboltdb.
 	testLog, cleanUp, err := newTestBoltArbLog(
 		testChainHash, testChanPoint1,
 	)
@@ -386,7 +386,7 @@ func TestContractResolution(t *testing.T) {
 	t.Parallel()
 
 	// First, we'll create a test instance of the ArbitratorLog
-	// implementation backed by boltdb.
+	// implementation backed by bboltdb.
 	testLog, cleanUp, err := newTestBoltArbLog(
 		testChainHash, testChanPoint1,
 	)
@@ -447,7 +447,7 @@ func TestContractSwapping(t *testing.T) {
 	t.Parallel()
 
 	// First, we'll create a test instance of the ArbitratorLog
-	// implementation backed by boltdb.
+	// implementation backed by bboltdb.
 	testLog, cleanUp, err := newTestBoltArbLog(
 		testChainHash, testChanPoint1,
 	)
@@ -511,7 +511,7 @@ func TestContractResolutionsStorage(t *testing.T) {
 	t.Parallel()
 
 	// First, we'll create a test instance of the ArbitratorLog
-	// implementation backed by boltdb.
+	// implementation backed by bboltdb.
 	testLog, cleanUp, err := newTestBoltArbLog(
 		testChainHash, testChanPoint1,
 	)

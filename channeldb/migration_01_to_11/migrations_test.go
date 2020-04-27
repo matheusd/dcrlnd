@@ -15,7 +15,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // TestPaymentStatusesMigration checks that already completed payments will have
@@ -59,7 +59,7 @@ func TestPaymentStatusesMigration(t *testing.T) {
 		// locally-sourced payment should end up with an InFlight
 		// status, while the other should remain unchanged, which
 		// defaults to Grounded.
-		err = d.Update(func(tx *bolt.Tx) error {
+		err = d.Update(func(tx *bbolt.Tx) error {
 			circuits, err := tx.CreateBucketIfNotExists(
 				[]byte("circuit-adds"),
 			)
@@ -377,7 +377,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 			// Get the old serialization format for this test's
 			// close summary, and it to the closed channel bucket.
 			old := test.oldSerialization(test.closeSummary)
-			err = d.Update(func(tx *bolt.Tx) error {
+			err = d.Update(func(tx *bbolt.Tx) error {
 				closedChanBucket, err := tx.CreateBucketIfNotExists(
 					closedChannelBucket,
 				)
@@ -404,7 +404,7 @@ func TestMigrateOptionalChannelCloseSummaryFields(t *testing.T) {
 			newSerialization := b.Bytes()
 
 			var dbSummary []byte
-			err = d.View(func(tx *bolt.Tx) error {
+			err = d.View(func(tx *bbolt.Tx) error {
 				closedChanBucket := tx.Bucket(closedChannelBucket)
 				if closedChanBucket == nil {
 					return errors.New("unable to find bucket")
@@ -482,7 +482,7 @@ func TestMigrateGossipMessageStoreKeys(t *testing.T) {
 			t.Fatalf("unable to serialize message: %v", err)
 		}
 
-		err := db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bbolt.Tx) error {
 			messageStore, err := tx.CreateBucketIfNotExists(
 				messageStoreBucket,
 			)
@@ -503,7 +503,7 @@ func TestMigrateGossipMessageStoreKeys(t *testing.T) {
 	//   3. The message matches the original.
 	afterMigration := func(db *DB) {
 		var rawMsg []byte
-		err := db.View(func(tx *bolt.Tx) error {
+		err := db.View(func(tx *bbolt.Tx) error {
 			messageStore := tx.Bucket(messageStoreBucket)
 			if messageStore == nil {
 				return errors.New("message store bucket not " +
@@ -666,7 +666,7 @@ func TestOutgoingPaymentsMigration(t *testing.T) {
 
 		// Finally, check that the payment sequence number is updated
 		// to reflect the migrated payments.
-		err = d.View(func(tx *bolt.Tx) error {
+		err = d.View(func(tx *bbolt.Tx) error {
 			payments := tx.Bucket(paymentsRootBucket)
 			if payments == nil {
 				return fmt.Errorf("payments bucket not found")
@@ -746,7 +746,7 @@ func TestPaymentRouteSerialization(t *testing.T) {
 	// We'll first add a series of fake payments, using the existing legacy
 	// serialization format.
 	beforeMigrationFunc := func(d *DB) {
-		err := d.Update(func(tx *bolt.Tx) error {
+		err := d.Update(func(tx *bbolt.Tx) error {
 			paymentsBucket, err := tx.CreateBucket(
 				paymentsRootBucket,
 			)
@@ -798,7 +798,7 @@ func TestPaymentRouteSerialization(t *testing.T) {
 				// the proper bucket. If this is the duplicate
 				// payment, then we'll grab the dup bucket,
 				// otherwise, we'll use the top level bucket.
-				var payHashBucket *bolt.Bucket
+				var payHashBucket *bbolt.Bucket
 				if i < numPayments-1 {
 					payHashBucket, err = paymentsBucket.CreateBucket(
 						payInfo.PaymentHash[:],

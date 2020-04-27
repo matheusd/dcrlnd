@@ -11,7 +11,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -61,7 +61,7 @@ type duplicateHTLCAttemptInfo struct {
 
 // fetchDuplicatePaymentStatus fetches the payment status of the payment. If the
 // payment isn't found, it will default to "StatusUnknown".
-func fetchDuplicatePaymentStatus(bucket *bolt.Bucket) PaymentStatus {
+func fetchDuplicatePaymentStatus(bucket *bbolt.Bucket) PaymentStatus {
 	if bucket.Get(duplicatePaymentSettleInfoKey) != nil {
 		return StatusSucceeded
 	}
@@ -129,7 +129,7 @@ func deserializeDuplicatePaymentCreationInfo(r io.Reader) (
 	return c, nil
 }
 
-func fetchDuplicatePayment(bucket *bolt.Bucket) (*MPPayment, error) {
+func fetchDuplicatePayment(bucket *bbolt.Bucket) (*MPPayment, error) {
 	seqBytes := bucket.Get(duplicatePaymentSequenceKey)
 	if seqBytes == nil {
 		return nil, fmt.Errorf("sequence number not found")
@@ -209,7 +209,7 @@ func fetchDuplicatePayment(bucket *bolt.Bucket) (*MPPayment, error) {
 	return payment, nil
 }
 
-func fetchDuplicatePayments(paymentHashBucket *bolt.Bucket) ([]*MPPayment,
+func fetchDuplicatePayments(paymentHashBucket *bbolt.Bucket) ([]*MPPayment,
 	error) {
 
 	var payments []*MPPayment

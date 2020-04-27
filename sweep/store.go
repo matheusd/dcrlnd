@@ -8,7 +8,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -56,14 +56,14 @@ type SweeperStore interface {
 }
 
 type sweeperStore struct {
-	db *bolt.DB
+	db *bbolt.DB
 }
 
 // NewSweeperStore returns a new store instance.
-func NewSweeperStore(db *bolt.DB, chainHash *chainhash.Hash) (
+func NewSweeperStore(db *bbolt.DB, chainHash *chainhash.Hash) (
 	SweeperStore, error) {
 
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(
 			lastTxBucketKey,
 		)
@@ -97,7 +97,7 @@ func NewSweeperStore(db *bolt.DB, chainHash *chainhash.Hash) (
 
 // migrateTxHashes migrates nursery finalized txes to the tx hashes bucket. This
 // is not implemented as a database migration, to keep the downgrade path open.
-func migrateTxHashes(tx *bolt.Tx, txHashesBucket *bolt.Bucket,
+func migrateTxHashes(tx *bbolt.Tx, txHashesBucket *bbolt.Bucket,
 	chainHash *chainhash.Hash) error {
 
 	log.Infof("Migrating UTXO nursery finalized TXIDs")
@@ -163,7 +163,7 @@ func migrateTxHashes(tx *bolt.Tx, txHashesBucket *bolt.Bucket,
 
 // NotifyPublishTx signals that we are about to publish a tx.
 func (s *sweeperStore) NotifyPublishTx(sweepTx *wire.MsgTx) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
 		lastTxBucket := tx.Bucket(lastTxBucketKey)
 		if lastTxBucket == nil {
 			return errors.New("last tx bucket does not exist")
@@ -194,7 +194,7 @@ func (s *sweeperStore) NotifyPublishTx(sweepTx *wire.MsgTx) error {
 func (s *sweeperStore) GetLastPublishedTx() (*wire.MsgTx, error) {
 	var sweepTx *wire.MsgTx
 
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bbolt.Tx) error {
 		lastTxBucket := tx.Bucket(lastTxBucketKey)
 		if lastTxBucket == nil {
 			return errors.New("last tx bucket does not exist")
@@ -225,7 +225,7 @@ func (s *sweeperStore) GetLastPublishedTx() (*wire.MsgTx, error) {
 func (s *sweeperStore) IsOurTx(hash chainhash.Hash) (bool, error) {
 	var ours bool
 
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bbolt.Tx) error {
 		txHashesBucket := tx.Bucket(txHashesBucketKey)
 		if txHashesBucket == nil {
 			return errors.New("tx hashes bucket does not exist")

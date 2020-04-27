@@ -9,7 +9,7 @@ import (
 
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -76,7 +76,7 @@ func (db *DB) addPayment(payment *outgoingPayment) error {
 	}
 	paymentBytes := b.Bytes()
 
-	return db.Batch(func(tx *bolt.Tx) error {
+	return db.Batch(func(tx *bbolt.Tx) error {
 		payments, err := tx.CreateBucketIfNotExists(paymentBucket)
 		if err != nil {
 			return err
@@ -104,7 +104,7 @@ func (db *DB) addPayment(payment *outgoingPayment) error {
 func (db *DB) fetchAllPayments() ([]*outgoingPayment, error) {
 	var payments []*outgoingPayment
 
-	err := db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(paymentBucket)
 		if bucket == nil {
 			return ErrNoPaymentsCreated
@@ -140,7 +140,7 @@ func (db *DB) fetchAllPayments() ([]*outgoingPayment, error) {
 // NOTE: Deprecated. Kept around for migration purposes.
 func (db *DB) fetchPaymentStatus(paymentHash [32]byte) (PaymentStatus, error) {
 	var paymentStatus = StatusUnknown
-	err := db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bbolt.Tx) error {
 		var err error
 		paymentStatus, err = fetchPaymentStatusTx(tx, paymentHash)
 		return err
@@ -154,11 +154,11 @@ func (db *DB) fetchPaymentStatus(paymentHash [32]byte) (PaymentStatus, error) {
 
 // fetchPaymentStatusTx is a helper method that returns the payment status for
 // outgoing payment.  If status of the payment isn't found, it will default to
-// "StatusUnknown". It accepts the boltdb transactions such that this method
+// "StatusUnknown". It accepts the bboltdb transactions such that this method
 // can be composed into other atomic operations.
 //
 // NOTE: Deprecated. Kept around for migration purposes.
-func fetchPaymentStatusTx(tx *bolt.Tx, paymentHash [32]byte) (PaymentStatus, error) {
+func fetchPaymentStatusTx(tx *bbolt.Tx, paymentHash [32]byte) (PaymentStatus, error) {
 	// The default status for all payments that aren't recorded in database.
 	var paymentStatus = StatusUnknown
 
@@ -375,7 +375,7 @@ func deserializeHopMigration9(r io.Reader) (*Hop, error) {
 func (db *DB) fetchPaymentsMigration9() ([]*Payment, error) {
 	var payments []*Payment
 
-	err := db.View(func(tx *bolt.Tx) error {
+	err := db.View(func(tx *bbolt.Tx) error {
 		paymentsBucket := tx.Bucket(paymentsRootBucket)
 		if paymentsBucket == nil {
 			return nil
@@ -437,7 +437,7 @@ func (db *DB) fetchPaymentsMigration9() ([]*Payment, error) {
 	return payments, nil
 }
 
-func fetchPaymentMigration9(bucket *bolt.Bucket) (*Payment, error) {
+func fetchPaymentMigration9(bucket *bbolt.Bucket) (*Payment, error) {
 	var (
 		err error
 		p   = &Payment{}

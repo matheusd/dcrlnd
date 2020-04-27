@@ -9,7 +9,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // MigrateNodeAndEdgeUpdateIndex is a migration function that will update the
@@ -17,7 +17,7 @@ import (
 // (one for nodes and one for edges) to keep track of the last time a node or
 // edge was updated on the network. These new indexes allow us to implement the
 // new graph sync protocol added.
-func MigrateNodeAndEdgeUpdateIndex(tx *bolt.Tx) error {
+func MigrateNodeAndEdgeUpdateIndex(tx *bbolt.Tx) error {
 	// First, we'll populating the node portion of the new index. Before we
 	// can add new values to the index, we'll first create the new bucket
 	// where these items will be housed.
@@ -122,7 +122,7 @@ func MigrateNodeAndEdgeUpdateIndex(tx *bolt.Tx) error {
 // invoices an index in the add and/or the settle index. Additionally, all
 // existing invoices will have their bytes padded out in order to encode the
 // add+settle index as well as the amount paid.
-func MigrateInvoiceTimeSeries(tx *bolt.Tx) error {
+func MigrateInvoiceTimeSeries(tx *bbolt.Tx) error {
 	invoices, err := tx.CreateBucketIfNotExists(invoiceBucket)
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func MigrateInvoiceTimeSeries(tx *bolt.Tx) error {
 // migrateInvoiceTimeSeries migration. As at the time of writing, the
 // OutgoingPayment struct embeddeds an instance of the Invoice struct. As a
 // result, we also need to migrate the internal invoice to the new format.
-func MigrateInvoiceTimeSeriesOutgoingPayments(tx *bolt.Tx) error {
+func MigrateInvoiceTimeSeriesOutgoingPayments(tx *bbolt.Tx) error {
 	payBucket := tx.Bucket(paymentBucket)
 	if payBucket == nil {
 		return nil
@@ -340,7 +340,7 @@ func MigrateInvoiceTimeSeriesOutgoingPayments(tx *bolt.Tx) error {
 // bucket. It ensure that edges with unknown policies will also have an entry
 // in the bucket. After the migration, there will be two edge entries for
 // every channel, regardless of whether the policies are known.
-func MigrateEdgePolicies(tx *bolt.Tx) error {
+func MigrateEdgePolicies(tx *bbolt.Tx) error {
 	nodes := tx.Bucket(nodeBucket)
 	if nodes == nil {
 		return nil
@@ -412,7 +412,7 @@ func MigrateEdgePolicies(tx *bolt.Tx) error {
 // PaymentStatusesMigration is a database migration intended for adding payment
 // statuses for each existing payment entity in bucket to be able control
 // transitions of statuses and prevent cases such as double payment
-func PaymentStatusesMigration(tx *bolt.Tx) error {
+func PaymentStatusesMigration(tx *bbolt.Tx) error {
 	// Get the bucket dedicated to storing statuses of payments, where a
 	// key is payment hash, value is payment status.
 	paymentStatuses, err := tx.CreateBucketIfNotExists(paymentStatusBucket)
@@ -499,7 +499,7 @@ func PaymentStatusesMigration(tx *bolt.Tx) error {
 // migration also fixes the case where the public keys within edge policies were
 // being serialized with an extra byte, causing an even greater error when
 // attempting to perform the offset calculation described earlier.
-func MigratePruneEdgeUpdateIndex(tx *bolt.Tx) error {
+func MigratePruneEdgeUpdateIndex(tx *bbolt.Tx) error {
 	// To begin the migration, we'll retrieve the update index bucket. If
 	// it does not exist, we have nothing left to do so we can simply exit.
 	edges := tx.Bucket(edgeBucket)
@@ -613,7 +613,7 @@ func MigratePruneEdgeUpdateIndex(tx *bolt.Tx) error {
 // MigrateOptionalChannelCloseSummaryFields migrates the serialized format of
 // ChannelCloseSummary to a format where optional fields' presence is indicated
 // with boolean markers.
-func MigrateOptionalChannelCloseSummaryFields(tx *bolt.Tx) error {
+func MigrateOptionalChannelCloseSummaryFields(tx *bbolt.Tx) error {
 	closedChanBucket := tx.Bucket(closedChannelBucket)
 	if closedChanBucket == nil {
 		return nil
@@ -672,7 +672,7 @@ var messageStoreBucket = []byte("message-store")
 // MigrateGossipMessageStoreKeys migrates the key format for gossip messages
 // found in the message store to a new one that takes into consideration the of
 // the message being stored.
-func MigrateGossipMessageStoreKeys(tx *bolt.Tx) error {
+func MigrateGossipMessageStoreKeys(tx *bbolt.Tx) error {
 	// We'll start by retrieving the bucket in which these messages are
 	// stored within. If there isn't one, there's nothing left for us to do
 	// so we can avoid the migration.
@@ -748,7 +748,7 @@ func MigrateGossipMessageStoreKeys(tx *bolt.Tx) error {
 // InFlight (we have no PaymentAttemptInfo available for pre-migration
 // payments) we delete those statuses, so only Completed payments remain in the
 // new bucket structure.
-func MigrateOutgoingPayments(tx *bolt.Tx) error {
+func MigrateOutgoingPayments(tx *bbolt.Tx) error {
 	log.Infof("Migrating outgoing payments to new bucket structure")
 
 	oldPayments := tx.Bucket(paymentBucket)
@@ -864,7 +864,7 @@ func MigrateOutgoingPayments(tx *bolt.Tx) error {
 		// from a database containing duplicate payments to a payment
 		// hash. To keep this information, we store such duplicate
 		// payments in a sub-bucket.
-		if err == bolt.ErrBucketExists {
+		if err == bbolt.ErrBucketExists {
 			pHashBucket := newPayments.Bucket(paymentHash[:])
 
 			// Create a bucket for duplicate payments within this
@@ -925,13 +925,13 @@ func MigrateOutgoingPayments(tx *bolt.Tx) error {
 	// Now we delete the old buckets. Deleting the payment status buckets
 	// deletes all payment statuses other than Complete.
 	err = tx.DeleteBucket(paymentStatusBucket)
-	if err != nil && err != bolt.ErrBucketNotFound {
+	if err != nil && err != bbolt.ErrBucketNotFound {
 		return err
 	}
 
 	// Finally delete the old payment bucket.
 	err = tx.DeleteBucket(paymentBucket)
-	if err != nil && err != bolt.ErrBucketNotFound {
+	if err != nil && err != bbolt.ErrBucketNotFound {
 		return err
 	}
 

@@ -14,7 +14,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	sphinx "github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/clock"
@@ -2112,7 +2112,7 @@ func (r *ChannelRouter) FetchLightningNode(node route.Vertex) (*channeldb.Lightn
 //
 // NOTE: This method is part of the ChannelGraphSource interface.
 func (r *ChannelRouter) ForEachNode(cb func(*channeldb.LightningNode) error) error {
-	return r.cfg.Graph.ForEachNode(nil, func(_ *bolt.Tx, n *channeldb.LightningNode) error {
+	return r.cfg.Graph.ForEachNode(nil, func(_ *bbolt.Tx, n *channeldb.LightningNode) error {
 		return cb(n)
 	})
 }
@@ -2124,7 +2124,7 @@ func (r *ChannelRouter) ForEachNode(cb func(*channeldb.LightningNode) error) err
 func (r *ChannelRouter) ForAllOutgoingChannels(cb func(*channeldb.ChannelEdgeInfo,
 	*channeldb.ChannelEdgePolicy) error) error {
 	return r.selfNode.ForEachChannel(nil,
-		func(_ *bolt.Tx, c *channeldb.ChannelEdgeInfo, e,
+		func(_ *bbolt.Tx, c *channeldb.ChannelEdgeInfo, e,
 			_ *channeldb.ChannelEdgePolicy) error {
 			if e == nil {
 				return fmt.Errorf("channel from self node has no policy")
@@ -2264,7 +2264,7 @@ func generateBandwidthHints(sourceNode *channeldb.LightningNode,
 	// First, we'll collect the set of outbound edges from the target
 	// source node.
 	var localChans []*channeldb.ChannelEdgeInfo
-	err := sourceNode.ForEachChannel(nil, func(tx *bolt.Tx,
+	err := sourceNode.ForEachChannel(nil, func(tx *bbolt.Tx,
 		edgeInfo *channeldb.ChannelEdgeInfo,
 		_, _ *channeldb.ChannelEdgePolicy) error {
 

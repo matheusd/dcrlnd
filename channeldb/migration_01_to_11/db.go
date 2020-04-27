@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 // migration is a function which takes a prior outdated version of the database
 // instances and mutates the key/bucket structure to arrive at a more
 // up-to-date version of the database.
-type migration func(tx *bolt.Tx) error
+type migration func(tx *bbolt.Tx) error
 
 var (
 	// Big endian is the preferred byte order, due to cursor scans over
@@ -31,7 +31,7 @@ var (
 // information related to nodes, routing data, open/closed channels, fee
 // schedules, and reputation data.
 type DB struct {
-	*bolt.DB
+	*bbolt.DB
 	dbPath string
 	graph  *ChannelGraph
 	now    func() time.Time
@@ -53,14 +53,14 @@ func Open(dbPath string, modifiers ...OptionModifier) (*DB, error) {
 		modifier(&opts)
 	}
 
-	// Specify bbolt freelist options to reduce heap pressure in case the
+	// Specify bbbolt freelist options to reduce heap pressure in case the
 	// freelist grows to be very large.
-	options := &bolt.Options{
+	options := &bbolt.Options{
 		NoFreelistSync: opts.NoFreelistSync,
-		FreelistType:   bolt.FreelistMapType,
+		FreelistType:   bbolt.FreelistMapType,
 	}
 
-	bdb, err := bolt.Open(path, dbFilePermission, options)
+	bdb, err := bbolt.Open(path, dbFilePermission, options)
 	if err != nil {
 		return nil, err
 	}
@@ -89,12 +89,12 @@ func createChannelDB(dbPath string) error {
 	}
 
 	path := filepath.Join(dbPath, dbName)
-	bdb, err := bolt.Open(path, dbFilePermission, nil)
+	bdb, err := bbolt.Open(path, dbFilePermission, nil)
 	if err != nil {
 		return err
 	}
 
-	err = bdb.Update(func(tx *bolt.Tx) error {
+	err = bdb.Update(func(tx *bbolt.Tx) error {
 		if _, err := tx.CreateBucket(openChannelBucket); err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func fileExists(path string) bool {
 func (d *DB) FetchClosedChannels(pendingOnly bool) ([]*ChannelCloseSummary, error) {
 	var chanSummaries []*ChannelCloseSummary
 
-	if err := d.View(func(tx *bolt.Tx) error {
+	if err := d.View(func(tx *bbolt.Tx) error {
 		closeBucket := tx.Bucket(closedChannelBucket)
 		if closeBucket == nil {
 			return ErrNoClosedChannels

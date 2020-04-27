@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrlnd/lntypes"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -65,7 +65,7 @@ func (p *PaymentControl) InitPayment(paymentHash lntypes.Hash,
 	infoBytes := b.Bytes()
 
 	var updateErr error
-	err := p.db.Batch(func(tx *bolt.Tx) error {
+	err := p.db.Batch(func(tx *bbolt.Tx) error {
 		// Reset the update error, to avoid carrying over an error
 		// from a previous execution of the batched db transaction.
 		updateErr = nil
@@ -131,7 +131,7 @@ func (p *PaymentControl) InitPayment(paymentHash lntypes.Hash,
 		// are initializing a payment that was attempted earlier, but
 		// left in a state where we could retry.
 		err = bucket.DeleteBucket(paymentHtlcsBucket)
-		if err != nil && err != bolt.ErrBucketNotFound {
+		if err != nil && err != bbolt.ErrBucketNotFound {
 			return err
 		}
 
@@ -162,7 +162,7 @@ func (p *PaymentControl) RegisterAttempt(paymentHash lntypes.Hash,
 	htlcIDBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(htlcIDBytes, attempt.AttemptID)
 
-	return p.db.Update(func(tx *bolt.Tx) error {
+	return p.db.Update(func(tx *bbolt.Tx) error {
 		// Get the payment bucket to register this new attempt in.
 		bucket, err := fetchPaymentBucket(tx, paymentHash)
 		if err != nil {
@@ -234,7 +234,7 @@ func (p *PaymentControl) updateHtlcKey(paymentHash lntypes.Hash,
 	binary.BigEndian.PutUint64(htlcIDBytes, attemptID)
 
 	var payment *MPPayment
-	err := p.db.Batch(func(tx *bolt.Tx) error {
+	err := p.db.Batch(func(tx *bbolt.Tx) error {
 		// Fetch bucket that contains all information for the payment
 		// with this hash.
 		bucket, err := fetchPaymentBucket(tx, paymentHash)
@@ -286,7 +286,7 @@ func (p *PaymentControl) Fail(paymentHash lntypes.Hash,
 		updateErr error
 		payment   *MPPayment
 	)
-	err := p.db.Batch(func(tx *bolt.Tx) error {
+	err := p.db.Batch(func(tx *bbolt.Tx) error {
 		// Reset the update error, to avoid carrying over an error
 		// from a previous execution of the batched db transaction.
 		updateErr = nil
@@ -341,7 +341,7 @@ func (p *PaymentControl) FetchPayment(paymentHash lntypes.Hash) (
 	*MPPayment, error) {
 
 	var payment *MPPayment
-	err := p.db.View(func(tx *bolt.Tx) error {
+	err := p.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := fetchPaymentBucket(tx, paymentHash)
 		if err != nil {
 			return err
@@ -360,8 +360,8 @@ func (p *PaymentControl) FetchPayment(paymentHash lntypes.Hash) (
 
 // createPaymentBucket creates or fetches the sub-bucket assigned to this
 // payment hash.
-func createPaymentBucket(tx *bolt.Tx, paymentHash lntypes.Hash) (
-	*bolt.Bucket, error) {
+func createPaymentBucket(tx *bbolt.Tx, paymentHash lntypes.Hash) (
+	*bbolt.Bucket, error) {
 
 	payments, err := tx.CreateBucketIfNotExists(paymentsRootBucket)
 	if err != nil {
@@ -373,8 +373,8 @@ func createPaymentBucket(tx *bolt.Tx, paymentHash lntypes.Hash) (
 
 // fetchPaymentBucket fetches the sub-bucket assigned to this payment hash. If
 // the bucket does not exist, it returns ErrPaymentNotInitiated.
-func fetchPaymentBucket(tx *bolt.Tx, paymentHash lntypes.Hash) (
-	*bolt.Bucket, error) {
+func fetchPaymentBucket(tx *bbolt.Tx, paymentHash lntypes.Hash) (
+	*bbolt.Bucket, error) {
 
 	payments := tx.Bucket(paymentsRootBucket)
 	if payments == nil {
@@ -391,7 +391,7 @@ func fetchPaymentBucket(tx *bolt.Tx, paymentHash lntypes.Hash) (
 
 // nextPaymentSequence returns the next sequence number to store for a new
 // payment.
-func nextPaymentSequence(tx *bolt.Tx) ([]byte, error) {
+func nextPaymentSequence(tx *bbolt.Tx) ([]byte, error) {
 	payments, err := tx.CreateBucketIfNotExists(paymentsRootBucket)
 	if err != nil {
 		return nil, err
@@ -409,7 +409,7 @@ func nextPaymentSequence(tx *bolt.Tx) ([]byte, error) {
 
 // fetchPaymentStatus fetches the payment status of the payment. If the payment
 // isn't found, it will default to "StatusUnknown".
-func fetchPaymentStatus(bucket *bolt.Bucket) (PaymentStatus, error) {
+func fetchPaymentStatus(bucket *bbolt.Bucket) (PaymentStatus, error) {
 	htlcsBucket := bucket.Bucket(paymentHtlcsBucket)
 	if htlcsBucket != nil {
 		htlcs, err := fetchHtlcAttempts(htlcsBucket)
@@ -441,7 +441,7 @@ func fetchPaymentStatus(bucket *bolt.Bucket) (PaymentStatus, error) {
 // ensureInFlight checks whether the payment found in the given bucket has
 // status InFlight, and returns an error otherwise. This should be used to
 // ensure we only mark in-flight payments as succeeded or failed.
-func ensureInFlight(bucket *bolt.Bucket) error {
+func ensureInFlight(bucket *bbolt.Bucket) error {
 	paymentStatus, err := fetchPaymentStatus(bucket)
 	if err != nil {
 		return err
@@ -486,7 +486,7 @@ type InFlightPayment struct {
 // FetchInFlightPayments returns all payments with status InFlight.
 func (p *PaymentControl) FetchInFlightPayments() ([]*InFlightPayment, error) {
 	var inFlights []*InFlightPayment
-	err := p.db.View(func(tx *bolt.Tx) error {
+	err := p.db.View(func(tx *bbolt.Tx) error {
 		payments := tx.Bucket(paymentsRootBucket)
 		if payments == nil {
 			return nil

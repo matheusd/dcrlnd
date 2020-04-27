@@ -10,7 +10,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/go-errors/errors"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -213,7 +213,7 @@ func NewCircuitMap(cfg *CircuitMapConfig) (CircuitMap, error) {
 // initBuckets ensures that the primary buckets used by the circuit are
 // initialized so that we can assume their existence after startup.
 func (cm *circuitMap) initBuckets() error {
-	return cm.cfg.DB.Update(func(tx *bolt.Tx) error {
+	return cm.cfg.DB.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(circuitKeystoneKey)
 		if err != nil {
 			return err
@@ -238,7 +238,7 @@ func (cm *circuitMap) restoreMemState() error {
 		pending = make(map[CircuitKey]*PaymentCircuit)
 	)
 
-	if err := cm.cfg.DB.Update(func(tx *bolt.Tx) error {
+	if err := cm.cfg.DB.Update(func(tx *bbolt.Tx) error {
 		// Restore any of the circuits persisted in the circuit bucket
 		// back into memory.
 		circuitBkt := tx.Bucket(circuitAddKey)
@@ -463,7 +463,7 @@ func (cm *circuitMap) TrimOpenCircuits(chanID lnwire.ShortChannelID,
 		return nil
 	}
 
-	return cm.cfg.DB.Update(func(tx *bolt.Tx) error {
+	return cm.cfg.DB.Update(func(tx *bbolt.Tx) error {
 		keystoneBkt := tx.Bucket(circuitKeystoneKey)
 		if keystoneBkt == nil {
 			return ErrCorruptedCircuitMap
@@ -614,9 +614,9 @@ func (cm *circuitMap) CommitCircuits(circuits ...*PaymentCircuit) (
 	}
 
 	// Write the entire batch of circuits to the persistent circuit bucket
-	// using bolt's Batch write. This method must be called from multiple,
+	// using bbolt's Batch write. This method must be called from multiple,
 	// distinct goroutines to have any impact on performance.
-	err := cm.cfg.DB.Batch(func(tx *bolt.Tx) error {
+	err := cm.cfg.DB.Batch(func(tx *bbolt.Tx) error {
 		circuitBkt := tx.Bucket(circuitAddKey)
 		if circuitBkt == nil {
 			return ErrCorruptedCircuitMap
@@ -706,7 +706,7 @@ func (cm *circuitMap) OpenCircuits(keystones ...Keystone) error {
 	}
 	cm.mtx.RUnlock()
 
-	err := cm.cfg.DB.Update(func(tx *bolt.Tx) error {
+	err := cm.cfg.DB.Update(func(tx *bbolt.Tx) error {
 		// Now, load the circuit bucket to which we will write the
 		// already serialized circuit.
 		keystoneBkt := tx.Bucket(circuitKeystoneKey)
@@ -847,7 +847,7 @@ func (cm *circuitMap) DeleteCircuits(inKeys ...CircuitKey) error {
 	}
 	cm.mtx.Unlock()
 
-	err := cm.cfg.DB.Batch(func(tx *bolt.Tx) error {
+	err := cm.cfg.DB.Batch(func(tx *bbolt.Tx) error {
 		for _, circuit := range removedCircuits {
 			// If this htlc made it to an outgoing link, load the
 			// keystone bucket from which we will remove the

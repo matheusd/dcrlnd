@@ -4,7 +4,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // routingGraph is an abstract interface that provides information about nodes
@@ -26,7 +26,7 @@ type routingGraph interface {
 // database.
 type dbRoutingTx struct {
 	graph  *channeldb.ChannelGraph
-	tx     *bolt.Tx
+	tx     *bbolt.Tx
 	source route.Vertex
 }
 
@@ -62,7 +62,7 @@ func (g *dbRoutingTx) forEachNodeChannel(nodePub route.Vertex,
 	cb func(*channeldb.ChannelEdgeInfo, *channeldb.ChannelEdgePolicy,
 		*channeldb.ChannelEdgePolicy) error) error {
 
-	txCb := func(_ *bolt.Tx, info *channeldb.ChannelEdgeInfo,
+	txCb := func(_ *bbolt.Tx, info *channeldb.ChannelEdgeInfo,
 		p1, p2 *channeldb.ChannelEdgePolicy) error {
 
 		return cb(info, p1, p2)

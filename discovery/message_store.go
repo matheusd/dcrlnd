@@ -8,7 +8,7 @@ import (
 
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -68,7 +68,7 @@ var _ GossipMessageStore = (*MessageStore)(nil)
 
 // NewMessageStore creates a new message store backed by a channeldb instance.
 func NewMessageStore(db *channeldb.DB) (*MessageStore, error) {
-	err := db.Update(func(tx *bolt.Tx) error {
+	err := db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(messageStoreBucket)
 		return err
 	})
@@ -124,7 +124,7 @@ func (s *MessageStore) AddMessage(msg lnwire.Message, peerPubKey [33]byte) error
 		return err
 	}
 
-	return s.db.Batch(func(tx *bolt.Tx) error {
+	return s.db.Batch(func(tx *bbolt.Tx) error {
 		messageStore := tx.Bucket(messageStoreBucket)
 		if messageStore == nil {
 			return ErrCorruptedMessageStore
@@ -145,7 +145,7 @@ func (s *MessageStore) DeleteMessage(msg lnwire.Message,
 		return err
 	}
 
-	return s.db.Batch(func(tx *bolt.Tx) error {
+	return s.db.Batch(func(tx *bbolt.Tx) error {
 		messageStore := tx.Bucket(messageStoreBucket)
 		if messageStore == nil {
 			return ErrCorruptedMessageStore
@@ -200,7 +200,7 @@ func readMessage(msgBytes []byte) (lnwire.Message, error) {
 // all peers.
 func (s *MessageStore) Messages() (map[[33]byte][]lnwire.Message, error) {
 	msgs := make(map[[33]byte][]lnwire.Message)
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bbolt.Tx) error {
 		messageStore := tx.Bucket(messageStoreBucket)
 		if messageStore == nil {
 			return ErrCorruptedMessageStore
@@ -238,7 +238,7 @@ func (s *MessageStore) MessagesForPeer(
 	peerPubKey [33]byte) ([]lnwire.Message, error) {
 
 	var msgs []lnwire.Message
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bbolt.Tx) error {
 		messageStore := tx.Bucket(messageStoreBucket)
 		if messageStore == nil {
 			return ErrCorruptedMessageStore
@@ -273,7 +273,7 @@ func (s *MessageStore) MessagesForPeer(
 // Peers returns the public key of all peers with messages within the store.
 func (s *MessageStore) Peers() (map[[33]byte]struct{}, error) {
 	peers := make(map[[33]byte]struct{})
-	err := s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bbolt.Tx) error {
 		messageStore := tx.Bucket(messageStoreBucket)
 		if messageStore == nil {
 			return ErrCorruptedMessageStore

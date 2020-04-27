@@ -9,7 +9,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrlnd/lnwire"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -113,7 +113,7 @@ var (
 // ClientDB is single database providing a persistent storage engine for the
 // wtclient.
 type ClientDB struct {
-	db     *bolt.DB
+	db     *bbolt.DB
 	dbPath string
 }
 
@@ -157,7 +157,7 @@ func OpenClientDB(dbPath string) (*ClientDB, error) {
 
 // initClientDBBuckets creates all top-level buckets required to handle database
 // operations required by the latest version.
-func initClientDBBuckets(tx *bolt.Tx) error {
+func initClientDBBuckets(tx *bbolt.Tx) error {
 	buckets := [][]byte{
 		cSessionKeyIndexBkt,
 		cChanSummaryBkt,
@@ -176,10 +176,10 @@ func initClientDBBuckets(tx *bolt.Tx) error {
 	return nil
 }
 
-// bdb returns the backing bolt.DB instance.
+// bdb returns the backing bbolt.DB instance.
 //
 // NOTE: Part of the versionedDB interface.
-func (c *ClientDB) bdb() *bolt.DB {
+func (c *ClientDB) bdb() *bbolt.DB {
 	return c.db
 }
 
@@ -188,7 +188,7 @@ func (c *ClientDB) bdb() *bolt.DB {
 // NOTE: Part of the versionedDB interface.
 func (c *ClientDB) Version() (uint32, error) {
 	var version uint32
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		var err error
 		version, err = getDBVersion(tx)
 		return err
@@ -215,7 +215,7 @@ func (c *ClientDB) CreateTower(lnAddr *lnwire.NetAddress) (*Tower, error) {
 	copy(towerPubKey[:], lnAddr.IdentityKey.SerializeCompressed())
 
 	var tower *Tower
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		towerIndex := tx.Bucket(cTowerIndexBkt)
 		if towerIndex == nil {
 			return ErrUninitializedDB
@@ -308,7 +308,7 @@ func (c *ClientDB) CreateTower(lnAddr *lnwire.NetAddress) (*Tower, error) {
 //
 // NOTE: An error is not returned if the tower doesn't exist.
 func (c *ClientDB) RemoveTower(pubKey *secp256k1.PublicKey, addr net.Addr) error {
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		towers := tx.Bucket(cTowerBkt)
 		if towers == nil {
 			return ErrUninitializedDB
@@ -383,7 +383,7 @@ func (c *ClientDB) RemoveTower(pubKey *secp256k1.PublicKey, addr net.Addr) error
 // LoadTowerByID retrieves a tower by its tower ID.
 func (c *ClientDB) LoadTowerByID(towerID TowerID) (*Tower, error) {
 	var tower *Tower
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		towers := tx.Bucket(cTowerBkt)
 		if towers == nil {
 			return ErrUninitializedDB
@@ -403,7 +403,7 @@ func (c *ClientDB) LoadTowerByID(towerID TowerID) (*Tower, error) {
 // LoadTower retrieves a tower by its public key.
 func (c *ClientDB) LoadTower(pubKey *secp256k1.PublicKey) (*Tower, error) {
 	var tower *Tower
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		towers := tx.Bucket(cTowerBkt)
 		if towers == nil {
 			return ErrUninitializedDB
@@ -432,7 +432,7 @@ func (c *ClientDB) LoadTower(pubKey *secp256k1.PublicKey) (*Tower, error) {
 // ListTowers retrieves the list of towers available within the database.
 func (c *ClientDB) ListTowers() ([]*Tower, error) {
 	var towers []*Tower
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		towerBucket := tx.Bucket(cTowerBkt)
 		if towerBucket == nil {
 			return ErrUninitializedDB
@@ -461,7 +461,7 @@ func (c *ClientDB) ListTowers() ([]*Tower, error) {
 // CreateClientSession is invoked should return the same index.
 func (c *ClientDB) NextSessionKeyIndex(towerID TowerID) (uint32, error) {
 	var index uint32
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		keyIndex := tx.Bucket(cSessionKeyIndexBkt)
 		if keyIndex == nil {
 			return ErrUninitializedDB
@@ -509,7 +509,7 @@ func (c *ClientDB) NextSessionKeyIndex(towerID TowerID) (uint32, error) {
 // CreateClientSession records a newly negotiated client session in the set of
 // active sessions. The session can be identified by its SessionID.
 func (c *ClientDB) CreateClientSession(session *ClientSession) error {
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		keyIndexes := tx.Bucket(cSessionKeyIndexBkt)
 		if keyIndexes == nil {
 			return ErrUninitializedDB
@@ -558,7 +558,7 @@ func (c *ClientDB) CreateClientSession(session *ClientSession) error {
 // response that do not correspond to this tower.
 func (c *ClientDB) ListClientSessions(id *TowerID) (map[SessionID]*ClientSession, error) {
 	var clientSessions map[SessionID]*ClientSession
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(cSessionBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -577,7 +577,7 @@ func (c *ClientDB) ListClientSessions(id *TowerID) (map[SessionID]*ClientSession
 // listClientSessions returns the set of all client sessions known to the db. An
 // optional tower ID can be used to filter out any client sessions in the
 // response that do not correspond to this tower.
-func listClientSessions(sessions *bolt.Bucket,
+func listClientSessions(sessions *bbolt.Bucket,
 	id *TowerID) (map[SessionID]*ClientSession, error) {
 
 	clientSessions := make(map[SessionID]*ClientSession)
@@ -612,7 +612,7 @@ func listClientSessions(sessions *bolt.Bucket,
 // channel summaries.
 func (c *ClientDB) FetchChanSummaries() (ChannelSummaries, error) {
 	summaries := make(map[lnwire.ChannelID]ClientChanSummary)
-	err := c.db.View(func(tx *bolt.Tx) error {
+	err := c.db.View(func(tx *bbolt.Tx) error {
 		chanSummaries := tx.Bucket(cChanSummaryBkt)
 		if chanSummaries == nil {
 			return ErrUninitializedDB
@@ -648,7 +648,7 @@ func (c *ClientDB) FetchChanSummaries() (ChannelSummaries, error) {
 func (c *ClientDB) RegisterChannel(chanID lnwire.ChannelID,
 	sweepPkScript []byte) error {
 
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		chanSummaries := tx.Bucket(cChanSummaryBkt)
 		if chanSummaries == nil {
 			return ErrUninitializedDB
@@ -692,7 +692,7 @@ func (c *ClientDB) CommitUpdate(id *SessionID,
 	update *CommittedUpdate) (uint16, error) {
 
 	var lastApplied uint16
-	err := c.db.Update(func(tx *bolt.Tx) error {
+	err := c.db.Update(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(cSessionBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -796,7 +796,7 @@ func (c *ClientDB) CommitUpdate(id *SessionID,
 func (c *ClientDB) AckUpdate(id *SessionID, seqNum uint16,
 	lastApplied uint16) error {
 
-	return c.db.Update(func(tx *bolt.Tx) error {
+	return c.db.Update(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(cSessionBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -894,7 +894,7 @@ func (c *ClientDB) AckUpdate(id *SessionID, seqNum uint16,
 // bucket corresponding to the serialized session id. This does not deserialize
 // the CommittedUpdates or AckUpdates associated with the session. If the caller
 // requires this info, use getClientSession.
-func getClientSessionBody(sessions *bolt.Bucket,
+func getClientSessionBody(sessions *bbolt.Bucket,
 	idBytes []byte) (*ClientSession, error) {
 
 	sessionBkt := sessions.Bucket(idBytes)
@@ -922,7 +922,7 @@ func getClientSessionBody(sessions *bolt.Bucket,
 // getClientSession loads the full ClientSession associated with the serialized
 // session id. This method populates the CommittedUpdates and AckUpdates in
 // addition to the ClientSession's body.
-func getClientSession(sessions *bolt.Bucket,
+func getClientSession(sessions *bbolt.Bucket,
 	idBytes []byte) (*ClientSession, error) {
 
 	session, err := getClientSessionBody(sessions, idBytes)
@@ -950,7 +950,7 @@ func getClientSession(sessions *bolt.Bucket,
 
 // getClientSessionCommits retrieves all committed updates for the session
 // identified by the serialized session id.
-func getClientSessionCommits(sessions *bolt.Bucket,
+func getClientSessionCommits(sessions *bbolt.Bucket,
 	idBytes []byte) ([]CommittedUpdate, error) {
 
 	// Can't fail because client session body has already been read.
@@ -986,7 +986,7 @@ func getClientSessionCommits(sessions *bolt.Bucket,
 
 // getClientSessionAcks retrieves all acked updates for the session identified
 // by the serialized session id.
-func getClientSessionAcks(sessions *bolt.Bucket,
+func getClientSessionAcks(sessions *bbolt.Bucket,
 	idBytes []byte) (map[uint16]BackupID, error) {
 
 	// Can't fail because client session body has already been read.
@@ -1023,7 +1023,7 @@ func getClientSessionAcks(sessions *bolt.Bucket,
 
 // putClientSessionBody stores the body of the ClientSession (everything but the
 // CommittedUpdates and AckedUpdates).
-func putClientSessionBody(sessions *bolt.Bucket,
+func putClientSessionBody(sessions *bbolt.Bucket,
 	session *ClientSession) error {
 
 	sessionBkt, err := sessions.CreateBucketIfNotExists(session.ID[:])
@@ -1042,7 +1042,7 @@ func putClientSessionBody(sessions *bolt.Bucket,
 
 // markSessionStatus updates the persisted state of the session to the new
 // status.
-func markSessionStatus(sessions *bolt.Bucket, session *ClientSession,
+func markSessionStatus(sessions *bbolt.Bucket, session *ClientSession,
 	status CSessionStatus) error {
 
 	session.Status = status
@@ -1050,7 +1050,7 @@ func markSessionStatus(sessions *bolt.Bucket, session *ClientSession,
 }
 
 // getChanSummary loads a ClientChanSummary for the passed chanID.
-func getChanSummary(chanSummaries *bolt.Bucket,
+func getChanSummary(chanSummaries *bbolt.Bucket,
 	chanID lnwire.ChannelID) (*ClientChanSummary, error) {
 
 	chanSummaryBytes := chanSummaries.Get(chanID[:])
@@ -1068,7 +1068,7 @@ func getChanSummary(chanSummaries *bolt.Bucket,
 }
 
 // putChanSummary stores a ClientChanSummary for the passed chanID.
-func putChanSummary(chanSummaries *bolt.Bucket, chanID lnwire.ChannelID,
+func putChanSummary(chanSummaries *bbolt.Bucket, chanID lnwire.ChannelID,
 	summary *ClientChanSummary) error {
 
 	var b bytes.Buffer
@@ -1081,7 +1081,7 @@ func putChanSummary(chanSummaries *bolt.Bucket, chanID lnwire.ChannelID,
 }
 
 // getTower loads a Tower identified by its serialized tower id.
-func getTower(towers *bolt.Bucket, id []byte) (*Tower, error) {
+func getTower(towers *bbolt.Bucket, id []byte) (*Tower, error) {
 	towerBytes := towers.Get(id)
 	if towerBytes == nil {
 		return nil, ErrTowerNotFound
@@ -1099,7 +1099,7 @@ func getTower(towers *bolt.Bucket, id []byte) (*Tower, error) {
 }
 
 // putTower stores a Tower identified by its serialized tower id.
-func putTower(towers *bolt.Bucket, tower *Tower) error {
+func putTower(towers *bbolt.Bucket, tower *Tower) error {
 	var b bytes.Buffer
 	err := tower.Encode(&b)
 	if err != nil {

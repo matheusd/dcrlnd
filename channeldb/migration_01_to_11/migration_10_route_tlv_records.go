@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"io"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 // MigrateRouteSerialization migrates the way we serialize routes across the
 // entire database. At the time of writing of this migration, this includes our
 // payment attempts, as well as the payment results in mission control.
-func MigrateRouteSerialization(tx *bolt.Tx) error {
+func MigrateRouteSerialization(tx *bbolt.Tx) error {
 	// First, we'll do all the payment attempts.
 	rootPaymentBucket := tx.Bucket(paymentsRootBucket)
 	if rootPaymentBucket == nil {
@@ -84,7 +84,7 @@ func MigrateRouteSerialization(tx *bolt.Tx) error {
 
 	resultsKey := []byte("missioncontrol-results")
 	err = tx.DeleteBucket(resultsKey)
-	if err != nil && err != bolt.ErrBucketNotFound {
+	if err != nil && err != bbolt.ErrBucketNotFound {
 		return err
 	}
 
@@ -95,7 +95,7 @@ func MigrateRouteSerialization(tx *bolt.Tx) error {
 
 // migrateAttemptEncoding migrates payment attempts using the legacy format to
 // the new format.
-func migrateAttemptEncoding(tx *bolt.Tx, payHashBucket *bolt.Bucket) error {
+func migrateAttemptEncoding(tx *bbolt.Tx, payHashBucket *bbolt.Bucket) error {
 	payAttemptBytes := payHashBucket.Get(paymentAttemptInfoKey)
 	if payAttemptBytes == nil {
 		return nil

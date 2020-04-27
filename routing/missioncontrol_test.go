@@ -8,7 +8,7 @@ import (
 
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -44,7 +44,7 @@ type mcTestContext struct {
 	mc  *MissionControl
 	now time.Time
 
-	db     *bolt.DB
+	db     *bbolt.DB
 	dbPath string
 
 	pid uint64
@@ -63,7 +63,7 @@ func createMcTestContext(t *testing.T) *mcTestContext {
 
 	ctx.dbPath = file.Name()
 
-	ctx.db, err = bolt.Open(ctx.dbPath, 0600, nil)
+	ctx.db, err = bbolt.Open(ctx.dbPath, 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

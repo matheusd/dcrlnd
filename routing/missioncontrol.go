@@ -7,7 +7,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing/route"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -173,7 +173,7 @@ type paymentResult struct {
 }
 
 // NewMissionControl returns a new instance of missionControl.
-func NewMissionControl(db *bolt.DB, cfg *MissionControlConfig) (
+func NewMissionControl(db *bbolt.DB, cfg *MissionControlConfig) (
 	*MissionControl, error) {
 
 	log.Debugf("Instantiating mission control with config: "+

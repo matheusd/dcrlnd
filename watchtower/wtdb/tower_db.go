@@ -7,7 +7,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/watchtower/blob"
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 const (
@@ -55,7 +55,7 @@ var (
 // TowerDB is single database providing a persistent storage engine for the
 // wtserver and lookout subsystems.
 type TowerDB struct {
-	db     *bolt.DB
+	db     *bbolt.DB
 	dbPath string
 }
 
@@ -99,7 +99,7 @@ func OpenTowerDB(dbPath string) (*TowerDB, error) {
 
 // initTowerDBBuckets creates all top-level buckets required to handle database
 // operations required by the latest version.
-func initTowerDBBuckets(tx *bolt.Tx) error {
+func initTowerDBBuckets(tx *bbolt.Tx) error {
 	buckets := [][]byte{
 		sessionsBkt,
 		updateIndexBkt,
@@ -117,10 +117,10 @@ func initTowerDBBuckets(tx *bolt.Tx) error {
 	return nil
 }
 
-// bdb returns the backing bolt.DB instance.
+// bdb returns the backing bbolt.DB instance.
 //
 // NOTE: Part of the versionedDB interface.
-func (t *TowerDB) bdb() *bolt.DB {
+func (t *TowerDB) bdb() *bbolt.DB {
 	return t.db
 }
 
@@ -129,7 +129,7 @@ func (t *TowerDB) bdb() *bolt.DB {
 // NOTE: Part of the versionedDB interface.
 func (t *TowerDB) Version() (uint32, error) {
 	var version uint32
-	err := t.db.View(func(tx *bolt.Tx) error {
+	err := t.db.View(func(tx *bbolt.Tx) error {
 		var err error
 		version, err = getDBVersion(tx)
 		return err
@@ -150,7 +150,7 @@ func (t *TowerDB) Close() error {
 // returned if the session could not be found.
 func (t *TowerDB) GetSessionInfo(id *SessionID) (*SessionInfo, error) {
 	var session *SessionInfo
-	err := t.db.View(func(tx *bolt.Tx) error {
+	err := t.db.View(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(sessionsBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -170,7 +170,7 @@ func (t *TowerDB) GetSessionInfo(id *SessionID) (*SessionInfo, error) {
 // InsertSessionInfo records a negotiated session in the tower database. An
 // error is returned if the session already exists.
 func (t *TowerDB) InsertSessionInfo(session *SessionInfo) error {
-	return t.db.Update(func(tx *bolt.Tx) error {
+	return t.db.Update(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(sessionsBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -219,7 +219,7 @@ func (t *TowerDB) InsertSessionInfo(session *SessionInfo) error {
 // properly and the last applied values echoed by the client are sane.
 func (t *TowerDB) InsertStateUpdate(update *SessionStateUpdate) (uint16, error) {
 	var lastApplied uint16
-	err := t.db.Update(func(tx *bolt.Tx) error {
+	err := t.db.Update(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(sessionsBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -303,7 +303,7 @@ func (t *TowerDB) InsertStateUpdate(update *SessionStateUpdate) (uint16, error) 
 // DeleteSession removes all data associated with a particular session id from
 // the tower's database.
 func (t *TowerDB) DeleteSession(target SessionID) error {
-	return t.db.Update(func(tx *bolt.Tx) error {
+	return t.db.Update(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(sessionsBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -389,7 +389,7 @@ func (t *TowerDB) DeleteSession(target SessionID) error {
 // they exist in the database.
 func (t *TowerDB) QueryMatches(breachHints []blob.BreachHint) ([]Match, error) {
 	var matches []Match
-	err := t.db.View(func(tx *bolt.Tx) error {
+	err := t.db.View(func(tx *bbolt.Tx) error {
 		sessions := tx.Bucket(sessionsBkt)
 		if sessions == nil {
 			return ErrUninitializedDB
@@ -471,7 +471,7 @@ func (t *TowerDB) QueryMatches(breachHints []blob.BreachHint) ([]Match, error) {
 // SetLookoutTip stores the provided epoch as the latest lookout tip epoch in
 // the tower database.
 func (t *TowerDB) SetLookoutTip(epoch *chainntnfs.BlockEpoch) error {
-	return t.db.Update(func(tx *bolt.Tx) error {
+	return t.db.Update(func(tx *bbolt.Tx) error {
 		lookoutTip := tx.Bucket(lookoutTipBkt)
 		if lookoutTip == nil {
 			return ErrUninitializedDB
@@ -485,7 +485,7 @@ func (t *TowerDB) SetLookoutTip(epoch *chainntnfs.BlockEpoch) error {
 // database.
 func (t *TowerDB) GetLookoutTip() (*chainntnfs.BlockEpoch, error) {
 	var epoch *chainntnfs.BlockEpoch
-	err := t.db.View(func(tx *bolt.Tx) error {
+	err := t.db.View(func(tx *bbolt.Tx) error {
 		lookoutTip := tx.Bucket(lookoutTipBkt)
 		if lookoutTip == nil {
 			return ErrUninitializedDB
@@ -505,7 +505,7 @@ func (t *TowerDB) GetLookoutTip() (*chainntnfs.BlockEpoch, error) {
 // getSession retrieves the session info from the sessions bucket identified by
 // its session id. An error is returned if the session is not found or a
 // deserialization error occurs.
-func getSession(sessions *bolt.Bucket, id []byte) (*SessionInfo, error) {
+func getSession(sessions *bbolt.Bucket, id []byte) (*SessionInfo, error) {
 	sessionBytes := sessions.Get(id)
 	if sessionBytes == nil {
 		return nil, ErrSessionNotFound
@@ -522,7 +522,7 @@ func getSession(sessions *bolt.Bucket, id []byte) (*SessionInfo, error) {
 
 // putSession stores the session info in the sessions bucket identified by its
 // session id. An error is returned if a serialization error occurs.
-func putSession(sessions *bolt.Bucket, session *SessionInfo) error {
+func putSession(sessions *bbolt.Bucket, session *SessionInfo) error {
 	var b bytes.Buffer
 	err := session.Encode(&b)
 	if err != nil {
@@ -536,7 +536,7 @@ func putSession(sessions *bolt.Bucket, session *SessionInfo) error {
 // session id. This ensures that future calls to getHintsForSession or
 // putHintForSession can rely on the bucket already being created, and fail if
 // index has not been initialized as this points to improper usage.
-func touchSessionHintBkt(updateIndex *bolt.Bucket, id *SessionID) error {
+func touchSessionHintBkt(updateIndex *bbolt.Bucket, id *SessionID) error {
 	_, err := updateIndex.CreateBucketIfNotExists(id[:])
 	return err
 }
@@ -544,14 +544,14 @@ func touchSessionHintBkt(updateIndex *bolt.Bucket, id *SessionID) error {
 // removeSessionHintBkt prunes the session-hint bucket for the given session id
 // and all of the hints contained inside. This should be used to clean up the
 // index upon session deletion.
-func removeSessionHintBkt(updateIndex *bolt.Bucket, id *SessionID) error {
+func removeSessionHintBkt(updateIndex *bbolt.Bucket, id *SessionID) error {
 	return updateIndex.DeleteBucket(id[:])
 }
 
 // getHintsForSession returns all known hints belonging to the given session id.
 // If the index for the session has not been initialized, this method returns
 // ErrNoSessionHintIndex.
-func getHintsForSession(updateIndex *bolt.Bucket,
+func getHintsForSession(updateIndex *bbolt.Bucket,
 	id *SessionID) ([]blob.BreachHint, error) {
 
 	sessionHints := updateIndex.Bucket(id[:])
@@ -582,7 +582,7 @@ func getHintsForSession(updateIndex *bolt.Bucket,
 // session id, and used to perform efficient removal of updates. If the index
 // for the session has not been initialized, this method returns
 // ErrNoSessionHintIndex.
-func putHintForSession(updateIndex *bolt.Bucket, id *SessionID,
+func putHintForSession(updateIndex *bbolt.Bucket, id *SessionID,
 	hint blob.BreachHint) error {
 
 	sessionHints := updateIndex.Bucket(id[:])
@@ -594,7 +594,7 @@ func putHintForSession(updateIndex *bolt.Bucket, id *SessionID,
 }
 
 // putLookoutEpoch stores the given lookout tip block epoch in provided bucket.
-func putLookoutEpoch(bkt *bolt.Bucket, epoch *chainntnfs.BlockEpoch) error {
+func putLookoutEpoch(bkt *bbolt.Bucket, epoch *chainntnfs.BlockEpoch) error {
 	epochBytes := make([]byte, 36)
 	copy(epochBytes, epoch.Hash[:])
 	byteOrder.PutUint32(epochBytes[32:], uint32(epoch.Height))
@@ -604,7 +604,7 @@ func putLookoutEpoch(bkt *bolt.Bucket, epoch *chainntnfs.BlockEpoch) error {
 
 // getLookoutEpoch retrieves the lookout tip block epoch from the given bucket.
 // A nil epoch is returned if no update exists.
-func getLookoutEpoch(bkt *bolt.Bucket) *chainntnfs.BlockEpoch {
+func getLookoutEpoch(bkt *bbolt.Bucket) *chainntnfs.BlockEpoch {
 	epochBytes := bkt.Get(lookoutTipKey)
 	if len(epochBytes) != 36 {
 		return nil
@@ -625,7 +625,7 @@ func getLookoutEpoch(bkt *bolt.Bucket) *chainntnfs.BlockEpoch {
 var errBucketNotEmpty = errors.New("bucket not empty")
 
 // isBucketEmpty returns errBucketNotEmpty if the bucket is not empty.
-func isBucketEmpty(bkt *bolt.Bucket) error {
+func isBucketEmpty(bkt *bbolt.Bucket) error {
 	return bkt.ForEach(func(_, _ []byte) error {
 		return errBucketNotEmpty
 	})

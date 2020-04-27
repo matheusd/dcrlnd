@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	bolt "go.etcd.io/bbolt"
+	bbolt "go.etcd.io/bbbolt"
 )
 
 var (
@@ -48,7 +48,7 @@ var (
 
 // MigrateMPP migrates the payments to a new structure that accommodates for mpp
 // payments.
-func MigrateMPP(tx *bolt.Tx) error {
+func MigrateMPP(tx *bbolt.Tx) error {
 	log.Infof("Migrating payments to mpp structure")
 
 	// Iterate over all payments and store their indexing keys. This is
@@ -85,7 +85,7 @@ func MigrateMPP(tx *bolt.Tx) error {
 			return fmt.Errorf("creation info not found")
 		}
 
-		// Make a copy because bbolt doesn't allow this value to be
+		// Make a copy because bbbolt doesn't allow this value to be
 		// changed in-place.
 		newCreationInfo := make([]byte, len(creationInfo))
 		copy(newCreationInfo, creationInfo)
