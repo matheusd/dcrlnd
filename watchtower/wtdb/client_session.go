@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/blob"
 	"github.com/decred/dcrlnd/watchtower/wtpolicy"
@@ -65,7 +65,7 @@ type ClientSession struct {
 	//
 	// NOTE: This value is not serialized. It is derived using the KeyIndex
 	// on startup to avoid storing private keys on disk.
-	SessionKeyECDH *secp256k1.PrivateKey
+	SessionKeyECDH keychain.SingleKeyECDH
 }
 
 // ClientSessionBody represents the primary components of a ClientSession that

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtserver"
@@ -41,8 +41,8 @@ type sessionQueueConfig struct {
 
 	// Dial allows the client to dial the tower using it's public key and
 	// net address.
-	Dial func(*secp256k1.PrivateKey,
-		*lnwire.NetAddress) (wtserver.Peer, error)
+	Dial func(keychain.SingleKeyECDH, *lnwire.NetAddress) (wtserver.Peer,
+		error)
 
 	// SendMessage encodes, encrypts, and writes a message to the given peer.
 	SendMessage func(wtserver.Peer, wtwire.Message) error

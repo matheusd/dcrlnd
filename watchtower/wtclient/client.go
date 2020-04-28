@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
@@ -342,7 +343,7 @@ func New(config *Config) (*TowerClient, error) {
 // NOTE: This method should only be used when deserialization of a
 // ClientSession's Tower and SessionPrivKey fields is desired, otherwise, the
 // existing ListClientSessions method should be used.
-func getClientSessions(db DB, keyRing SecretKeyRing, forTower *wtdb.TowerID,
+func getClientSessions(db DB, keyRing ECDHKeyRing, forTower *wtdb.TowerID,
 	passesFilter func(*wtdb.ClientSession) bool) (
 	map[wtdb.SessionID]*wtdb.ClientSession, error) {
 
@@ -363,11 +364,14 @@ func getClientSessions(db DB, keyRing SecretKeyRing, forTower *wtdb.TowerID,
 		}
 		s.Tower = tower
 
-		sessionKey, err := DeriveSessionKey(keyRing, s.KeyIndex)
+		towerKeyDesc, err := keyRing.DeriveKey(keychain.KeyLocator{
+			Family: keychain.KeyFamilyTowerSession,
+			Index:  s.KeyIndex,
+		})
 		if err != nil {
 			return nil, err
 		}
-		s.SessionKeyECDH = sessionKey
+		s.SessionKeyECDH = keychain.NewPubKeyECDH(towerKeyDesc, keyRing)
 
 		// If an optional filter was provided, use it to filter out any
 		// undesired sessions.
@@ -903,10 +907,10 @@ func (c *TowerClient) taskRejected(task *backupTask, curStatus reserveStatus) {
 // dial connects the peer at addr using privKey as our secret key for the
 // connection. The connection will use the configured Net's resolver to resolve
 // the address for either Tor or clear net connections.
-func (c *TowerClient) dial(privKey *secp256k1.PrivateKey,
+func (c *TowerClient) dial(localKey keychain.SingleKeyECDH,
 	addr *lnwire.NetAddress) (wtserver.Peer, error) {
 
-	return c.cfg.AuthDial(privKey, addr, c.cfg.Dial)
+	return c.cfg.AuthDial(localKey, addr, c.cfg.Dial)
 }
 
 // readMessage receives and parses the next message from the given Peer. An

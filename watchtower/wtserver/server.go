@@ -10,8 +10,8 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/connmgr"
-	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/watchtower/wtdb"
 	"github.com/decred/dcrlnd/watchtower/wtwire"
@@ -35,7 +35,7 @@ type Config struct {
 
 	// NodeKeyECDH is the the ECDH capable wrapper of the key to be used in
 	// accepting new brontide connections.
-	NodeKeyECDH *secp256k1.PrivateKey
+	NodeKeyECDH keychain.SingleKeyECDH
 
 	// Listeners specifies which address to which clients may connect.
 	Listeners []net.Listener

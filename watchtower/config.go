@@ -7,9 +7,9 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/tor"
 	"github.com/decred/dcrlnd/watchtower/lookout"
 )
@@ -70,7 +70,7 @@ type Config struct {
 
 	// NodeKeyECDH is the ECDH capable wrapper of the key to be used in
 	// accepting new brontide connections.
-	NodeKeyECDH *secp256k1.PrivateKey
+	NodeKeyECDH keychain.SingleKeyECDH
 
 	// PublishTx provides the ability to send a signed transaction to the
 	// network.

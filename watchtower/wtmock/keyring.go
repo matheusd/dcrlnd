@@ -20,33 +20,9 @@ func NewSecretKeyRing() *SecretKeyRing {
 	}
 }
 
-// DerivePrivKey derives the private key for a given key descriptor. If
-// this method is called twice with the same argument, it will return the same
-// private key.
-func (m *SecretKeyRing) DerivePrivKey(
-	desc keychain.KeyDescriptor) (*secp256k1.PrivateKey, error) {
-
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if key, ok := m.keys[desc.KeyLocator]; ok {
-		return key, nil
-	}
-
-	privKey, err := secp256k1.GeneratePrivateKey()
-	if err != nil {
-		return nil, err
-	}
-
-	m.keys[desc.KeyLocator] = privKey
-
-	return privKey, nil
-}
-
-// DeriveKey attempts to derive an arbitrary key specified by the
-// passed KeyLocator. This may be used in several recovery scenarios,
-// or when manually rotating something like our current default node
-// key.
+// DeriveKey attempts to derive an arbitrary key specified by the passed
+// KeyLocator. This may be used in several recovery scenarios, or when manually
+// rotating something like our current default node key.
 //
 // NOTE: This is part of the wtclient.ECDHKeyRing interface.
 func (m *SecretKeyRing) DeriveKey(
