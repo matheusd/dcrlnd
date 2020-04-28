@@ -12,7 +12,6 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
@@ -409,24 +408,24 @@ func (s *Server) SignMessage(ctx context.Context,
 		return nil, fmt.Errorf("a key locator MUST be passed in")
 	}
 
-	// Derive the private key we'll be using for signing.
-	keyLocator := keychain.KeyLocator{
-		Family: keychain.KeyFamily(in.KeyLoc.KeyFamily),
-		Index:  uint32(in.KeyLoc.KeyIndex),
-	}
-	privKey, err := s.cfg.KeyRing.DerivePrivKey(keychain.KeyDescriptor{
-		KeyLocator: keyLocator,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("can't derive private key: %v", err)
+	// Describe the private key we'll be using for signing.
+	keyDescriptor := keychain.KeyDescriptor{
+		KeyLocator: keychain.KeyLocator{
+			Family: keychain.KeyFamily(in.KeyLoc.KeyFamily),
+			Index:  uint32(in.KeyLoc.KeyIndex),
+		},
 	}
 
-	// The signature is over the blake256 hash of the message.
-	digest := chainhash.HashB(in.Msg)
+	// The signature is over the sha256 hash of the message.
+	var digest [32]byte
+	copy(digest[:], chainhash.HashB(in.Msg))
 
 	// Create the raw ECDSA signature first and convert it to the final wire
 	// format after.
-	sig := ecdsa.Sign(privKey, digest)
+	sig, err := s.cfg.KeyRing.SignDigest(keyDescriptor, digest)
+	if err != nil {
+		return nil, fmt.Errorf("can't sign the hash: %v", err)
+	}
 	wireSig, err := lnwire.NewSigFromSignature(sig)
 	if err != nil {
 		return nil, fmt.Errorf("can't convert to wire format: %v", err)
