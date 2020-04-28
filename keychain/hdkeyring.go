@@ -1,10 +1,12 @@
 package keychain
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/hdkeychain/v3"
 )
 
@@ -197,4 +199,80 @@ func (kr *HDKeyRing) ScalarMult(keyDesc KeyDescriptor,
 	pub *secp256k1.PublicKey) ([]byte, error) {
 
 	return nil, fmt.Errorf("Unimplemented")
+}
+
+// ECDH performs a scalar multiplication (ECDH-like operation) between the
+// target key descriptor and remote public key. The output returned will be the
+// sha256 of the resulting shared point serialized in compressed format. If k
+// is our private key, and P is the public key, we perform the following
+// operation:
+//
+//  sx := k*P
+//   s := sha256(sx.SerializeCompressed())
+//
+// NOTE: This is part of the keychain.ECDHRing interface.
+func (kr *HDKeyRing) ECDH(keyDesc KeyDescriptor,
+	pub *secp256k1.PublicKey) ([32]byte, error) {
+
+	privKey, err := kr.DerivePrivKey(keyDesc)
+	if err != nil {
+		return [32]byte{}, err
+
+	}
+
+	// Privkey to ModNScalar.
+	var privKeyModn secp256k1.ModNScalar
+	privKeyModn.SetByteSlice(privKey.Serialize())
+
+	// Pubkey to JacobianPoint.
+	var pubJacobian, res secp256k1.JacobianPoint
+	pub.AsJacobian(&pubJacobian)
+
+	// Calculate shared point and ensure it's on the curve.
+	secp256k1.ScalarMultNonConst(&privKeyModn, &pubJacobian, &res)
+	res.ToAffine()
+	sharedPub := secp256k1.NewPublicKey(&res.X, &res.Y)
+	if !sharedPub.IsOnCurve() {
+		return [32]byte{}, fmt.Errorf("Derived ECDH point is not on the secp256k1 curve")
+	}
+
+	// Hash of the serialized point is the shared secret.
+	h := sha256.Sum256(sharedPub.SerializeCompressed())
+
+	return h, nil
+
+}
+
+// SignDigest signs the given SHA256 message digest with the private key
+// described in the key descriptor.
+//
+// NOTE: This is part of the keychain.DigestSignerRing interface.
+func (kr *HDKeyRing) SignDigest(keyDesc KeyDescriptor,
+	digest [32]byte) (*ecdsa.Signature, error) {
+
+	privKey, err := kr.DerivePrivKey(keyDesc)
+	if err != nil {
+		return nil, err
+
+	}
+
+	return ecdsa.Sign(privKey, digest[:]), nil
+}
+
+// SignDigestCompact signs the given SHA256 message digest with the private key
+// described in the key descriptor and returns the signature in the compact,
+// public key recoverable format.
+//
+// NOTE: This is part of the keychain.DigestSignerRing interface.
+func (kr *HDKeyRing) SignDigestCompact(keyDesc KeyDescriptor,
+	digest [32]byte) ([]byte, error) {
+
+	privKey, err := kr.DerivePrivKey(keyDesc)
+	if err != nil {
+		return nil, err
+
+	}
+
+	return ecdsa.SignCompact(privKey, digest[:], true), nil
+
 }

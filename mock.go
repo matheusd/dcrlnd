@@ -385,3 +385,23 @@ func (m *mockSecretKeyRing) ScalarMult(keyDesc keychain.KeyDescriptor,
 	pubKey *secp256k1.PublicKey) ([]byte, error) {
 	return nil, nil
 }
+
+func (m *mockSecretKeyRing) ECDH(_ keychain.KeyDescriptor,
+	pubKey *secp256k1.PublicKey) ([32]byte, error) {
+
+	return [32]byte{}, nil
+}
+
+func (m *mockSecretKeyRing) SignDigest(_ keychain.KeyDescriptor,
+	digest [32]byte) (*ecdsa.Signature, error) {
+
+	return ecdsa.Sign(m.rootKey, digest[:]), nil
+}
+
+func (m *mockSecretKeyRing) SignDigestCompact(_ keychain.KeyDescriptor,
+	digest [32]byte) ([]byte, error) {
+
+	return ecdsa.SignCompact(m.rootKey, digest[:], true), nil
+}
+
+var _ keychain.SecretKeyRing = (*mockSecretKeyRing)(nil)
