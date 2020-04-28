@@ -2465,7 +2465,7 @@ func (c *OpenChannel) CloseChannel(summary *ChannelCloseSummary,
 
 		// Now that the index to this channel has been deleted, purge
 		// the remaining channel metadata from the database.
-		err = deleteOpenChannel(chanBucket, chanPointBuf.Bytes())
+		err = deleteOpenChannel(chanBucket)
 		if err != nil {
 			return err
 		}
@@ -3108,7 +3108,7 @@ func fetchChanRevocationState(chanBucket kvdb.ReadBucket, channel *OpenChannel) 
 	return ReadElements(r, &channel.RemoteNextRevocation)
 }
 
-func deleteOpenChannel(chanBucket kvdb.RwBucket, chanPointBytes []byte) error {
+func deleteOpenChannel(chanBucket kvdb.RwBucket) error {
 
 	if err := chanBucket.Delete(chanInfoKey); err != nil {
 		return err
