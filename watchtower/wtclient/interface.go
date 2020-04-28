@@ -109,7 +109,7 @@ type AuthDialer func(localPriv *secp256k1.PrivateKey, netAddr *lnwire.NetAddress
 func AuthDial(localPriv *secp256k1.PrivateKey, netAddr *lnwire.NetAddress,
 	dialer func(string, string) (net.Conn, error)) (wtserver.Peer, error) {
 
-	return brontide.Dial(localPriv, netAddr, dialer)
+	return brontide.Dial(nil/*TODO fix in next commit*/, netAddr, dialer)
 }
 
 // ECDHKeyRing abstracts the ability to derive shared ECDH keys given a

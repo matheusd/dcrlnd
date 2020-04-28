@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -32,8 +33,9 @@ var _ net.Conn = (*Conn)(nil)
 // remote peer located at address which has remotePub as its long-term static
 // public key. In the case of a handshake failure, the connection is closed and
 // a non-nil error is returned.
-func Dial(localPriv *secp256k1.PrivateKey, netAddr *lnwire.NetAddress,
+func Dial(local keychain.SingleKeyECDH, netAddr *lnwire.NetAddress,
 	dialer func(string, string) (net.Conn, error)) (*Conn, error) {
+
 	ipAddr := netAddr.Address.String()
 	var conn net.Conn
 	var err error
@@ -44,7 +46,7 @@ func Dial(localPriv *secp256k1.PrivateKey, netAddr *lnwire.NetAddress,
 
 	b := &Conn{
 		conn:  conn,
-		noise: NewBrontideMachine(true, localPriv, netAddr.IdentityKey),
+		noise: NewBrontideMachine(true, local, netAddr.IdentityKey),
 	}
 
 	// Initiate the handshake by sending the first act to the receiver.
