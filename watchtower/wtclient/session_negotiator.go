@@ -428,7 +428,7 @@ func (n *sessionNegotiator) tryAddress(privKey *secp256k1.PrivateKey,
 				RewardPkScript: rewardPkScript,
 			},
 			Tower:          tower,
-			SessionPrivKey: privKey,
+			SessionKeyECDH: privKey,
 			ID:             sessionID,
 		}
 
