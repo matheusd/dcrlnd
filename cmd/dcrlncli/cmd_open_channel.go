@@ -305,6 +305,8 @@ func openChannel(ctx *cli.Context) error {
 //     |  |-------channel pending------->|  |
 //     |  |-------channel open------------->|
 //     |                                    |
+//
+// nolint: govet
 func openChannelPsbt(ctx *cli.Context, client lnrpc.LightningClient,
 	req *lnrpc.OpenChannelRequest) error {
 
@@ -609,7 +611,7 @@ func printChanPending(update *lnrpc.OpenStatusUpdate_ChanPending) error {
 
 // readLine reads a line from standard in but does not block in case of a
 // system interrupt like syscall.SIGINT (Ctrl+C).
-func readLine(quit chan struct{}) (string, error) {
+func readLine(quit chan struct{}) (string, error) { // nolint: unused
 	msg := make(chan string, 1)
 
 	// In a normal console, reading from stdin won't signal EOF when the
@@ -636,7 +638,7 @@ func readLine(quit chan struct{}) (string, error) {
 
 // checkPsbtFlags make sure a request to open a channel doesn't set any
 // parameters that are incompatible with the PSBT funding flow.
-func checkPsbtFlags(req *lnrpc.OpenChannelRequest) error {
+func checkPsbtFlags(req *lnrpc.OpenChannelRequest) error { // nolint: unused
 	if req.MinConfs != defaultUtxoMinConf || req.SpendUnconfirmed {
 		return fmt.Errorf("specifying minimum confirmations for PSBT " +
 			"funding is not supported")
