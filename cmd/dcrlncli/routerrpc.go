@@ -1,5 +1,3 @@
-// +build !no_routerrpc
-
 package main
 
 import "github.com/urfave/cli"
