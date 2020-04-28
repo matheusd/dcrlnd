@@ -494,3 +494,81 @@ func checkPaymentStatus(ctxt context.Context, node *lntest.HarnessNode,
 
 	return nil
 }
+
+func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
+	carolHodl bool) (*lnrpc.ChannelPoint, *lnrpc.ChannelPoint,
+	*lntest.HarnessNode) {
+
+	ctxb := context.Background()
+
+	// We'll start the test by creating a channel between Alice and Bob,
+	// which will act as the first leg for out multi-hop HTLC.
+	const chanAmt = 1000000
+	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+	aliceChanPoint := openChannelAndAssert(
+		ctxt, t, net, net.Alice, net.Bob,
+		lntest.OpenChannelParams{
+			Amt: chanAmt,
+		},
+	)
+
+	chanp2str := func(chanp *lnrpc.ChannelPoint) string {
+		return fmt.Sprintf("%x:%d", chanp.GetFundingTxidBytes(),
+			chanp.OutputIndex)
+	}
+
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err := net.Alice.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
+	if err != nil {
+		t.Fatalf("alice didn't report channel %v: %v", chanp2str(aliceChanPoint), err)
+	}
+
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.Bob.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
+	if err != nil {
+		t.Fatalf("bob didn't report channel %v: %v", chanp2str(aliceChanPoint), err)
+	}
+
+	// Next, we'll create a new node "carol" and have Bob connect to her. If
+	// the carolHodl flag is set, we'll make carol always hold onto the
+	// HTLC, this way it'll force Bob to go to chain to resolve the HTLC.
+	carolFlags := []string{}
+	if carolHodl {
+		carolFlags = append(carolFlags, "--hodl.exit-settle")
+	}
+	carol, err := net.NewNode("Carol", carolFlags)
+	if err != nil {
+		t.Fatalf("unable to create new node: %v", err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	if err := net.ConnectNodes(ctxt, net.Bob, carol); err != nil {
+		t.Fatalf("unable to connect bob to carol: %v", err)
+	}
+
+	// We'll then create a channel from Bob to Carol. After this channel is
+	// open, our topology looks like:  A -> B -> C.
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	bobChanPoint := openChannelAndAssert(
+		ctxt, t, net, net.Bob, carol,
+		lntest.OpenChannelParams{
+			Amt: chanAmt,
+		},
+	)
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.Bob.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+	if err != nil {
+		t.Fatalf("bob didn't report channel %v: %v", chanp2str(bobChanPoint), err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = carol.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+	if err != nil {
+		t.Fatalf("carol didn't report channel %v: %v", chanp2str(bobChanPoint), err)
+	}
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	err = net.Alice.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+	if err != nil {
+		t.Fatalf("alice didn't report channel %v: %v", chanp2str(bobChanPoint), err)
+	}
+
+	return aliceChanPoint, bobChanPoint, carol
+}
