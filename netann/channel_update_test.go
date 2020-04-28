@@ -7,6 +7,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/input"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/netann"
@@ -30,7 +31,8 @@ func (m *mockSigner) SignMessage(pk *secp256k1.PublicKey,
 var _ lnwallet.MessageSigner = (*mockSigner)(nil)
 
 var (
-	privKey, _ = secp256k1.GeneratePrivateKey()
+	privKey, _    = secp256k1.GeneratePrivateKey()
+	privKeySigner = &keychain.PrivKeyDigestSigner{PrivKey: privKey}
 
 	pubKey = privKey.PubKey()
 
@@ -52,35 +54,35 @@ var updateDisableTests = []updateDisableTest{
 		startEnabled: true,
 		disable:      true,
 		startTime:    time.Now(),
-		signer:       netann.NewNodeSigner(privKey),
+		signer:       netann.NewNodeSigner(privKeySigner),
 	},
 	{
 		name:         "working signer enabled to enabled",
 		startEnabled: true,
 		disable:      false,
 		startTime:    time.Now(),
-		signer:       netann.NewNodeSigner(privKey),
+		signer:       netann.NewNodeSigner(privKeySigner),
 	},
 	{
 		name:         "working signer disabled to enabled",
 		startEnabled: false,
 		disable:      false,
 		startTime:    time.Now(),
-		signer:       netann.NewNodeSigner(privKey),
+		signer:       netann.NewNodeSigner(privKeySigner),
 	},
 	{
 		name:         "working signer disabled to disabled",
 		startEnabled: false,
 		disable:      true,
 		startTime:    time.Now(),
-		signer:       netann.NewNodeSigner(privKey),
+		signer:       netann.NewNodeSigner(privKeySigner),
 	},
 	{
 		name:         "working signer future monotonicity",
 		startEnabled: true,
 		disable:      true,
 		startTime:    time.Now().Add(time.Hour), // must increment
-		signer:       netann.NewNodeSigner(privKey),
+		signer:       netann.NewNodeSigner(privKeySigner),
 	},
 	{
 		name:      "failing signer",

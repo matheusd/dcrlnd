@@ -39,6 +39,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -324,12 +325,17 @@ func noiseDial(idPriv *secp256k1.PrivateKey,
 // passed listener address.
 func newServer(cfg *Config, listenAddrs []net.Addr, chanDB *channeldb.DB,
 	towerClientDB *wtdb.ClientDB, cc *chainControl,
-	privKey *secp256k1.PrivateKey,
+	privKey *secp256k1.PrivateKey, nodeKeyDesc *keychain.KeyDescriptor,
 	chansToRestore walletunlocker.ChannelsToRecover,
 	chanPredicate chanacceptor.ChannelAcceptor,
 	torController *tor.Controller) (*server, error) {
 
-	var err error
+	var (
+		err           error
+		nodeKeySigner = keychain.NewPubKeyDigestSigner(
+			*nodeKeyDesc, cc.keyRing,
+		)
+	)
 
 	listeners := make([]net.Listener, len(listenAddrs))
 	for i, listenAddr := range listenAddrs {
@@ -429,7 +435,7 @@ func newServer(cfg *Config, listenAddrs []net.Addr, chanDB *channeldb.DB,
 		channelNotifier: channelnotifier.New(chanDB),
 
 		identityECDH: privKey,
-		nodeSigner:   netann.NewNodeSigner(privKey),
+		nodeSigner:   netann.NewNodeSigner(nodeKeySigner),
 
 		listenAddrs: listenAddrs,
 

@@ -122,6 +122,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier, publTx chan *wire.MsgTx,
 	chainParams := chaincfg.RegNetParams()
 
 	aliceKeyPriv, aliceKeyPub := privKeyFromBytes(alicesPrivKey)
+	aliceKeySigner := &keychain.PrivKeyDigestSigner{PrivKey: aliceKeyPriv}
 	bobKeyPriv, bobKeyPub := privKeyFromBytes(bobsPrivKey)
 
 	channelCapacity := dcrutil.Amount(10 * 1e8)
@@ -418,7 +419,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier, publTx chan *wire.MsgTx,
 	}
 	s.htlcSwitch = htlcSwitch
 
-	nodeSignerAlice := netann.NewNodeSigner(aliceKeyPriv)
+	nodeSignerAlice := netann.NewNodeSigner(aliceKeySigner)
 
 	const chanActiveTimeout = time.Minute
 
