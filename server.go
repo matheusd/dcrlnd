@@ -135,9 +135,9 @@ type server struct {
 
 	cfg *Config
 
-	// identityPriv is the private key used to authenticate any incoming
-	// connections.
-	identityPriv *secp256k1.PrivateKey
+	// identityECDH is an ECDH capable wrapper for the private key used to
+	// authenticate any incoming connections.
+	identityECDH *secp256k1.PrivateKey
 
 	// nodeSigner is an implementation of the MessageSigner implementation
 	// that's backed by the identity private key of the running lnd node.
@@ -428,7 +428,7 @@ func newServer(cfg *Config, listenAddrs []net.Addr, chanDB *channeldb.DB,
 
 		channelNotifier: channelnotifier.New(chanDB),
 
-		identityPriv: privKey,
+		identityECDH: privKey,
 		nodeSigner:   netann.NewNodeSigner(privKey),
 
 		listenAddrs: listenAddrs,
@@ -653,7 +653,7 @@ func newServer(cfg *Config, listenAddrs []net.Addr, chanDB *channeldb.DB,
 	// With the announcement generated, we'll sign it to properly
 	// authenticate the message on the network.
 	authSig, err := netann.SignAnnouncement(
-		s.nodeSigner, s.identityPriv.PubKey(), nodeAnn,
+		s.nodeSigner, s.identityECDH.PubKey(), nodeAnn,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate signature for "+
@@ -801,7 +801,7 @@ func newServer(cfg *Config, listenAddrs []net.Addr, chanDB *channeldb.DB,
 		SubBatchDelay:           time.Second * 5,
 		IgnoreHistoricalFilters: cfg.IgnoreHistoricalGossipFilters,
 	},
-		s.identityPriv.PubKey(),
+		s.identityECDH.PubKey(),
 	)
 
 	s.localChanMgr = &localchans.Manager{
@@ -1220,7 +1220,7 @@ func newServer(cfg *Config, listenAddrs []net.Addr, chanDB *channeldb.DB,
 		OnAccept:       s.InboundPeerConnected,
 		RetryDuration:  time.Second * 5,
 		TargetOutbound: 100,
-		DialAddr:       noiseDial(s.identityPriv, s.cfg.net),
+		DialAddr:       noiseDial(s.identityECDH, s.cfg.net),
 		OnConnection:   s.OutboundPeerConnected,
 	})
 	if err != nil {
@@ -2046,7 +2046,7 @@ func (s *server) createNewHiddenService() error {
 		Color:        newNodeAnn.RGBColor,
 		AuthSigBytes: newNodeAnn.Signature.ToSignatureBytes(),
 	}
-	copy(selfNode.PubKeyBytes[:], s.identityPriv.PubKey().SerializeCompressed())
+	copy(selfNode.PubKeyBytes[:], s.identityECDH.PubKey().SerializeCompressed())
 	if err := s.chanDB.ChannelGraph().SetSourceNode(selfNode); err != nil {
 		return fmt.Errorf("can't set self node: %v", err)
 	}
@@ -2076,7 +2076,7 @@ func (s *server) genNodeAnnouncement(refresh bool,
 	// Otherwise, we'll sign a new update after applying all of the passed
 	// modifiers.
 	err := netann.SignNodeAnnouncement(
-		s.nodeSigner, s.identityPriv.PubKey(), s.currentNodeAnn,
+		s.nodeSigner, s.identityECDH.PubKey(), s.currentNodeAnn,
 		modifiers...,
 	)
 	if err != nil {
@@ -2130,7 +2130,7 @@ func (s *server) establishPersistentConnections() error {
 
 	// TODO(roasbeef): instead iterate over link nodes and query graph for
 	// each of the nodes.
-	selfPub := s.identityPriv.PubKey().SerializeCompressed()
+	selfPub := s.identityECDH.PubKey().SerializeCompressed()
 	err = sourceNode.ForEachChannel(nil, func(
 		tx kvdb.ReadTx,
 		chanInfo *channeldb.ChannelEdgeInfo,
@@ -2588,7 +2588,7 @@ func (s *server) InboundPeerConnected(conn net.Conn) {
 		// connection we've already established should be kept, then
 		// we'll close out this connection s.t there's only a single
 		// connection between us.
-		localPub := s.identityPriv.PubKey()
+		localPub := s.identityECDH.PubKey()
 		if !shouldDropLocalConnection(localPub, nodePub) {
 			srvrLog.Warnf("Received inbound connection from peer %v, "+
 				"but already connected, dropping conn",
@@ -2696,7 +2696,7 @@ func (s *server) OutboundPeerConnected(connReq *connmgr.ConnReq, conn net.Conn) 
 		// If our (this) connection should be dropped, then we'll do
 		// so, in order to ensure we don't have any duplicate
 		// connections.
-		localPub := s.identityPriv.PubKey()
+		localPub := s.identityECDH.PubKey()
 		if shouldDropLocalConnection(localPub, nodePub) {
 			srvrLog.Warnf("Established outbound connection to peer %v, "+
 				"but already connected, dropping conn",
@@ -3292,7 +3292,7 @@ func (s *server) ConnectToPeer(addr *lnwire.NetAddress, perm bool) error {
 // notify the caller if the connection attempt has failed. Otherwise, it will be
 // closed.
 func (s *server) connectToPeer(addr *lnwire.NetAddress, errChan chan<- error) {
-	conn, err := brontide.Dial(s.identityPriv, addr, s.cfg.net.Dial)
+	conn, err := brontide.Dial(s.identityECDH, addr, s.cfg.net.Dial)
 	if err != nil {
 		srvrLog.Errorf("Unable to connect to %v: %v", addr, err)
 		select {
@@ -3495,7 +3495,7 @@ func (s *server) fetchNodeAdvertisedAddr(pub *secp256k1.PublicKey) (net.Addr, er
 func (s *server) fetchLastChanUpdate() func(lnwire.ShortChannelID) (
 	*lnwire.ChannelUpdate, error) {
 
-	ourPubKey := s.identityPriv.PubKey().SerializeCompressed()
+	ourPubKey := s.identityECDH.PubKey().SerializeCompressed()
 	return func(cid lnwire.ShortChannelID) (*lnwire.ChannelUpdate, error) {
 		info, edge1, edge2, err := s.chanRouter.GetChannelByID(cid)
 		if err != nil {
@@ -3511,7 +3511,7 @@ func (s *server) fetchLastChanUpdate() func(lnwire.ShortChannelID) (
 // applyChannelUpdate applies the channel update to the different sub-systems of
 // the server.
 func (s *server) applyChannelUpdate(update *lnwire.ChannelUpdate) error {
-	pubKey := s.identityPriv.PubKey()
+	pubKey := s.identityECDH.PubKey()
 	errChan := s.authGossiper.ProcessLocalAnnouncement(update, pubKey)
 	select {
 	case err := <-errChan:
