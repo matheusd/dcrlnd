@@ -9,11 +9,6 @@ import (
 	"github.com/decred/dcrlnd/channeldb/kvdb"
 )
 
-const (
-	// dbFilePermission requests read+write access to the db file.
-	dbFilePermission = 0600
-)
-
 var (
 	// metadataBkt stores all the meta information concerning the state of
 	// the database.
