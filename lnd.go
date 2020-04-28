@@ -478,20 +478,6 @@ func Main(cfg *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) error {
 	cfg.registeredChains.RegisterChain(primaryChain, activeChainControl)
 
 	// TODO(roasbeef): add rotation
-	idPrivKey, err := activeChainControl.wallet.DerivePrivKey(keychain.KeyDescriptor{
-		KeyLocator: keychain.KeyLocator{
-			Family: keychain.KeyFamilyNodeKey,
-			Index:  0,
-		},
-	})
-	if err != nil {
-		err := fmt.Errorf("unable to derive node private key: %v", err)
-		ltndLog.Error(err)
-		return err
-	}
-	idPubKey := idPrivKey.PubKey()
-	srvrLog.Infof("Derived node public key %x", idPubKey.SerializeCompressed())
-
 	idKeyDesc, err := activeChainControl.keyRing.DeriveKey(
 		keychain.KeyLocator{
 			Family: keychain.KeyFamilyNodeKey,
@@ -632,7 +618,7 @@ func Main(cfg *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) error {
 	// connections.
 	server, err := newServer(
 		cfg, cfg.Listeners, chanDB, towerClientDB, activeChainControl,
-		idPrivKey, &idKeyDesc, walletInitParams.ChansToRestore, chainedAcceptor,
+		&idKeyDesc, walletInitParams.ChansToRestore, chainedAcceptor,
 		torController,
 	)
 	if err != nil {

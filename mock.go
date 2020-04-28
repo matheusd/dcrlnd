@@ -381,11 +381,6 @@ func (m *mockSecretKeyRing) DerivePrivKey(keyDesc keychain.KeyDescriptor) (*secp
 	return m.rootKey, nil
 }
 
-func (m *mockSecretKeyRing) ScalarMult(keyDesc keychain.KeyDescriptor,
-	pubKey *secp256k1.PublicKey) ([]byte, error) {
-	return nil, nil
-}
-
 func (m *mockSecretKeyRing) ECDH(_ keychain.KeyDescriptor,
 	pubKey *secp256k1.PublicKey) ([32]byte, error) {
 

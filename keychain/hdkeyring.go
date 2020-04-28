@@ -186,21 +186,6 @@ func (kr *HDKeyRing) DerivePrivKey(keyDesc KeyDescriptor) (*secp256k1.PrivateKey
 	return nil, ErrCannotDerivePrivKey
 }
 
-// ScalarMult performs a scalar multiplication (ECDH-like operation) between
-// the target key descriptor and remote public key. The output returned will be
-// the sha256 of the resulting shared point serialized in compressed format. If
-// k is our private key, and P is the public key, we perform the following
-// operation:
-//
-//  sx := k*P s := sha256(sx.SerializeCompressed())
-//
-// NOTE: This is part of the keychain.SecretKeyRing interface.
-func (kr *HDKeyRing) ScalarMult(keyDesc KeyDescriptor,
-	pub *secp256k1.PublicKey) ([]byte, error) {
-
-	return nil, fmt.Errorf("Unimplemented")
-}
-
 // ECDH performs a scalar multiplication (ECDH-like operation) between the
 // target key descriptor and remote public key. The output returned will be the
 // sha256 of the resulting shared point serialized in compressed format. If k
