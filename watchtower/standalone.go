@@ -73,7 +73,7 @@ func New(cfg *Config) (*Standalone, error) {
 	listeners := make([]net.Listener, 0, len(cfg.ListenAddrs))
 	for _, listenAddr := range cfg.ListenAddrs {
 		listener, err := brontide.NewListener(
-			cfg.NodePrivKey, listenAddr.String(),
+			cfg.NodeKeyECDH, listenAddr.String(),
 		)
 		if err != nil {
 			return nil, err
@@ -86,7 +86,7 @@ func New(cfg *Config) (*Standalone, error) {
 	server, err := wtserver.New(&wtserver.Config{
 		ChainHash:     cfg.ChainHash,
 		DB:            cfg.DB,
-		NodePrivKey:   cfg.NodePrivKey,
+		NodeKeyECDH:   cfg.NodeKeyECDH,
 		Listeners:     listeners,
 		ReadTimeout:   cfg.ReadTimeout,
 		WriteTimeout:  cfg.WriteTimeout,
@@ -191,7 +191,7 @@ func (w *Standalone) createNewHiddenService() error {
 //
 // NOTE: Part of the watchtowerrpc.WatchtowerBackend interface.
 func (w *Standalone) PubKey() *secp256k1.PublicKey {
-	return w.cfg.NodePrivKey.PubKey()
+	return w.cfg.NodeKeyECDH.PubKey()
 }
 
 // ListeningAddrs returns the listening addresses where the watchtower server
