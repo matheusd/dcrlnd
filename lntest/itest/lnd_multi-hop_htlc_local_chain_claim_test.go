@@ -73,6 +73,7 @@ func testMultiHopHtlcClaims(net *lntest.NetworkHarness, t *harnessTest) {
 			ht := newHarnessTest(t, net)
 
 			subTest.test(net, ht)
+			assertCleanState(ht, ht.lndHarness)
 		})
 		if !success {
 			return
@@ -564,10 +565,16 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 
 	ctxb := context.Background()
 
+	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	err := net.EnsureConnected(ctxt, net.Alice, net.Bob)
+	if err != nil {
+		t.Fatalf("unable to connect Alice & Bob: %v", err)
+	}
+
 	// We'll start the test by creating a channel between Alice and Bob,
 	// which will act as the first leg for out multi-hop HTLC.
 	const chanAmt = 1000000
-	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
 	aliceChanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
@@ -581,7 +588,7 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 	}
 
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
-	err := net.Alice.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
+	err = net.Alice.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't report channel %v: %v", chanp2str(aliceChanPoint), err)
 	}
