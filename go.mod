@@ -27,7 +27,7 @@ require (
 	github.com/decred/dcrd/rpcclient/v6 v6.0.0-20200616182840-3baf1f590cb1
 	github.com/decred/dcrd/txscript/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/wire v1.3.0
-	github.com/decred/lightning-onion/v3 v3.0.0-20200707162618-08f2e355dbb0
+	github.com/decred/lightning-onion/v3 v3.0.0-20200907144804-1e4209f3f75a
 	github.com/decred/slog v1.0.0
 	github.com/go-errors/errors v1.0.1
 	github.com/go-openapi/strfmt v0.19.5 // indirect

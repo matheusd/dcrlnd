@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
+	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	sphinx "github.com/decred/lightning-onion/v3"
 )
@@ -84,7 +85,8 @@ func initTestExtracter() {
 // db and no garbage collection.
 func newOnionProcessor(t *testing.T) *hop.OnionProcessor {
 	sphinxRouter := sphinx.NewRouter(
-		sphinxPrivKey, chaincfg.SimNetParams(),
+		&keychain.PrivKeyECDH{PrivKey: sphinxPrivKey},
+		chaincfg.SimNetParams(),
 		sphinx.NewMemoryReplayLog(),
 	)
 
