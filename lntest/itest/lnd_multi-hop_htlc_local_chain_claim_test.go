@@ -143,6 +143,12 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 		t.Fatalf("unable to generate blocks: %v", err)
 	}
 
+	if c == commitTypeAnchors {
+		// Note(decred): We previously did not increase the number of
+		// expected txs, so we do for the next check.
+		expectedTxes = 2
+	}
+
 	// Carol's commitment transaction should now be in the mempool. If there
 	// is an anchor, Carol will sweep that too.
 	_, err = waitForNTxsInMempool(
@@ -189,7 +195,8 @@ func testMultiHopHtlcLocalChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 	// anchor.
 	expectedTxes = 2
 	if c == commitTypeAnchors {
-		expectedTxes = 3
+		// Note(decred): this is reduced yet again.
+		expectedTxes = 2
 	}
 	txes, err := getNTxsFromMempool(
 		net.Miner.Node, expectedTxes, minerMempoolTimeout,
