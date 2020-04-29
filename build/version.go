@@ -80,6 +80,11 @@ func Version() string {
 	return version
 }
 
+// MajorMinorPatch returns the compiled-in respective semver version elements.
+func MajorMinorPatch() (uint, uint, uint) {
+	return appMajor, appMinor, appPatch
+}
+
 // SourceCommit returns the normalized version of the Commit variable according
 // to the rules of semantic versioning guidelines.
 func SourceCommit() string {
