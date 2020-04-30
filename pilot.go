@@ -138,7 +138,7 @@ var _ autopilot.ChannelController = (*chanController)(nil)
 // Agent instance based on the passed configuration structs. The agent and all
 // interfaces needed to drive it won't be launched before the Manager's
 // StartAgent method is called.
-func initAutoPilot(svr *server, cfg *autoPilotConfig, c *config) (
+func initAutoPilot(svr *server, cfg *autoPilotConfig, c *Config) (
 	*autopilot.ManagerCfg, error) {
 
 	atplLog.Infof("Instantiating autopilot with active=%v, "+

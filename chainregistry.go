@@ -158,7 +158,7 @@ type chainControl struct {
 // newChainControlFromConfig attempts to create a chainControl instance
 // according to the parameters in the passed lnd configuration. Currently only
 // one chainControl instance exists: one backed by a running dcrd full-node.
-func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
+func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 	privateWalletPw, publicWalletPw []byte, birthday time.Time,
 	recoveryWindow uint32, wallet *wallet.Wallet,
 	loader *walletloader.Loader,
