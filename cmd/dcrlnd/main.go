@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/decred/dcrlnd"
+	"github.com/decred/dcrlnd/signal"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -17,9 +18,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Hook interceptor for os signals.
+	signal.Intercept()
+
 	// Call the "real" main in a nested manner so the defers will properly
 	// be executed in the case of a graceful shutdown.
-	if err := dcrlnd.Main(loadedConfig, dcrlnd.ListenerCfg{}); err != nil {
+	err = dcrlnd.Main(
+		loadedConfig, dcrlnd.ListenerCfg{}, signal.ShutdownChannel(),
+	)
+	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type == flags.ErrHelp {
 		} else {
 			_, _ = fmt.Fprintln(os.Stderr, err)
