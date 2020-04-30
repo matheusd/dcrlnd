@@ -70,6 +70,7 @@ type DcrdNotifier struct {
 	epochClientCounter uint64 // To be used atomically.
 
 	start   sync.Once
+	active  int32 // To be used atomically.
 	stopped int32 // To be used atomically.
 
 	chainConn   *rpcclient.Client
@@ -193,7 +194,16 @@ func (n *DcrdNotifier) startNotifier() error {
 	n.wg.Add(1)
 	go n.notificationDispatcher()
 
+	// Set the active flag now that we've completed the full
+	// startup.
+	atomic.StoreInt32(&n.active, 1)
+
 	return nil
+}
+
+// Started returns true if this instance has been started, and false otherwise.
+func (n *DcrdNotifier) Started() bool {
+	return atomic.LoadInt32(&n.active) != 0
 }
 
 // Stop shutsdown the DcrdNotifier.
