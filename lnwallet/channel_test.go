@@ -7718,7 +7718,7 @@ func TestChannelMaxFeeRate(t *testing.T) {
 	// Assert the estimation is the expected one. This helps ensure any
 	// changes to how the test balance, fee or commitment size are
 	// calculated breaks this test.
-	wantMaxFee := chainfee.AtomPerKByte(1369863013)
+	wantMaxFee := chainfee.AtomPerKByte(1373626373)
 	if fullMaxFee != wantMaxFee {
 		t.Fatalf("unexpected full max fee (want=%s got=%s)", wantMaxFee,
 			fullMaxFee)
