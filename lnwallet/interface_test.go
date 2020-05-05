@@ -215,7 +215,7 @@ func assertTxInWallet(t *testing.T, w *lnwallet.LightningWallet,
 	// We'll fetch all of our transaction and go through each one until
 	// finding the expected transaction with its expected confirmation
 	// status.
-	txs, err := w.ListTransactionDetails()
+	txs, err := w.ListTransactionDetails(0, dcrwallet.UnconfirmedHeight)
 	if err != nil {
 		t.Fatalf("unable to retrieve transactions: %v", err)
 	}
@@ -1139,6 +1139,12 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		}
 	}
 
+	// Get the miner's current best block height before we mine blocks.
+	_, startHeight, err := miner.Node.GetBestBlock(context.TODO())
+	if err != nil {
+		t.Fatalf("cannot get best block: %v", err)
+	}
+
 	// Generate 10 blocks to mine all the transactions created above.
 	const numBlocksMined = 10
 	blocks, err := vw.GenerateBlocks(context.TODO(), numBlocksMined)
@@ -1146,12 +1152,22 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		t.Fatalf("unable to mine blocks: %v", err)
 	}
 
-	// Next, fetch all the current transaction details.
+	// Our new best block height should be our start height + the number of
+	// blocks we just mined.
+	chainTip := startHeight + numBlocksMined
+
+	// Next, fetch all the current transaction details. We should find all
+	// of our transactions between our start height before we generated
+	// blocks, and our end height, which is the chain tip. This query does
+	// not include unconfirmed transactions, since all of our transactions
+	// should be confirmed.
 	err = waitForWalletSync(miner, alice)
 	if err != nil {
 		t.Fatalf("Couldn't sync Alice's wallet: %v", err)
 	}
-	txDetails, err := alice.ListTransactionDetails()
+	txDetails, err := alice.ListTransactionDetails(
+		int32(startHeight), int32(chainTip),
+	)
 	if err != nil {
 		t.Fatalf("unable to fetch tx details: %v", err)
 	}
@@ -1256,10 +1272,13 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		t.Fatalf("Couldn't sync Alice's wallet: %v", err)
 	}
 
-	// We should be able to find the transaction above in the set of
-	// returned transactions, and it should have a confirmation of -1,
-	// indicating that it's not yet mined.
-	txDetails, err = alice.ListTransactionDetails()
+	// Query our wallet for transactions from the chain tip, including
+	// unconfirmed transactions. The transaction above should be included
+	// with a confirmation height of 0, indicating that it has not been
+	// mined yet.
+	txDetails, err = alice.ListTransactionDetails(
+		int32(chainTip), dcrwallet.UnconfirmedHeight,
+	)
 	if err != nil {
 		t.Fatalf("unable to fetch tx details: %v", err)
 	}
@@ -1282,18 +1301,27 @@ func testListTransactionDetails(miner *rpctest.Harness,
 		t.Fatalf("unable to find mempool tx in tx details!")
 	}
 
-	burnBlock, err := vw.GenerateBlocks(context.TODO(), 1)
+	// Generate one block for our transaction to confirm in.
+	var numBlocks int32 = 1
+	burnBlock, err := vw.GenerateBlocks(context.TODO(), uint32(numBlocks))
 	if err != nil {
 		t.Fatalf("unable to mine block: %v", err)
 	}
 
+	// Progress our chain tip by the number of blocks we have just mined.
+	chainTip += int64(numBlocks)
+
 	// Fetch the transaction details again, the new transaction should be
-	// shown as debiting from the wallet's balance.
+	// shown as debiting from the wallet's balance. Start and end height
+	// are inclusive, so we use chainTip for both parameters to get only
+	// transactions from the last block.
 	err = waitForWalletSync(miner, alice)
 	if err != nil {
 		t.Fatalf("Couldn't sync Alice's wallet: %v", err)
 	}
-	txDetails, err = alice.ListTransactionDetails()
+	txDetails, err = alice.ListTransactionDetails(
+		int32(chainTip), int32(chainTip),
+	)
 	if err != nil {
 		t.Fatalf("unable to fetch tx details: %v", err)
 	}
@@ -1324,6 +1352,30 @@ func testListTransactionDetails(miner *rpctest.Harness,
 	}
 	if !burnTxFound {
 		t.Fatal("tx burning dcr not found")
+	}
+
+	// Generate a block which has no wallet transactions in it.
+	chainTip += int64(numBlocks)
+	_, err = miner.Node.Generate(context.TODO(), uint32(numBlocks))
+	if err != nil {
+		t.Fatalf("unable to mine block: %v", err)
+	}
+
+	err = waitForWalletSync(miner, alice)
+	if err != nil {
+		t.Fatalf("Couldn't sync Alice's wallet: %v", err)
+	}
+
+	// Query for transactions only in the latest block. We do not expect
+	// any transactions to be returned.
+	txDetails, err = alice.ListTransactionDetails(
+		int32(chainTip), int32(chainTip),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(txDetails) != 0 {
+		t.Fatalf("expected 0 transactions, got: %v", len(txDetails))
 	}
 }
 

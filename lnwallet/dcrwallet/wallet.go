@@ -28,6 +28,10 @@ import (
 const (
 	defaultAccount = uint32(udb.DefaultAccountNum)
 	scriptVersion  = uint16(0)
+
+	// UnconfirmedHeight is the special case end height that is used to
+	// obtain unconfirmed transactions from ListTransactionDetails.
+	UnconfirmedHeight int32 = -1
 )
 
 const (
@@ -653,15 +657,16 @@ func unminedTransactionsToDetail(
 // relevant to the wallet.
 //
 // This is a part of the WalletController interface.
-func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, error) {
+func (b *DcrWallet) ListTransactionDetails(startHeight,
+	endHeight int32) ([]*lnwallet.TransactionDetail, error) {
+
 	// Grab the best block the wallet knows of, we'll use this to calculate
 	// # of confirmations shortly below.
 	_, currentHeight := b.wallet.MainChainTip(context.TODO())
 
-	// Iterating over transactions using the range 0..-1 goes through all mined
-	// transactions (in ascending order) then through unmined transactions.
-	start := base.NewBlockIdentifierFromHeight(0)
-	stop := base.NewBlockIdentifierFromHeight(-1)
+	// We'll attempt to find all transactions from start to end.
+	start := base.NewBlockIdentifierFromHeight(startHeight)
+	stop := base.NewBlockIdentifierFromHeight(endHeight)
 
 	txDetails := make([]*lnwallet.TransactionDetail, 0)
 

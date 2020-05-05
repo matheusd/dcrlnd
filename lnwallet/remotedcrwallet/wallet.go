@@ -788,7 +788,9 @@ func unminedTransactionsToDetail(
 // relevant to the wallet.
 //
 // This is a part of the WalletController interface.
-func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, error) {
+func (b *DcrWallet) ListTransactionDetails(startHeight,
+	endHeight int32) ([]*lnwallet.TransactionDetail, error) {
+
 	// Grab the best block the wallet knows of, we'll use this to calculate
 	// # of confirmations shortly below.
 	bestBlockRes, err := b.wallet.BestBlock(context.Background(), &pb.BestBlockRequest{})
@@ -798,8 +800,8 @@ func (b *DcrWallet) ListTransactionDetails() ([]*lnwallet.TransactionDetail, err
 	currentHeight := int32(bestBlockRes.Height)
 
 	req := &pb.GetTransactionsRequest{
-		StartingBlockHeight: 0,
-		EndingBlockHeight:   -1,
+		StartingBlockHeight: startHeight,
+		EndingBlockHeight:   endHeight,
 	}
 
 	stream, err := b.wallet.GetTransactions(context.Background(), req)
