@@ -39,6 +39,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
+	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnrpc/watchtowerrpc"
 	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/lntest"
@@ -3917,6 +3918,13 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		}
 	}
 
+	// Check that we can find the commitment sweep in our set of known
+	// sweeps.
+	err = findSweep(ctxb, alice, sweepingTXID)
+	if err != nil {
+		t.Fatalf("csv sweep not found: %v", err)
+	}
+
 	// Restart Alice to ensure that she resumes watching the finalized
 	// commitment sweep txid.
 	if err := net.RestartNode(alice, nil); err != nil {
@@ -4084,7 +4092,10 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 
 	// Retrieve each htlc timeout txn from the mempool, and ensure it is
 	// well-formed. This entails verifying that each only spends from
-	// output, and that that output is from the commitment txn.
+	// output, and that that output is from the commitment txn. We do not
+	// the sweeper check for these timeout transactions because they are
+	// not swept by the sweeper; the nursery broadcasts the pre-signed
+	// transaction.
 	for _, htlcTxID := range htlcTxIDs {
 		// Fetch the sweep transaction, all input it's spending should
 		// be from the commitment transaction which was broadcast
@@ -4231,6 +4242,12 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		}
 	}
 
+	// Check that we can find the htlc sweep in our set of sweeps.
+	err = findSweep(ctxb, alice, htlcSweepTx.Hash())
+	if err != nil {
+		t.Fatalf("htlc sweep not found: %v", err)
+	}
+
 	// The following restart checks to ensure that the nursery store is
 	// storing the txid of the previously broadcast htlc sweep txn, and that
 	// it begins watching that txid after restarting.
@@ -4335,6 +4352,35 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 			carolExpectedBalance,
 			carolBalResp.ConfirmedBalance)
 	}
+}
+
+// findSweep looks up a sweep in a nodes list of broadcast sweeps.
+func findSweep(ctx context.Context, node *lntest.HarnessNode,
+	sweep *chainhash.Hash) error {
+
+	// List all sweeps that alice's node had broadcast.
+	ctx, _ = context.WithTimeout(ctx, defaultTimeout)
+	sweepResp, err := node.WalletKitClient.ListSweeps(
+		ctx, &walletrpc.ListSweepsRequest{
+			Verbose: false,
+		})
+	if err != nil {
+		return fmt.Errorf("list sweeps error: %v", err)
+	}
+
+	sweepTxIDs, ok := sweepResp.Sweeps.(*walletrpc.ListSweepsResponse_TransactionIds)
+	if !ok {
+		return errors.New("expected sweep txids in response")
+	}
+
+	// Check that the sweep tx we have just produced is present.
+	for _, tx := range sweepTxIDs.TransactionIds.TransactionIds {
+		if tx == sweep.String() {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("sweep: %v not found", sweep.String())
 }
 
 // assertAmountSent generates a closure which queries listchannels for sndr and
