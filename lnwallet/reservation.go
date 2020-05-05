@@ -403,7 +403,12 @@ func (r *ChannelReservation) CommitConstraints(c *channeldb.ChannelConstraints) 
 
 	// Fail if maxHtlcs is above the maximum allowed number of 483.  This
 	// number is specified in BOLT-02.
-	if c.MaxAcceptedHtlcs > uint16(input.MaxHTLCNumber/2) {
+	//
+	// FIXME(decred): The MaxHTLCNumber was 322 in previous vesions and was
+	// reduced to 300 recently. We add a special case so that we can still
+	// open channels to old nodes. This should be removed on the next
+	// version.
+	if c.MaxAcceptedHtlcs > uint16(input.MaxHTLCNumber/2) && c.MaxAcceptedHtlcs != 161 {
 		return ErrMaxHtlcNumTooLarge(
 			c.MaxAcceptedHtlcs, uint16(input.MaxHTLCNumber/2),
 		)
