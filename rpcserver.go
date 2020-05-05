@@ -50,6 +50,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwallet/chanfunding"
+	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/monitoring"
@@ -4764,7 +4765,7 @@ func (r *rpcServer) GetTransactions(ctx context.Context,
 	// To remain backwards compatible with the old api, default to the
 	// special case end height which will return transactions from the start
 	// height until the chain tip, including unconfirmed transactions.
-	var endHeight int32 = -1
+	var endHeight int32 = dcrwallet.UnconfirmedHeight
 
 	// If the user has provided an end height, we overwrite our default.
 	if req.EndHeight != 0 {
@@ -4778,36 +4779,7 @@ func (r *rpcServer) GetTransactions(ctx context.Context,
 		return nil, err
 	}
 
-	txDetails := &lnrpc.TransactionDetails{
-		Transactions: make([]*lnrpc.Transaction, len(transactions)),
-	}
-	for i, tx := range transactions {
-		var destAddresses []string
-		for _, destAddress := range tx.DestAddresses {
-			destAddresses = append(destAddresses, destAddress.Address())
-		}
-
-		// We also get unconfirmed transactions, so BlockHash can be
-		// nil.
-		blockHash := ""
-		if tx.BlockHash != nil {
-			blockHash = tx.BlockHash.String()
-		}
-
-		txDetails.Transactions[i] = &lnrpc.Transaction{
-			TxHash:           tx.Hash.String(),
-			Amount:           int64(tx.Value),
-			NumConfirmations: tx.NumConfirmations,
-			BlockHash:        blockHash,
-			BlockHeight:      tx.BlockHeight,
-			TimeStamp:        tx.Timestamp,
-			TotalFees:        tx.TotalFees,
-			DestAddresses:    destAddresses,
-			RawTxHex:         hex.EncodeToString(tx.RawTx),
-		}
-	}
-
-	return txDetails, nil
+	return lnrpc.RPCTransactionDetails(transactions), nil
 }
 
 // DescribeGraph returns a description of the latest graph state from the PoV
