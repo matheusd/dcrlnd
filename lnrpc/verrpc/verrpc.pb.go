@@ -209,6 +209,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type VersionerClient interface {
+	// lncli: `version`
+	//GetVersion returns the current version and build information of the running
+	//daemon.
 	GetVersion(ctx context.Context, in *VersionRequest, opts ...grpc.CallOption) (*Version, error)
 }
 
@@ -231,6 +234,9 @@ func (c *versionerClient) GetVersion(ctx context.Context, in *VersionRequest, op
 
 // VersionerServer is the server API for Versioner service.
 type VersionerServer interface {
+	// lncli: `version`
+	//GetVersion returns the current version and build information of the running
+	//daemon.
 	GetVersion(context.Context, *VersionRequest) (*Version, error)
 }
 
