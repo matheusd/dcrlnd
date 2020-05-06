@@ -389,7 +389,7 @@ func (c *ChannelGraph) SourceNode() (*LightningNode, error) {
 // of the graph. The source node is treated as the center node within a
 // star-graph. This method may be used to kick off a path finding algorithm in
 // order to explore the reachability of another node based off the source node.
-func (c *ChannelGraph) sourceNode(nodes kvdb.ReadBucket) (*LightningNode, error) {
+func (c *ChannelGraph) sourceNode(nodes kvdb.RBucket) (*LightningNode, error) {
 	selfPub := nodes.Get(sourceKey)
 	if selfPub == nil {
 		return nil, ErrSourceNodeNotSet
@@ -3270,7 +3270,7 @@ func (c *ChannelGraph) IsZombieEdge(chanID uint64) (bool, [33]byte, [33]byte) {
 // isZombieEdge returns whether an entry exists for the given channel in the
 // zombie index. If an entry exists, then the two node public keys corresponding
 // to this edge are also returned.
-func isZombieEdge(zombieIndex kvdb.ReadBucket,
+func isZombieEdge(zombieIndex kvdb.RBucket,
 	chanID uint64) (bool, [33]byte, [33]byte) {
 
 	var k [8]byte
@@ -3442,7 +3442,7 @@ func putLightningNode(nodeBucket kvdb.RwBucket, aliasBucket kvdb.RwBucket,
 	return nodeBucket.Put(nodePub, b.Bytes())
 }
 
-func fetchLightningNode(nodeBucket kvdb.ReadBucket,
+func fetchLightningNode(nodeBucket kvdb.RBucket,
 	nodePub []byte) (LightningNode, error) {
 
 	nodeBytes := nodeBucket.Get(nodePub)
@@ -3616,7 +3616,7 @@ func putChanEdgeInfo(edgeIndex kvdb.RwBucket, edgeInfo *ChannelEdgeInfo, chanID 
 	return edgeIndex.Put(chanID[:], b.Bytes())
 }
 
-func fetchChanEdgeInfo(edgeIndex kvdb.ReadBucket,
+func fetchChanEdgeInfo(edgeIndex kvdb.RBucket,
 	chanID []byte) (ChannelEdgeInfo, error) {
 
 	edgeInfoBytes := edgeIndex.Get(chanID)
@@ -3825,8 +3825,8 @@ func putChanEdgePolicyUnknown(edges kvdb.RwBucket, channelID uint64,
 	return edges.Put(edgeKey[:], unknownPolicy)
 }
 
-func fetchChanEdgePolicy(edges kvdb.ReadBucket, chanID []byte,
-	nodePub []byte, nodes kvdb.ReadBucket) (*ChannelEdgePolicy, error) {
+func fetchChanEdgePolicy(edges kvdb.RBucket, chanID []byte,
+	nodePub []byte, nodes kvdb.RBucket) (*ChannelEdgePolicy, error) {
 
 	var edgeKey [33 + 8]byte
 	copy(edgeKey[:], nodePub)
@@ -3858,8 +3858,8 @@ func fetchChanEdgePolicy(edges kvdb.ReadBucket, chanID []byte,
 	return ep, nil
 }
 
-func fetchChanEdgePolicies(edgeIndex kvdb.ReadBucket, edges kvdb.ReadBucket,
-	nodes kvdb.ReadBucket, chanID []byte,
+func fetchChanEdgePolicies(edgeIndex kvdb.RBucket, edges kvdb.RBucket,
+	nodes kvdb.RBucket, chanID []byte,
 	db *DB) (*ChannelEdgePolicy, *ChannelEdgePolicy, error) {
 
 	edgeInfo := edgeIndex.Get(chanID)
@@ -3967,7 +3967,7 @@ func serializeChanEdgePolicy(w io.Writer, edge *ChannelEdgePolicy,
 }
 
 func deserializeChanEdgePolicy(r io.Reader,
-	nodes kvdb.ReadBucket) (*ChannelEdgePolicy, error) {
+	nodes kvdb.RBucket) (*ChannelEdgePolicy, error) {
 
 	edge := &ChannelEdgePolicy{}
 
