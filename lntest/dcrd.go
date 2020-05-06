@@ -114,6 +114,7 @@ func NewBackend(t *testing.T, miner *rpctest.Harness) (*DcrdBackendConfig, func(
 		"--txindex",
 		"--debuglevel=debug",
 		"--logdir=" + logDir,
+		"--maxorphantx=0",
 	}
 	netParams := chaincfg.SimNetParams()
 	chainBackend, err := testutils.NewSetupRPCTest(
