@@ -1369,6 +1369,9 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	// Sleep to allow the wallet's address manager to lock and prevent
 	// triggering dcrwallet's #1372 deadlock condition.
 	time.Sleep(time.Millisecond * 100)
+	target.LogPrintf("Asking for %s coins at addr %s while having balance %s+%s",
+		amt, addr, dcrutil.Amount(initialBalance.ConfirmedBalance),
+		dcrutil.Amount(initialBalance.UnconfirmedBalance))
 
 	// Generate a transaction which creates an output to the target
 	// pkScript of the desired amount.
