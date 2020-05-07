@@ -469,6 +469,72 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 	return nil
 }
 
+// AbandonDoubleSpends abandons any unconfirmed transaction that also spends
+// any of the specified outpoints.
+//
+// This is part of the WalletController interface.
+func (b *DcrWallet) AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error {
+	// Make a map of inputs that were spent to speed up lookup.
+	spent := make(map[wire.OutPoint]struct{}, len(spentOutpoints))
+	for _, outp := range spentOutpoints {
+		spent[*outp] = struct{}{}
+	}
+
+	// Fetch only unmined txs.
+	start := base.NewBlockIdentifierFromHeight(-1)
+	stop := base.NewBlockIdentifierFromHeight(-1)
+
+	// Collect txs that need to be abandoned.
+	abandon := make(map[chainhash.Hash]struct{}, len(spentOutpoints))
+	rangeFn := func(block *base.Block) (bool, error) {
+		if block.Header != nil {
+			// Shouldn't happen, but play it safe.
+			return false, nil
+		}
+
+		for _, tx := range block.Transactions {
+			wireTx := new(wire.MsgTx)
+			err := wireTx.FromBytes(tx.Transaction)
+			if err != nil {
+				dcrwLog.Warnf("Error decoding wallet-provided "+
+					"tx: %v", err)
+				continue
+			}
+			txh := wireTx.TxHash()
+
+			for _, in := range wireTx.TxIn {
+				if _, isSpent := spent[in.PreviousOutPoint]; !isSpent {
+					continue
+				}
+
+				// This input was spent. Register this as a tx
+				// that needs abandoning.
+				abandon[txh] = struct{}{}
+				break
+			}
+
+		}
+
+		return false, nil
+	}
+
+	err := b.wallet.GetTransactions(context.TODO(), rangeFn, start, stop)
+	if err != nil {
+		return err
+	}
+
+	// Finally, abandon all transactions.
+	for txh := range abandon {
+		dcrwLog.Infof("Abandoning double spent tx %s", txh)
+		err := b.wallet.AbandonTransaction(context.Background(), &txh)
+		if err != nil {
+			dcrwLog.Warnf("Error abandoning tx %s: %v", txh, err)
+		}
+	}
+
+	return nil
+}
+
 // extractBalanceDelta extracts the net balance delta from the PoV of the
 // wallet given a TransactionSummary.
 func extractBalanceDelta(

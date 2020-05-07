@@ -334,6 +334,9 @@ func (m *mockWalletController) PublishTransaction(tx *wire.MsgTx) error {
 	m.publishedTransactions <- tx
 	return nil
 }
+func (m *mockWalletController) AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error {
+	return nil
+}
 func (*mockWalletController) SubscribeTransactions() (lnwallet.TransactionSubscription, error) {
 	return nil, nil
 }

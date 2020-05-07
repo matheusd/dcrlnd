@@ -231,6 +231,13 @@ type WalletController interface {
 	// backend.
 	PublishTransaction(tx *wire.MsgTx) error
 
+	// AbandonDoubleSpends removes all unconfirmed transactions that also
+	// spend any of the specified outpoints from the wallet. This is used
+	// to fix issues when an input used in multiple different sweep
+	// transactions gets confirmed in one of them (rendering the other
+	// transactions invalid).
+	AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error
+
 	// SubscribeTransactions returns a TransactionSubscription client which
 	// is capable of receiving async notifications as new transactions
 	// related to the wallet are seen within the network, or found in

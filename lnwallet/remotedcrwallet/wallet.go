@@ -592,6 +592,78 @@ func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
 	return nil
 }
 
+// AbandonDoubleSpends abandons any unconfirmed transaction that also spends
+// any of the specified outpoints.
+//
+// This is part of the WalletController interface.
+func (b *DcrWallet) AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error {
+
+	// Fetch all unconfirmed transactions.
+	req := &pb.GetTransactionsRequest{
+		StartingBlockHeight: -1,
+		EndingBlockHeight:   0,
+	}
+
+	stream, err := b.wallet.GetTransactions(context.Background(), req)
+	if err != nil {
+		return err
+	}
+
+	// Make a map of inputs that were spent to speed up lookup.
+	spent := make(map[wire.OutPoint]struct{}, len(spentOutpoints))
+	for _, outp := range spentOutpoints {
+		spent[*outp] = struct{}{}
+	}
+
+	// Now collect all txs that need to be abandoned.
+	abandon := make(map[chainhash.Hash]struct{}, len(spentOutpoints))
+	for {
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		for _, tx := range msg.UnminedTransactions {
+			wireTx := new(wire.MsgTx)
+			err := wireTx.FromBytes(tx.Transaction)
+			if err != nil {
+				dcrwLog.Warnf("Error decoding wallet-provided "+
+					"tx: %v", err)
+				continue
+			}
+			txh := wireTx.TxHash()
+
+			for _, in := range wireTx.TxIn {
+				if _, isSpent := spent[in.PreviousOutPoint]; !isSpent {
+					continue
+				}
+
+				// This input was spent. Register this as a tx
+				// that needs abandoning.
+				abandon[txh] = struct{}{}
+				break
+			}
+		}
+	}
+
+	// Finally, abandon all transactions.
+	for txh := range abandon {
+		dcrwLog.Infof("Abandoning double spent tx %s", txh)
+		req := &pb.AbandonTransactionRequest{
+			TransactionHash: txh[:],
+		}
+		_, err := b.wallet.AbandonTransaction(context.Background(), req)
+		if err != nil {
+			dcrwLog.Warnf("Error abandoning tx %s: %v", txh, err)
+		}
+	}
+
+	return nil
+}
+
 // extractBalanceDelta extracts the net balance delta from the PoV of the
 // wallet given a TransactionSummary.
 func extractBalanceDelta(
