@@ -1,7 +1,6 @@
 package contractcourt
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -169,165 +168,125 @@ func TestCommitSweepResolverNoDelay(t *testing.T) {
 	ctx.waitForResult()
 }
 
+// testCommitSweepResolverDelay tests resolution of a direct commitment output
+// that is encumbered by a time lock. sweepErr indicates whether the local node
+// fails to sweep the output.
+func testCommitSweepResolverDelay(t *testing.T, sweepErr error) {
+	defer timeout(t)()
+
+	const sweepProcessInterval = 100 * time.Millisecond
+	amt := int64(100)
+	outpoint := wire.OutPoint{
+		Index: 5,
+	}
+	res := lnwallet.CommitOutputResolution{
+		SelfOutputSignDesc: input.SignDescriptor{
+			Output: &wire.TxOut{
+				Value: amt,
+			},
+			WitnessScript: []byte{0},
+		},
+		MaturityDelay: 3,
+		SelfOutPoint:  outpoint,
+	}
+
+	ctx := newCommitSweepResolverTestContext(t, &res)
+
+	// Setup whether we expect the sweeper to receive a sweep error in this
+	// test case.
+	ctx.sweeper.sweepErr = sweepErr
+
+	report := ctx.resolver.report()
+	expectedReport := ContractReport{
+		Outpoint:     outpoint,
+		Type:         ReportOutputUnencumbered,
+		Amount:       dcrutil.Amount(amt),
+		LimboBalance: dcrutil.Amount(amt),
+	}
+	if *report != expectedReport {
+		t.Fatalf("unexpected resolver report. want=%v got=%v",
+			expectedReport, report)
+	}
+
+	ctx.resolve()
+
+	ctx.notifier.confChan <- &chainntnfs.TxConfirmation{
+		BlockHeight: testInitialBlockHeight - 1,
+	}
+
+	// Allow resolver to process confirmation.
+	time.Sleep(sweepProcessInterval)
+
+	// Expect report to be updated.
+	report = ctx.resolver.report()
+	if report.MaturityHeight != testInitialBlockHeight+2 {
+		t.Fatal("report maturity height incorrect")
+	}
+
+	// Notify initial block height. The csv lock is still in effect, so we
+	// don't expect any sweep to happen yet.
+	ctx.notifyEpoch(testInitialBlockHeight)
+
+	select {
+	case <-ctx.sweeper.sweptInputs:
+		t.Fatal("no sweep expected")
+	case <-time.After(sweepProcessInterval):
+	}
+
+	// A new block arrives. The commit tx confirmed at height -1 and the csv
+	// is 3, so a spend will be valid in the first block after height +1.
+	ctx.notifyEpoch(testInitialBlockHeight + 1)
+
+	<-ctx.sweeper.sweptInputs
+
+	ctx.waitForResult()
+
+	// If this test case generates a sweep error, we don't expect to be
+	// able to recover anything. This might happen if the local commitment
+	// output was swept by a justice transaction by the remote party.
+	expectedRecoveredBalance := dcrutil.Amount(amt)
+	if sweepErr != nil {
+		expectedRecoveredBalance = 0
+	}
+
+	report = ctx.resolver.report()
+	expectedReport = ContractReport{
+		Outpoint:         outpoint,
+		Type:             ReportOutputUnencumbered,
+		Amount:           dcrutil.Amount(amt),
+		MaturityHeight:   testInitialBlockHeight + 2,
+		RecoveredBalance: expectedRecoveredBalance,
+	}
+	if *report != expectedReport {
+		t.Fatalf("unexpected resolver report. want=%v got=%v",
+			expectedReport, report)
+	}
+
+}
+
 // TestCommitSweepResolverDelay tests resolution of a direct commitment output
 // that is encumbered by a time lock.
 func TestCommitSweepResolverDelay(t *testing.T) {
 	t.Parallel()
-	defer timeout(t)()
 
-	amt := int64(100)
-	outpoint := wire.OutPoint{
-		Index: 5,
-	}
-	res := lnwallet.CommitOutputResolution{
-		SelfOutputSignDesc: input.SignDescriptor{
-			Output: &wire.TxOut{
-				Value: amt,
-			},
-			WitnessScript: []byte{0},
-		},
-		MaturityDelay: 3,
-		SelfOutPoint:  outpoint,
-	}
+	testCases := []struct {
+		name     string
+		sweepErr error
+	}{{
+		name:     "success",
+		sweepErr: nil,
+	}, {
+		name:     "remote spend",
+		sweepErr: sweep.ErrRemoteSpend,
+	}}
 
-	ctx := newCommitSweepResolverTestContext(t, &res)
-
-	report := ctx.resolver.report()
-	if !reflect.DeepEqual(report, &ContractReport{
-		Outpoint:     outpoint,
-		Type:         ReportOutputUnencumbered,
-		Amount:       dcrutil.Amount(amt),
-		LimboBalance: dcrutil.Amount(amt),
-	}) {
-		t.Fatal("unexpected resolver report")
-	}
-
-	ctx.resolve()
-
-	ctx.notifier.confChan <- &chainntnfs.TxConfirmation{
-		BlockHeight: testInitialBlockHeight - 1,
-	}
-
-	// Allow resolver to process confirmation.
-	time.Sleep(100 * time.Millisecond)
-
-	// Expect report to be updated.
-	report = ctx.resolver.report()
-	if report.MaturityHeight != testInitialBlockHeight+2 {
-		t.Fatal("report maturity height incorrect")
-	}
-
-	// Notify initial block height. The csv lock is still in effect, so we
-	// don't expect any sweep to happen yet.
-	ctx.notifyEpoch(testInitialBlockHeight)
-
-	select {
-	case <-ctx.sweeper.sweptInputs:
-		t.Fatal("no sweep expected")
-	case <-time.After(100 * time.Millisecond):
-	}
-
-	// A new block arrives. The commit tx confirmed at height -1 and the csv
-	// is 3, so a spend will be valid in the first block after height +1.
-	ctx.notifyEpoch(testInitialBlockHeight + 1)
-
-	<-ctx.sweeper.sweptInputs
-
-	ctx.waitForResult()
-
-	report = ctx.resolver.report()
-	if !reflect.DeepEqual(report, &ContractReport{
-		Outpoint:         outpoint,
-		Type:             ReportOutputUnencumbered,
-		Amount:           dcrutil.Amount(amt),
-		RecoveredBalance: dcrutil.Amount(amt),
-		MaturityHeight:   testInitialBlockHeight + 2,
-	}) {
-		t.Fatal("unexpected resolver report")
-	}
-}
-
-// TestCommitSweepResolverLocalBreach tests resolution when the local node
-// publishes a breached output (one that is swept by the remote party).
-func TestCommitSweepResolverLocalBreach(t *testing.T) {
-	t.Parallel()
-	defer timeout(t)()
-
-	amt := int64(100)
-	outpoint := wire.OutPoint{
-		Index: 5,
-	}
-	res := lnwallet.CommitOutputResolution{
-		SelfOutputSignDesc: input.SignDescriptor{
-			Output: &wire.TxOut{
-				Value: amt,
-			},
-			WitnessScript: []byte{0},
-		},
-		MaturityDelay: 3,
-		SelfOutPoint:  outpoint,
-	}
-
-	ctx := newCommitSweepResolverTestContext(t, &res)
-
-	// Setup the sweeper so that it returns an error of the output being
-	// already swept.
-	ctx.sweeper.sweepErr = sweep.ErrRemoteSpend
-
-	report := ctx.resolver.report()
-	if !reflect.DeepEqual(report, &ContractReport{
-		Outpoint:     outpoint,
-		Type:         ReportOutputUnencumbered,
-		Amount:       dcrutil.Amount(amt),
-		LimboBalance: dcrutil.Amount(amt),
-	}) {
-		t.Fatal("unexpected resolver report")
-	}
-
-	ctx.resolve()
-
-	ctx.notifier.confChan <- &chainntnfs.TxConfirmation{
-		BlockHeight: testInitialBlockHeight - 1,
-	}
-
-	// Allow resolver to process confirmation.
-	time.Sleep(100 * time.Millisecond)
-
-	// Expect report to be updated.
-	report = ctx.resolver.report()
-	if report.MaturityHeight != testInitialBlockHeight+2 {
-		t.Fatal("report maturity height incorrect")
-	}
-
-	// Notify initial block height. The csv lock is still in effect, so we
-	// don't expect any sweep to happen yet.
-	ctx.notifyEpoch(testInitialBlockHeight)
-
-	select {
-	case <-ctx.sweeper.sweptInputs:
-		t.Fatal("no sweep expected")
-	case <-time.After(100 * time.Millisecond):
-	}
-
-	// A new block arrives. The commit tx confirmed at height -1 and the csv
-	// is 3, so a spend will be valid in the first block after height +1.
-	ctx.notifyEpoch(testInitialBlockHeight + 1)
-
-	<-ctx.sweeper.sweptInputs
-
-	ctx.waitForResult()
-
-	report = ctx.resolver.report()
-	if !reflect.DeepEqual(report, &ContractReport{
-		Outpoint:       outpoint,
-		Type:           ReportOutputUnencumbered,
-		Amount:         dcrutil.Amount(amt),
-		MaturityHeight: testInitialBlockHeight + 2,
-
-		// RecoveredBalance is zero due to the output having been swept
-		// by the remote party.
-		RecoveredBalance: 0,
-	}) {
-		t.Fatal("unexpected resolver report")
+	for _, tc := range testCases {
+		tc := tc
+		ok := t.Run(tc.name, func(t *testing.T) {
+			testCommitSweepResolverDelay(t, tc.sweepErr)
+		})
+		if !ok {
+			break
+		}
 	}
 }
