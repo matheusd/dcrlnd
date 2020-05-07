@@ -597,6 +597,22 @@ func (s *UtxoSweeper) collector(blockEpochs <-chan *chainntnfs.BlockEpoch) {
 				}), isOurTx,
 			)
 
+			// Clear out the last published tx since it either
+			// already got confirmed or something else made it
+			// invalid.
+			//
+			// Note(decred): This is used here because in SPV
+			// wallets we might end up with a tx that would never
+			// confirm and trying to publish it through the wallet
+			// causes it to keep this tx forever. This isn't
+			// strictly correct since we might have multiple
+			// pending txs in the sweeper but the store only
+			// currently holds on to the last one published.
+			err = s.cfg.Store.NotifyPublishTx(nil)
+			if err != nil {
+				log.Errorf("Error clearing last tx from store: %v", err)
+			}
+
 			// Signal sweep results for inputs in this confirmed
 			// tx.
 			for _, txIn := range spend.SpendingTx.TxIn {
