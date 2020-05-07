@@ -158,7 +158,7 @@ type chainControl struct {
 // newChainControlFromConfig attempts to create a chainControl instance
 // according to the parameters in the passed lnd configuration. Currently only
 // one chainControl instance exists: one backed by a running dcrd full-node.
-func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
+func newChainControlFromConfig(cfg *Config, localDB, remoteDB *channeldb.DB,
 	privateWalletPw, publicWalletPw []byte, birthday time.Time,
 	recoveryWindow uint32, wallet *wallet.Wallet,
 	loader *walletloader.Loader,
@@ -200,8 +200,9 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 	if cfg.HeightHintCacheQueryDisable {
 		ltndLog.Infof("Height Hint Cache Queries disabled")
 	}
+
 	// Initialize the height hint cache within the chain directory.
-	hintCache, err := chainntnfs.NewHeightHintCache(heightHintCacheConfig, chanDB)
+	hintCache, err := chainntnfs.NewHeightHintCache(heightHintCacheConfig, localDB)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize height hint "+
 			"cache: %v", err)
@@ -295,7 +296,7 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 		dcrwConfig := &remotedcrwallet.Config{
 			PrivatePass:   privateWalletPw,
 			NetParams:     activeNetParams.Params,
-			DB:            chanDB,
+			DB:            remoteDB,
 			Conn:          conn,
 			AccountNumber: accountNumber,
 			ChainIO:       cc.chainIO,
@@ -352,7 +353,7 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 			NetParams:      activeNetParams.Params,
 			Wallet:         wallet,
 			Loader:         loader,
-			DB:             chanDB,
+			DB:             remoteDB,
 		}
 
 		wc, err := dcrwallet.New(*dcrwConfig)
@@ -445,7 +446,7 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 	// Create, and start the lnwallet, which handles the core payment
 	// channel logic, and exposes control via proxy state machines.
 	walletCfg := lnwallet.Config{
-		Database:           chanDB,
+		Database:           remoteDB,
 		Notifier:           cc.chainNotifier,
 		WalletController:   cc.wc,
 		Signer:             cc.signer,

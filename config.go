@@ -115,6 +115,8 @@ var (
 	defaultTorSOCKS   = net.JoinHostPort("localhost", strconv.Itoa(defaultTorSOCKSPort))
 	defaultTorDNS     = net.JoinHostPort(defaultTorDNSHost, strconv.Itoa(defaultTorDNSPort))
 	defaultTorControl = net.JoinHostPort("localhost", strconv.Itoa(defaultTorControlPort))
+
+	defaultSphinxDbName = "sphinxreplay.db"
 )
 
 // Config defines the configuration options for lnd.
