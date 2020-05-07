@@ -176,6 +176,13 @@ func (s *sweeperStore) NotifyPublishTx(sweepTx *wire.MsgTx) error {
 			return errors.New("tx hashes bucket does not exist")
 		}
 
+		if sweepTx == nil {
+			if err := lastTxBucket.Delete(lastTxKey); err != nil {
+				return err
+			}
+			return nil
+		}
+
 		var b bytes.Buffer
 		if err := sweepTx.Serialize(&b); err != nil {
 			return err
