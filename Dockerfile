@@ -20,9 +20,10 @@ FROM alpine as final
 # Define a root volume for data persistence.
 VOLUME /root/.dcrlnd
 
-# Add bash and ca-certs, for quality of life and SSL-related reasons.
+# Add bash, jq and ca-certs, for quality of life and SSL-related reasons.
 RUN apk --no-cache add \
     bash \
+    jq \
     ca-certificates
 
 # Copy the binaries from the builder image.
