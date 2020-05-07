@@ -11,6 +11,8 @@
 4.6. [Code Spacing](#CodeSpacing)<br />
 4.7. [Protobuf Compilation](#Protobuf)<br />
 4.8. [Additional Style Constraints On Top of gofmt](ExtraGoFmtStyle)<br />
+4.9. [Pointing to Remote Dependant Branches in Go Modules](ModulesReplace)<br />
+4.10. [Use of Log Levels](#LogLevels)<br />
 5. [Code Approval Process](#CodeApproval)<br />
 5.1. [Code Review](#CodeReview)<br />
 5.2. [Rework Code (if needed)](#CodeRework)<br />
@@ -180,6 +182,8 @@ A quick summary of test practices follows:
   [`networkHarness`framework](https://github.com/decred/dcrlnd/blob/master/lntest/harness.go)
   contained within `dcrlnd`. For example integration tests, see
   [`lnd_test.go`](https://github.com/decred/dcrlnd/blob/master/lnd_test.go#L181).
+- The itest log files are automatically scanned for `[ERR]` lines. There
+  shouldn't be any of those in the logs, see [Use of Log Levels](#LogLevels).
 
 Throughout the process of contributing to `dcrlnd`, you'll likely also be
 extensively using the commands within our `Makefile`. As a result, we recommend
@@ -505,6 +509,35 @@ to `gofmt` we've opted to enforce the following style guidelines.
 Note that the above guidelines don't apply to log messages. For log messages,
 committers should attempt to minimize the of number lines utilized, while still
 adhering to the 80-character column limit.
+
+<a name="ModulesReplace" />
+
+#### 4.9 Pointing to Remote Dependant Branches in Go Modules
+
+It's common that a developer may need to make a change in a dependent project
+of `lnd` such as `btcd`, `neutrino`, `btcwallet`, etc. In order to test changes
+with out testing infrastructure, or simply make a PR into `lnd` that will build
+without any further work, the `go.mod` and `go.sum` files will need to be
+updated. Luckily, the `go mod` command has a handy tool to do this
+automatically so developers don't need to manually edit the `go.mod` file:
+```
+ go mod edit -replace=IMPORT-PATH-IN-LND@LND-VERSION=DEV-FORK-IMPORT-PATH@DEV-FORK-VERSION
+```
+
+Here's an example replacing the `lightning-onion` version checked into `lnd` with a version in roasbeef's fork:
+```
+ go mod edit -replace=github.com/lightningnetwork/lightning-onion@v0.0.0-20180605012408-ac4d9da8f1d6=github.com/roasbeef/lightning-onion@2e5ae87696046298365ab43bcd1cf3a7a1d69695
+```
+
+<a name="LogLevels" />
+
+#### 4.10 Use of Log Levels
+
+There are six log levels available: `trace`, `debug`, `info`, `warn`, `error` and `critical`.
+
+Only use `error` for internal errors that are never expected to happen during
+normal operation. No event triggered by external sources (rpc, chain backend,
+etc) should lead to an `error` log.
 
 <a name="CodeApproval" />
 
