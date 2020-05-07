@@ -28,6 +28,10 @@ func (s *MockSweeperStore) IsOurTx(hash chainhash.Hash) (bool, error) {
 
 // NotifyPublishTx signals that we are about to publish a tx.
 func (s *MockSweeperStore) NotifyPublishTx(tx *wire.MsgTx) error {
+	if tx == nil {
+		return nil
+	}
+
 	txHash := tx.TxHash()
 	s.ourTxes[txHash] = struct{}{}
 	s.lastTx = tx
