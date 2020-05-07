@@ -86,6 +86,10 @@ func (b *mockBackend) PublishTransaction(tx *wire.MsgTx) error {
 	return err
 }
 
+func (b *mockBackend) AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error {
+	return nil
+}
+
 func (b *mockBackend) ListUnspentWitness(minconfirms, maxconfirms int32) (
 	[]*lnwallet.Utxo, error) {
 

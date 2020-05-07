@@ -901,6 +901,10 @@ func (s *UtxoSweeper) signalAndRemove(outpoint *wire.OutPoint, result Result) {
 		log.Debugf("Dispatching sweep error for %v to %v listeners: %v",
 			outpoint, len(listeners), result.Err,
 		)
+
+		if err := s.cfg.Wallet.AbandonDoubleSpends(outpoint); err != nil {
+			log.Warnf("Error abandoning double of %s: %v", outpoint, err)
+		}
 	}
 
 	// Signal all listeners. Channel is buffered. Because we only send once
