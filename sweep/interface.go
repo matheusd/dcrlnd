@@ -11,6 +11,13 @@ type Wallet interface {
 	// and broadcasts the passed transaction to the Decred network.
 	PublishTransaction(tx *wire.MsgTx) error
 
+	// AbandonDoubleSpends removes all unconfirmed transactions that also
+	// spend any of the specified outpoints from the wallet. This is used
+	// to fix issues when an input used in multiple different sweep
+	// transactions gets confirmed in one of them (rendering the other
+	// transactions invalid).
+	AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error
+
 	// ListUnspentWitness returns all unspent outputs which are version 0
 	// witness programs. The 'minconfirms' and 'maxconfirms' parameters
 	// indicate the minimum and maximum number of confirmations an output
