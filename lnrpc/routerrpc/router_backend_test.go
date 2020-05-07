@@ -159,7 +159,7 @@ func testQueryRoutes(t *testing.T, useMissionControl bool, useMAtoms bool) {
 			t.Fatal("unexpected last hop")
 		}
 
-		if *restrictions.OutgoingChannelID != outgoingChan {
+		if restrictions.OutgoingChannelIDs[0] != outgoingChan {
 			t.Fatal("unexpected outgoing channel id")
 		}
 
