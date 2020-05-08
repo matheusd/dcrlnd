@@ -103,6 +103,16 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 		t.Fatalf("channel not pending force close: %v", err)
 	}
 
+	// After closeChannelAndAssertType returns, it has mined a block so now
+	// bob will attempt to redeem his anchor commitment (if the channel
+	// type is of that type).
+	if c == commitTypeAnchors {
+		_, err = waitForNTxsInMempool(net.Miner.Node, 1, minerMempoolTimeout)
+		if err != nil {
+			t.Fatalf("unable to find bob's anchor commit sweep: %v", err)
+		}
+	}
+
 	// Mine enough blocks for Alice to sweep her funds from the force
 	// closed channel.
 	_, err = net.Generate(defaultCSV - 1)
@@ -114,7 +124,8 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// also sweep hers.
 	expectedTxes := 1
 	if c == commitTypeAnchors {
-		expectedTxes = 2
+		// Anchors were already swept.
+		expectedTxes = 1
 	}
 	_, err = waitForNTxsInMempool(net.Miner.Node, expectedTxes, minerMempoolTimeout)
 	if err != nil {
@@ -148,6 +159,11 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 		dcrlnd.DefaultIncomingBroadcastDelta) - defaultCSV)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
+	}
+
+	if c == commitTypeAnchors {
+		// We actually expect Carol to sweep anchors as well.
+		expectedTxes = 2
 	}
 
 	// Carol's commitment transaction should now be in the mempool. If there
