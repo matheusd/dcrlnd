@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"testing"
 	"time"
@@ -13,20 +12,6 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/record"
 )
-
-func initDB() (*DB, error) {
-	tempPath, err := ioutil.TempDir("", "switchdb")
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := Open(tempPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return db, err
-}
 
 func genPreimage() (lntypes.Preimage, error) {
 	var preimage [32]byte
@@ -65,7 +50,8 @@ func genInfo() (*PaymentCreationInfo, *HTLCAttemptInfo,
 func TestPaymentControlSwitchFail(t *testing.T) {
 	t.Parallel()
 
-	db, err := initDB()
+	db, cleanup, err := makeTestDB()
+	defer cleanup()
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
 	}
@@ -201,7 +187,9 @@ func TestPaymentControlSwitchFail(t *testing.T) {
 func TestPaymentControlSwitchDoubleSend(t *testing.T) {
 	t.Parallel()
 
-	db, err := initDB()
+	db, cleanup, err := makeTestDB()
+	defer cleanup()
+
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
 	}
@@ -281,7 +269,9 @@ func TestPaymentControlSwitchDoubleSend(t *testing.T) {
 func TestPaymentControlSuccessesWithoutInFlight(t *testing.T) {
 	t.Parallel()
 
-	db, err := initDB()
+	db, cleanup, err := makeTestDB()
+	defer cleanup()
+
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
 	}
@@ -312,7 +302,9 @@ func TestPaymentControlSuccessesWithoutInFlight(t *testing.T) {
 func TestPaymentControlFailsWithoutInFlight(t *testing.T) {
 	t.Parallel()
 
-	db, err := initDB()
+	db, cleanup, err := makeTestDB()
+	defer cleanup()
+
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
 	}
@@ -338,7 +330,9 @@ func TestPaymentControlFailsWithoutInFlight(t *testing.T) {
 func TestPaymentControlDeleteNonInFligt(t *testing.T) {
 	t.Parallel()
 
-	db, err := initDB()
+	db, cleanup, err := makeTestDB()
+	defer cleanup()
+
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
 	}
@@ -480,7 +474,9 @@ func TestPaymentControlMultiShard(t *testing.T) {
 	}
 
 	runSubTest := func(t *testing.T, test testCase) {
-		db, err := initDB()
+		db, cleanup, err := makeTestDB()
+		defer cleanup()
+
 		if err != nil {
 			t.Fatalf("unable to init db: %v", err)
 		}
@@ -727,7 +723,9 @@ func TestPaymentControlMultiShard(t *testing.T) {
 func TestPaymentControlMPPRecordValidation(t *testing.T) {
 	t.Parallel()
 
-	db, err := initDB()
+	db, cleanup, err := makeTestDB()
+	defer cleanup()
+
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
 	}
