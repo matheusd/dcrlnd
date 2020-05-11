@@ -25,7 +25,6 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnrpc/verrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
-	"github.com/decred/dcrlnd/lnrpc/wtclientrpc"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chanfunding"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
@@ -105,7 +104,6 @@ func init() {
 
 	addSubLogger(routing.Subsystem, routing.UseLogger, localchans.UseLogger)
 	addSubLogger(routerrpc.Subsystem, routerrpc.UseLogger)
-	addSubLogger(wtclientrpc.Subsystem, wtclientrpc.UseLogger)
 	addSubLogger(chanfitness.Subsystem, chanfitness.UseLogger)
 	addSubLogger(verrpc.Subsystem, verrpc.UseLogger)
 

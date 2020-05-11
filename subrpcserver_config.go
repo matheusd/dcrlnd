@@ -25,6 +25,7 @@ import (
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/decred/dcrlnd/watchtower"
 	"github.com/decred/dcrlnd/watchtower/wtclient"
+	"github.com/decred/slog"
 )
 
 // subRPCServerConfigs is special sub-config in the main configuration that
@@ -94,7 +95,8 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 	tower *watchtower.Standalone,
 	towerClient wtclient.Client,
 	tcpResolver lncfg.TCPResolver,
-	genInvoiceFeatures func() *lnwire.FeatureVector) error {
+	genInvoiceFeatures func() *lnwire.FeatureVector,
+	rpcLogger slog.Logger) error {
 
 	// First, we'll use reflect to obtain a version of the config struct
 	// that allows us to programmatically inspect its fields.
@@ -240,6 +242,9 @@ func (s *subRPCServerConfigs) PopulateDependencies(cc *chainControl,
 			}
 			subCfgValue.FieldByName("Resolver").Set(
 				reflect.ValueOf(tcpResolver),
+			)
+			subCfgValue.FieldByName("Log").Set(
+				reflect.ValueOf(rpcLogger),
 			)
 
 		default:

@@ -3,6 +3,7 @@ package wtclientrpc
 import (
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/watchtower/wtclient"
+	"github.com/decred/slog"
 )
 
 // Config is the primary configuration struct for the watchtower RPC server. It
@@ -22,4 +23,7 @@ type Config struct {
 	// addresses to ensure we don't leak any information when running over
 	// non-clear networks, e.g. Tor, etc.
 	Resolver lncfg.TCPResolver
+
+	// Log is the logger instance we should log output to.
+	Log slog.Logger
 }
