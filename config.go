@@ -1,6 +1,6 @@
 // Copyright (c) 2013-2017 The btcsuite developers
 // Copyright (c) 2015-2019 The Decred developers
-// Copyright (C) 2015-2017 The Lightning Network Developers
+// Copyright (C) 2015-2020 The Lightning Network Developers
 
 package dcrlnd
 
@@ -1004,9 +1004,9 @@ func CleanAndExpandPath(path string) string {
 	// Expand initial ~ to OS specific home directory.
 	if strings.HasPrefix(path, "~") {
 		var homeDir string
-		user, err := user.Current()
+		u, err := user.Current()
 		if err == nil {
-			homeDir = user.HomeDir
+			homeDir = u.HomeDir
 		} else {
 			homeDir = os.Getenv("HOME")
 		}
