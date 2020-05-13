@@ -35,6 +35,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/internal/testutils"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
@@ -7253,7 +7254,7 @@ func testBasicChannelCreationAndUpdates(net *lntest.NetworkHarness, t *harnessTe
 func testMaxPendingChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
-	maxPendingChannels := dcrlnd.DefaultMaxPendingChannels + 1
+	maxPendingChannels := lncfg.DefaultMaxPendingChannels + 1
 	amount := defaultChanAmt
 
 	// Create a new node (Carol) with greater number of max pending
@@ -8912,7 +8913,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		// The new CLTV delta will be the minimum the node will accept
 		// + 4 so that it doesn't immediately close the channel after
 		// restarting.
-		cltvDelta = dcrlnd.DefaultIncomingBroadcastDelta + 4
+		cltvDelta = lncfg.DefaultIncomingBroadcastDelta + 4
 
 		// The new CSV delay will be the previous delta + 2 so that
 		// Carol doesn't attempt to redeem the CSV-encumbered

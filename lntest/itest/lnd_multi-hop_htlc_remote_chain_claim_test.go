@@ -10,6 +10,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lntest"
@@ -156,7 +157,7 @@ func testMultiHopHtlcRemoteChainClaim(net *lntest.NetworkHarness, t *harnessTest
 	// on-chain to claim the HTLC as Bob has been inactive. We mine up to
 	// just before the deadline to check the transaction is in the mempool.
 	numBlocks := padCLTV(uint32(invoiceReq.CltvExpiry-
-		dcrlnd.DefaultIncomingBroadcastDelta) - defaultCSV)
+		lncfg.DefaultIncomingBroadcastDelta) - defaultCSV)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks")
 	}

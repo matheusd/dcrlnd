@@ -10,6 +10,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
 	"github.com/decred/dcrlnd/lntest"
@@ -114,7 +115,7 @@ func testMultiHopReceiverChainClaim(net *lntest.NetworkHarness, t *harnessTest,
 	// chain in order to sweep her HTLC since the value is high enough.
 	// TODO(roasbeef): modify once go to chain policy changes
 	numBlocks := padCLTV(uint32(
-		invoiceReq.CltvExpiry - dcrlnd.DefaultIncomingBroadcastDelta,
+		invoiceReq.CltvExpiry - lncfg.DefaultIncomingBroadcastDelta,
 	))
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)

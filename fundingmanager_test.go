@@ -33,6 +33,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -452,7 +453,7 @@ func createTestFundingManager(t *testing.T, privKey *secp256k1.PrivateKey,
 		},
 		ZombieSweeperInterval:         1 * time.Hour,
 		ReservationTimeout:            1 * time.Nanosecond,
-		MaxPendingChannels:            DefaultMaxPendingChannels,
+		MaxPendingChannels:            lncfg.DefaultMaxPendingChannels,
 		NotifyOpenChannelEvent:        evt.NotifyOpenChannelEvent,
 		OpenChannelPredicate:          chainedAcceptor,
 		NotifyPendingOpenChannelEvent: evt.NotifyPendingOpenChannelEvent,

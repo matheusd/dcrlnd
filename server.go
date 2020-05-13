@@ -402,7 +402,7 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	}
 
 	registryConfig := invoices.RegistryConfig{
-		FinalCltvRejectDelta: defaultFinalCltvRejectDelta,
+		FinalCltvRejectDelta: lncfg.DefaultFinalCltvRejectDelta,
 		HtlcHoldDuration:     invoices.DefaultHtlcHoldDuration,
 		Clock:                clock.NewDefaultClock(),
 		AcceptKeySend:        cfg.AcceptKeySend,
@@ -871,8 +871,8 @@ func newServer(listenAddrs []net.Addr, chanDB *channeldb.DB,
 	s.chainArb = contractcourt.NewChainArbitrator(contractcourt.ChainArbitratorConfig{
 		ChainHash:              activeNetParams.GenesisHash,
 		NetParams:              activeNetParams.Params,
-		IncomingBroadcastDelta: DefaultIncomingBroadcastDelta,
-		OutgoingBroadcastDelta: DefaultOutgoingBroadcastDelta,
+		IncomingBroadcastDelta: lncfg.DefaultIncomingBroadcastDelta,
+		OutgoingBroadcastDelta: lncfg.DefaultOutgoingBroadcastDelta,
 		NewSweepAddr:           newSweepPkScriptGen(cc.wallet),
 		PublishTx:              cc.wallet.PublishTransaction,
 		DeliverResolutionMsg: func(msgs ...contractcourt.ResolutionMsg) error {
@@ -2814,7 +2814,7 @@ func (s *server) peerConnected(conn net.Conn, connReq *connmgr.ConnReq,
 	p, err := newPeer(
 		conn, connReq, s, peerAddr, inbound, initFeatures,
 		legacyFeatures, cfg.ChanEnableTimeout,
-		defaultOutgoingCltvRejectDelta, errBuffer,
+		lncfg.DefaultOutgoingCltvRejectDelta, errBuffer,
 	)
 	if err != nil {
 		srvrLog.Errorf("unable to create peer %v", err)

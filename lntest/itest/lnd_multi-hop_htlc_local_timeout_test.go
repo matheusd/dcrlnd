@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lntest/wait"
@@ -97,7 +98,7 @@ func testMultiHopHtlcLocalTimeout(net *lntest.NetworkHarness, t *harnessTest,
 	// timeout. With the default outgoing broadcast delta of zero, this will
 	// be the same height as the htlc expiry height.
 	numBlocks := padCLTV(
-		uint32(finalCltvDelta - dcrlnd.DefaultOutgoingBroadcastDelta),
+		uint32(finalCltvDelta - lncfg.DefaultOutgoingBroadcastDelta),
 	)
 	if _, err := net.Generate(numBlocks); err != nil {
 		t.Fatalf("unable to generate blocks: %v", err)
