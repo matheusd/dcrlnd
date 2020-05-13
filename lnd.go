@@ -162,7 +162,7 @@ func Main(lisCfg ListenerCfg) error {
 	cfg = loadedConfig
 	defer func() {
 		ltndLog.Info("Shutdown complete")
-		err := logWriter.Close()
+		err := RootLogWriter.Close()
 		if err != nil {
 			ltndLog.Errorf("Could not close log rotator: %v", err)
 		}
