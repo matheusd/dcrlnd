@@ -1098,9 +1098,7 @@ func (l *channelLink) htlcManager() {
 			// including all the currently pending entries. If the
 			// send was unsuccessful, then abandon the update,
 			// waiting for the revocation window to open up.
-			if err := l.updateCommitTx(); err != nil {
-				l.fail(LinkFailureError{code: ErrInternalError},
-					"unable to update commitment: %v", err)
+			if !l.updateCommitTxOrFail() {
 				return
 			}
 
@@ -1477,9 +1475,7 @@ func (l *channelLink) handleDownstreamPkt(pkt *htlcPacket) {
 	if l.channel.PendingLocalUpdateCount() >= uint64(l.cfg.BatchSize) ||
 		isSettle {
 
-		if err := l.updateCommitTx(); err != nil {
-			l.fail(LinkFailureError{code: ErrInternalError},
-				"unable to update commitment: %v", err)
+		if !l.updateCommitTxOrFail() {
 			return
 		}
 	}
@@ -1754,9 +1750,7 @@ func (l *channelLink) handleUpstreamMsg(msg lnwire.Message) {
 		// Otherwise, the remote party initiated the state transition,
 		// so we'll reply with a signature to provide them with their
 		// version of the latest commitment.
-		if err := l.updateCommitTx(); err != nil {
-			l.fail(LinkFailureError{code: ErrInternalError},
-				"unable to update commitment: %v", err)
+		if !l.updateCommitTxOrFail() {
 			return
 		}
 
@@ -1833,9 +1827,7 @@ func (l *channelLink) handleUpstreamMsg(msg lnwire.Message) {
 		// but there are still remote updates that are not in the remote
 		// commit tx yet, send out an update.
 		if l.channel.OweCommitment(true) {
-			if err := l.updateCommitTx(); err != nil {
-				l.fail(LinkFailureError{code: ErrInternalError},
-					"unable to update commitment: %v", err)
+			if !l.updateCommitTxOrFail() {
 				return
 			}
 		}
@@ -1917,6 +1909,18 @@ func (l *channelLink) ackDownStreamPackets() error {
 	l.closedCircuits = l.closedCircuits[:0]
 
 	return nil
+}
+
+// updateCommitTxOrFail updates the commitment tx and if that fails, it fails
+// the link.
+func (l *channelLink) updateCommitTxOrFail() bool {
+	if err := l.updateCommitTx(); err != nil {
+		l.fail(LinkFailureError{code: ErrInternalError},
+			"unable to update commitment: %v", err)
+		return false
+	}
+
+	return true
 }
 
 // updateCommitTx signs, then sends an update to the remote peer adding a new
