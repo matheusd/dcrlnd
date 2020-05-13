@@ -152,47 +152,6 @@ var (
 	defaultTorControl = net.JoinHostPort("localhost", strconv.Itoa(defaultTorControlPort))
 )
 
-type dcrdConfig struct {
-	Dir        string `long:"dir" description:"The base directory that contains the node's data, logs, configuration file, etc."`
-	RPCHost    string `long:"rpchost" description:"The daemon's rpc listening address. If a port is omitted, then the default port for the selected chain parameters will be used."`
-	RPCUser    string `long:"rpcuser" description:"Username for RPC connections"`
-	RPCPass    string `long:"rpcpass" default-mask:"-" description:"Password for RPC connections"`
-	RPCCert    string `long:"rpccert" description:"File containing the daemon's certificate file"`
-	RawRPCCert string `long:"rawrpccert" description:"The raw bytes of the daemon's PEM-encoded certificate chain which will be used to authenticate the RPC connection."`
-}
-
-type dcrwalletConfig struct {
-	GRPCHost      string `long:"grpchost" description:"The wallet's grpc listening address. If a port is omitted, then the default port for the selected chain parameters will be used."`
-	CertPath      string `long:"certpath" description:"The file containing the wallet's certificate file."`
-	AccountNumber int32  `long:"accountnumber" description:"The account number that dcrlnd should take control of for all onchain operations and offchain key derivation."`
-}
-
-type autoPilotConfig struct {
-	Active         bool               `long:"active" description:"If the autopilot agent should be active or not."`
-	Heuristic      map[string]float64 `long:"heuristic" description:"Heuristic to activate, and the weight to give it during scoring."`
-	MaxChannels    int                `long:"maxchannels" description:"The maximum number of channels that should be created"`
-	Allocation     float64            `long:"allocation" description:"The percentage of total funds that should be committed to automatic channel establishment"`
-	MinChannelSize int64              `long:"minchansize" description:"The smallest channel that the autopilot agent should create"`
-	MaxChannelSize int64              `long:"maxchansize" description:"The largest channel that the autopilot agent should create"`
-	Private        bool               `long:"private" description:"Whether the channels created by the autopilot agent should be private or not. Private channels won't be announced to the network."`
-	MinConfs       int32              `long:"minconfs" description:"The minimum number of confirmations each of your inputs in funding transactions created by the autopilot agent must have."`
-	ConfTarget     uint32             `long:"conftarget" description:"The confirmation target (in blocks) for channels opened by autopilot."`
-}
-
-type torConfig struct {
-	Active            bool   `long:"active" description:"Allow outbound and inbound connections to be routed through Tor"`
-	SOCKS             string `long:"socks" description:"The host:port that Tor's exposed SOCKS5 proxy is listening on"`
-	DNS               string `long:"dns" description:"The DNS server as host:port that Tor will use for SRV queries - NOTE must have TCP resolution enabled"`
-	StreamIsolation   bool   `long:"streamisolation" description:"Enable Tor stream isolation by randomizing user credentials for each connection."`
-	Control           string `long:"control" description:"The host:port that Tor is listening on for Tor control connections"`
-	TargetIPAddress   string `long:"targetipaddress" description:"IP address that Tor should use as the target of the hidden service"`
-	Password          string `long:"password" description:"The password used to arrive at the HashedControlPassword for the control port. If provided, the HASHEDPASSWORD authentication method will be used instead of the SAFECOOKIE one."`
-	V2                bool   `long:"v2" description:"Automatically set up a v2 onion service to listen for inbound connections"`
-	V3                bool   `long:"v3" description:"Automatically set up a v3 onion service to listen for inbound connections"`
-	PrivateKeyPath    string `long:"privatekeypath" description:"The path to the private key of the onion service being created"`
-	WatchtowerKeyPath string `long:"watchtowerkeypath" description:"The path to the private key of the watchtower onion service being created"`
-}
-
 // Config defines the configuration options for lnd.
 //
 // See LoadConfig for further details regarding the configuration
@@ -262,12 +221,12 @@ type Config struct {
 	FeeRate             lnwire.MilliAtom `long:"feerate" description:"The fee rate used when forwarding payments on our channels. The total fee charged is basefee + (amount * feerate / 1000000), where amount is the forwarded amount."`
 	TimeLockDelta       uint32           `long:"timelockdelta" description:"The CLTV delta we will subtract from a forwarded HTLC's timelock value"`
 
-	DcrdMode  *dcrdConfig      `group:"dcrd" namespace:"dcrd"`
-	Dcrwallet *dcrwalletConfig `group:"dcrwallet" namespace:"dcrwallet"`
+	DcrdMode  *lncfg.DcrdConfig      `group:"dcrd" namespace:"dcrd"`
+	Dcrwallet *lncfg.DcrwalletConfig `group:"dcrwallet" namespace:"dcrwallet"`
 
-	Autopilot *autoPilotConfig `group:"Autopilot" namespace:"autopilot"`
+	Autopilot *lncfg.AutoPilot `group:"Autopilot" namespace:"autopilot"`
 
-	Tor *torConfig `group:"Tor" namespace:"tor"`
+	Tor *lncfg.Tor `group:"Tor" namespace:"tor"`
 
 	SubRPCServers *subRPCServerConfigs `group:"subrpc"`
 
@@ -353,12 +312,12 @@ func LoadConfig() (*Config, error) {
 		FeeRate:         DefaultDecredFeeRate,
 		TimeLockDelta:   DefaultDecredTimeLockDelta,
 		Node:            "dcrd",
-		DcrdMode: &dcrdConfig{
+		DcrdMode: &lncfg.DcrdConfig{
 			Dir:     defaultDcrdDir,
 			RPCHost: defaultRPCHost,
 			RPCCert: defaultDcrdRPCCertFile,
 		},
-		Dcrwallet:          &dcrwalletConfig{},
+		Dcrwallet:          &lncfg.DcrwalletConfig{},
 		UnsafeDisconnect:   true,
 		MaxPendingChannels: DefaultMaxPendingChannels,
 		NoSeedBackup:       defaultNoSeedBackup,
@@ -368,7 +327,7 @@ func LoadConfig() (*Config, error) {
 			SignRPC:   &signrpc.Config{},
 			RouterRPC: routerrpc.DefaultConfig(),
 		},
-		Autopilot: &autoPilotConfig{
+		Autopilot: &lncfg.AutoPilot{
 			MaxChannels:    5,
 			Allocation:     0.6,
 			MinChannelSize: int64(minChanFundingSize),
@@ -389,7 +348,7 @@ func LoadConfig() (*Config, error) {
 		MinChanSize:                   int64(minChanFundingSize),
 		NumGraphSyncPeers:             defaultMinPeers,
 		HistoricalSyncInterval:        discovery.DefaultHistoricalSyncInterval,
-		Tor: &torConfig{
+		Tor: &lncfg.Tor{
 			SOCKS:   defaultTorSOCKS,
 			DNS:     defaultTorDNS,
 			Control: defaultTorControl,
@@ -1039,7 +998,7 @@ func parseRPCParams(nodeConfig interface{}, net chainCode,
 	// depending on the backend node.
 	var daemonName, confDir, confFile string
 	switch conf := nodeConfig.(type) {
-	case *dcrdConfig:
+	case *lncfg.DcrdConfig:
 		// If both RPCUser and RPCPass are set, we assume those
 		// credentials are good to use.
 		if conf.RPCUser != "" && conf.RPCPass != "" {
@@ -1076,7 +1035,7 @@ func parseRPCParams(nodeConfig interface{}, net chainCode,
 	confFile = filepath.Join(confDir, fmt.Sprintf("%v.conf", confFile))
 	switch flagNode {
 	case "dcrd":
-		nConf := nodeConfig.(*dcrdConfig)
+		nConf := nodeConfig.(*lncfg.DcrdConfig)
 		rpcUser, rpcPass, err := extractDcrdRPCParams(confFile)
 		if err != nil {
 			return fmt.Errorf("unable to extract RPC credentials:"+

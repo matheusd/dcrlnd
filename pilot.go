@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/autopilot"
+	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/tor"
 )
@@ -17,7 +18,7 @@ import (
 // configuration is sane. Currently it checks that the heuristic configuration
 // makes sense. In case the config is valid, it will return a list of
 // WeightedHeuristics that can be combined for use with the autopilot agent.
-func validateAtplCfg(cfg *autoPilotConfig) ([]*autopilot.WeightedHeuristic,
+func validateAtplCfg(cfg *lncfg.AutoPilot) ([]*autopilot.WeightedHeuristic,
 	error) {
 
 	var (
@@ -138,8 +139,8 @@ var _ autopilot.ChannelController = (*chanController)(nil)
 // Agent instance based on the passed configuration structs. The agent and all
 // interfaces needed to drive it won't be launched before the Manager's
 // StartAgent method is called.
-func initAutoPilot(svr *server, cfg *autoPilotConfig, c *Config) (
-	*autopilot.ManagerCfg, error) {
+func initAutoPilot(svr *server, cfg *lncfg.AutoPilot,
+	c *Config) (*autopilot.ManagerCfg, error) {
 
 	atplLog.Infof("Instantiating autopilot with active=%v, "+
 		"max_channels=%d, allocation=%f, min_chan_size=%d, "+
