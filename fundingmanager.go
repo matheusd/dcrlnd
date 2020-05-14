@@ -3021,7 +3021,7 @@ func (f *fundingManager) handleInitFundingMsg(msg *initFundingMsg) {
 
 	// We'll determine our dust limit depending on which chain is active.
 	var ourDustLimit dcrutil.Amount
-	switch registeredChains.PrimaryChain() {
+	switch cfg.registeredChains.PrimaryChain() {
 	case decredChain:
 		ourDustLimit = lnwallet.DefaultDustLimit()
 	}

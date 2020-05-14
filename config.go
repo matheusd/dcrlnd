@@ -243,6 +243,10 @@ type Config struct {
 	ProtocolOptions *lncfg.ProtocolOptions `group:"protocol" namespace:"protocol"`
 
 	AllowCircularRoute bool `long:"allow-circular-route" description:"If true, our node will allow htlc forwards that arrive and depart on the same channel."`
+
+	// registeredChains keeps track of all chains that have been registered
+	// with the daemon.
+	registeredChains *chainRegistry
 }
 
 // DefaultConfig returns all default values for the Config struct.
@@ -321,6 +325,7 @@ func DefaultConfig() Config {
 		},
 		MaxOutgoingCltvExpiry:   htlcswitch.DefaultMaxOutgoingCltvExpiry,
 		MaxChannelFeeAllocation: htlcswitch.DefaultMaxLinkFeeAllocation,
+		registeredChains:        newChainRegistry(),
 	}
 }
 
@@ -685,7 +690,7 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 
 	// Finally we'll register the decred chain as our current
 	// primary chain.
-	registeredChains.RegisterPrimaryChain(decredChain)
+	cfg.registeredChains.RegisterPrimaryChain(decredChain)
 
 	// Ensure that the user didn't attempt to specify negative values for
 	// any of the autopilot params.
@@ -739,7 +744,7 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 	// store all the data specific to this chain/network.
 	networkDir = filepath.Join(
 		cfg.DataDir, defaultChainSubDirname,
-		registeredChains.PrimaryChain().String(),
+		cfg.registeredChains.PrimaryChain().String(),
 		normalizeNetwork(activeNetParams.Name),
 	)
 
@@ -773,7 +778,7 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 	// Append the network type to the log directory so it is "namespaced"
 	// per network in the same fashion as the data directory.
 	cfg.LogDir = filepath.Join(cfg.LogDir,
-		registeredChains.PrimaryChain().String(),
+		cfg.registeredChains.PrimaryChain().String(),
 		normalizeNetwork(activeNetParams.Name))
 
 	// Special show command to list supported subsystems and exit.

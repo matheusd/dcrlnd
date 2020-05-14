@@ -167,11 +167,11 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 	// Set the RPC config from the "home" chain. Multi-chain isn't yet
 	// active, so we'll restrict usage to a particular chain for now.
 	ltndLog.Infof("Primary chain is set to: %v",
-		registeredChains.PrimaryChain())
+		cfg.registeredChains.PrimaryChain())
 
 	cc := &chainControl{}
 
-	switch registeredChains.PrimaryChain() {
+	switch cfg.registeredChains.PrimaryChain() {
 	case decredChain:
 		cc.routingPolicy = htlcswitch.ForwardingPolicy{
 			MinHTLCOut:    cfg.MinHTLCOut,
@@ -186,7 +186,7 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 		)
 	default:
 		return nil, fmt.Errorf("default routing policy for chain %v is "+
-			"unknown", registeredChains.PrimaryChain())
+			"unknown", cfg.registeredChains.PrimaryChain())
 	}
 
 	var (

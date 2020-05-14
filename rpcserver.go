@@ -2381,8 +2381,8 @@ func (r *rpcServer) GetInfo(ctx context.Context,
 	}
 
 	network := normalizeNetwork(activeNetParams.Name)
-	activeChains := make([]*lnrpc.Chain, registeredChains.NumActiveChains())
-	for i, chain := range registeredChains.ActiveChains() {
+	activeChains := make([]*lnrpc.Chain, cfg.registeredChains.NumActiveChains())
+	for i, chain := range cfg.registeredChains.ActiveChains() {
 		activeChains[i] = &lnrpc.Chain{
 			Chain:   chain.String(),
 			Network: network,
