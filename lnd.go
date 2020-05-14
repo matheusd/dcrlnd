@@ -52,11 +52,6 @@ import (
 
 var (
 	cfg *Config
-
-	// networkDir is the path to the directory of the currently active
-	// network. This path will hold the files related to each different
-	// network.
-	networkDir string
 )
 
 // WalletUnlockerAuthOptions returns a list of DialOptions that can be used to
@@ -404,7 +399,7 @@ func Main(config *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) erro
 	if !cfg.NoMacaroons {
 		// Create the macaroon authentication/authorization service.
 		macaroonService, err = macaroons.NewService(
-			networkDir, macaroons.IPLockChecker,
+			cfg.networkDir, macaroons.IPLockChecker,
 		)
 		if err != nil {
 			err := fmt.Errorf("unable to set up macaroon "+
@@ -962,7 +957,7 @@ func waitForWalletPassword(restEndpoints []net.Addr,
 	// deleted within it and recreated when successfully changing the
 	// wallet's password.
 	macaroonFiles := []string{
-		filepath.Join(networkDir, macaroons.DBFilename),
+		filepath.Join(cfg.networkDir, macaroons.DBFilename),
 		cfg.AdminMacPath, cfg.ReadMacPath, cfg.InvoiceMacPath,
 	}
 	pwService := walletunlocker.New(
