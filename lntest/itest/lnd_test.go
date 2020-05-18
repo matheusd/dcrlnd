@@ -13748,9 +13748,13 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to get node info: %v", err)
 	}
 
+	// Create a label that we will used to label the transaction with.
+	sendCoinsLabel := "send all coins"
+
 	sweepReq := &lnrpc.SendCoinsRequest{
 		Addr:    info.IdentityPubkey,
 		SendAll: true,
+		Label:   sendCoinsLabel,
 	}
 	_, err = carol.SendCoins(ctxt, sweepReq)
 	if err == nil {
@@ -13766,6 +13770,7 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 	sweepReq = &lnrpc.SendCoinsRequest{
 		Addr:    info.IdentityPubkey,
 		SendAll: true,
+		Label:   sendCoinsLabel,
 	}
 	_, err = carol.SendCoins(ctxt, sweepReq)
 	if err == nil {
@@ -13784,6 +13789,7 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 	sweepReq = &lnrpc.SendCoinsRequest{
 		Addr:    "Tsi6gGYNSMmFwi7JoL5Li39SrERZTTMu6vY",
 		SendAll: true,
+		Label:   sendCoinsLabel,
 	}
 	_, err = carol.SendCoins(ctxt, sweepReq)
 	if err == nil {
@@ -13795,6 +13801,7 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 	sweepReq = &lnrpc.SendCoinsRequest{
 		Addr:    "DsaAKsMvZ6HrqhmbhLjV9qVbPkkzF5daowT",
 		SendAll: true,
+		Label:   sendCoinsLabel,
 	}
 	_, err = carol.SendCoins(ctxt, sweepReq)
 	if err == nil {
@@ -13810,6 +13817,7 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 	sweepReq = &lnrpc.SendCoinsRequest{
 		Addr:    minerAddr.String(),
 		SendAll: true,
+		Label:   sendCoinsLabel,
 	}
 	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
 	_, err = carol.SendCoins(ctxt, sweepReq)
@@ -13826,6 +13834,27 @@ func testSweepAllCoins(net *lntest.NetworkHarness, t *harnessTest) {
 	sweepTx := block.Transactions[1]
 	if len(sweepTx.TxIn) != 2 {
 		t.Fatalf("expected 2 inputs instead have %v", len(sweepTx.TxIn))
+	}
+
+	// List all transactions relevant to our wallet, and find the sweep tx
+	// so that we can check the correct label has been set.
+	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	txResp, err := carol.GetTransactions(ctxt, &lnrpc.GetTransactionsRequest{})
+	if err != nil {
+		t.Fatalf("could not get transactions: %v", err)
+	}
+
+	sweepTxStr := sweepTx.TxHash().String()
+	for _, txn := range txResp.Transactions {
+		if txn.TxHash == sweepTxStr {
+			if txn.Label != sendCoinsLabel {
+				// This test is disabled compared to the
+				// upstream lnd because dcrwallet does not
+				// support tx labels.
+				// t.Fatalf("expected label: %v, got: %v",
+				//	sendCoinsLabel, txn.Label)
+			}
+		}
 	}
 
 	// Finally, Carol should now have no coins at all within his wallet.
