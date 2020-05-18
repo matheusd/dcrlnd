@@ -190,6 +190,11 @@ func estimateFees(ctx *cli.Context) error {
 	return nil
 }
 
+var txLabelFlag = cli.StringFlag{
+	Name:  "label",
+	Usage: "(optional) a label for the transaction",
+}
+
 var sendCoinsCommand = cli.Command{
 	Name:      "sendcoins",
 	Category:  "On-chain",
@@ -231,6 +236,7 @@ var sendCoinsCommand = cli.Command{
 				"atoms/byte that should be used when crafting " +
 				"the transaction (optional)",
 		},
+		txLabelFlag,
 	},
 	Action: actionDecorator(sendCoins),
 }
@@ -290,6 +296,7 @@ func sendCoins(ctx *cli.Context) error {
 		TargetConf:   int32(ctx.Int64("conf_target")),
 		AtomsPerByte: ctx.Int64("atoms_per_byte"),
 		SendAll:      ctx.Bool("sweepall"),
+		Label:        ctx.String(txLabelFlag.Name),
 	}
 	txid, err := client.SendCoins(ctxb, req)
 	if err != nil {
@@ -445,6 +452,7 @@ var sendManyCommand = cli.Command{
 			Usage: "Manual fee expressed in atom/byte that should be " +
 				"used when crafting the transaction (optional)",
 		},
+		txLabelFlag,
 	},
 	Action: actionDecorator(sendMany),
 }
@@ -470,6 +478,7 @@ func sendMany(ctx *cli.Context) error {
 		AddrToAmount: amountToAddr,
 		TargetConf:   int32(ctx.Int64("conf_target")),
 		AtomsPerByte: ctx.Int64("atoms_per_byte"),
+		Label:        ctx.String(txLabelFlag.Name),
 	})
 	if err != nil {
 		return err
