@@ -9,7 +9,7 @@ import (
 type Wallet interface {
 	// PublishTransaction performs cursory validation (dust checks, etc)
 	// and broadcasts the passed transaction to the Decred network.
-	PublishTransaction(tx *wire.MsgTx) error
+	PublishTransaction(tx *wire.MsgTx, label string) error
 
 	// AbandonDoubleSpends removes all unconfirmed transactions that also
 	// spend any of the specified outpoints from the wallet. This is used

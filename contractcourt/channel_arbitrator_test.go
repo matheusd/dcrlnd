@@ -326,7 +326,7 @@ func createTestChannelArbitrator(t *testing.T, log ArbitratorLog,
 	chainArbCfg := ChainArbitratorConfig{
 		NetParams: chaincfg.RegNetParams(),
 		ChainIO:   chainIO,
-		PublishTx: func(*wire.MsgTx) error {
+		PublishTx: func(*wire.MsgTx, string) error {
 			return nil
 		},
 		DeliverResolutionMsg: func(msgs ...ResolutionMsg) error {
@@ -577,7 +577,7 @@ func TestChannelArbitratorLocalForceClose(t *testing.T) {
 	// We create a channel we can use to pause the ChannelArbitrator at the
 	// point where it broadcasts the close tx, and check its state.
 	stateChan := make(chan ArbitratorState)
-	chanArb.cfg.PublishTx = func(*wire.MsgTx) error {
+	chanArb.cfg.PublishTx = func(*wire.MsgTx, string) error {
 		// When the force close tx is being broadcasted, check that the
 		// state is correct at that point.
 		select {
@@ -1000,7 +1000,7 @@ func TestChannelArbitratorLocalForceCloseRemoteConfirmed(t *testing.T) {
 	// Create a channel we can use to assert the state when it publishes
 	// the close tx.
 	stateChan := make(chan ArbitratorState)
-	chanArb.cfg.PublishTx = func(*wire.MsgTx) error {
+	chanArb.cfg.PublishTx = func(*wire.MsgTx, string) error {
 		// When the force close tx is being broadcasted, check that the
 		// state is correct at that point.
 		select {
@@ -1108,7 +1108,7 @@ func TestChannelArbitratorLocalForceDoubleSpend(t *testing.T) {
 
 	// Return ErrDoubleSpend when attempting to publish the tx.
 	stateChan := make(chan ArbitratorState)
-	chanArb.cfg.PublishTx = func(*wire.MsgTx) error {
+	chanArb.cfg.PublishTx = func(*wire.MsgTx, string) error {
 		// When the force close tx is being broadcasted, check that the
 		// state is correct at that point.
 		select {
@@ -1341,7 +1341,7 @@ func TestChannelArbitratorForceCloseBreachedChannel(t *testing.T) {
 	// unexpected publication error, causing the state machine to halt.
 	expErr := errors.New("intentional publication error")
 	stateChan := make(chan ArbitratorState)
-	chanArb.cfg.PublishTx = func(*wire.MsgTx) error {
+	chanArb.cfg.PublishTx = func(*wire.MsgTx, string) error {
 		// When the force close tx is being broadcasted, check that the
 		// state is correct at that point.
 		select {

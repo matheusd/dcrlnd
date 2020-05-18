@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/labels"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -273,7 +274,7 @@ func (w *WalletKit) PublishTransaction(ctx context.Context,
 		return nil, err
 	}
 
-	err := w.cfg.Wallet.PublishTransaction(tx)
+	err := w.cfg.Wallet.PublishTransaction(tx, labels.External)
 	if err != nil {
 		return nil, err
 	}

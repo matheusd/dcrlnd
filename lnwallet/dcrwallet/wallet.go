@@ -411,7 +411,7 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 // returned (currently ErrDoubleSpend). If the transaction is already
 // published to the network (either in the mempool or chain) no error
 // will be returned.
-func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
+func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx, label string) error {
 	n, err := b.wallet.NetworkBackend()
 	if err != nil {
 		return err

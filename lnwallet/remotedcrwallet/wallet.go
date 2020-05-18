@@ -527,7 +527,7 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 // will be returned.
 //
 // This is a part of the WalletController interface.
-func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx) error {
+func (b *DcrWallet) PublishTransaction(tx *wire.MsgTx, label string) error {
 	rawTx, err := tx.Bytes()
 	if err != nil {
 		return err

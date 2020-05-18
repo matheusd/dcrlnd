@@ -234,8 +234,9 @@ type WalletController interface {
 	// already known transaction, ErrDoubleSpend is returned. If the
 	// transaction is already known (published already), no error will be
 	// returned. Other error returned depends on the currently active chain
-	// backend.
-	PublishTransaction(tx *wire.MsgTx) error
+	// backend. It takes an optional label which will save a label with the
+	// published transaction.
+	PublishTransaction(tx *wire.MsgTx, label string) error
 
 	// AbandonDoubleSpends removes all unconfirmed transactions that also
 	// spend any of the specified outpoints from the wallet. This is used

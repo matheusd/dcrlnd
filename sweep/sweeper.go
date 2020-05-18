@@ -365,7 +365,7 @@ func (s *UtxoSweeper) Start() error {
 
 		// Error can be ignored. Because we are starting up, there are
 		// no pending inputs to update based on the publish result.
-		err := s.cfg.Wallet.PublishTransaction(lastTx)
+		err := s.cfg.Wallet.PublishTransaction(lastTx, "")
 		if err != nil && err != lnwallet.ErrDoubleSpend {
 			log.Errorf("last tx publish: %v", err)
 		}
@@ -1036,7 +1036,7 @@ func (s *UtxoSweeper) sweep(inputs inputSet, feeRate chainfee.AtomPerKByte,
 		}),
 	)
 
-	err = s.cfg.Wallet.PublishTransaction(tx)
+	err = s.cfg.Wallet.PublishTransaction(tx, "")
 
 	// In case of an unexpected error, don't try to recover.
 	if err != nil && err != lnwallet.ErrDoubleSpend {
