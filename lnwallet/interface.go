@@ -184,7 +184,7 @@ type WalletController interface {
 	// This method also takes the target fee expressed in atoms/kB that should
 	// be used when crafting the transaction.
 	SendOutputs(outputs []*wire.TxOut,
-		feeRate chainfee.AtomPerKByte) (*wire.MsgTx, error)
+		feeRate chainfee.AtomPerKByte, label string) (*wire.MsgTx, error)
 
 	// CreateSimpleTx creates a Bitcoin transaction paying to the specified
 	// outputs. The transaction is not broadcasted to the network. In the

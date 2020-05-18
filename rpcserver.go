@@ -42,6 +42,7 @@ import (
 	"github.com/decred/dcrlnd/internal/psbt"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/keychain"
+	"github.com/decred/dcrlnd/labels"
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnrpc/invoicesrpc"
@@ -923,14 +924,14 @@ func addrPairsToOutputs(addrPairs map[string]int64, netParams *chaincfg.Params) 
 // more addresses specified in the passed payment map. The payment map maps an
 // address to a specified output value to be sent to that address.
 func (r *rpcServer) sendCoinsOnChain(paymentMap map[string]int64,
-	feeRate chainfee.AtomPerKByte) (*chainhash.Hash, error) {
+	feeRate chainfee.AtomPerKByte, label string) (*chainhash.Hash, error) {
 
 	outputs, err := addrPairsToOutputs(paymentMap, activeNetParams.Params)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := r.server.cc.wallet.SendOutputs(outputs, feeRate)
+	tx, err := r.server.cc.wallet.SendOutputs(outputs, feeRate, label)
 	if err != nil {
 		return nil, err
 	}
@@ -1137,6 +1138,11 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 		return nil, fmt.Errorf("cannot send coins to pubkeys")
 	}
 
+	label, err := labels.ValidateAPI(in.Label)
+	if err != nil {
+		return nil, err
+	}
+
 	var txid *chainhash.Hash
 
 	wallet := r.server.cc.wallet
@@ -1178,9 +1184,7 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 		// As our sweep transaction was created, successfully, we'll
 		// now attempt to publish it, cancelling the sweep pkg to
 		// return all outputs if it fails.
-		err = wallet.PublishTransaction(
-			sweepTxPkg.SweepTx, "",
-		)
+		err = wallet.PublishTransaction(sweepTxPkg.SweepTx, label)
 		if err != nil {
 			sweepTxPkg.CancelSweepAttempt()
 
@@ -1198,7 +1202,9 @@ func (r *rpcServer) SendCoins(ctx context.Context,
 		// while we instruct the wallet to send this transaction.
 		paymentMap := map[string]int64{targetAddr.String(): in.Amount}
 		err := wallet.WithCoinSelectLock(func() error {
-			newTXID, err := r.sendCoinsOnChain(paymentMap, feePerKB)
+			newTXID, err := r.sendCoinsOnChain(
+				paymentMap, feePerKB, label,
+			)
 			if err != nil {
 				return err
 			}
@@ -1235,7 +1241,12 @@ func (r *rpcServer) SendMany(ctx context.Context,
 		return nil, err
 	}
 
-	rpcsLog.Infof("[sendmany] outputs=%v, atom/kb=%v",
+	label, err := labels.ValidateAPI(in.Label)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcsLog.Infof("[sendmany] outputs=%v, atom/kB=%v",
 		spew.Sdump(in.AddrToAmount), int64(feePerKB))
 
 	var txid *chainhash.Hash
@@ -1247,7 +1258,7 @@ func (r *rpcServer) SendMany(ctx context.Context,
 	err = wallet.WithCoinSelectLock(func() error {
 
 		sendManyTXID, err := r.sendCoinsOnChain(
-			in.AddrToAmount, feePerKB,
+			in.AddrToAmount, feePerKB, label,
 		)
 		if err != nil {
 			return err

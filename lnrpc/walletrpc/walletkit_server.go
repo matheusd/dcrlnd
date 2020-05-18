@@ -311,6 +311,7 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 	// attempt to create this transaction.
 	tx, err := w.cfg.Wallet.SendOutputs(
 		outputsToCreate, chainfee.AtomPerKByte(req.AtomsPerKb),
+		labels.External,
 	)
 	if err != nil {
 		return nil, err

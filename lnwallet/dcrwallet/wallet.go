@@ -280,7 +280,7 @@ func (b *DcrWallet) IsOurAddress(a dcrutil.Address) bool {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
-	feeRate chainfee.AtomPerKByte) (*wire.MsgTx, error) {
+	feeRate chainfee.AtomPerKByte, label string) (*wire.MsgTx, error) {
 
 	// Sanity check outputs.
 	if len(outputs) < 1 {
