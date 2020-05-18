@@ -596,6 +596,7 @@ func minedTransactionsToDetails(
 			TotalFees:        int64(tx.Fee),
 			DestAddresses:    destAddresses,
 			RawTx:            tx.Transaction,
+			Label:            "",
 		}
 
 		balanceDelta, err := extractBalanceDelta(tx, wireTx)
@@ -642,6 +643,7 @@ func unminedTransactionsToDetail(
 		Timestamp:     summary.Timestamp,
 		DestAddresses: destAddresses,
 		RawTx:         summary.Transaction,
+		Label:         "",
 	}
 
 	balanceDelta, err := extractBalanceDelta(summary, wireTx)
