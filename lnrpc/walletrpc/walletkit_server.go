@@ -274,7 +274,12 @@ func (w *WalletKit) PublishTransaction(ctx context.Context,
 		return nil, err
 	}
 
-	err := w.cfg.Wallet.PublishTransaction(tx, labels.External)
+	label, err := labels.ValidateAPI(req.Label)
+	if err != nil {
+		return nil, err
+	}
+
+	err = w.cfg.Wallet.PublishTransaction(tx, label)
 	if err != nil {
 		return nil, err
 	}
@@ -307,11 +312,15 @@ func (w *WalletKit) SendOutputs(ctx context.Context,
 		})
 	}
 
+	label, err := labels.ValidateAPI(req.Label)
+	if err != nil {
+		return nil, err
+	}
+
 	// Now that we have the outputs mapped, we can request that the wallet
 	// attempt to create this transaction.
 	tx, err := w.cfg.Wallet.SendOutputs(
-		outputsToCreate, chainfee.AtomPerKByte(req.AtomsPerKb),
-		labels.External,
+		outputsToCreate, chainfee.AtomPerKByte(req.AtomsPerKb), label,
 	)
 	if err != nil {
 		return nil, err
