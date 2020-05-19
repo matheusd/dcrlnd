@@ -15974,6 +15974,10 @@ var testsCases = []*testCase{
 		name: "REST API",
 		test: testRestApi,
 	},
+	{
+		name: "intercept forwarded htlc packets",
+		test: testForwardInterceptor,
+	},
 }
 
 // TestLightningNetworkDaemon performs a series of integration tests amongst a
