@@ -98,6 +98,14 @@ var (
 			Entity: "onchain",
 			Action: "write",
 		}},
+		"/walletrpc.WalletKit/LeaseOutput": {{
+			Entity: "onchain",
+			Action: "write",
+		}},
+		"/walletrpc.WalletKit/ReleaseOutput": {{
+			Entity: "onchain",
+			Action: "write",
+		}},
 	}
 
 	// DefaultWalletKitMacFilename is the default name of the wallet kit
@@ -202,6 +210,68 @@ func (w *WalletKit) RegisterWithRootServer(grpcServer *grpc.Server) error {
 		"root gRPC server")
 
 	return nil
+}
+
+// LeaseOutput locks an output to the given ID, preventing it from being
+// available for any future coin selection attempts. The absolute time of the
+// lock's expiration is returned. The expiration of the lock can be extended by
+// successive invocations of this call. Outputs can be unlocked before their
+// expiration through `ReleaseOutput`.
+//
+// If the output is not known, wtxmgr.ErrUnknownOutput is returned. If the
+// output has already been locked to a different ID, then
+// wtxmgr.ErrOutputAlreadyLocked is returned.
+func (w *WalletKit) LeaseOutput(ctx context.Context,
+	req *LeaseOutputRequest) (*LeaseOutputResponse, error) {
+
+	if len(req.Id) != 32 {
+		return nil, errors.New("id must be 32 random bytes")
+	}
+	var lockID lnwallet.LockID
+	copy(lockID[:], req.Id)
+
+	// Don't allow ID's of 32 bytes, but all zeros.
+	if lockID == (lnwallet.LockID{}) {
+		return nil, errors.New("id must be 32 random bytes")
+	}
+
+	op, err := unmarshallOutPoint(req.Outpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	expiration, err := w.cfg.Wallet.LeaseOutput(lockID, *op)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LeaseOutputResponse{
+		Expiration: uint64(expiration.Unix()),
+	}, nil
+}
+
+// ReleaseOutput unlocks an output, allowing it to be available for coin
+// selection if it remains unspent. The ID should match the one used to
+// originally lock the output.
+func (w *WalletKit) ReleaseOutput(ctx context.Context,
+	req *ReleaseOutputRequest) (*ReleaseOutputResponse, error) {
+
+	if len(req.Id) != 32 {
+		return nil, errors.New("id must be 32 random bytes")
+	}
+	var lockID lnwallet.LockID
+	copy(lockID[:], req.Id)
+
+	op, err := unmarshallOutPoint(req.Outpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := w.cfg.Wallet.ReleaseOutput(lockID, *op); err != nil {
+		return nil, err
+	}
+
+	return &ReleaseOutputResponse{}, nil
 }
 
 // DeriveNextKey attempts to derive the *next* key within the key family
