@@ -37,6 +37,13 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 		return nil, lnwallet.ErrNotMine
 	}
 
+	numOutputs := uint32(len(txDetail.TxRecord.MsgTx.TxOut))
+	if prevOut.Index >= numOutputs {
+		return nil, fmt.Errorf("invalid output index %v for "+
+			"transaction with %v outputs", prevOut.Index, numOutputs)
+
+	}
+
 	// With the output retrieved, we'll make an additional check to ensure
 	// we actually have control of this output. We do this because the check
 	// above only guarantees that the transaction is somehow relevant to us,
