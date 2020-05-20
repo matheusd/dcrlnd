@@ -254,7 +254,9 @@ func Main(cfg *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) error {
 	ltndLog.Infof("Opening the main database, this might take a few " +
 		"minutes...")
 
-	chanDbBackend, err := cfg.DB.GetBackend(cfg.localDatabaseDir())
+	chanDbBackend, err := cfg.DB.GetBackend(
+		cfg.localDatabaseDir(), cfg.networkName(),
+	)
 	if err != nil {
 		ltndLog.Error(err)
 		return err
