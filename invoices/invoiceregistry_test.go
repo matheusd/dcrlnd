@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/record"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestSettleInvoice tests settling of an invoice and related notifications.
@@ -16,7 +17,8 @@ func TestSettleInvoice(t *testing.T) {
 	ctx := newTestContext(t)
 	defer ctx.cleanup()
 
-	allSubscriptions := ctx.registry.SubscribeNotifications(0, 0)
+	allSubscriptions, err := ctx.registry.SubscribeNotifications(0, 0)
+	assert.Nil(t, err)
 	defer allSubscriptions.Cancel()
 
 	// Subscribe to the not yet existing invoice.
@@ -224,11 +226,12 @@ func TestCancelInvoice(t *testing.T) {
 	ctx := newTestContext(t)
 	defer ctx.cleanup()
 
-	allSubscriptions := ctx.registry.SubscribeNotifications(0, 0)
+	allSubscriptions, err := ctx.registry.SubscribeNotifications(0, 0)
+	assert.Nil(t, err)
 	defer allSubscriptions.Cancel()
 
 	// Try to cancel the not yet existing invoice. This should fail.
-	err := ctx.registry.CancelInvoice(testInvoicePaymentHash)
+	err = ctx.registry.CancelInvoice(testInvoicePaymentHash)
 	if err != channeldb.ErrInvoiceNotFound {
 		t.Fatalf("expected ErrInvoiceNotFound, but got %v", err)
 	}
@@ -358,7 +361,8 @@ func TestSettleHoldInvoice(t *testing.T) {
 	}
 	defer registry.Stop()
 
-	allSubscriptions := registry.SubscribeNotifications(0, 0)
+	allSubscriptions, err := registry.SubscribeNotifications(0, 0)
+	assert.Nil(t, err)
 	defer allSubscriptions.Cancel()
 
 	// Subscribe to the not yet existing invoice.
@@ -660,7 +664,8 @@ func testKeySend(t *testing.T, keySendEnabled bool) {
 
 	ctx.registry.cfg.AcceptKeySend = keySendEnabled
 
-	allSubscriptions := ctx.registry.SubscribeNotifications(0, 0)
+	allSubscriptions, err := ctx.registry.SubscribeNotifications(0, 0)
+	assert.Nil(t, err)
 	defer allSubscriptions.Cancel()
 
 	hodlChan := make(chan interface{}, 1)
