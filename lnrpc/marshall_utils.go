@@ -1,9 +1,14 @@
 package lnrpc
 
 import (
+	"encoding/hex"
 	"errors"
+	fmt "fmt"
 
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/txscript/v3"
+	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -54,4 +59,98 @@ func UnmarshallAmt(amtAtom, amtMAtom int64) (lnwire.MilliAtom, error) {
 	}
 
 	return lnwire.MilliAtom(amtMAtom), nil
+}
+
+// ParseConfs validates the minimum and maximum confirmation arguments of a
+// ListUnspent request.
+func ParseConfs(min, max int32) (int32, int32, error) {
+	switch {
+	// Ensure that the user didn't attempt to specify a negative number of
+	// confirmations, as that isn't possible.
+	case min < 0:
+		return 0, 0, fmt.Errorf("min confirmations must be >= 0")
+
+	// We'll also ensure that the min number of confs is strictly less than
+	// or equal to the max number of confs for sanity.
+	case min > max:
+		return 0, 0, fmt.Errorf("max confirmations must be >= min " +
+			"confirmations")
+
+	default:
+		return min, max, nil
+	}
+}
+
+// MarshalUtxos translates a []*lnwallet.Utxo into a []*lnrpc.Utxo.
+func MarshalUtxos(utxos []*lnwallet.Utxo, activeNetParams *chaincfg.Params) (
+	[]*Utxo, error) {
+
+	// TODO(decred): this needs to come from the utxo itself.
+	const scriptVersion uint16 = 0
+
+	res := make([]*Utxo, 0, len(utxos))
+	for _, utxo := range utxos {
+		// Translate lnwallet address type to the proper gRPC proto
+		// address type.
+		var addrType AddressType
+		switch utxo.AddressType {
+
+		case lnwallet.WitnessPubKey:
+			addrType = AddressType_WITNESS_PUBKEY_HASH
+
+		case lnwallet.NestedWitnessPubKey:
+			addrType = AddressType_NESTED_PUBKEY_HASH
+
+		case lnwallet.PubKeyHash:
+			addrType = AddressType_PUBKEY_HASH
+
+		case lnwallet.ScriptHash:
+			addrType = AddressType_SCRIPT_HASH
+
+		case lnwallet.UnknownAddressType:
+			continue
+
+		default:
+			return nil, fmt.Errorf("invalid utxo address type")
+		}
+
+		// Now that we know we have a proper mapping to an address,
+		// we'll convert the regular outpoint to an lnrpc variant.
+		outpoint := &OutPoint{
+			TxidBytes:   utxo.OutPoint.Hash[:],
+			TxidStr:     utxo.OutPoint.Hash.String(),
+			OutputIndex: utxo.OutPoint.Index,
+		}
+
+		utxoResp := Utxo{
+			AddressType:   addrType,
+			AmountAtoms:   int64(utxo.Value),
+			PkScript:      hex.EncodeToString(utxo.PkScript),
+			Outpoint:      outpoint,
+			Confirmations: utxo.Confirmations,
+		}
+
+		// Finally, we'll attempt to extract the raw address from the
+		// script so we can display a human friendly address to the end
+		// user.
+		_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
+			scriptVersion, utxo.PkScript, activeNetParams,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// If we can't properly locate a single address, then this was
+		// an error in our mapping, and we'll return an error back to
+		// the user.
+		if len(outAddresses) != 1 {
+			return nil, fmt.Errorf("an output was unexpectedly " +
+				"multisig")
+		}
+		utxoResp.Address = outAddresses[0].String()
+
+		res = append(res, &utxoResp)
+	}
+
+	return res, nil
 }
