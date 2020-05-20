@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -333,6 +334,14 @@ func (*mockWalletController) ListTransactionDetails(_, _ int32) ([]*lnwallet.Tra
 }
 func (*mockWalletController) LockOutpoint(o wire.OutPoint)   {}
 func (*mockWalletController) UnlockOutpoint(o wire.OutPoint) {}
+
+func (*mockWalletController) LeaseOutput(lnwallet.LockID, wire.OutPoint) (time.Time, error) {
+	return time.Now(), nil
+}
+func (*mockWalletController) ReleaseOutput(lnwallet.LockID, wire.OutPoint) error {
+	return nil
+}
+
 func (m *mockWalletController) PublishTransaction(tx *wire.MsgTx, _ string) error {
 	m.publishedTransactions <- tx
 	return nil

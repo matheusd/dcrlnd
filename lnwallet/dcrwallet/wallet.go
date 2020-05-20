@@ -926,3 +926,17 @@ func (b *DcrWallet) rpcSyncerFinished() {
 func (b *DcrWallet) LabelTransaction(hash chainhash.Hash, label string, overwrite bool) error {
 	return fmt.Errorf("unimplemented")
 }
+
+// LeaseOutput markes the output as used for some time.
+//
+// This is a part of the WalletController interface.
+func (b *DcrWallet) LeaseOutput(lnwallet.LockID, wire.OutPoint) (time.Time, error) {
+	return time.Time{}, fmt.Errorf("unimplemented")
+}
+
+// ReleaseOutput marks the output as unused.
+//
+// This is a part of the WalletController interface.
+func (b *DcrWallet) ReleaseOutput(lnwallet.LockID, wire.OutPoint) error {
+	return fmt.Errorf("unimplemented")
+}

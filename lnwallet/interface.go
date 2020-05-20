@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -61,6 +62,9 @@ var (
 // ErrNoOutputs is returned if we try to create a transaction with no outputs
 // or send coins to a set of outputs that is empty.
 var ErrNoOutputs = errors.New("no outputs")
+
+// LockID is equivalent to btcsuite/btcwallet/wtxmgr LockID type.
+type LockID [32]byte
 
 // Utxo is an unspent output denoted by its outpoint, and output value of the
 // original output.
@@ -230,6 +234,22 @@ type WalletController interface {
 	// UnlockOutpoint unlocks a previously locked output, marking it
 	// eligible for coin selection.
 	UnlockOutpoint(o wire.OutPoint)
+
+	// LeaseOutput locks an output to the given ID, preventing it from being
+	// available for any future coin selection attempts. The absolute time
+	// of the lock's expiration is returned. The expiration of the lock can
+	// be extended by successive invocations of this call. Outputs can be
+	// unlocked before their expiration through `ReleaseOutput`.
+	//
+	// If the output is not known, wtxmgr.ErrUnknownOutput is returned. If
+	// the output has already been locked to a different ID, then
+	// wtxmgr.ErrOutputAlreadyLocked is returned.
+	LeaseOutput(id LockID, op wire.OutPoint) (time.Time, error)
+
+	// ReleaseOutput unlocks an output, allowing it to be available for coin
+	// selection if it remains unspent. The ID should match the one used to
+	// originally lock the output.
+	ReleaseOutput(id LockID, op wire.OutPoint) error
 
 	// PublishTransaction performs cursory validation (dust checks, etc),
 	// then finally broadcasts the passed transaction to the Decred network.
