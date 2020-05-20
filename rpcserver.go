@@ -4848,7 +4848,7 @@ func (r *rpcServer) GetTransactions(ctx context.Context,
 	// To remain backwards compatible with the old api, default to the
 	// special case end height which will return transactions from the start
 	// height until the chain tip, including unconfirmed transactions.
-	var endHeight int32 = dcrwallet.UnconfirmedHeight
+	var endHeight = dcrwallet.UnconfirmedHeight
 
 	// If the user has provided an end height, we overwrite our default.
 	if req.EndHeight != 0 {
