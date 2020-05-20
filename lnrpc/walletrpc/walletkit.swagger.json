@@ -24,6 +24,19 @@
         }
       }
     },
+    "lnrpcAddressType": {
+      "type": "string",
+      "enum": [
+        "WITNESS_PUBKEY_HASH",
+        "NESTED_PUBKEY_HASH",
+        "PUBKEY_HASH",
+        "SCRIPT_HASH",
+        "UNUSED_PUBKEY_HASH"
+      ],
+      "default": "WITNESS_PUBKEY_HASH",
+      "description": "- `p2wkh`: Pay to witness key hash (`WITNESS_PUBKEY_HASH` = 0)\n- `np2wkh`: Pay to nested witness key hash (`NESTED_PUBKEY_HASH` = 1)\n- `p2pkh`: Pay to pubkey hash (`PUBKEY_HASH` = 2)\n- `p2sh`: Pay to script hash (`SCRIPT_HASH` = 3)",
+      "title": "`AddressType` has to be one of:"
+    },
     "lnrpcOutPoint": {
       "type": "object",
       "properties": {
@@ -105,6 +118,37 @@
             "$ref": "#/definitions/lnrpcTransaction"
           },
           "description": "The list of transactions relevant to the wallet."
+        }
+      }
+    },
+    "lnrpcUtxo": {
+      "type": "object",
+      "properties": {
+        "address_type": {
+          "$ref": "#/definitions/lnrpcAddressType",
+          "title": "The type of address"
+        },
+        "address": {
+          "type": "string",
+          "title": "The address"
+        },
+        "amount_atoms": {
+          "type": "string",
+          "format": "int64",
+          "title": "The value of the unspent coin in atoms"
+        },
+        "pk_script": {
+          "type": "string",
+          "title": "The pkscript in hex"
+        },
+        "outpoint": {
+          "$ref": "#/definitions/lnrpcOutPoint",
+          "title": "The outpoint in format txid:n"
+        },
+        "confirmations": {
+          "type": "string",
+          "format": "int64",
+          "title": "The number of confirmations for the Utxo"
         }
       }
     },
@@ -228,6 +272,18 @@
         },
         "transaction_ids": {
           "$ref": "#/definitions/ListSweepsResponseTransactionIDs"
+        }
+      }
+    },
+    "walletrpcListUnspentResponse": {
+      "type": "object",
+      "properties": {
+        "utxos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/lnrpcUtxo"
+          },
+          "description": "A list of utxos satisfying the specified number of confirmations."
         }
       }
     },
