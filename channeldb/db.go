@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb/kvdb"
+	mig "github.com/decred/dcrlnd/channeldb/migration"
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migration13"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"
@@ -136,6 +137,13 @@ var (
 			number:    13,
 			migration: migration13.MigrateMPP,
 		},
+		{
+			// Initialize payment address index and begin using it
+			// as the default index, falling back to payment hash
+			// index.
+			number:    14,
+			migration: mig.CreateTLB(payAddrIndexBucket),
+		},
 	}
 
 	// Big endian is the preferred byte order, due to cursor scans over
@@ -248,6 +256,7 @@ var topLevelBuckets = [][]byte{
 	forwardingLogBucket,
 	fwdPackagesKey,
 	invoiceBucket,
+	payAddrIndexBucket,
 	nodeInfoBucket,
 	nodeBucket,
 	edgeBucket,
