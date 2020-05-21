@@ -2,6 +2,7 @@ package channeldb
 
 import (
 	"github.com/decred/dcrlnd/build"
+	mig "github.com/decred/dcrlnd/channeldb/migration"
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migration13"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"
@@ -28,6 +29,7 @@ func DisableLog() {
 // using slog.
 func UseLogger(logger slog.Logger) {
 	log = logger
+	mig.UseLogger(logger)
 	migration_01_to_11.UseLogger(logger)
 	migration12.UseLogger(logger)
 	migration13.UseLogger(logger)
