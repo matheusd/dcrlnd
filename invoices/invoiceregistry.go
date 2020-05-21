@@ -721,11 +721,9 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 	circuitKey channeldb.CircuitKey, hodlChan chan<- interface{},
 	payload Payload) (HtlcResolution, error) {
 
-	mpp := payload.MultiPath()
-
 	// Create the update context containing the relevant details of the
 	// incoming htlc.
-	updateCtx := invoiceUpdateCtx{
+	ctx := invoiceUpdateCtx{
 		hash:                 rHash,
 		circuitKey:           circuitKey,
 		amtPaid:              amtPaid,
@@ -733,16 +731,16 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 		currentHeight:        currentHeight,
 		finalCltvRejectDelta: i.cfg.FinalCltvRejectDelta,
 		customRecords:        payload.CustomRecords(),
-		mpp:                  mpp,
+		mpp:                  payload.MultiPath(),
 	}
 
 	// Process keysend if present. Do this outside of the lock, because
 	// AddInvoice obtains its own lock. This is no problem, because the
 	// operation is idempotent.
 	if i.cfg.AcceptKeySend {
-		err := i.processKeySend(updateCtx)
+		err := i.processKeySend(ctx)
 		if err != nil {
-			updateCtx.log(fmt.Sprintf("keysend error: %v", err))
+			ctx.log(fmt.Sprintf("keysend error: %v", err))
 
 			return NewFailResolution(
 				circuitKey, currentHeight, ResultKeySendError,
@@ -752,7 +750,7 @@ func (i *InvoiceRegistry) NotifyExitHopHtlc(rHash lntypes.Hash,
 
 	// Execute locked notify exit hop logic.
 	i.Lock()
-	resolution, err := i.notifyExitHopHtlcLocked(&updateCtx, hodlChan)
+	resolution, err := i.notifyExitHopHtlcLocked(&ctx, hodlChan)
 	i.Unlock()
 	if err != nil {
 		return nil, err
