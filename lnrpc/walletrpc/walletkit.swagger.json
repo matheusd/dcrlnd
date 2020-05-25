@@ -207,6 +207,9 @@
         }
       }
     },
+    "walletrpcLabelTransactionResponse": {
+      "type": "object"
+    },
     "walletrpcListSweepsResponse": {
       "type": "object",
       "properties": {
