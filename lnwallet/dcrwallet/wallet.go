@@ -919,3 +919,10 @@ func (b *DcrWallet) rpcSyncerFinished() {
 	// signal that we aren't anymore.
 	atomic.CompareAndSwapUint32(&b.atomicWalletSynced, syncStatusSynced, syncStatusLostSync)
 }
+
+// LabelTransaction adds the given external label to the specified transaction.
+//
+// This is a part of the WalletController interface.
+func (b *DcrWallet) LabelTransaction(hash chainhash.Hash, label string, overwrite bool) error {
+	return fmt.Errorf("unimplemented")
+}

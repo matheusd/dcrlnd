@@ -340,6 +340,11 @@ func (m *mockWalletController) PublishTransaction(tx *wire.MsgTx, _ string) erro
 func (m *mockWalletController) AbandonDoubleSpends(spentOutpoints ...*wire.OutPoint) error {
 	return nil
 }
+func (m *mockWalletController) LabelTransaction(_ chainhash.Hash, _ string,
+	_ bool) error {
+
+	return nil
+}
 func (*mockWalletController) SubscribeTransactions() (lnwallet.TransactionSubscription, error) {
 	return nil, nil
 }
