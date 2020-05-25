@@ -246,6 +246,10 @@ type Config struct {
 
 	DB *lncfg.DB `group:"db" namespace:"db"`
 
+	// LogWriter is the root logger that all of the daemon's subloggers are
+	// hooked up to.
+	LogWriter *build.RotatingLogWriter
+
 	// registeredChains keeps track of all chains that have been registered
 	// with the daemon.
 	registeredChains *chainRegistry
@@ -332,6 +336,7 @@ func DefaultConfig() Config {
 		},
 		MaxOutgoingCltvExpiry:   htlcswitch.DefaultMaxOutgoingCltvExpiry,
 		MaxChannelFeeAllocation: htlcswitch.DefaultMaxLinkFeeAllocation,
+		LogWriter:               build.NewRotatingLogWriter(),
 		DB:                      lncfg.DefaultDB(),
 		registeredChains:        newChainRegistry(),
 	}
@@ -789,15 +794,21 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 		cfg.registeredChains.PrimaryChain().String(),
 		normalizeNetwork(activeNetParams.Name))
 
+	// A log writer must be passed in, otherwise we can't function and would
+	// run into a panic later on.
+	if cfg.LogWriter == nil {
+		return nil, fmt.Errorf("log writer missing in config")
+	}
+
 	// Special show command to list supported subsystems and exit.
 	if cfg.DebugLevel == "show" {
 		fmt.Println("Supported subsystems",
-			RootLogWriter.SupportedSubsystems())
+			cfg.LogWriter.SupportedSubsystems())
 		os.Exit(0)
 	}
 
 	// Initialize logging at the default logging level.
-	err = RootLogWriter.InitLogRotator(
+	err = cfg.LogWriter.InitLogRotator(
 		filepath.Join(cfg.LogDir, defaultLogFilename),
 		cfg.MaxLogFileSize, cfg.MaxLogFiles,
 	)
@@ -809,7 +820,7 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 	}
 
 	// Parse, validate, and set debug log level(s).
-	err = build.ParseAndSetDebugLevels(cfg.DebugLevel, RootLogWriter)
+	err = build.ParseAndSetDebugLevels(cfg.DebugLevel, cfg.LogWriter)
 	if err != nil {
 		err = fmt.Errorf("%s: %v", funcName, err.Error())
 		_, _ = fmt.Fprintln(os.Stderr, err)
