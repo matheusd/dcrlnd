@@ -165,7 +165,7 @@ itest-only:
 	@$(call print, "Running integration tests with ${backend} backend.")
 	echo $(GOBIN)
 	$(ITEST)
-	lntest/itest/log_check_errors.sh
+#	lntest/itest/log_check_errors.sh
 
 itest: dcrd dcrwallet build-itest itest-only
 
