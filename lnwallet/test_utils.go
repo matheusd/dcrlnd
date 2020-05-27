@@ -4,20 +4,16 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	prand "math/rand"
 	"net"
 	"os"
 
-	"github.com/decred/dcrd/blockchain/stake/v3"
-	"github.com/decred/dcrd/blockchain/v3"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
-	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/input"
@@ -444,15 +440,6 @@ func initRevocationWindows(chanA, chanB *LightningChannel) error {
 	return nil
 }
 
-// pubkeyFromHex parses a Decred public key from a hex encoded string.
-func pubkeyFromHex(keyHex string) (*secp256k1.PublicKey, error) {
-	bytes, err := hex.DecodeString(keyHex)
-	if err != nil {
-		return nil, err
-	}
-	return secp256k1.ParsePubKey(bytes)
-}
-
 // privkeyFromHex parses a Decred private key from a hex encoded string.
 func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 	bytes, err := hex.DecodeString(keyHex)
@@ -467,15 +454,6 @@ func privkeyFromHex(keyHex string) (*secp256k1.PrivateKey, error) {
 func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
 	key := secp256k1.PrivKeyFromBytes(b)
 	return key, key.PubKey()
-}
-
-// blockFromHex parses a full Decred block from a hex encoded string.
-func blockFromHex(blockHex string) (*dcrutil.Block, error) {
-	bytes, err := hex.DecodeString(blockHex)
-	if err != nil {
-		return nil, err
-	}
-	return dcrutil.NewBlockFromBytes(bytes)
 }
 
 // txFromHex parses a full Decred transaction from a hex encoded string.
@@ -501,111 +479,6 @@ func calcStaticFee(chanType channeldb.ChannelType, numHTLCs int) dcrutil.Amount 
 
 	commitSize := CommitSize(chanType) + input.HTLCOutputSize*int64(numHTLCs)
 	return feePerKB * dcrutil.Amount(commitSize) / 1000
-}
-
-// checkLnTransactionSanity checks whether an ln transaction (funding,
-// commitment, etc) is reasonably sane according to consensus and standardness
-// checks that don't require a full backing blockchain to verify.
-func checkLnTransactionSanity(tx *wire.MsgTx, utxos map[wire.OutPoint]*wire.TxOut, netParams *chaincfg.Params) error {
-	err := blockchain.CheckTransactionSanity(tx, netParams)
-	if err != nil {
-		return fmt.Errorf("error checking tx sanity: %v", err)
-	}
-
-	var inputSum int64
-	var outputSum int64
-
-	txType := stake.DetermineTxType(tx)
-	if txType != stake.TxTypeRegular {
-		return fmt.Errorf("transaction is not of the regular type")
-	}
-	if tx.Expiry != wire.NoExpiryValue {
-		return fmt.Errorf("expiry for the tx is not %d", wire.NoExpiryValue)
-	}
-	if tx.Version != input.LNTxVersion {
-		return fmt.Errorf("tx version (%d) different than expected (%d)",
-			tx.Version, input.LNTxVersion)
-	}
-	for i, out := range tx.TxOut {
-		if out.Version != scriptVersion {
-			return fmt.Errorf("output %d of tx does not use the "+
-				"default script version (found %d)", i, out.Version)
-		}
-
-		outputSum += out.Value
-	}
-	for i, in := range tx.TxIn {
-		utxo, hasUtxo := utxos[in.PreviousOutPoint]
-		if !hasUtxo {
-			return fmt.Errorf("utxo for input %d (%s) of tx not provided", i,
-				in.PreviousOutPoint)
-		}
-
-		engine, err := txscript.NewEngine(utxo.PkScript, tx, i,
-			input.ScriptVerifyFlags, utxo.Version, nil)
-		if err != nil {
-			return fmt.Errorf("error creating engine to process input %d: %v",
-				i, err)
-		}
-
-		err = engine.Execute()
-		if err != nil {
-			return fmt.Errorf("error executing script of input %d: %v", i, err)
-		}
-
-		inputSum += utxo.Value
-	}
-
-	if (outputSum > inputSum) || (outputSum < 0) {
-		return fmt.Errorf("sum of output amounts > sum of input amounts")
-	}
-
-	return nil
-}
-
-// checkSignedCommitmentTxSanity checks whether a commitment transaction is
-// reasonably sane according to consensus and standardness checks that don't
-// require a full backing blockchain to verify.
-//
-// It assumes the commit transaction input previous outpoint is correctly
-// pointing to the passed fundingTxOut.
-func checkSignedCommitmentTxSanity(commitTx *wire.MsgTx, fundingTxOut *wire.TxOut, netParams *chaincfg.Params) error {
-
-	if len(commitTx.TxIn) != 1 {
-		return fmt.Errorf("commit transaction has invalid number of inputs")
-	}
-
-	utxos := make(map[wire.OutPoint]*wire.TxOut, 1)
-	utxos[commitTx.TxIn[0].PreviousOutPoint] = fundingTxOut
-
-	return checkLnTransactionSanity(commitTx, utxos, netParams)
-}
-
-// checkSignedCommitmentSpendingTxSanity checks whether a transaction spending
-// from a commitment transaction (eg: an htlc resolution transaction or a breach
-// remedy transaction ) is reasonably sane according to consensus and
-// standardness checks that don't require a full backing blockchain to verify.
-//
-// This assumes the commitment transaction is sane (ie
-// checkSignedCommitmentTxSanity returns nil).
-func checkSignedCommitmentSpendingTxSanity(spendTx, commitTx *wire.MsgTx, netParams *chaincfg.Params) error {
-
-	commitTxHash := commitTx.TxHash()
-	countCommitOuts := uint32(len(commitTx.TxOut))
-
-	utxos := make(map[wire.OutPoint]*wire.TxOut, len(spendTx.TxIn))
-	for i, in := range spendTx.TxIn {
-		outp := in.PreviousOutPoint
-		if (outp.Hash != commitTxHash) || (outp.Index >= countCommitOuts) ||
-			(outp.Tree != wire.TxTreeRegular) {
-
-			return fmt.Errorf("input %d of spender tx does not spend from "+
-				"commit tx", i)
-		}
-		utxos[outp] = commitTx.TxOut[outp.Index]
-	}
-
-	return checkLnTransactionSanity(spendTx, utxos, netParams)
 }
 
 // ForceStateTransition executes the necessary interaction between the two

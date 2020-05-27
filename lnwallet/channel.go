@@ -35,8 +35,6 @@ import (
 
 const scriptVersion uint16 = 0
 
-var zeroHash chainhash.Hash
-
 // disableFeeFloorCheck is used in certain tests to disable the fee floor
 // check. This is required due to some tests being ported from Bitcoin that has
 // a lower fee floor which would prevent the channel from correctly advancing
