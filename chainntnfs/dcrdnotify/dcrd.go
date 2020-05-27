@@ -69,7 +69,7 @@ func (cca *chainConnAdaptor) GetRawTransactionVerbose(hash *chainhash.Hash) (*js
 type DcrdNotifier struct {
 	epochClientCounter uint64 // To be used atomically.
 
-	started int32 // To be used atomically.
+	start   sync.Once
 	stopped int32 // To be used atomically.
 
 	chainConn   *rpcclient.Client
@@ -149,11 +149,14 @@ func New(config *rpcclient.ConnConfig, chainParams *chaincfg.Params,
 // Start connects to the running dcrd node over websockets, registers for block
 // notifications, and finally launches all related helper goroutines.
 func (n *DcrdNotifier) Start() error {
-	// Already started?
-	if atomic.AddInt32(&n.started, 1) != 1 {
-		return nil
-	}
+	var startErr error
+	n.start.Do(func() {
+		startErr = n.startNotifier()
+	})
+	return startErr
+}
 
+func (n *DcrdNotifier) startNotifier() error {
 	chainntnfs.Log.Infof("Starting dcrd notifier")
 
 	n.chainUpdates.Start()

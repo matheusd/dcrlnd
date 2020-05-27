@@ -64,7 +64,7 @@ func (c *chainConn) GetBlockHeader(hash *chainhash.Hash) (*wire.BlockHeader, err
 type ChainscanNotifier struct {
 	epochClientCounter uint64 // To be used atomically.
 
-	started int32 // To be used atomically.
+	start   sync.Once
 	stopped int32 // To be used atomically.
 
 	ctx       context.Context
@@ -169,11 +169,14 @@ func runAndLogOnError(ctx context.Context, f func(context.Context) error, name s
 // Start connects to the running dcrd node over websockets, registers for block
 // notifications, and finally launches all related helper goroutines.
 func (n *ChainscanNotifier) Start() error {
-	// Already started?
-	if atomic.AddInt32(&n.started, 1) != 1 {
-		return nil
-	}
+	var startErr error
+	n.start.Do(func() {
+		startErr = n.startNotifier()
+	})
+	return startErr
+}
 
+func (n *ChainscanNotifier) startNotifier() error {
 	chainntnfs.Log.Infof("Starting chainscan notifier")
 
 	runAndLogOnError(n.ctx, n.chainConn.c.Run, "chainConn")
