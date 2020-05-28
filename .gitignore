@@ -7,6 +7,7 @@
 # Folders
 _obj
 _test
+lnrpc/tools/bin
 
 # Release base dir
 releases/
