@@ -350,16 +350,18 @@ type htlcDesc struct {
 	resolutionTxHex string
 }
 
-// testCases encode the raw test vectors specified in Appendix C of BOLT 03.
-//
-// TODO(decred) The stored hex txs need to be reviewed and documented
-// somewhere.
-var testCases = []struct {
+type testCase struct {
 	commitment              channeldb.ChannelCommitment
 	htlcDescs               []htlcDesc
 	expectedCommitmentTxHex string
 	remoteSigHex            string
-}{
+}
+
+// testCases encode the raw test vectors specified in Appendix C of BOLT 03.
+//
+// TODO(decred) The stored hex txs need to be reviewed and documented
+// somewhere.
+var testCases = []testCase{
 	{ // 0
 		commitment: channeldb.ChannelCommitment{
 			CommitHeight:  42,
