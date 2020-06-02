@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainntnfs/dcrdnotify"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/internal/testutils"
 )
 
 func testSingleConfirmationNotification(miner *rpctest.Harness,
@@ -1076,12 +1077,11 @@ func testReorgConf(miner *rpctest.Harness,
 	notifier chainntnfs.TestChainNotifier, scriptDispatch bool, t *testing.T) {
 
 	// Set up a new miner that we can use to cause a reorg.
-	miner2, err := rpctest.New(chainntnfs.NetParams, nil, []string{"--txindex"})
+	miner2, err := testutils.NewSetupRPCTest(
+		5, chainntnfs.NetParams, nil, []string{"--txindex"}, false, 0,
+	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
-	}
-	if err := miner2.SetUp(false, 0); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer miner2.TearDown()
 
@@ -1256,12 +1256,11 @@ func testReorgSpend(miner *rpctest.Harness,
 	}
 
 	// Set up a new miner that we can use to cause a reorg.
-	miner2, err := rpctest.New(chainntnfs.NetParams, nil, []string{"--txindex"})
+	miner2, err := testutils.NewSetupRPCTest(
+		5, chainntnfs.NetParams, nil, []string{"--txindex"}, false, 0,
+	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
-	}
-	if err := miner2.SetUp(false, 0); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer miner2.TearDown()
 
@@ -1594,12 +1593,11 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness,
 	var wg sync.WaitGroup
 
 	// Set up a new miner that we can use to cause a reorg.
-	miner2, err := rpctest.New(chainntnfs.NetParams, nil, []string{"--txindex"})
+	miner2, err := testutils.NewSetupRPCTest(
+		5, chainntnfs.NetParams, nil, []string{"--txindex"}, false, 0,
+	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
-	}
-	if err := miner2.SetUp(false, 0); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer miner2.TearDown()
 

@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrd/txscript/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/internal/testutils"
 )
 
 var (
@@ -537,16 +538,13 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 
 	// Create a node that has a shorter chain than the main chain, so we
 	// can trigger a reorg.
-	reorgNode, err := rpctest.New(netParams, nil, []string{"--txindex"})
+	reorgNode, err := testutils.NewSetupRPCTest(
+		5, netParams, nil, []string{"--txindex"}, true, 5,
+	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
 	defer reorgNode.TearDown()
-
-	// This node's chain will be maturity+5 blocks.
-	if err := reorgNode.SetUp(true, 5); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
-	}
 
 	// Init a chain view that has this node as its block source.
 	cleanUpFunc, reorgView, err := chainViewInit(reorgNode.RPCConfig())
@@ -782,14 +780,13 @@ func TestFilteredChainView(t *testing.T) {
 	// dedicated miner to generate blocks, cause re-orgs, etc. We'll set up
 	// this node with a chain length of 125, so we have plenty of DCR to
 	// play around with.
-	miner, err := rpctest.New(netParams, nil, []string{"--txindex"})
+	miner, err := testutils.NewSetupRPCTest(
+		5, netParams, nil, []string{"--txindex"}, true, 25,
+	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
 	}
 	defer miner.TearDown()
-	if err := miner.SetUp(true, 25); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
-	}
 
 	for _, chainViewImpl := range interfaceImpls {
 		t.Logf("Testing '%v' implementation of FilteredChainView",

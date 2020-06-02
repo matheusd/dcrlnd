@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/rpcclient/v5"
 	"github.com/decred/dcrd/rpctest"
+	"github.com/decred/dcrlnd/internal/testutils"
 )
 
 // logDir is the name of the temporary log directory.
@@ -114,13 +115,11 @@ func NewBackend(miner *rpctest.Harness) (*DcrdBackendConfig, func(), error) {
 		"--logdir=" + logDir,
 	}
 	netParams := chaincfg.SimNetParams()
-	chainBackend, err := rpctest.New(netParams, nil, args)
+	chainBackend, err := testutils.NewSetupRPCTest(
+		5, netParams, nil, args, false, 0,
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create dcrd node: %v", err)
-	}
-
-	if err := chainBackend.SetUp(false, 0); err != nil {
-		return nil, nil, fmt.Errorf("unable to set up dcrd backend: %v", err)
 	}
 
 	bd := &DcrdBackendConfig{
