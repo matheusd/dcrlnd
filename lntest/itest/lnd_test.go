@@ -15970,6 +15970,10 @@ var testsCases = []*testCase{
 		name: "send multi path payment",
 		test: testSendMultiPathPayment,
 	},
+	{
+		name: "REST API",
+		test: testRestApi,
+	},
 }
 
 // TestLightningNetworkDaemon performs a series of integration tests amongst a
