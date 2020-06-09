@@ -1109,3 +1109,10 @@ func (b *DcrWallet) LeaseOutput(lnwallet.LockID, wire.OutPoint) (time.Time, erro
 func (b *DcrWallet) ReleaseOutput(lnwallet.LockID, wire.OutPoint) error {
 	return fmt.Errorf("unimplemented")
 }
+
+// GetRecoveryInfo returns the current status of the recovery of the wallet.
+//
+// This is a part of the WalletController interface.
+func (b *DcrWallet) GetRecoveryInfo() (bool, float64, error) {
+	return false, 0, fmt.Errorf("unimplemented")
+}

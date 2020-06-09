@@ -33,6 +33,7 @@ import (
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/stretchr/testify/require"
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -368,6 +369,52 @@ func createTestWallet(cdb *channeldb.DB, miningNode *rpctest.Harness,
 	}
 
 	return wallet, nil
+}
+
+func testGetRecoveryInfo(miner *rpctest.Harness, // nolint: unused
+	vw *rpctest.VotingWallet, alice, bob *lnwallet.LightningWallet,
+	t *testing.T) {
+
+	// alice's wallet is in recovery mode
+	expectedRecoveryMode := true
+	expectedProgress := float64(1)
+
+	isRecoveryMode, progress, err := alice.GetRecoveryInfo()
+	require.NoError(t, err, "unable to get alice's recovery info")
+
+	require.Equal(t,
+		expectedRecoveryMode, isRecoveryMode, "recovery mode incorrect",
+	)
+	require.Equal(t, expectedProgress, progress, "progress incorrect")
+
+	// Generate 5 blocks and check the recovery process again.
+	const numBlocksMined = 5
+	_, err = vw.GenerateBlocks(context.TODO(), numBlocksMined)
+	require.NoError(t, err, "unable to mine blocks")
+
+	// Check the recovery process. Once synced, the progress should be 1.
+	err = waitForWalletSync(miner, alice)
+	require.NoError(t, err, "Couldn't sync Alice's wallet")
+
+	isRecoveryMode, progress, err = alice.GetRecoveryInfo()
+	require.NoError(t, err, "unable to get alice's recovery info")
+
+	require.Equal(t,
+		expectedRecoveryMode, isRecoveryMode, "recovery mode incorrect",
+	)
+	require.Equal(t, expectedProgress, progress, "progress incorrect")
+
+	// bob's wallet is not in recovery mode
+	expectedRecoveryMode = false
+	expectedProgress = float64(0)
+
+	isRecoveryMode, progress, err = bob.GetRecoveryInfo()
+	require.NoError(t, err, "unable to get bob's recovery info")
+
+	require.Equal(t,
+		expectedRecoveryMode, isRecoveryMode, "recovery mode incorrect",
+	)
+	require.Equal(t, expectedProgress, progress, "progress incorrect")
 }
 
 func testDualFundingReservationWorkflow(miner *rpctest.Harness,
@@ -2719,8 +2766,9 @@ var walletTests = []walletTestCase{
 		name: "last unused addr",
 		test: testLastUnusedAddr,
 	},
-	// TODO(decred) re-enable this tests after implementing.
-	//{ name: "create simple tx", test: testCreateSimpleTx, },
+	// TODO(decred) re-enable these tests after implementing.
+	// { name: "create simple tx", test: testCreateSimpleTx, },
+	// { name: "test get recovery info", test: testGetRecoveryInfo, },
 }
 
 func clearWalletStates(a, b *lnwallet.LightningWallet) error {

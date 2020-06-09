@@ -313,6 +313,11 @@ type WalletController interface {
 	// tip of the main chain as viewed by the internal wallet controller.
 	BestBlock() (int64, chainhash.Hash, int64, error)
 
+	// GetRecoveryInfo returns a boolean indicating whether the wallet is
+	// started in recovery mode. It also returns a float64 indicating the
+	// recovery progress made so far.
+	GetRecoveryInfo() (bool, float64, error)
+
 	// Start initializes the wallet, making any necessary connections,
 	// starting up required goroutines etc.
 	Start() error

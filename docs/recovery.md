@@ -39,7 +39,7 @@ result, it cannot be used in isolation.
 ### 24-word Cipher Seeds
 
 When a new `lnd` node is created, it's given a 24-word seed phrase, called an
-[`cipher seed`](https://github.com/lightningnetwork/lnd/tree/master/aezeed).
+[`cipher seed`](https://github.com/decred/dcrlnd/tree/master/aezeed).
 The two seed formats look similar, but the only commonality they share are
 using the same default English dictionary. A valid seed phrase obtained over
 the CLI `lncli create` command looks something like: 
@@ -164,7 +164,15 @@ That final line indicates the rescan is complete! If not all funds have
 appeared, then the user may need to _repeat_ the process with a higher recovery
 window. Depending on how old the wallet is (the cipher seed stores the wallet's
 birthday!) and how many addresses were used, the rescan may take anywhere from
-a few minutes to a few hours.
+a few minutes to a few hours. To track the recovery progress, one can use the
+command `lncli getrecoveryinfo`. When finished, the following is returned,
+```
+{
+    "recovery_mode": true,
+    "recovery_finished": true,
+    "progress": 1
+}
+```
 
 If the rescan wasn't able to complete fully (`lnd` was shutdown for example),
 then from `lncli unlock`, it's possible to _restart_ the rescan from where it
@@ -344,7 +352,7 @@ Once the process has been initiated, `lnd` will proceed to:
      and nothing more. As a result, they're marked as "recovered" channels in
      the database, and we'll disallow trying to use them for any other process.
   2. Once the channel shell is recovered, the
-     [chanbackup](https://github.com/lightningnetwork/lnd/tree/master/chanbackup)
+     [chanbackup](https://github.com/decred/dcrlnd/tree/master/chanbackup)
      package will attempt to insert a LinkNode that contains all prior
      addresses that we were able to reach the peer at. During the process,
      we'll also insert the edge for that channel (only in the outgoing

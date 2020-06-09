@@ -55,6 +55,8 @@ description):
      * Lists all available connected peers.
   * GetInfo
      * Returns basic data concerning the daemon.
+  * GetRecoveryInfo
+     * Returns information about recovery process.
   * PendingChannels
      * List the number of pending (not fully confirmed) channels.
   * ListChannels
@@ -141,7 +143,7 @@ description):
 ## Installation and Updating
 
 ```bash
-$ go get -u github.com/lightningnetwork/lnd/lnrpc
+$ go get -u github.com/decred/dcrlnd/lnrpc
 ```
 
 ## Generate protobuf definitions
@@ -180,7 +182,7 @@ $ git reset --hard v1.8.6
 $ go install ./protoc-gen-grpc-gateway ./protoc-gen-swagger
 ```
 
-5. Run [`gen_protos.sh`](https://github.com/lightningnetwork/lnd/blob/master/lnrpc/gen_protos.sh)
+5. Run [`gen_protos.sh`](https://github.com/decred/dcrlnd/blob/master/lnrpc/gen_protos.sh)
 or `make rpc` to generate new protobuf definitions.
 
 ## Format .proto files
