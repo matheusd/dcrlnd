@@ -15,6 +15,7 @@ import (
 	mig "github.com/decred/dcrlnd/channeldb/migration"
 	"github.com/decred/dcrlnd/channeldb/migration12"
 	"github.com/decred/dcrlnd/channeldb/migration13"
+	"github.com/decred/dcrlnd/channeldb/migration16"
 	"github.com/decred/dcrlnd/channeldb/migration_01_to_11"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/lnwire"
@@ -144,6 +145,19 @@ var (
 			number:    14,
 			migration: mig.CreateTLB(payAddrIndexBucket),
 		},
+		{
+			// Initialize payment index bucket which will be used
+			// to index payments by sequence number. This index will
+			// be used to allow more efficient ListPayments queries.
+			number:    15,
+			migration: mig.CreateTLB(paymentsIndexBucket),
+		},
+		{
+			// Add our existing payments to the index bucket created
+			// in migration 15.
+			number:    16,
+			migration: migration16.MigrateSequenceIndex,
+		},
 	}
 
 	// Big endian is the preferred byte order, due to cursor scans over
@@ -257,6 +271,7 @@ var topLevelBuckets = [][]byte{
 	fwdPackagesKey,
 	invoiceBucket,
 	payAddrIndexBucket,
+	paymentsIndexBucket,
 	nodeInfoBucket,
 	nodeBucket,
 	edgeBucket,
