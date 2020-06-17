@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
+	"github.com/decred/dcrlnd/lnwallet/chancloser"
 	"github.com/decred/dcrlnd/lnwire"
 )
 
@@ -642,7 +643,7 @@ func TestChooseDeliveryScript(t *testing.T) {
 			userScript:     script1,
 			shutdownScript: script2,
 			expectedScript: nil,
-			expectedError:  ErrUpfrontShutdownScriptMismatch,
+			expectedError:  chancloser.ErrUpfrontShutdownScriptMismatch,
 		},
 		{
 			name:           "Only upfront script",
@@ -733,7 +734,7 @@ func TestCustomShutdownScript(t *testing.T) {
 			name:            "Shutdown set, user script different",
 			update:          setShutdown,
 			userCloseScript: []byte("different addr"),
-			expectedError:   ErrUpfrontShutdownScriptMismatch,
+			expectedError:   chancloser.ErrUpfrontShutdownScriptMismatch,
 		},
 	}
 

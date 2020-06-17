@@ -1,4 +1,4 @@
-package dcrlnd
+package chancloser
 
 import (
 	"crypto/rand"

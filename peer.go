@@ -27,6 +27,7 @@ import (
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lnpeer"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chancloser"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/pool"
 	"github.com/decred/dcrlnd/queue"
@@ -190,7 +191,7 @@ type peer struct {
 	// messages are directed to one of these active state machines. Once
 	// the channel has been closed, the state machine will be delete from
 	// the map.
-	activeChanCloses map[lnwire.ChannelID]*channelCloser
+	activeChanCloses map[lnwire.ChannelID]*chancloser.ChanCloser
 
 	// localCloseChanReqs is a channel in which any local requests to close
 	// a particular channel are sent over.
@@ -302,7 +303,7 @@ func newPeer(cfg *Config, conn net.Conn, connReq *connmgr.ConnReq, server *serve
 
 		activeMsgStreams: make(map[lnwire.ChannelID]*msgStream),
 
-		activeChanCloses:   make(map[lnwire.ChannelID]*channelCloser),
+		activeChanCloses:   make(map[lnwire.ChannelID]*chancloser.ChanCloser),
 		localCloseChanReqs: make(chan *htlcswitch.ChanClose),
 		linkFailures:       make(chan linkFailureReport),
 		chanCloseMsgs:      make(chan *closeMsg),
@@ -2209,7 +2210,9 @@ func (p *peer) reenableActiveChannels() {
 // for the target channel ID. If the channel isn't active an error is returned.
 // Otherwise, either an existing state machine will be returned, or a new one
 // will be created.
-func (p *peer) fetchActiveChanCloser(chanID lnwire.ChannelID) (*channelCloser, error) {
+func (p *peer) fetchActiveChanCloser(chanID lnwire.ChannelID) (
+	*chancloser.ChanCloser, error) {
+
 	// First, we'll ensure that we actually know of the target channel. If
 	// not, we'll ignore this message.
 	p.activeChanMtx.RLock()
@@ -2265,8 +2268,8 @@ func (p *peer) fetchActiveChanCloser(chanID lnwire.ChannelID) (*channelCloser, e
 			return nil, fmt.Errorf("cannot obtain best block")
 		}
 
-		chanCloser = NewChanCloser(
-			ChanCloseCfg{
+		chanCloser = chancloser.NewChanCloser(
+			chancloser.ChanCloseCfg{
 				Channel:           channel,
 				UnregisterChannel: p.server.htlcSwitch.RemoveLink,
 				BroadcastTx:       p.server.cc.wallet.PublishTransaction,
@@ -2311,7 +2314,7 @@ func chooseDeliveryScript(upfront,
 	// the upfront shutdown script (because closing out to a different script
 	// would violate upfront shutdown).
 	if !bytes.Equal(upfront, requested) {
-		return nil, ErrUpfrontShutdownScriptMismatch
+		return nil, chancloser.ErrUpfrontShutdownScriptMismatch
 	}
 
 	// The user requested script matches the upfront shutdown script, so we
@@ -2381,8 +2384,8 @@ func (p *peer) handleLocalCloseReq(req *htlcswitch.ChanClose) {
 			return
 		}
 
-		chanCloser := NewChanCloser(
-			ChanCloseCfg{
+		chanCloser := chancloser.NewChanCloser(
+			chancloser.ChanCloseCfg{
 				Channel:           channel,
 				UnregisterChannel: p.server.htlcSwitch.RemoveLink,
 				BroadcastTx:       p.server.cc.wallet.PublishTransaction,
@@ -2497,7 +2500,7 @@ func (p *peer) handleLinkFailure(failure linkFailureReport) {
 // machine should be passed in. Once the transaction has been sufficiently
 // confirmed, the channel will be marked as fully closed within the database,
 // and any clients will be notified of updates to the closing state.
-func (p *peer) finalizeChanClosure(chanCloser *channelCloser) {
+func (p *peer) finalizeChanClosure(chanCloser *chancloser.ChanCloser) {
 	closeReq := chanCloser.CloseRequest()
 
 	// First, we'll clear all indexes related to the channel in question.

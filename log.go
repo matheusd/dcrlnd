@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrlnd/lnrpc/verrpc"
 	"github.com/decred/dcrlnd/lnrpc/walletrpc"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwallet/chancloser"
 	"github.com/decred/dcrlnd/lnwallet/chanfunding"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
@@ -124,6 +125,7 @@ func SetupLoggers(root *build.RotatingLogWriter) {
 	AddSubLogger(root, "WTCL", wtclient.UseLogger)
 	AddSubLogger(root, "PRNF", peernotifier.UseLogger)
 	AddSubLogger(root, "CHFD", chanfunding.UseLogger)
+	AddSubLogger(root, "CHCL", chancloser.UseLogger)
 
 	AddSubLogger(root, routing.Subsystem, routing.UseLogger, localchans.UseLogger)
 	AddSubLogger(root, routerrpc.Subsystem, routerrpc.UseLogger)

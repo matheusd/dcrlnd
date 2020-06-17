@@ -25,6 +25,7 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
+	"github.com/decred/dcrlnd/lnwallet/chancloser"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/netann"
 	"github.com/decred/dcrlnd/shachain"
@@ -455,7 +456,7 @@ func createTestPeer(notifier chainntnfs.ChainNotifier, publTx chan *wire.MsgTx,
 		activeChannels: make(map[lnwire.ChannelID]*lnwallet.LightningChannel),
 		newChannels:    make(chan *newChannelMsg, 1),
 
-		activeChanCloses:   make(map[lnwire.ChannelID]*channelCloser),
+		activeChanCloses:   make(map[lnwire.ChannelID]*chancloser.ChanCloser),
 		localCloseChanReqs: make(chan *htlcswitch.ChanClose),
 		chanCloseMsgs:      make(chan *closeMsg),
 
