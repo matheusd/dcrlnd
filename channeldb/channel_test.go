@@ -2,10 +2,8 @@ package channeldb
 
 import (
 	"bytes"
-	"io/ioutil"
 	"math/rand"
 	"net"
-	"os"
 	"reflect"
 	"runtime"
 	"testing"
@@ -90,40 +88,6 @@ var (
 		Port: 18555,
 	}
 )
-
-// makeTestDB creates a new instance of the ChannelDB for testing purposes. A
-// callback which cleans up the created temporary directories is also returned
-// and intended to be executed after the test completes.
-func makeTestDB() (*DB, func(), error) {
-	// First, create a temporary directory to be used for the duration of
-	// this test.
-	tempDirName, err := ioutil.TempDir("", "channeldb")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Next, create channeldb for the first time.
-	backend, backendCleanup, err := kvdb.GetTestBackend(tempDirName, "cdb")
-	if err != nil {
-		backendCleanup()
-		return nil, nil, err
-	}
-
-	cdb, err := CreateWithBackend(backend, OptionClock(testClock))
-	if err != nil {
-		backendCleanup()
-		os.RemoveAll(tempDirName)
-		return nil, nil, err
-	}
-
-	cleanUp := func() {
-		cdb.Close()
-		backendCleanup()
-		os.RemoveAll(tempDirName)
-	}
-
-	return cdb, cleanUp, nil
-}
 
 // testChannelParams is a struct which details the specifics of how a channel
 // should be created.
@@ -408,7 +372,7 @@ func createTestChannelState(t *testing.T, cdb *DB) *OpenChannel {
 func TestOpenChannelPutGetDelete(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -558,7 +522,7 @@ func TestOptionalShutdown(t *testing.T) {
 		test := test
 
 		t.Run(test.name, func(t *testing.T) {
-			cdb, cleanUp, err := makeTestDB()
+			cdb, cleanUp, err := MakeTestDB()
 			if err != nil {
 				t.Fatalf("unable to make test database: %v", err)
 			}
@@ -615,7 +579,7 @@ func assertCommitmentEqual(t *testing.T, a, b *ChannelCommitment) {
 func TestChannelStateTransition(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -920,7 +884,7 @@ func TestChannelStateTransition(t *testing.T) {
 func TestFetchPendingChannels(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -999,7 +963,7 @@ func TestFetchPendingChannels(t *testing.T) {
 func TestFetchClosedChannels(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -1090,7 +1054,7 @@ func TestFetchWaitingCloseChannels(t *testing.T) {
 	// We'll start by creating two channels within our test database. One of
 	// them will have their funding transaction confirmed on-chain, while
 	// the other one will remain unconfirmed.
-	db, cleanUp, err := makeTestDB()
+	db, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -1206,7 +1170,7 @@ func TestFetchWaitingCloseChannels(t *testing.T) {
 func TestRefreshShortChanID(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -1354,7 +1318,7 @@ func TestCloseInitiator(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			cdb, cleanUp, err := makeTestDB()
+			cdb, cleanUp, err := MakeTestDB()
 			if err != nil {
 				t.Fatalf("unable to make test database: %v",
 					err)
@@ -1399,7 +1363,7 @@ func TestCloseInitiator(t *testing.T) {
 // TestCloseChannelStatus tests setting of a channel status on the historical
 // channel on channel close.
 func TestCloseChannelStatus(t *testing.T) {
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v",
 			err)
@@ -1545,7 +1509,7 @@ func TestBalanceAtHeight(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			cdb, cleanUp, err := makeTestDB()
+			cdb, cleanUp, err := MakeTestDB()
 			if err != nil {
 				t.Fatalf("unable to make test database: %v",
 					err)

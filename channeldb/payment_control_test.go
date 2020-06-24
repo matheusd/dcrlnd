@@ -55,7 +55,7 @@ func genInfo() (*PaymentCreationInfo, *HTLCAttemptInfo,
 func TestPaymentControlSwitchFail(t *testing.T) {
 	t.Parallel()
 
-	db, cleanup, err := makeTestDB()
+	db, cleanup, err := MakeTestDB()
 	defer cleanup()
 	if err != nil {
 		t.Fatalf("unable to init db: %v", err)
@@ -202,7 +202,7 @@ func TestPaymentControlSwitchFail(t *testing.T) {
 func TestPaymentControlSwitchDoubleSend(t *testing.T) {
 	t.Parallel()
 
-	db, cleanup, err := makeTestDB()
+	db, cleanup, err := MakeTestDB()
 	defer cleanup()
 
 	if err != nil {
@@ -285,7 +285,7 @@ func TestPaymentControlSwitchDoubleSend(t *testing.T) {
 func TestPaymentControlSuccessesWithoutInFlight(t *testing.T) {
 	t.Parallel()
 
-	db, cleanup, err := makeTestDB()
+	db, cleanup, err := MakeTestDB()
 	defer cleanup()
 
 	if err != nil {
@@ -318,7 +318,7 @@ func TestPaymentControlSuccessesWithoutInFlight(t *testing.T) {
 func TestPaymentControlFailsWithoutInFlight(t *testing.T) {
 	t.Parallel()
 
-	db, cleanup, err := makeTestDB()
+	db, cleanup, err := MakeTestDB()
 	defer cleanup()
 
 	if err != nil {
@@ -346,7 +346,7 @@ func TestPaymentControlFailsWithoutInFlight(t *testing.T) {
 func TestPaymentControlDeleteNonInFligt(t *testing.T) {
 	t.Parallel()
 
-	db, cleanup, err := makeTestDB()
+	db, cleanup, err := MakeTestDB()
 	defer cleanup()
 
 	if err != nil {
@@ -529,7 +529,7 @@ func TestPaymentControlMultiShard(t *testing.T) {
 	}
 
 	runSubTest := func(t *testing.T, test testCase) {
-		db, cleanup, err := makeTestDB()
+		db, cleanup, err := MakeTestDB()
 		defer cleanup()
 
 		if err != nil {
@@ -779,7 +779,7 @@ func TestPaymentControlMultiShard(t *testing.T) {
 func TestPaymentControlMPPRecordValidation(t *testing.T) {
 	t.Parallel()
 
-	db, cleanup, err := makeTestDB()
+	db, cleanup, err := MakeTestDB()
 	defer cleanup()
 
 	if err != nil {

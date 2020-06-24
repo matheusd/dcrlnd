@@ -114,7 +114,7 @@ func TestFetchClosedChannelForID(t *testing.T) {
 
 	const numChans = 101
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestFetchClosedChannelForID(t *testing.T) {
 func TestAddrsForNode(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestAddrsForNode(t *testing.T) {
 func TestFetchChannel(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -348,7 +348,7 @@ func genRandomChannelShell() (*ChannelShell, error) {
 func TestRestoreChannelShells(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -442,7 +442,7 @@ func TestRestoreChannelShells(t *testing.T) {
 func TestAbandonChannel(t *testing.T) {
 	t.Parallel()
 
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}
@@ -615,7 +615,7 @@ func TestFetchChannels(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			cdb, cleanUp, err := makeTestDB()
+			cdb, cleanUp, err := MakeTestDB()
 			if err != nil {
 				t.Fatalf("unable to make test "+
 					"database: %v", err)
@@ -684,7 +684,7 @@ func TestFetchChannels(t *testing.T) {
 
 // TestFetchHistoricalChannel tests lookup of historical channels.
 func TestFetchHistoricalChannel(t *testing.T) {
-	cdb, cleanUp, err := makeTestDB()
+	cdb, cleanUp, err := MakeTestDB()
 	if err != nil {
 		t.Fatalf("unable to make test database: %v", err)
 	}

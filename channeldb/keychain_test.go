@@ -11,7 +11,7 @@ import (
 func TestSaneNextKeyFamilyIndex(t *testing.T) {
 	t.Parallel()
 
-	db, cleanUp, err := makeTestDB()
+	db, cleanUp, err := MakeTestDB()
 	defer cleanUp()
 	if err != nil {
 		t.Fatalf("unable to make test db: %v", err)
@@ -88,7 +88,7 @@ func TestSaneNextKeyFamilyIndex(t *testing.T) {
 
 // TestAtomicAccountID tests if the comparison of account IDs work as expected.
 func TestAtomicAccountID(t *testing.T) {
-	db, cleanUp, err := makeTestDB()
+	db, cleanUp, err := MakeTestDB()
 	defer cleanUp()
 	if err != nil {
 		t.Fatalf("unable to make test db: %v", err)
