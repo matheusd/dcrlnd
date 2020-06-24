@@ -8,6 +8,7 @@ import (
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/decred/dcrlnd/record"
 )
 
 // InvoiceDatabase is an interface which represents the persistent subsystem
@@ -227,6 +228,10 @@ type InterceptedPacket struct {
 
 	// IncomingAmount is the amount of the accepted htlc.
 	IncomingAmount lnwire.MilliAtom
+
+	// CustomRecords are user-defined records in the custom type range that
+	// were included in the payload.
+	CustomRecords record.CustomSet
 }
 
 // InterceptedForward is passed to the ForwardInterceptor for every forwarded
