@@ -157,9 +157,9 @@ func (r *forwardInterceptor) holdAndForwardToClient(
 			ChanId: inKey.ChanID.ToUint64(),
 			HtlcId: inKey.HtlcID,
 		},
-		HtlcPaymentHash: htlc.PaymentHash[:],
-		AmountMAtoms:    uint64(htlc.Amount),
-		Expiry:          htlc.Expiry,
+		HtlcPaymentHash:      htlc.PaymentHash[:],
+		OutgoingAmountMAtoms: uint64(htlc.Amount),
+		OutgoingExpiry:       htlc.Expiry,
 	}
 
 	return r.stream.Send(interceptionRequest)

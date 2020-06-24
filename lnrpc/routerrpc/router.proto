@@ -612,11 +612,11 @@ message ForwardHtlcInterceptRequest {
     */
     bytes htlc_payment_hash = 2;
 
-    /// The htlc amount.
-    uint64 amount_m_atoms = 3;
+    // The outgoing htlc amount.
+    uint64 outgoing_amount_m_atoms = 3;
 
-    /// The htlc expiry.
-    uint32 expiry = 4;
+    // The outgoing htlc expiry.
+    uint32 outgoing_expiry = 4;
 }
 
 /**
