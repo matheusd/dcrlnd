@@ -1008,6 +1008,9 @@ func createTestChannelsForVectors(tc *testContext, chanType channeldb.ChannelTyp
 	// Return a clean up function that stops goroutines and removes the test
 	// databases.
 	cleanUpFunc := func() {
+		dbLocal.Close()
+		dbRemote.Close()
+
 		os.RemoveAll(localPath)
 		os.RemoveAll(remotePath)
 
