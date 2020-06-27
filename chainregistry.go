@@ -194,8 +194,14 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 		rpcConfig *rpcclient.ConnConfig
 	)
 
+	heightHintCacheConfig := chainntnfs.Config{
+		HeightHintCacheQueryDisable: cfg.HeightHintCacheQueryDisable,
+	}
+	if cfg.HeightHintCacheQueryDisable {
+		ltndLog.Infof("Height Hint Cache Queries disabled")
+	}
 	// Initialize the height hint cache within the chain directory.
-	hintCache, err := chainntnfs.NewHeightHintCache(chanDB)
+	hintCache, err := chainntnfs.NewHeightHintCache(heightHintCacheConfig, chanDB)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize height hint "+
 			"cache: %v", err)
