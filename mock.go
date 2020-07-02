@@ -264,7 +264,7 @@ func (*mockWalletController) FetchInputInfo(
 	prevOut *wire.OutPoint) (*lnwallet.Utxo, error) {
 	utxo := &lnwallet.Utxo{
 		AddressType:   lnwallet.PubKeyHash,
-		Value:         10 * dcrutil.AtomsPerCoin,
+		Value:         15 * dcrutil.AtomsPerCoin,
 		PkScript:      []byte("dummy"),
 		Confirmations: 1,
 		OutPoint:      *prevOut,
@@ -317,7 +317,7 @@ func (m *mockWalletController) ListUnspentWitness(minconfirms,
 	// Otherwise create one to return.
 	utxo := &lnwallet.Utxo{
 		AddressType: lnwallet.PubKeyHash,
-		Value:       dcrutil.Amount(10 * dcrutil.AtomsPerCoin),
+		Value:       dcrutil.Amount(15 * dcrutil.AtomsPerCoin),
 		PkScript:    coinPkScript,
 		OutPoint: wire.OutPoint{
 			Hash:  chainhash.Hash{},
