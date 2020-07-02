@@ -1474,7 +1474,13 @@ func (s *server) Stop() error {
 		// Disconnect from each active peers to ensure that
 		// peerTerminationWatchers signal completion to each peer.
 		for _, peer := range s.Peers() {
-			s.DisconnectPeer(peer.addr.IdentityKey)
+			err := s.DisconnectPeer(peer.IdentityKey())
+			if err != nil {
+				srvrLog.Warnf("could not disconnect peer: %v"+
+					"received error: %v", peer.IdentityKey(),
+					err,
+				)
+			}
 		}
 
 		// Now that all connections have been torn down, stop the tower
@@ -1831,7 +1837,7 @@ func (s *server) peerBootstrapper(numTargetPeers uint32,
 			s.mu.RLock()
 			ignoreList := make(map[autopilot.NodeID]struct{})
 			for _, peer := range s.peersByPub {
-				nID := autopilot.NewNodeID(peer.addr.IdentityKey)
+				nID := autopilot.NewNodeID(peer.IdentityKey())
 				ignoreList[nID] = struct{}{}
 			}
 			s.mu.RUnlock()
@@ -2347,9 +2353,9 @@ func (s *server) BroadcastMessage(skips map[route.Vertex]struct{},
 	peers := make([]*peer, 0, len(s.peersByPub))
 	for _, sPeer := range s.peersByPub {
 		if skips != nil {
-			if _, ok := skips[sPeer.pubKeyBytes]; ok {
+			if _, ok := skips[sPeer.PubKey()]; ok {
 				srvrLog.Tracef("Skipping %x in broadcast",
-					sPeer.pubKeyBytes[:])
+					sPeer.PubKey())
 				continue
 			}
 		}
@@ -2933,7 +2939,7 @@ func (s *server) peerInitializer(p *peer) {
 	// was successful, and to begin watching the peer's wait group.
 	close(ready)
 
-	pubStr := string(p.addr.IdentityKey.SerializeCompressed())
+	pubStr := string(p.IdentityKey().SerializeCompressed())
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -2980,7 +2986,7 @@ func (s *server) peerTerminationWatcher(p *peer, ready chan struct{}) {
 	// available for use.
 	s.fundingMgr.CancelPeerReservations(p.PubKey())
 
-	pubKey := p.addr.IdentityKey
+	pubKey := p.IdentityKey()
 
 	// We'll also inform the gossiper that this peer is no longer active,
 	// so we don't need to maintain sync state for it any longer.
@@ -2991,13 +2997,13 @@ func (s *server) peerTerminationWatcher(p *peer, ready chan struct{}) {
 	// with this interface should be closed.
 	//
 	// TODO(roasbeef): instead add a PurgeInterfaceLinks function?
-	links, err := p.server.htlcSwitch.GetLinksByInterface(p.pubKeyBytes)
+	links, err := s.htlcSwitch.GetLinksByInterface(p.PubKey())
 	if err != nil && err != htlcswitch.ErrNoLinksFound {
 		srvrLog.Errorf("Unable to get channel links for %v: %v", p, err)
 	}
 
 	for _, link := range links {
-		p.server.htlcSwitch.RemoveLink(link.ChanID())
+		s.htlcSwitch.RemoveLink(link.ChanID())
 	}
 
 	s.mu.Lock()
@@ -3149,7 +3155,8 @@ func (s *server) removePeer(p *peer) {
 		return
 	}
 
-	pubSer := p.addr.IdentityKey.SerializeCompressed()
+	pKey := p.PubKey()
+	pubSer := pKey[:]
 	pubStr := string(pubSer)
 
 	delete(s.peersByPub, pubStr)
