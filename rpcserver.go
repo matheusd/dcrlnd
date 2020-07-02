@@ -55,6 +55,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/monitoring"
+	"github.com/decred/dcrlnd/peer"
 	"github.com/decred/dcrlnd/peernotifier"
 	"github.com/decred/dcrlnd/record"
 	"github.com/decred/dcrlnd/routing"
@@ -2100,17 +2101,17 @@ func (r *rpcServer) CloseChannel(in *lnrpc.CloseChannelRequest,
 		// With the transaction broadcast, we send our first update to
 		// the client.
 		updateChan = make(chan interface{}, 2)
-		updateChan <- &PendingUpdate{
+		updateChan <- &peer.PendingUpdate{
 			Txid: closingTxid[:],
 		}
 
 		errChan = make(chan error, 1)
 		notifier := r.server.cc.chainNotifier
-		go WaitForChanToClose(uint32(bestHeight), notifier, errChan, chanPoint,
+		go peer.WaitForChanToClose(uint32(bestHeight), notifier, errChan, chanPoint,
 			&closingTxid, closingTx.TxOut[0].PkScript, func() {
 				// Respond to the local subsystem which
 				// requested the channel closure.
-				updateChan <- &ChannelCloseUpdate{
+				updateChan <- &peer.ChannelCloseUpdate{
 					ClosingTxid: closingTxid[:],
 					Success:     true,
 				}
@@ -2221,7 +2222,7 @@ out:
 			// then we can break out of our dispatch loop as we no
 			// longer need to process any further updates.
 			switch closeUpdate := closingUpdate.(type) {
-			case *ChannelCloseUpdate:
+			case *peer.ChannelCloseUpdate:
 				h, _ := chainhash.NewHash(closeUpdate.ClosingTxid)
 				rpcsLog.Infof("[closechannel] close completed: "+
 					"txid(%v)", h)
@@ -2239,7 +2240,7 @@ func createRPCCloseUpdate(update interface{}) (
 	*lnrpc.CloseStatusUpdate, error) {
 
 	switch u := update.(type) {
-	case *ChannelCloseUpdate:
+	case *peer.ChannelCloseUpdate:
 		return &lnrpc.CloseStatusUpdate{
 			Update: &lnrpc.CloseStatusUpdate_ChanClose{
 				ChanClose: &lnrpc.ChannelCloseUpdate{
@@ -2247,7 +2248,7 @@ func createRPCCloseUpdate(update interface{}) (
 				},
 			},
 		}, nil
-	case *PendingUpdate:
+	case *peer.PendingUpdate:
 		return &lnrpc.CloseStatusUpdate{
 			Update: &lnrpc.CloseStatusUpdate_ClosePending{
 				ClosePending: &lnrpc.PendingUpdate{
@@ -2565,7 +2566,7 @@ func (r *rpcServer) ListPeers(ctx context.Context,
 			serverPeer.RemoteFeatures(),
 		)
 
-		peer := &lnrpc.Peer{
+		rpcPeer := &lnrpc.Peer{
 			PubKey:    hex.EncodeToString(nodePub[:]),
 			Address:   serverPeer.Conn().RemoteAddr().String(),
 			Inbound:   serverPeer.Inbound(),
@@ -2595,17 +2596,17 @@ func (r *rpcServer) ListPeers(ctx context.Context,
 
 		// Add the relevant peer errors to our response.
 		for _, error := range peerErrors {
-			tsError := error.(*TimestampedError)
+			tsError := error.(*peer.TimestampedError)
 
 			rpcErr := &lnrpc.TimestampedError{
 				Timestamp: uint64(tsError.Timestamp.Unix()),
 				Error:     tsError.Error.Error(),
 			}
 
-			peer.Errors = append(peer.Errors, rpcErr)
+			rpcPeer.Errors = append(rpcPeer.Errors, rpcErr)
 		}
 
-		resp.Peers = append(resp.Peers, peer)
+		resp.Peers = append(resp.Peers, rpcPeer)
 	}
 
 	rpcsLog.Debugf("[listpeers] yielded %v peers", serverPeers)

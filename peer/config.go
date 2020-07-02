@@ -4,6 +4,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/connmgr"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 
@@ -225,4 +226,7 @@ type Config struct {
 
 	// Quit is the server's quit channel. If this is closed, we halt operation.
 	Quit chan struct{}
+
+	// ChainParams is the network this peer is connected to.
+	ChainParams *chaincfg.Params
 }

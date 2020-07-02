@@ -32,6 +32,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet/remotedcrwallet"
 	"github.com/decred/dcrlnd/monitoring"
 	"github.com/decred/dcrlnd/netann"
+	"github.com/decred/dcrlnd/peer"
 	"github.com/decred/dcrlnd/peernotifier"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/routing/localchans"
@@ -79,7 +80,6 @@ var (
 	// function should always be called as soon as possible to finish
 	// setting them up properly with a root logger.
 	ltndLog = addLndPkgLogger("LTND")
-	peerLog = addLndPkgLogger("PEER")
 	rpcsLog = addLndPkgLogger("RPCS")
 	srvrLog = addLndPkgLogger("SRVR")
 	fndgLog = addLndPkgLogger("FNDG")
@@ -125,6 +125,7 @@ func SetupLoggers(root *build.RotatingLogWriter) {
 	AddSubLogger(root, "WTCL", wtclient.UseLogger)
 	AddSubLogger(root, "PRNF", peernotifier.UseLogger)
 	AddSubLogger(root, "CHFD", chanfunding.UseLogger)
+	AddSubLogger(root, "PEER", peer.UseLogger)
 	AddSubLogger(root, "CHCL", chancloser.UseLogger)
 
 	AddSubLogger(root, routing.Subsystem, routing.UseLogger, localchans.UseLogger)
