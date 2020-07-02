@@ -15563,13 +15563,6 @@ func testExternalFundingChanPoint(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("unable to gen pending chan ID: %v", err)
 	}
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	_, currentHeight, err := net.Miner.Node.GetBestBlock(ctxt)
-	if err != nil {
-		t.Fatalf("unable to get current blockheight %v", err)
-	}
-
 	// Now that we have the pending channel ID, Dave (our responder) will
 	// register the intent to receive a new channel funding workflow using
 	// the pending channel ID.
@@ -15578,7 +15571,7 @@ func testExternalFundingChanPoint(net *lntest.NetworkHarness, t *harnessTest) {
 			FundingTxidBytes: txid[:],
 		},
 	}
-	thawHeight := uint32(currentHeight + 10)
+	thawHeight := uint32(10)
 	chanPointShim := &lnrpc.ChanPointShim{
 		Amt:       int64(chanSize),
 		ChanPoint: chanPoint,
