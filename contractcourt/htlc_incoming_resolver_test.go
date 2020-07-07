@@ -14,6 +14,8 @@ import (
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
+	sphinx "github.com/decred/lightning-onion/v3"
 )
 
 const (
@@ -27,6 +29,7 @@ var (
 	testResCircuitKey       = channeldb.CircuitKey{}
 	testOnionBlob           = []byte{4, 5, 6}
 	testAcceptHeight  int32 = 1234
+	testHtlcAmount          = 2300
 )
 
 // TestHtlcIncomingResolverFwdPreimageKnown tests resolution of a forwarded htlc
@@ -35,11 +38,7 @@ func TestHtlcIncomingResolverFwdPreimageKnown(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
-	ctx.registry.notifyResolution = invoices.NewFailResolution(
-		testResCircuitKey, testHtlcExpiry,
-		invoices.ResultInvoiceNotFound,
-	)
+	ctx := newIncomingResolverTestContext(t, false)
 	ctx.witnessBeacon.lookupPreimage[testResHash] = testResPreimage
 	ctx.resolve()
 	ctx.waitForResult(true)
@@ -52,11 +51,7 @@ func TestHtlcIncomingResolverFwdContestedSuccess(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
-	ctx.registry.notifyResolution = invoices.NewFailResolution(
-		testResCircuitKey, testHtlcExpiry,
-		invoices.ResultInvoiceNotFound,
-	)
+	ctx := newIncomingResolverTestContext(t, false)
 	ctx.resolve()
 
 	// Simulate a new block coming in. HTLC is not yet expired.
@@ -72,15 +67,35 @@ func TestHtlcIncomingResolverFwdContestedTimeout(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
-	ctx.registry.notifyResolution = invoices.NewFailResolution(
-		testResCircuitKey, testHtlcExpiry,
-		invoices.ResultInvoiceNotFound,
-	)
+	ctx := newIncomingResolverTestContext(t, false)
+
+	// Replace our checkpoint with one which will push reports into a
+	// channel for us to consume. We replace this function on the resolver
+	// itself because it is created by the test context.
+	reportChan := make(chan *channeldb.ResolverReport)
+	ctx.resolver.Checkpoint = func(_ ContractResolver,
+		reports ...*channeldb.ResolverReport) error {
+
+		// Send all of our reports into the channel.
+		for _, report := range reports {
+			reportChan <- report
+		}
+
+		return nil
+	}
+
 	ctx.resolve()
 
 	// Simulate a new block coming in. HTLC expires.
 	ctx.notifyEpoch(testHtlcExpiry)
+
+	// Assert that we have a failure resolution because our invoice was
+	// cancelled.
+	assertResolverReport(t, reportChan, &channeldb.ResolverReport{
+		Amount:          lnwire.MilliAtom(testHtlcAmount).ToAtoms(),
+		ResolverType:    channeldb.ResolverTypeIncomingHtlc,
+		ResolverOutcome: channeldb.ResolverOutcomeTimeout,
+	})
 
 	ctx.waitForResult(false)
 }
@@ -91,11 +106,7 @@ func TestHtlcIncomingResolverFwdTimeout(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
-	ctx.registry.notifyResolution = invoices.NewFailResolution(
-		testResCircuitKey, testHtlcExpiry,
-		invoices.ResultInvoiceNotFound,
-	)
+	ctx := newIncomingResolverTestContext(t, true)
 	ctx.witnessBeacon.lookupPreimage[testResHash] = testResPreimage
 	ctx.resolver.htlcExpiry = 90
 	ctx.resolve()
@@ -108,7 +119,7 @@ func TestHtlcIncomingResolverExitSettle(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
+	ctx := newIncomingResolverTestContext(t, true)
 	ctx.registry.notifyResolution = invoices.NewSettleResolution(
 		testResPreimage, testResCircuitKey, testAcceptHeight,
 		invoices.ResultReplayToSettled,
@@ -139,7 +150,7 @@ func TestHtlcIncomingResolverExitCancel(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
+	ctx := newIncomingResolverTestContext(t, true)
 	ctx.registry.notifyResolution = invoices.NewFailResolution(
 		testResCircuitKey, testAcceptHeight,
 		invoices.ResultInvoiceAlreadyCanceled,
@@ -155,7 +166,7 @@ func TestHtlcIncomingResolverExitSettleHodl(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
+	ctx := newIncomingResolverTestContext(t, true)
 	ctx.resolve()
 
 	notifyData := <-ctx.registry.notifyChan
@@ -173,9 +184,34 @@ func TestHtlcIncomingResolverExitTimeoutHodl(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
+	ctx := newIncomingResolverTestContext(t, true)
+
+	// Replace our checkpoint with one which will push reports into a
+	// channel for us to consume. We replace this function on the resolver
+	// itself because it is created by the test context.
+	reportChan := make(chan *channeldb.ResolverReport)
+	ctx.resolver.Checkpoint = func(_ ContractResolver,
+		reports ...*channeldb.ResolverReport) error {
+
+		// Send all of our reports into the channel.
+		for _, report := range reports {
+			reportChan <- report
+		}
+
+		return nil
+	}
+
 	ctx.resolve()
 	ctx.notifyEpoch(testHtlcExpiry)
+
+	// Assert that we have a failure resolution because our invoice was
+	// cancelled.
+	assertResolverReport(t, reportChan, &channeldb.ResolverReport{
+		Amount:          lnwire.MilliAtom(testHtlcAmount).ToAtoms(),
+		ResolverType:    channeldb.ResolverTypeIncomingHtlc,
+		ResolverOutcome: channeldb.ResolverOutcomeTimeout,
+	})
+
 	ctx.waitForResult(false)
 }
 
@@ -185,25 +221,62 @@ func TestHtlcIncomingResolverExitCancelHodl(t *testing.T) {
 	t.Parallel()
 	defer timeout(t)()
 
-	ctx := newIncomingResolverTestContext(t)
+	ctx := newIncomingResolverTestContext(t, true)
+
+	// Replace our checkpoint with one which will push reports into a
+	// channel for us to consume. We replace this function on the resolver
+	// itself because it is created by the test context.
+	reportChan := make(chan *channeldb.ResolverReport)
+	ctx.resolver.Checkpoint = func(_ ContractResolver,
+		reports ...*channeldb.ResolverReport) error {
+
+		// Send all of our reports into the channel.
+		for _, report := range reports {
+			reportChan <- report
+		}
+
+		return nil
+	}
+
 	ctx.resolve()
 	notifyData := <-ctx.registry.notifyChan
 	notifyData.hodlChan <- invoices.NewFailResolution(
 		testResCircuitKey, testAcceptHeight, invoices.ResultCanceled,
 	)
 
+	// Assert that we have a failure resolution because our invoice was
+	// cancelled.
+	assertResolverReport(t, reportChan, &channeldb.ResolverReport{
+		Amount:          lnwire.MilliAtom(testHtlcAmount).ToAtoms(),
+		ResolverType:    channeldb.ResolverTypeIncomingHtlc,
+		ResolverOutcome: channeldb.ResolverOutcomeAbandoned,
+	})
+
 	ctx.waitForResult(false)
 }
 
 type mockHopIterator struct {
+	isExit bool
 	hop.Iterator
 }
 
 func (h *mockHopIterator) HopPayload() (*hop.Payload, error) {
-	return nil, nil
+	var nextAddress [8]byte
+	if !h.isExit {
+		nextAddress = [8]byte{0x01}
+	}
+
+	return hop.NewLegacyPayload(&sphinx.HopData{
+		Realm:         [1]byte{},
+		NextAddress:   nextAddress,
+		ForwardAmount: 100,
+		OutgoingCltv:  40,
+		ExtraBytes:    [12]byte{},
+	}), nil
 }
 
 type mockOnionProcessor struct {
+	isExit           bool
 	offeredOnionBlob []byte
 }
 
@@ -216,7 +289,7 @@ func (o *mockOnionProcessor) ReconstructHopIterator(r io.Reader, rHash []byte) (
 	}
 	o.offeredOnionBlob = data
 
-	return &mockHopIterator{}, nil
+	return &mockHopIterator{isExit: o.isExit}, nil
 }
 
 type incomingResolverTestContext struct {
@@ -230,7 +303,7 @@ type incomingResolverTestContext struct {
 	t              *testing.T
 }
 
-func newIncomingResolverTestContext(t *testing.T) *incomingResolverTestContext {
+func newIncomingResolverTestContext(t *testing.T, isExit bool) *incomingResolverTestContext {
 	notifier := &mockNotifier{
 		epochChan: make(chan *chainntnfs.BlockEpoch),
 		spendChan: make(chan *chainntnfs.SpendDetail),
@@ -241,7 +314,7 @@ func newIncomingResolverTestContext(t *testing.T) *incomingResolverTestContext {
 		notifyChan: make(chan notifyExitHopData, 1),
 	}
 
-	onionProcessor := &mockOnionProcessor{}
+	onionProcessor := &mockOnionProcessor{isExit: isExit}
 
 	checkPointChan := make(chan struct{}, 1)
 
@@ -273,6 +346,7 @@ func newIncomingResolverTestContext(t *testing.T) *incomingResolverTestContext {
 			contractResolverKit: *newContractResolverKit(cfg),
 			htlcResolution:      lnwallet.IncomingHtlcResolution{},
 			htlc: channeldb.HTLC{
+				Amt:       lnwire.MilliAtom(testHtlcAmount),
 				RHash:     testResHash,
 				OnionBlob: testOnionBlob,
 			},
