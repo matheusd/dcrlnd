@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/decred/dcrlnd/lnwire"
 )
 
 const (
@@ -47,6 +48,22 @@ func TestHtlcOutgoingResolverRemoteClaim(t *testing.T) {
 	// Setup the resolver with our test resolution and start the resolution
 	// process.
 	ctx := newOutgoingResolverTestContext(t)
+
+	// Replace our mocked checkpoint function with one which will push
+	// reports into a channel for us to consume. We do so on the resolver
+	// level because our test context has already created the resolver.
+	reportChan := make(chan *channeldb.ResolverReport)
+	ctx.resolver.Checkpoint = func(_ ContractResolver,
+		reports ...*channeldb.ResolverReport) error {
+
+		// Send all of our reports into the channel.
+		for _, report := range reports {
+			reportChan <- report
+		}
+
+		return nil
+	}
+
 	ctx.resolve()
 
 	// The remote party sweeps the htlc. Notify our resolver of this event.
@@ -57,14 +74,19 @@ func TestHtlcOutgoingResolverRemoteClaim(t *testing.T) {
 		2: 0x20,
 	}
 	copy(sigScript[3:], preimage[:])
-	ctx.notifier.spendChan <- &chainntnfs.SpendDetail{
-		SpendingTx: &wire.MsgTx{
-			TxIn: []*wire.TxIn{
-				{
-					SignatureScript: sigScript[:],
-				},
+	spendTx := &wire.MsgTx{
+		TxIn: []*wire.TxIn{
+			{
+				SignatureScript: sigScript[:],
 			},
 		},
+	}
+
+	spendHash := spendTx.TxHash()
+
+	ctx.notifier.spendChan <- &chainntnfs.SpendDetail{
+		SpendingTx:    spendTx,
+		SpenderTxHash: &spendHash,
 	}
 
 	// We expect the extracted preimage to be added to the witness beacon.
@@ -73,6 +95,17 @@ func TestHtlcOutgoingResolverRemoteClaim(t *testing.T) {
 	// We also expect a resolution message to the incoming side of the
 	// circuit.
 	<-ctx.resolutionChan
+
+	// Finally, check that we have a report as expected.
+	expectedReport := &channeldb.ResolverReport{
+		OutPoint:        wire.OutPoint{},
+		Amount:          0,
+		ResolverType:    channeldb.ResolverTypeOutgoingHtlc,
+		ResolverOutcome: channeldb.ResolverOutcomeClaimed,
+		SpendTxID:       &spendHash,
+	}
+
+	assertResolverReport(t, reportChan, expectedReport)
 
 	// Assert that the resolver finishes without error.
 	ctx.waitForResult(false)
@@ -151,6 +184,7 @@ func newOutgoingResolverTestContext(t *testing.T) *outgoingResolverTestContext {
 			contractResolverKit: *newContractResolverKit(cfg),
 			htlcResolution:      outgoingRes,
 			htlc: channeldb.HTLC{
+				Amt:       lnwire.MilliAtom(testHtlcAmount),
 				RHash:     testResHash,
 				OnionBlob: testOnionBlob,
 			},

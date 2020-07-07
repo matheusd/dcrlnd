@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
@@ -170,7 +171,19 @@ func (h *htlcTimeoutResolver) claimCleanUp(
 		return nil, err
 	}
 	h.resolved = true
-	return nil, h.Checkpoint(h)
+
+	// Checkpoint our resolver with a report which reflects the preimage
+	// claim by the remote party.
+	amt := dcrutil.Amount(h.htlcResolution.SweepSignDesc.Output.Value)
+	report := &channeldb.ResolverReport{
+		OutPoint:        h.htlcResolution.ClaimOutpoint,
+		Amount:          amt,
+		ResolverType:    channeldb.ResolverTypeOutgoingHtlc,
+		ResolverOutcome: channeldb.ResolverOutcomeClaimed,
+		SpendTxID:       commitSpend.SpenderTxHash,
+	}
+
+	return nil, h.Checkpoint(h, report)
 }
 
 // chainDetailsToWatch returns the output and script which we use to watch for
