@@ -79,7 +79,7 @@ func (b *mockArbitratorLog) FetchUnresolvedContracts() ([]ContractResolver,
 	return v, nil
 }
 
-func (b *mockArbitratorLog) InsertUnresolvedContracts(
+func (b *mockArbitratorLog) InsertUnresolvedContracts(_ []*channeldb.ResolverReport,
 	resolvers ...ContractResolver) error {
 
 	b.Lock()
