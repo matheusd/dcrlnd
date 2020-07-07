@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/clock"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -351,6 +352,14 @@ func newActiveChannelArbitrator(channel *channeldb.OpenChannel,
 		IsPendingClose:        false,
 		ChainArbitratorConfig: c.cfg,
 		ChainEvents:           chanEvents,
+		PutResolverReport: func(tx kvdb.RwTx,
+			report *channeldb.ResolverReport) error {
+
+			return c.chanSource.PutResolverReport(
+				tx, c.cfg.ChainHash, &channel.FundingOutpoint,
+				report,
+			)
+		},
 	}
 
 	// The final component needed is an arbitrator log that the arbitrator
@@ -557,6 +566,13 @@ func (c *ChainArbitrator) Start() error {
 			IsPendingClose:        true,
 			ClosingHeight:         closeChanInfo.CloseHeight,
 			CloseType:             closeChanInfo.CloseType,
+			PutResolverReport: func(tx kvdb.RwTx,
+				report *channeldb.ResolverReport) error {
+
+				return c.chanSource.PutResolverReport(
+					tx, c.cfg.ChainHash, &chanPoint, report,
+				)
+			},
 		}
 		chanLog, err := newBoltArbitratorLog(
 			c.chanSource.Backend, arbCfg, c.cfg.ChainHash, chanPoint,

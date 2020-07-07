@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -120,6 +121,11 @@ func newOutgoingResolverTestContext(t *testing.T) *outgoingResolverTestContext {
 				return nil
 			},
 			OnionProcessor: onionProcessor,
+		},
+		PutResolverReport: func(_ kvdb.RwTx,
+			_ *channeldb.ResolverReport) error {
+
+			return nil
 		},
 	}
 

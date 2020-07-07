@@ -12,6 +12,8 @@ import (
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
+	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -270,6 +272,11 @@ func TestHtlcTimeoutResolver(t *testing.T) {
 					resolutionChan <- msgs[0]
 					return nil
 				},
+			},
+			PutResolverReport: func(_ kvdb.RwTx,
+				_ *channeldb.ResolverReport) error {
+
+				return nil
 			},
 		}
 

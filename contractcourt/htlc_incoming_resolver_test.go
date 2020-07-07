@@ -8,6 +8,7 @@ import (
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/invoices"
@@ -250,6 +251,11 @@ func newIncomingResolverTestContext(t *testing.T) *incomingResolverTestContext {
 			PreimageDB:     witnessBeacon,
 			Registry:       registry,
 			OnionProcessor: onionProcessor,
+		},
+		PutResolverReport: func(_ kvdb.RwTx,
+			_ *channeldb.ResolverReport) error {
+
+			return nil
 		},
 	}
 
