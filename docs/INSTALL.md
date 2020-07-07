@@ -76,11 +76,26 @@
 With the preliminary steps completed, to install `dcrlnd`, `dcrlncli`, and all
 related dependencies run the following commands:
 ```
-go get -d github.com/decred/dcrlnd
-cd $GOPATH/src/github.com/decred/dcrlnd
+git clone github.com/decred/dcrlnd
+cd dcrlnd
 go install ./cmd/dcrlnd
 go install ./cmd/dcrlncli
 ```
+
+The command above will install the current _master_ branch of `dcrlnd`. If you
+wish to install a tagged release of `dcrlnd` (as the master branch can at times be
+unstable), then [visit then release page to locate the latest
+release](https://github.com/dcrlnd/dcrlnd/releases). Assuming the name
+of the release is `v0.x.x`, then you can compile this release from source with
+a small modification to the above command: 
+```
+git clone https://github.com/decred/dcrlnd
+cd dcrlnd
+git checkout v0.x.x
+go install ./cmd/dcrlnd
+go install ./cmd/dcrlncli
+```
+
 
 **NOTE**: Our instructions still use the `$GOPATH` directory from prior
 versions of Go, but with go 1.11, it's now possible for `dcrlnd` to live
