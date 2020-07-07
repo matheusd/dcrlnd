@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -202,6 +203,21 @@ type ContractReport struct {
 	// RecoveredBalance is the total value that has been successfully swept
 	// back to the user's wallet.
 	RecoveredBalance dcrutil.Amount
+}
+
+// resolverReport creates a resolve report using some of the information in the
+// contract report.
+func (c *ContractReport) resolverReport(spendTx *chainhash.Hash,
+	resolverType channeldb.ResolverType,
+	outcome channeldb.ResolverOutcome) *channeldb.ResolverReport {
+
+	return &channeldb.ResolverReport{
+		OutPoint:        c.Outpoint,
+		Amount:          c.Amount,
+		ResolverType:    resolverType,
+		ResolverOutcome: outcome,
+		SpendTxID:       spendTx,
+	}
 }
 
 // htlcSet represents the set of active HTLCs on a given commitment
