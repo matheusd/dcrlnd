@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -299,6 +300,8 @@ func (h *htlcTimeoutResolver) Resolve() (ContractResolver, error) {
 		}
 	}
 
+	var spendTxID *chainhash.Hash
+
 	// waitForOutputResolution waits for the HTLC output to be fully
 	// resolved. The output is considered fully resolved once it has been
 	// spent, and the spending transaction has been fully confirmed.
@@ -315,10 +318,11 @@ func (h *htlcTimeoutResolver) Resolve() (ContractResolver, error) {
 		}
 
 		select {
-		case _, ok := <-spendNtfn.Spend:
+		case spendDetail, ok := <-spendNtfn.Spend:
 			if !ok {
 				return errResolverShuttingDown
 			}
+			spendTxID = spendDetail.SpenderTxHash
 
 		case <-h.quit:
 			return errResolverShuttingDown
@@ -357,6 +361,7 @@ func (h *htlcTimeoutResolver) Resolve() (ContractResolver, error) {
 		if !ok {
 			return nil, errResolverShuttingDown
 		}
+		spendTxID = spend.SpenderTxHash
 
 	case <-h.quit:
 		return nil, errResolverShuttingDown
@@ -389,6 +394,8 @@ func (h *htlcTimeoutResolver) Resolve() (ContractResolver, error) {
 		return nil, err
 	}
 
+	var reports []*channeldb.ResolverReport
+
 	// Finally, if this was an output on our commitment transaction, we'll
 	// wait for the second-level HTLC output to be spent, and for that
 	// transaction itself to confirm.
@@ -398,12 +405,35 @@ func (h *htlcTimeoutResolver) Resolve() (ContractResolver, error) {
 		if err := waitForOutputResolution(); err != nil {
 			return nil, err
 		}
+
+		// Once our timeout tx has confirmed, we add a resolution for
+		// our timeoutTx tx first stage transaction.
+		timeoutTx := h.htlcResolution.SignedTimeoutTx
+		spendHash := timeoutTx.TxHash()
+
+		reports = append(reports, &channeldb.ResolverReport{
+			OutPoint:        timeoutTx.TxIn[0].PreviousOutPoint,
+			Amount:          h.htlc.Amt.ToAtoms(),
+			ResolverType:    channeldb.ResolverTypeOutgoingHtlc,
+			ResolverOutcome: channeldb.ResolverOutcomeFirstStage,
+			SpendTxID:       &spendHash,
+		})
 	}
 
 	// With the clean up message sent, we'll now mark the contract
-	// resolved, and wait.
+	// resolved, record the timeout and the sweep txid on disk, and wait.
 	h.resolved = true
-	return nil, h.Checkpoint(h)
+
+	amt := dcrutil.Amount(h.htlcResolution.SweepSignDesc.Output.Value)
+	reports = append(reports, &channeldb.ResolverReport{
+		OutPoint:        h.htlcResolution.ClaimOutpoint,
+		Amount:          amt,
+		ResolverType:    channeldb.ResolverTypeOutgoingHtlc,
+		ResolverOutcome: channeldb.ResolverOutcomeTimeout,
+		SpendTxID:       spendTxID,
+	})
+
+	return nil, h.Checkpoint(h, reports...)
 }
 
 // Stop signals the resolver to cancel any current resolution processes, and
