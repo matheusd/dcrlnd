@@ -51,6 +51,7 @@ import (
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/routing"
 	"github.com/go-errors/errors"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -3837,6 +3838,13 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		t.Fatalf("all funds should still be in limbo")
 	}
 
+	// Create a map of outpoints to expected resolutions for alice and carol
+	// which we will add reports to as we sweep outputs.
+	var (
+		aliceReports = make(map[string]*lnrpc.Resolution)
+		carolReports = make(map[string]*lnrpc.Resolution)
+	)
+
 	// The several restarts in this test are intended to ensure that when a
 	// channel is force-closed, the UTXO nursery has persisted the state of
 	// the channel in the closure process and will recover the correct state
@@ -3855,11 +3863,34 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		expectedTxes = 2
 	}
 
-	_, err = waitForNTxsInMempool(
+	sweepTxns, err := waitForNTxsInMempool(
 		net.Miner.Node, expectedTxes, minerMempoolTimeout,
 	)
 	if err != nil {
 		t.Fatalf("failed to find commitment in miner mempool: %v", err)
+	}
+
+	// Find alice's commit sweep and anchor sweep (if present) in the
+	// mempool.
+	aliceCloseTx := waitingClose.Commitments.LocalTxid
+	_, aliceAnchor := findCommitAndAnchor(
+		t, net, sweepTxns, aliceCloseTx,
+	)
+
+	// If we expect anchors, add alice's anchor to our expected set of
+	// reports.
+	if channelType == commitTypeAnchors {
+		aliceReports[aliceAnchor.OutPoint.String()] = &lnrpc.Resolution{
+			ResolutionType: lnrpc.ResolutionType_ANCHOR,
+			Outcome:        lnrpc.ResolutionOutcome_CLAIMED,
+			SweepTxid:      aliceAnchor.SweepTx,
+			Outpoint: &lnrpc.OutPoint{
+				TxidBytes:   aliceAnchor.OutPoint.Hash[:],
+				TxidStr:     aliceAnchor.OutPoint.Hash.String(),
+				OutputIndex: aliceAnchor.OutPoint.Index,
+			},
+			AmountAtoms: uint64(anchorSize),
+		}
 	}
 
 	if _, err := net.Generate(1); err != nil {
@@ -3939,12 +3970,33 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 	// Carol's sweep tx should be in the mempool already, as her output is
 	// not timelocked. If there are anchors, we also expect Carol's anchor
 	// sweep now.
-	_, err = waitForNTxsInMempool(
+	sweepTxns, err = waitForNTxsInMempool(
 		net.Miner.Node, expectedTxes, minerMempoolTimeout,
 	)
 	if err != nil {
 		t.Fatalf("failed to find Carol's sweep in miner mempool: %v",
 			err)
+	}
+
+	// We look up the sweep txns we have found in mempool and create
+	// expected resolutions for carol.
+	carolCommit, carolAnchor := findCommitAndAnchor(
+		t, net, sweepTxns, aliceCloseTx,
+	)
+
+	// If we have anchors, add an anchor resolution for carol.
+	if channelType == commitTypeAnchors {
+		carolReports[carolAnchor.OutPoint.String()] = &lnrpc.Resolution{
+			ResolutionType: lnrpc.ResolutionType_ANCHOR,
+			Outcome:        lnrpc.ResolutionOutcome_CLAIMED,
+			SweepTxid:      carolAnchor.SweepTx,
+			AmountAtoms:    anchorSize,
+			Outpoint: &lnrpc.OutPoint{
+				TxidBytes:   carolAnchor.OutPoint.Hash[:],
+				TxidStr:     carolAnchor.OutPoint.Hash.String(),
+				OutputIndex: carolAnchor.OutPoint.Index,
+			},
+		}
 	}
 
 	// Currently within the codebase, the default CSV is 4 relative blocks.
@@ -3964,6 +4016,7 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 
 	// Alice should see the channel in her set of pending force closed
 	// channels with her funds still in limbo.
+	var aliceBalance int64
 	err = wait.NoError(func() error {
 		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
 		pendingChanResp, err := alice.PendingChannels(
@@ -3985,6 +4038,9 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		if err != nil {
 			return err
 		}
+
+		// Make a record of the balances we expect for alice and carol.
+		aliceBalance = forceClose.Channel.LocalBalance
 
 		// At this point, the nursery should show that the commitment
 		// output has 2 block left before its CSV delay expires. In
@@ -4044,6 +4100,32 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 				"tx %v, instead spending %v",
 				closingTxID, txIn.PreviousOutPoint)
 		}
+	}
+
+	// We expect a resolution which spends our commit output.
+	output := sweepTx.MsgTx().TxIn[0].PreviousOutPoint
+	aliceReports[output.String()] = &lnrpc.Resolution{
+		ResolutionType: lnrpc.ResolutionType_COMMIT,
+		Outcome:        lnrpc.ResolutionOutcome_CLAIMED,
+		SweepTxid:      sweepingTXID.String(),
+		Outpoint: &lnrpc.OutPoint{
+			TxidBytes:   output.Hash[:],
+			TxidStr:     output.Hash.String(),
+			OutputIndex: output.Index,
+		},
+		AmountAtoms: uint64(aliceBalance),
+	}
+
+	carolReports[carolCommit.OutPoint.String()] = &lnrpc.Resolution{
+		ResolutionType: lnrpc.ResolutionType_COMMIT,
+		Outcome:        lnrpc.ResolutionOutcome_CLAIMED,
+		Outpoint: &lnrpc.OutPoint{
+			TxidBytes:   carolCommit.OutPoint.Hash[:],
+			TxidStr:     carolCommit.OutPoint.Hash.String(),
+			OutputIndex: carolCommit.OutPoint.Index,
+		},
+		AmountAtoms: uint64(pushAmt),
+		SweepTxid:   carolCommit.SweepTx,
 	}
 
 	// Check that we can find the commitment sweep in our set of known
@@ -4224,6 +4306,7 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 	// the sweeper check for these timeout transactions because they are
 	// not swept by the sweeper; the nursery broadcasts the pre-signed
 	// transaction.
+	var htlcLessFees uint64
 	for _, htlcTxID := range htlcTxIDs {
 		// Fetch the sweep transaction, all input it's spending should
 		// be from the commitment transaction which was broadcast
@@ -4233,18 +4316,62 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 			t.Fatalf("unable to fetch sweep tx: %v", err)
 		}
 		// Ensure the htlc transaction only has one input.
-		if len(htlcTx.MsgTx().TxIn) != 1 {
+		inputs := htlcTx.MsgTx().TxIn
+		if len(inputs) != 1 {
 			t.Fatalf("htlc transaction should only have one txin, "+
 				"has %d", len(htlcTx.MsgTx().TxIn))
 		}
 		// Ensure the htlc transaction is spending from the commitment
 		// transaction.
-		txIn := htlcTx.MsgTx().TxIn[0]
+		txIn := inputs[0]
 		if !closingTxID.IsEqual(&txIn.PreviousOutPoint.Hash) {
 			t.Fatalf("htlc transaction not spending from commit "+
 				"tx %v, instead spending %v",
 				closingTxID, txIn.PreviousOutPoint)
 		}
+
+		outputs := htlcTx.MsgTx().TxOut
+		if len(outputs) != 1 {
+			t.Fatalf("htlc transaction should only have one "+
+				"txout, has: %v", len(outputs))
+		}
+
+		// For each htlc timeout transaction, we expect a resolver
+		// report recording this on chain resolution for both alice and
+		// carol.
+		outpoint := txIn.PreviousOutPoint
+		resolutionOutpoint := &lnrpc.OutPoint{
+			TxidBytes:   outpoint.Hash[:],
+			TxidStr:     outpoint.Hash.String(),
+			OutputIndex: outpoint.Index,
+		}
+
+		// We expect alice to have a timeout tx resolution with an
+		// amount equal to the payment amount.
+		aliceReports[outpoint.String()] = &lnrpc.Resolution{
+			ResolutionType: lnrpc.ResolutionType_OUTGOING_HTLC,
+			Outcome:        lnrpc.ResolutionOutcome_FIRST_STAGE,
+			SweepTxid:      htlcTx.Hash().String(),
+			Outpoint:       resolutionOutpoint,
+			AmountAtoms:    uint64(paymentAmt),
+		}
+
+		// We expect carol to have a resolution with an incoming htlc
+		// timeout which reflects the full amount of the htlc. It has
+		// no spend tx, because carol stops monitoring the htlc once
+		// it has timed out.
+		carolReports[outpoint.String()] = &lnrpc.Resolution{
+			ResolutionType: lnrpc.ResolutionType_INCOMING_HTLC,
+			Outcome:        lnrpc.ResolutionOutcome_TIMEOUT,
+			SweepTxid:      "",
+			Outpoint:       resolutionOutpoint,
+			AmountAtoms:    uint64(paymentAmt),
+		}
+
+		// We record the htlc amount less fees here, so that we know
+		// what value to expect for the second stage of our htlc
+		// htlc resolution.
+		htlcLessFees = uint64(outputs[0].Value)
 	}
 
 	// With the htlc timeout txns still in the mempool, we restart Alice to
@@ -4352,6 +4479,12 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		t.Fatalf("htlc transaction should have %d txin, "+
 			"has %d", numInvoices, len(htlcSweepTx.MsgTx().TxIn))
 	}
+	outputCount := len(htlcSweepTx.MsgTx().TxOut)
+	if outputCount != 1 {
+		t.Fatalf("htlc sweep transaction should have one output, has: "+
+			"%v", outputCount)
+	}
+
 	// Ensure that each output spends from exactly one htlc timeout txn.
 	for _, txIn := range htlcSweepTx.MsgTx().TxIn {
 		outpoint := txIn.PreviousOutPoint.Hash
@@ -4367,6 +4500,21 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		if htlcTxIDSet[outpoint] > 1 {
 			t.Fatalf("htlc sweep tx has multiple spends from "+
 				"outpoint %v", outpoint)
+		}
+
+		// Since we have now swept our htlc timeout tx, we expect to
+		// have timeout resolutions for each of our htlcs.
+		output := txIn.PreviousOutPoint
+		aliceReports[output.String()] = &lnrpc.Resolution{
+			ResolutionType: lnrpc.ResolutionType_OUTGOING_HTLC,
+			Outcome:        lnrpc.ResolutionOutcome_TIMEOUT,
+			SweepTxid:      htlcSweepTx.Hash().String(),
+			Outpoint: &lnrpc.OutPoint{
+				TxidBytes:   output.Hash[:],
+				TxidStr:     output.Hash.String(),
+				OutputIndex: output.Index,
+			},
+			AmountAtoms: uint64(htlcLessFees),
 		}
 	}
 
@@ -4479,6 +4627,102 @@ func channelForceClosureTest(net *lntest.NetworkHarness, t *harnessTest,
 		t.Fatalf("carol's balance is incorrect: expected %v got %v",
 			carolExpectedBalance,
 			carolBalResp.ConfirmedBalance)
+	}
+
+	// Finally, we check that alice and carol have the set of resolutions
+	// we expect.
+	assertReports(ctxb, t, alice, op, aliceReports)
+	assertReports(ctxb, t, carol, op, carolReports)
+}
+
+type sweptOutput struct {
+	OutPoint wire.OutPoint
+	SweepTx  string
+}
+
+// findCommitAndAnchor looks for a commitment sweep and anchor sweep in the
+// mempool. Our anchor output is identified by having multiple inputs, because
+// we have to bring another input to add fees to the anchor. Note that the
+// anchor swept output may be nil if the channel did not have anchors.
+func findCommitAndAnchor(t *harnessTest, net *lntest.NetworkHarness,
+	sweepTxns []*chainhash.Hash, closeTx string) (*sweptOutput, *sweptOutput) {
+
+	var commitSweep, anchorSweep *sweptOutput
+	ctxb := context.Background()
+
+	for _, tx := range sweepTxns {
+		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		sweepTx, err := net.Miner.Node.GetRawTransaction(ctxt, tx)
+		require.NoError(t.t, err)
+
+		// For anchor detection in dcrlnd we do a slightly different
+		// procedure because CPFP isn't fully integrated and due to fee
+		// differences, anchor outputs behave slightly different in
+		// some sweep situations (they end up swept along with the
+		// commitment output).
+		inputs := sweepTx.MsgTx().TxIn
+		for _, txin := range inputs {
+			// If the output sweeps from the close tx and its
+			// ValueIn has the size of an anchor output, then it's
+			// sweeping the anchor output.
+			//
+			// Otherwise, if the input spends from the close tx,
+			// then this is sweeping the commitment output.
+			//
+			// Note: this logic is slighly broken in that it
+			// _could_ also be sweeping an htlc, but this function
+			// is only called in situations where the sweepTxs has
+			// commitment or anchor sweeping txs.
+			if txin.ValueIn == anchorSize && txin.PreviousOutPoint.Hash.String() == closeTx {
+				anchorSweep = &sweptOutput{
+					OutPoint: txin.PreviousOutPoint,
+					SweepTx:  tx.String(),
+				}
+			} else if txin.PreviousOutPoint.Hash.String() == closeTx {
+				commitSweep = &sweptOutput{
+					OutPoint: txin.PreviousOutPoint,
+					SweepTx:  tx.String(),
+				}
+			}
+		}
+	}
+
+	return commitSweep, anchorSweep
+}
+
+// assertReports checks that the count of resolutions we have present per
+// type matches a set of expected resolutions.
+func assertReports(ctxb context.Context, t *harnessTest,
+	node *lntest.HarnessNode, channelPoint wire.OutPoint,
+	expected map[string]*lnrpc.Resolution) {
+
+	// Get our node's closed channels.
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
+
+	closed, err := node.ClosedChannels(
+		ctxt, &lnrpc.ClosedChannelsRequest{},
+	)
+	require.NoError(t.t, err)
+
+	var resolutions []*lnrpc.Resolution
+	for _, close := range closed.Channels {
+		if close.ChannelPoint == channelPoint.String() {
+			resolutions = close.Resolutions
+			break
+		}
+	}
+
+	require.NotNil(t.t, resolutions)
+	require.Equal(t.t, len(expected), len(resolutions))
+
+	for _, res := range resolutions {
+		outPointStr := fmt.Sprintf("%v:%v", res.Outpoint.TxidStr,
+			res.Outpoint.OutputIndex)
+
+		expected, ok := expected[outPointStr]
+		require.True(t.t, ok)
+		require.Equal(t.t, expected, res)
 	}
 }
 
