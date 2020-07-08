@@ -33,7 +33,6 @@ import (
 	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/internal/testutils"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -2403,13 +2402,12 @@ func testOpenChannelAfterReorg(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Set up a new miner that we can use to cause a reorg.
 	args := []string{"--rejectnonstd", "--txindex"}
-	tempMiner, err := rpctest.New(t.t, compat.Params2to3(harnessNetParams),
-		&rpcclient.NotificationHandlers{}, args)
+	tempMiner, err := testutils.NewSetupRPCTest(
+		t.t, 5, harnessNetParams, &rpcclient.NotificationHandlers{}, args,
+		false, 0,
+	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
-	}
-	if err := tempMiner.SetUp(false, 0); err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
 	}
 	defer tempMiner.TearDown()
 
@@ -17076,7 +17074,8 @@ func TestLightningNetworkDaemon(t *testing.T) {
 			lndHarness.OnTxAccepted(hash)
 		},
 	}
-	miner, err := rpctest.New(t, compat.Params2to3(harnessNetParams), handlers, args)
+	miner, err := testutils.NewSetupRPCTest(t, 5, harnessNetParams, handlers,
+		args, false, 0)
 	if err != nil {
 		ht.Fatalf("unable to create mining node: %v", err)
 	}
@@ -17098,9 +17097,6 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		}
 	}()
 
-	if err := miner.SetUp(false, 0); err != nil {
-		ht.Fatalf("unable to set up mining node: %v", err)
-	}
 	if err := miner.Node.NotifyNewTransactions(context.Background(), false); err != nil {
 		ht.Fatalf("unable to request transaction notifications: %v", err)
 	}

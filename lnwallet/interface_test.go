@@ -2089,13 +2089,9 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 
 	// Now we cause a reorganization as follows.
 	// Step 1: create a new miner and start it.
-	r2, err := rpctest.New(t, r.ActiveNet, nil, []string{"--txindex"})
+	r2, err := testutils.NewSetupRPCTest(t, 5, compat.Params3to2(r.ActiveNet), nil, []string{"--txindex"}, false, 0)
 	if err != nil {
-		t.Fatalf("unable to create mining node: %v", err)
-	}
-	err = r2.SetUp(false, 0)
-	if err != nil {
-		t.Fatalf("unable to set up mining node: %v", err)
+		t.Fatalf("unable to create temp miner: %v", err)
 	}
 	defer r2.TearDown()
 	newBalance, err := w.ConfirmedBalance(1)
@@ -2876,12 +2872,11 @@ func TestLightningWallet(t *testing.T) {
 				walletDriver.WalletType, backEnd)
 			minerArgs := []string{"--txindex", "--debuglevel=debug",
 				"--logdir=" + minerLogDir}
-			miningNode, err := rpctest.New(t, compat.Params2to3(netParams), nil, minerArgs)
+			miningNode, err := testutils.NewSetupRPCTest(
+				t, 5, netParams, nil, minerArgs, true, 0,
+			)
 			if err != nil {
 				t.Fatalf("unable to create mining node: %v", err)
-			}
-			if err := miningNode.SetUp(true, 0); err != nil {
-				t.Fatalf("unable to set up mining node: %v", err)
 			}
 
 			// Generate the premine block.

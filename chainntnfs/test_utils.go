@@ -18,6 +18,8 @@ import (
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrlnd/compat"
+	"github.com/decred/dcrlnd/internal/testutils"
 )
 
 var (
@@ -173,13 +175,11 @@ func NewMiner(t *testing.T, extraArgs []string, createChain bool,
 	//extraArgs = append(extraArgs, trickle)
 	_ = trickle
 
-	node, err := rpctest.New(t, NetParams, nil, extraArgs)
+	node, err := testutils.NewSetupRPCTest(
+		t, 5, compat.Params3to2(NetParams), nil, extraArgs, createChain, spendableOutputs,
+	)
 	if err != nil {
 		t.Fatalf("unable to create backend node: %v", err)
-	}
-	if err := node.SetUp(createChain, spendableOutputs); err != nil {
-		node.TearDown()
-		t.Fatalf("unable to set up backend node: %v", err)
 	}
 
 	return node, func() { node.TearDown() }
