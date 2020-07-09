@@ -41,7 +41,7 @@ func TestPsbtIntent(t *testing.T) {
 
 	// Create a simple assembler and ask it to provision a channel to get
 	// the funding intent.
-	a := NewPsbtAssembler(chanCapacity, nil, &params)
+	a := NewPsbtAssembler(chanCapacity, nil, &params, true)
 	intent, err := a.ProvisionChannel(&Request{LocalAmt: chanCapacity})
 	if err != nil {
 		t.Fatalf("error provisioning channel: %v", err)
@@ -223,7 +223,7 @@ func TestPsbtIntentBasePsbt(t *testing.T) {
 
 	// Now as the next step, create a new assembler/intent pair with a base
 	// PSBT to see that we can add an additional output to it.
-	a := NewPsbtAssembler(chanCapacity, pendingPsbt, &params)
+	a := NewPsbtAssembler(chanCapacity, pendingPsbt, &params, true)
 	intent, err := a.ProvisionChannel(&Request{LocalAmt: chanCapacity})
 	if err != nil {
 		t.Fatalf("error provisioning channel: %v", err)
@@ -382,7 +382,7 @@ func TestPsbtVerify(t *testing.T) {
 
 	// Create a simple assembler and ask it to provision a channel to get
 	// the funding intent.
-	a := NewPsbtAssembler(chanCapacity, nil, &params)
+	a := NewPsbtAssembler(chanCapacity, nil, &params, true)
 	intent, err := a.ProvisionChannel(&Request{LocalAmt: chanCapacity})
 	if err != nil {
 		t.Fatalf("error provisioning channel: %v", err)
@@ -510,7 +510,7 @@ func TestPsbtFinalize(t *testing.T) {
 
 	// Create a simple assembler and ask it to provision a channel to get
 	// the funding intent.
-	a := NewPsbtAssembler(chanCapacity, nil, &params)
+	a := NewPsbtAssembler(chanCapacity, nil, &params, true)
 	intent, err := a.ProvisionChannel(&Request{LocalAmt: chanCapacity})
 	if err != nil {
 		t.Fatalf("error provisioning channel: %v", err)
