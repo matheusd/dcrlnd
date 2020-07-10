@@ -288,7 +288,7 @@ func (c *mailboxContext) checkFails(adds []*htlcPacket) {
 			c.t.Fatalf("inkey mismatch #%d, add: %v vs fail: %v",
 				i, add.inKey(), fail.inKey())
 
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(250 * time.Millisecond):
 			c.t.Fatalf("did not receive fail for index %d", i)
 		}
 	}
