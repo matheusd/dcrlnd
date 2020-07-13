@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/blockchain/v3"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -330,7 +328,7 @@ func testVectors(t *testing.T, chanType channeldb.ChannelType, test testCase) {
 	require.NoError(t, err)
 
 	// Uncomment the following line to debug the generated commitment tx.
-	t.Logf("XXXX %d %s\n%s", test.FeePerKB, test.Name, spew.Sdump(forceCloseSum.CloseTx))
+	// t.Logf("XXXX %d %s\n%s", test.FeePerKB, test.Name, spew.Sdump(forceCloseSum.CloseTx))
 
 	err = checkSignedCommitmentTxSanity(forceCloseSum.CloseTx, tc.fundingTx.MsgTx().TxOut[0], tc.params)
 	require.NoError(t, err)
