@@ -194,8 +194,8 @@ func newChainControlFromConfig(cfg *Config, chanDB *channeldb.DB,
 		rpcConfig *rpcclient.ConnConfig
 	)
 
-	heightHintCacheConfig := chainntnfs.Config{
-		HeightHintCacheQueryDisable: cfg.HeightHintCacheQueryDisable,
+	heightHintCacheConfig := chainntnfs.CacheConfig{
+		QueryDisable: cfg.HeightHintCacheQueryDisable,
 	}
 	if cfg.HeightHintCacheQueryDisable {
 		ltndLog.Infof("Height Hint Cache Queries disabled")

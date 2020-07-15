@@ -3066,8 +3066,8 @@ func TestLightningWallet(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create db: %v", err)
 			}
-			hintCacheCfg := chainntnfs.Config{
-				HeightHintCacheQueryDisable: false,
+			hintCacheCfg := chainntnfs.CacheConfig{
+				QueryDisable: false,
 			}
 			hintCache, err := chainntnfs.NewHeightHintCache(hintCacheCfg, db)
 			if err != nil {
