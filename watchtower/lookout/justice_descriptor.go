@@ -3,11 +3,11 @@ package lookout
 import (
 	"errors"
 
-	"github.com/decred/dcrd/blockchain/v2"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/blockchain/v3"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/dcrutil/v2/txsort"
+	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/dcrutil/v3/txsort"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"

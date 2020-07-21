@@ -4,9 +4,8 @@ import (
 	"math"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrutil/v2"
-	"github.com/decred/dcrd/dcrutil/v2/txsort"
-	txscript2 "github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/dcrutil/v3/txsort"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
@@ -290,7 +289,7 @@ func (w *WalletAssembler) ProvisionChannel(r *Request) (Intent, error) {
 			if err != nil {
 				return err
 			}
-			changeScript, err := txscript2.PayToAddrScript(changeAddr)
+			changeScript, err := txscript.PayToAddrScript(changeAddr)
 			if err != nil {
 				return err
 			}

@@ -16,7 +16,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/compat"
 )
 
 var (
@@ -58,7 +57,7 @@ func setUpNotifier(t *testing.T, h *rpctest.Harness) *DcrdNotifier {
 	hintCache := initHintCache(t)
 
 	rpcConfig := h.RPCConfig()
-	notifier, err := New(&rpcConfig, compat.Params3to2(chainntnfs.NetParams), hintCache, hintCache)
+	notifier, err := New(&rpcConfig, chainntnfs.NetParams, hintCache, hintCache)
 	if err != nil {
 		t.Fatalf("unable to create notifier: %v", err)
 	}

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/chanbackup"
 	"github.com/decred/dcrlnd/keychain"

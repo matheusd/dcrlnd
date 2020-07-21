@@ -9,10 +9,9 @@ import (
 	"sync/atomic"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrjson/v2"
 	"github.com/decred/dcrd/dcrutil/v3"
-	dcrutilv3 "github.com/decred/dcrd/dcrutil/v3"
 	jsontypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/txscript/v3"
@@ -723,7 +722,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	// We'll then request the backend to notify us when it has detected the
 	// outpoint or a script was spent.
 	var ops []wire.OutPoint
-	var addrs []dcrutilv3.Address
+	var addrs []dcrutil.Address
 
 	// Otherwise, we'll determine when the output was spent by scanning the
 	// chain.  We'll begin by determining where to start our historical

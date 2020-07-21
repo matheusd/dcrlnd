@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"decred.org/dcrwallet/wallet"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"

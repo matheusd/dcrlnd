@@ -16,12 +16,11 @@ import (
 
 	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/hdkeychain/v3"
-	"github.com/decred/dcrd/txscript/v2"
-	txscriptv3 "github.com/decred/dcrd/txscript/v3"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -374,8 +373,8 @@ func (b *DcrWallet) SendOutputs(outputs []*wire.TxOut,
 		}
 
 		// Actually sign the input.
-		sigScript, err := txscriptv3.SignatureScript(
-			tx, i, pkScript, txscriptv3.SigHashAll, privKey,
+		sigScript, err := txscript.SignatureScript(
+			tx, i, pkScript, txscript.SigHashAll, privKey,
 			dcrec.STEcdsaSecp256k1, true,
 		)
 		if err != nil {

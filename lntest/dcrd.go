@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	pb "decred.org/dcrwallet/rpc/walletrpc"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/rpctest"
 	"github.com/decred/dcrlnd/internal/testutils"

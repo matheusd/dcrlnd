@@ -1,6 +1,7 @@
 package psbt
 
 import (
+	"errors"
 	"io"
 
 	"github.com/decred/dcrd/wire"
@@ -44,11 +45,11 @@ func MaybeFinalize(p *Packet, inIndex int) (bool, error) {
 }
 
 func MaybeFinalizeAll(p *Packet) error {
-	panic("psbt.MaybeFinalizeAll not implemented")
+	return errors.New("psbt.MaybeFinalizeAll not implemented")
 }
 
 func Extract(p *Packet) (*wire.MsgTx, error) {
-	panic("psbt.Extract not implemented")
+	return nil, errors.New("psbt.Extract not implemented")
 }
 
 type PInput struct {

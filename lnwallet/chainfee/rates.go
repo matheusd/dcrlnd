@@ -1,7 +1,7 @@
 package chainfee
 
 import (
-	"github.com/decred/dcrd/dcrutil"
+	"github.com/decred/dcrd/dcrutil/v3"
 )
 
 const (

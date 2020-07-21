@@ -23,7 +23,6 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs/dcrwnotify"
 	"github.com/decred/dcrlnd/chainntnfs/remotedcrwnotify"
 	"github.com/decred/dcrlnd/channeldb"
-	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/internal/testutils"
 )
 
@@ -1085,7 +1084,7 @@ func testReorgConf(miner *rpctest.Harness, vw *rpctest.VotingWallet,
 
 	// Set up a new miner that we can use to cause a reorg.
 	miner2, err := testutils.NewSetupRPCTest(
-		t, 5, compat.Params3to2(chainntnfs.NetParams), nil, []string{"--txindex"}, false, 0,
+		t, 5, chainntnfs.NetParams, nil, []string{"--txindex"}, false, 0,
 	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
@@ -1267,7 +1266,7 @@ func testReorgSpend(miner *rpctest.Harness, vw *rpctest.VotingWallet,
 
 	// Set up a new miner that we can use to cause a reorg.
 	miner2, err := testutils.NewSetupRPCTest(
-		t, 5, compat.Params3to2(chainntnfs.NetParams), nil, []string{"--txindex"}, false, 0,
+		t, 5, chainntnfs.NetParams, nil, []string{"--txindex"}, false, 0,
 	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
@@ -1607,7 +1606,7 @@ func testCatchUpOnMissedBlocksWithReorg(miner1 *rpctest.Harness, vw *rpctest.Vot
 
 	// Set up a new miner that we can use to cause a reorg.
 	miner2, err := testutils.NewSetupRPCTest(
-		t, 5, compat.Params3to2(chainntnfs.NetParams), nil, []string{"--txindex"}, false, 0,
+		t, 5, chainntnfs.NetParams, nil, []string{"--txindex"}, false, 0,
 	)
 	if err != nil {
 		t.Fatalf("unable to create mining node: %v", err)
@@ -1976,7 +1975,7 @@ func TestInterfaces(t *testing.T) {
 		switch notifierType {
 		case "dcrd":
 			notifier, err = dcrdnotify.New(
-				&backend, compat.Params3to2(chainntnfs.NetParams), hintCache,
+				&backend, chainntnfs.NetParams, hintCache,
 				hintCache,
 			)
 			if err != nil {
@@ -1986,7 +1985,7 @@ func TestInterfaces(t *testing.T) {
 		case "dcrw":
 			w, teardown := testutils.NewSyncingTestWallet(t, &backend)
 			notifier, err = dcrwnotify.New(
-				w, compat.Params3to2(chainntnfs.NetParams), hintCache, hintCache,
+				w, chainntnfs.NetParams, hintCache, hintCache,
 			)
 			if err != nil {
 				t.Fatalf("error initializing dcrw notifier: %v", err)
@@ -1996,7 +1995,7 @@ func TestInterfaces(t *testing.T) {
 		case "remotedcrw":
 			c, teardown := testutils.NewTestRemoteDcrwallet(t, &backend)
 			notifier, err = remotedcrwnotify.New(
-				c, compat.Params3to2(chainntnfs.NetParams), hintCache, hintCache,
+				c, chainntnfs.NetParams, hintCache, hintCache,
 			)
 			if err != nil {
 				t.Fatalf("error initializing dcrw notifier: %v", err)

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd"
 	"github.com/decred/dcrlnd/lnrpc"

@@ -11,9 +11,9 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/internal/psbt"
@@ -21,14 +21,14 @@ import (
 )
 
 var (
-	localPrivkey                  = []byte{1, 2, 3, 4, 5, 6}
-	remotePrivkey                 = []byte{6, 5, 4, 3, 2, 1}
+	localPrivkey                  = []byte{1, 2, 3, 4, 5, 6} //nolint:unused
+	remotePrivkey                 = []byte{6, 5, 4, 3, 2, 1} //nolint:unused
 	chanCapacity   dcrutil.Amount = 644000
-	params                        = *chaincfg.SimNetParams()
+	params                        = *chaincfg.SimNetParams() //nolint:unused
 	defaultTimeout                = 50 * time.Millisecond
 )
 
-func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+func privKeyFromBytes(b []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) { //nolint:unused
 	key := secp256k1.PrivKeyFromBytes(b)
 	return key, key.PubKey()
 }

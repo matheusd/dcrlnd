@@ -3,7 +3,7 @@ package lnwire
 import (
 	"fmt"
 
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 )
 
 const (

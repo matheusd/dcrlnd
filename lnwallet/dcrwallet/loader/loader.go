@@ -15,10 +15,8 @@ import (
 	"decred.org/dcrwallet/wallet"
 	_ "decred.org/dcrwallet/wallet/drivers/bdb" // driver loaded during init
 	"decred.org/dcrwallet/wallet/txrules"
-	chaincfg2 "github.com/decred/dcrd/chaincfg/v2"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
-	"github.com/decred/dcrlnd/compat"
 )
 
 const (
@@ -50,7 +48,7 @@ type Loader struct {
 }
 
 // NewLoader constructs a Loader.
-func NewLoader(chainParams *chaincfg2.Params, dbDirPath string, gapLimit int) *Loader {
+func NewLoader(chainParams *chaincfg.Params, dbDirPath string, gapLimit int) *Loader {
 
 	allowHighFees := false
 	relayFee := txrules.DefaultRelayFeePerKb
@@ -58,7 +56,7 @@ func NewLoader(chainParams *chaincfg2.Params, dbDirPath string, gapLimit int) *L
 	disableCoinTypeUpgrades := defaultDisableCoinTypeUpgrades
 
 	return &Loader{
-		chainParams:             compat.Params2to3(chainParams),
+		chainParams:             chainParams,
 		dbDirPath:               dbDirPath,
 		gapLimit:                gapLimit,
 		accountGapLimit:         accountGapLimit,

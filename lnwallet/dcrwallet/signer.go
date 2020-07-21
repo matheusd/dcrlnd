@@ -8,13 +8,11 @@ import (
 	base "decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
-	secpv2 "github.com/decred/dcrd/dcrec/secp256k1/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -216,11 +214,11 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	if err != nil {
 		return nil, fmt.Errorf("error decoding wif string for address: %v", err)
 	}
-	privKey2, isSecp := privKeyWif.PrivKey.(*secpv2.PrivateKey)
-	if !isSecp {
+	if privKeyWif.DSA() != dcrec.STEcdsaSecp256k1 {
 		return nil, fmt.Errorf("private key returned is not secp256k1")
 	}
-	privKey := compat.PrivKey2to3(privKey2)
+	privKeyBytes := privKeyWif.PrivKey()
+	privKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
 
 	// If a tweak (single or double) is specified, then we'll need to use
 	// this tweak to derive the final private key to be used for signing

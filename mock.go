@@ -8,16 +8,15 @@ import (
 
 	"decred.org/dcrwallet/wallet/txauthor"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
-	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -275,7 +274,7 @@ func (*mockWalletController) ConfirmedBalance(confs int32) (dcrutil.Amount, erro
 func (m *mockWalletController) NewAddress(addrType lnwallet.AddressType,
 	change bool) (dcrutil.Address, error) {
 	addr, _ := dcrutil.NewAddressSecpPubKeyCompressed(
-		compat.PubKey3to2(m.rootKey.PubKey()), chaincfg.RegNetParams())
+		m.rootKey.PubKey(), chaincfg.RegNetParams())
 	return addr, nil
 }
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"google.golang.org/grpc"
 )

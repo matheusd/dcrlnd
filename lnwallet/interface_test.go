@@ -23,22 +23,20 @@ import (
 	_ "decred.org/dcrwallet/wallet/drivers/bdb"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrjson/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 	dcrutilv3 "github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrd/txscript/v2"
-	txscript3 "github.com/decred/dcrd/txscript/v3"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/channeldb/kvdb"
-	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/internal/testutils"
 	"github.com/decred/dcrlnd/keychain"
@@ -1130,7 +1128,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 			PkScript: script,
 		}
 		txid, err := miner.SendOutputs([]*wire.TxOut{output},
-			compat.Amount2to3(dcrutil.Amount(defaultFeeRate)))
+			dcrutil.Amount(defaultFeeRate))
 		if err != nil {
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
@@ -1402,7 +1400,7 @@ func testTransactionSubscriptions(miner *rpctest.Harness,
 			PkScript: script,
 		}
 		txid, err := miner.SendOutputs([]*wire.TxOut{output},
-			compat.Amount2to3(dcrutil.Amount(defaultFeeRate)))
+			dcrutil.Amount(defaultFeeRate))
 		if err != nil {
 			t.Fatalf("unable to send coinbase: %v", err)
 		}
@@ -1616,7 +1614,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 		},
 		WitnessScript: keyScript,
 		Output:        tx.TxOut[outputIndex],
-		HashType:      txscript3.SigHashAll,
+		HashType:      txscript.SigHashAll,
 		InputIndex:    0, // Has only one input.
 	}
 
@@ -1637,7 +1635,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 	// Finally, attempt to validate the completed transaction. This should
 	// succeed if the wallet was able to properly generate the proper
 	// private key.
-	vm, err := txscript3.NewEngine(
+	vm, err := txscript.NewEngine(
 		keyScript, tx1, 0, input.ScriptVerifyFlags, tx.TxOut[outputIndex].Version, nil,
 	)
 	if err != nil {
@@ -2005,7 +2003,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 			},
 			WitnessScript: keyScript,
 			Output:        newOutput,
-			HashType:      txscript3.SigHashAll,
+			HashType:      txscript.SigHashAll,
 			InputIndex:    0,
 		}
 
@@ -2035,7 +2033,7 @@ func testSignOutputUsingTweaks(r *rpctest.Harness,
 		// Finally, attempt to validate the completed transaction. This
 		// should succeed if the wallet was able to properly generate
 		// the proper private key.
-		vm, err := txscript3.NewEngine(keyScript,
+		vm, err := txscript.NewEngine(keyScript,
 			sweepTx, 0, input.ScriptVerifyFlags, newOutput.Version, nil)
 		if err != nil {
 			t.Fatalf("unable to create engine: %v", err)
@@ -2078,7 +2076,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	if err != nil {
 		t.Fatalf("unable to generate address for miner: %v", err)
 	}
-	script, err := txscript3.PayToAddrScript(minerAddr)
+	script, err := txscript.PayToAddrScript(minerAddr)
 	if err != nil {
 		t.Fatalf("unable to create pay to addr script: %v", err)
 	}
@@ -2114,7 +2112,7 @@ func testReorgWalletBalance(r *rpctest.Harness, vw *rpctest.VotingWallet,
 
 	// Now we cause a reorganization as follows.
 	// Step 1: create a new miner and start it.
-	r2, err := testutils.NewSetupRPCTest(t, 5, compat.Params3to2(r.ActiveNet), nil, []string{"--txindex"}, false, 0)
+	r2, err := testutils.NewSetupRPCTest(t, 5, r.ActiveNet, nil, []string{"--txindex"}, false, 0)
 	if err != nil {
 		t.Fatalf("unable to create temp miner: %v", err)
 	}
@@ -2448,7 +2446,7 @@ func testCreateSimpleTx(r *rpctest.Harness, // nolint: unused
 				t.Fatalf("unable to generate address for "+
 					"miner: %v", err)
 			}
-			script, err := txscript3.PayToAddrScript(minerAddr)
+			script, err := txscript.PayToAddrScript(minerAddr)
 			if err != nil {
 				t.Fatalf("unable to create pay to addr "+
 					"script: %v", err)

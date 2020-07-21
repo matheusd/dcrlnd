@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/brontide"
 )
 
@@ -35,7 +35,7 @@ var (
 			return nil, err
 		}
 
-		priv, _ := secp256k1.PrivKeyFromBytes(eBytes)
+		priv := secp256k1.PrivKeyFromBytes(eBytes)
 		return priv, nil
 	})
 
@@ -48,10 +48,15 @@ var (
 			return nil, err
 		}
 
-		priv, _ := secp256k1.PrivKeyFromBytes(eBytes)
+		priv := secp256k1.PrivKeyFromBytes(eBytes)
 		return priv, nil
 	})
 )
+
+func privKeyFromBytes(eBytes []byte) (*secp256k1.PrivateKey, *secp256k1.PublicKey) {
+	priv := secp256k1.PrivKeyFromBytes(eBytes)
+	return priv, priv.PubKey()
+}
 
 // completeHandshake takes two brontide machines (initiator, responder)
 // and completes the brontide handshake between them. If any part of the
@@ -112,7 +117,7 @@ func nilAndPanic(initiator, responder *brontide.Machine, err error) {
 func getBrontideMachines() (*brontide.Machine, *brontide.Machine) {
 	initPriv, _ := secp256k1.GeneratePrivateKey()
 	respPriv, _ := secp256k1.GeneratePrivateKey()
-	respPub := (*secp256k1.PublicKey)(&respPriv.PublicKey)
+	respPub := (*secp256k1.PublicKey)(respPriv.PubKey())
 
 	initiator := brontide.NewBrontideMachine(true, initPriv, respPub)
 	responder := brontide.NewBrontideMachine(false, respPriv, nil)
@@ -123,8 +128,8 @@ func getBrontideMachines() (*brontide.Machine, *brontide.Machine) {
 // getStaticBrontideMachines returns two brontide machines that use static keys
 // everywhere.
 func getStaticBrontideMachines() (*brontide.Machine, *brontide.Machine) {
-	initPriv, _ := secp256k1.PrivKeyFromBytes(initBytes)
-	respPriv, respPub := secp256k1.PrivKeyFromBytes(respBytes)
+	initPriv := secp256k1.PrivKeyFromBytes(initBytes)
+	respPriv, respPub := privKeyFromBytes(respBytes)
 
 	initiator := brontide.NewBrontideMachine(
 		true, initPriv, respPub, initEphemeral,

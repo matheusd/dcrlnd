@@ -14,8 +14,8 @@ import (
 	base "decred.org/dcrwallet/wallet"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/hdkeychain/v3"
 	walletloader "github.com/decred/dcrlnd/lnwallet/dcrwallet/loader"
 )

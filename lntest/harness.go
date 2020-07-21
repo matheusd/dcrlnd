@@ -16,14 +16,13 @@ import (
 	"google.golang.org/grpc/grpclog"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v2"
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/rpctest"
-	txscript2 "github.com/decred/dcrd/txscript/v2"
+	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrlnd"
-	"github.com/decred/dcrlnd/compat"
 	"github.com/decred/dcrlnd/internal/testutils"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest/wait"
@@ -87,7 +86,7 @@ func NewNetworkHarness(r *rpctest.Harness, b BackendConfig, lndBinary string) (
 		seenTxns:            make(chan *chainhash.Hash),
 		decredWatchRequests: make(chan *txWatchRequest),
 		lndErrorChan:        make(chan error),
-		netParams:           compat.Params3to2(r.ActiveNet),
+		netParams:           r.ActiveNet,
 		Miner:               r,
 		BackendCfg:          b,
 		quit:                make(chan struct{}),
@@ -213,7 +212,7 @@ func (n *NetworkHarness) SetUp(lndArgs []string) error {
 			if err != nil {
 				return err
 			}
-			addrScript, err := txscript2.PayToAddrScript(addr)
+			addrScript, err := txscript.PayToAddrScript(addr)
 			if err != nil {
 				return err
 			}
@@ -1362,7 +1361,7 @@ func (n *NetworkHarness) sendCoins(ctx context.Context, amt dcrutil.Amount,
 	if err != nil {
 		return err
 	}
-	addrScript, err := txscript2.PayToAddrScript(addr)
+	addrScript, err := txscript.PayToAddrScript(addr)
 	if err != nil {
 		return err
 	}

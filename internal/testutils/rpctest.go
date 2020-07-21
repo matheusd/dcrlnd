@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/rpctest"
-	"github.com/decred/dcrlnd/compat"
 )
 
 // NewSetupRPCTest attempts up to maxTries to setup an rpctest harness or
@@ -24,7 +23,7 @@ func NewSetupRPCTest(t *testing.T, maxTries int, netParams *chaincfg.Params,
 	var harness *rpctest.Harness
 	var err error
 	for i := 0; i < maxTries; i++ {
-		harness, err = rpctest.New(t, compat.Params2to3(netParams), handlers, args)
+		harness, err = rpctest.New(t, netParams, handlers, args)
 		if err == nil {
 			err = harness.SetUp(setupChain, numMatureOutputs)
 			if err == nil {

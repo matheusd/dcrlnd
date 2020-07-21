@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/standalone"
+	"github.com/decred/dcrd/blockchain/standalone/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	rpcclient3 "github.com/decred/dcrd/rpcclient/v6"
+	"github.com/decred/dcrd/rpcclient/v6"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/lntest/wait"
 )
@@ -87,7 +87,7 @@ func solveBlock(header *wire.BlockHeader) bool {
 //
 // This is only applicable for tests that run on simnet or other networks that
 // have a target block per count of 1 second.
-func AdjustedSimnetMiner(client *rpcclient3.Client, nb uint32) ([]*chainhash.Hash, error) {
+func AdjustedSimnetMiner(client *rpcclient.Client, nb uint32) ([]*chainhash.Hash, error) {
 
 	hashes := make([]*chainhash.Hash, nb)
 

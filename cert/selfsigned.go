@@ -184,7 +184,7 @@ func IsOutdated(cert *x509.Certificate, tlsExtraIPs,
 // real PKI.
 //
 // This function is adapted from https://github.com/decred/dcrd and
-// https://github.com/decred/dcrd/dcrutil/v2
+// https://github.com/decred/dcrd/dcrutil/v3
 func GenCertPair(org, certFile, keyFile string, tlsExtraIPs,
 	tlsExtraDomains []string, certValidity time.Duration) error {
 

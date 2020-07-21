@@ -3,7 +3,7 @@ package lnwire
 import (
 	"io"
 
-	"github.com/decred/dcrd/dcrutil/v2"
+	"github.com/decred/dcrd/dcrutil/v3"
 )
 
 // ClosingSigned is sent by both parties to a channel once the channel is clear

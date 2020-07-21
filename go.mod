@@ -10,26 +10,21 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/decred/dcrd v1.2.1-0.20200604211334-3f43437d1338
 	github.com/decred/dcrd/bech32 v1.0.0
-	github.com/decred/dcrd/blockchain/stake v1.2.1
-	github.com/decred/dcrd/blockchain/standalone v1.1.0
-	github.com/decred/dcrd/blockchain/v2 v2.1.0
+	github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200608124004-b2f67c2dc475
+	github.com/decred/dcrd/blockchain/standalone/v2 v2.0.0-20200721173351-66807231ce05
+	github.com/decred/dcrd/blockchain/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
-	github.com/decred/dcrd/chaincfg/v2 v2.3.0
 	github.com/decred/dcrd/chaincfg/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/connmgr v1.1.0
 	github.com/decred/dcrd/dcrec v1.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0
 	github.com/decred/dcrd/dcrec/secp256k1/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/dcrjson/v2 v2.2.0
-	github.com/decred/dcrd/dcrutil v1.4.0
-	github.com/decred/dcrd/dcrutil/v2 v2.0.1
 	github.com/decred/dcrd/dcrutil/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/gcs/v2 v2.0.2-0.20200608124004-b2f67c2dc475
-	github.com/decred/dcrd/hdkeychain/v2 v2.1.0
 	github.com/decred/dcrd/hdkeychain/v3 v3.0.0
 	github.com/decred/dcrd/rpc/jsonrpc/types/v2 v2.0.1-0.20200503044000-76f6906e50e5
 	github.com/decred/dcrd/rpcclient/v6 v6.0.0-20200616182840-3baf1f590cb1
-	github.com/decred/dcrd/txscript/v2 v2.1.0
 	github.com/decred/dcrd/txscript/v3 v3.0.0-20200608124004-b2f67c2dc475
 	github.com/decred/dcrd/wire v1.3.0
 	github.com/decred/lightning-onion/v3 v3.0.0-20200707162618-08f2e355dbb0
@@ -57,6 +52,8 @@ require (
 	github.com/matheusd/google-protobuf-protos v0.0.0-20200707194502-ef6ec5c2266f
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/miekg/dns v1.1.3
+	github.com/onsi/ginkgo v1.7.0 // indirect
+	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/prometheus/client_golang v0.9.3
 	github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02
 	github.com/urfave/cli v1.20.0
@@ -72,6 +69,7 @@ require (
 	gopkg.in/macaroon-bakery.v2 v2.1.0
 	gopkg.in/macaroon.v2 v2.0.0
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
 
 replace (
