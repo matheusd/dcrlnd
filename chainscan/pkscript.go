@@ -8,16 +8,20 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/chaincfg/v2"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
 )
 
 const (
-	// sigLen is the maximum length of a signature data push in a p2pkh
-	// sigScript.
-	sigLen = 72
+	// minSigLen is the minimum length of a signature data push (a
+	// DER-encoded ECDSA signature) in a p2pkh sigScript.
+	minSigLen = 8
+
+	// maxSigLen is the maximum length of a signature data push (a
+	// DER-encoded ECDSA signature) in a p2pkh sigScript.
+	maxSigLen = 72
 
 	// compressedPubKeyLen is the length in bytes of a compressed public
 	// key.
@@ -230,8 +234,7 @@ func ComputePkScript(scriptVersion uint16, sigScript []byte) (PkScript, error) {
 	// standard p2pkh will only have an extra signature data push.
 	lastData := tokenizer.Data()
 	lastDataHash := dcrutil.Hash160(lastData)
-	firstDataIsSigLen := len(firstData) == sigLen ||
-		len(firstData) == sigLen-1
+	firstDataIsSigLen := len(firstData) >= minSigLen && len(firstData) <= maxSigLen
 	lastDataIsPubkeyLen := len(lastData) == compressedPubKeyLen
 	if opcodeCount == 2 && firstDataIsSigLen && lastDataIsPubkeyLen {
 		// The sigScript has the correct structure for spending a
