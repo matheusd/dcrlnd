@@ -1476,7 +1476,7 @@ func capturePassword(instruction string, optional bool,
 			continue
 		}
 
-		fmt.Println("Confirm password:")
+		fmt.Printf("Confirm password: ")
 		passwordConfirmed, err := readPassword()
 		if err != nil {
 			return nil, err
