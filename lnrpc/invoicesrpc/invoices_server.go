@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntypes"
+	"github.com/decred/dcrlnd/macaroons"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 )
 
@@ -99,9 +100,8 @@ func New(cfg *Config) (*Server, lnrpc.MacaroonPerms, error) {
 		// At this point, we know that the invoices macaroon doesn't
 		// yet, exist, so we need to create it with the help of the
 		// main macaroon service.
-		invoicesMac, err := cfg.MacService.Oven.NewMacaroon(
-			context.Background(), bakery.LatestVersion, nil,
-			macaroonOps...,
+		invoicesMac, err := cfg.MacService.NewMacaroon(
+			context.Background(), macaroons.DefaultRootKeyID, macaroonOps...,
 		)
 		if err != nil {
 			return nil, nil, err

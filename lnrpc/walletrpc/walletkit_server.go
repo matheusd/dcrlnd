@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrlnd/lnwallet"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
+	"github.com/decred/dcrlnd/macaroons"
 	"github.com/decred/dcrlnd/sweep"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
@@ -155,8 +156,9 @@ func New(cfg *Config) (*WalletKit, lnrpc.MacaroonPerms, error) {
 		// At this point, we know that the wallet kit macaroon doesn't
 		// yet, exist, so we need to create it with the help of the
 		// main macaroon service.
-		walletKitMac, err := cfg.MacService.Oven.NewMacaroon(
-			context.Background(), bakery.LatestVersion, nil,
+		walletKitMac, err := cfg.MacService.NewMacaroon(
+			context.Background(),
+			macaroons.DefaultRootKeyID,
 			macaroonOps...,
 		)
 		if err != nil {

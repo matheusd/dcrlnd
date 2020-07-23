@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/lnrpc"
+	"github.com/decred/dcrlnd/macaroons"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 	"gopkg.in/macaroon-bakery.v2/bakery"
@@ -119,8 +120,9 @@ func New(cfg *Config) (*Server, lnrpc.MacaroonPerms, error) {
 		// At this point, we know that the chain notifier macaroon
 		// doesn't yet, exist, so we need to create it with the help of
 		// the main macaroon service.
-		chainNotifierMac, err := cfg.MacService.Oven.NewMacaroon(
-			context.Background(), bakery.LatestVersion, nil,
+		chainNotifierMac, err := cfg.MacService.NewMacaroon(
+			context.Background(),
+			macaroons.DefaultRootKeyID,
 			macaroonOps...,
 		)
 		if err != nil {
