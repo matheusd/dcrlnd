@@ -207,6 +207,12 @@ var (
 		"onchain", "offchain", "address", "message",
 		"peers", "info", "invoices", "signer", "macaroon",
 	}
+
+	// If the --no-macaroons flag is used to start lnd, the macaroon service
+	// is not initialized. errMacaroonDisabled is then returned when
+	// macaroon related services are used.
+	errMacaroonDisabled = fmt.Errorf("macaroon authentication disabled, " +
+		"remove --no-macaroons flag to enable")
 )
 
 // stringInSlice returns true if a string is contained in the given slice.
@@ -6660,8 +6666,7 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 	// If the --no-macaroons flag is used to start lnd, the macaroon service
 	// is not initialized. Therefore we can't bake new macaroons.
 	if r.macService == nil {
-		return nil, fmt.Errorf("macaroon authentication disabled, " +
-			"remove --no-macaroons flag to enable")
+		return nil, errMacaroonDisabled
 	}
 
 	helpMsg := fmt.Sprintf("supported actions are %v, supported entities "+
@@ -6693,10 +6698,11 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 		}
 	}
 
-	// Convert root key id from uint64 to bytes. Because the DefaultRootKeyID is
-	// a digit 0 expressed in a byte slice of a string "0", we will keep the IDs
-	// in the same format - all must be numeric, and must be a byte slice of
-	// string value of the digit, e.g., uint64(123) to string(123).
+	// Convert root key id from uint64 to bytes. Because the
+	// DefaultRootKeyID is a digit 0 expressed in a byte slice of a string
+	// "0", we will keep the IDs in the same format - all must be numeric,
+	// and must be a byte slice of string value of the digit, e.g.,
+	// uint64(123) to string(123).
 	rootKeyID := []byte(strconv.FormatUint(req.RootKeyId, 10))
 
 	// Bake new macaroon with the given permissions and send it binary
@@ -6719,15 +6725,15 @@ func (r *rpcServer) BakeMacaroon(ctx context.Context,
 
 // ListMacaroonIDs returns a list of macaroon root key IDs in use.
 func (r *rpcServer) ListMacaroonIDs(ctx context.Context,
-	req *lnrpc.ListMacaroonIDsRequest) (*lnrpc.ListMacaroonIDsResponse, error) {
+	req *lnrpc.ListMacaroonIDsRequest) (
+	*lnrpc.ListMacaroonIDsResponse, error) {
 
 	rpcsLog.Debugf("[listmacaroonids]")
 
 	// If the --no-macaroons flag is used to start lnd, the macaroon service
 	// is not initialized. Therefore we can't show any IDs.
 	if r.macService == nil {
-		return nil, fmt.Errorf("macaroon authentication disabled, " +
-			"remove --no-macaroons flag to enable")
+		return nil, errMacaroonDisabled
 	}
 
 	rootKeyIDByteSlice, err := r.macService.ListMacaroonIDs(ctx)
@@ -6751,21 +6757,21 @@ func (r *rpcServer) ListMacaroonIDs(ctx context.Context,
 
 // DeleteMacaroonID removes a specific macaroon ID.
 func (r *rpcServer) DeleteMacaroonID(ctx context.Context,
-	req *lnrpc.DeleteMacaroonIDRequest) (*lnrpc.DeleteMacaroonIDResponse, error) {
+	req *lnrpc.DeleteMacaroonIDRequest) (
+	*lnrpc.DeleteMacaroonIDResponse, error) {
 
 	rpcsLog.Debugf("[deletemacaroonid]")
 
 	// If the --no-macaroons flag is used to start lnd, the macaroon service
-	// is not initialized. Therefore we can't show any IDs.
+	// is not initialized. Therefore we can't delete any IDs.
 	if r.macService == nil {
-		return nil, fmt.Errorf("macaroon authentication disabled, " +
-			"remove --no-macaroons flag to enable")
+		return nil, errMacaroonDisabled
 	}
 
-	// Convert root key id from uint64 to bytes. Because the DefaultRootKeyID is
-	// a digit 0 expressed in a byte slice of a string "0", we will keep the IDs
-	// in the same format - all must be digit, and must be a byte slice of
-	// string value of the digit.
+	// Convert root key id from uint64 to bytes. Because the
+	// DefaultRootKeyID is a digit 0 expressed in a byte slice of a string
+	// "0", we will keep the IDs in the same format - all must be digit, and
+	// must be a byte slice of string value of the digit.
 	rootKeyID := []byte(strconv.FormatUint(req.RootKeyId, 10))
 	deletedIDBytes, err := r.macService.DeleteMacaroonID(ctx, rootKeyID)
 	if err != nil {
@@ -6773,8 +6779,8 @@ func (r *rpcServer) DeleteMacaroonID(ctx context.Context,
 	}
 
 	return &lnrpc.DeleteMacaroonIDResponse{
-		// If the root key ID doesn't exist, it won't be deleted. We will return
-		// a response with deleted = false, otherwise true.
+		// If the root key ID doesn't exist, it won't be deleted. We
+		// will return a response with deleted = false, otherwise true.
 		Deleted: deletedIDBytes != nil,
 	}, nil
 }
