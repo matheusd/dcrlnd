@@ -15315,6 +15315,14 @@ var testsCases = []*testCase{
 		test: testMacaroonAuthentication,
 	},
 	{
+		name: "bake macaroon",
+		test: testBakeMacaroon,
+	},
+	{
+		name: "delete macaroon id",
+		test: testDeleteMacaroonID,
+	},
+	{
 		name: "immediate payment after channel opened",
 		test: testPaymentFollowingChannelOpen,
 	},
