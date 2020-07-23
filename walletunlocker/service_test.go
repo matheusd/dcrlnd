@@ -12,6 +12,7 @@ import (
 	"decred.org/dcrwallet/wallet"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrlnd/aezeed"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwallet/dcrwallet"
@@ -64,8 +65,8 @@ func TestGenSeed(t *testing.T) {
 	}
 	defer os.RemoveAll(testDir)
 
-	service := walletunlocker.New(testDir, testNetParams, true, nil, "", "",
-		"", "", 0)
+	service := walletunlocker.New(
+		testDir, testNetParams, true, nil, &channeldb.DB{}, "", "", "", "", 0)
 
 	// Now that the service has been created, we'll ask it to generate a
 	// new seed for us given a test passphrase.
@@ -106,8 +107,8 @@ func TestGenSeedGenerateEntropy(t *testing.T) {
 	defer func() {
 		os.RemoveAll(testDir)
 	}()
-	service := walletunlocker.New(testDir, testNetParams, true, nil, "",
-		"", "", "", 0)
+	service := walletunlocker.New(
+		testDir, testNetParams, true, nil, &channeldb.DB{}, "", "", "", "", 0)
 
 	// Now that the service has been created, we'll ask it to generate a
 	// new seed for us given a test passphrase. Note that we don't actually
@@ -147,8 +148,8 @@ func TestGenSeedInvalidEntropy(t *testing.T) {
 	defer func() {
 		os.RemoveAll(testDir)
 	}()
-	service := walletunlocker.New(testDir, testNetParams, true, nil, "", "",
-		"", "", 0)
+	service := walletunlocker.New(testDir, testNetParams, true, nil,
+		&channeldb.DB{}, "", "", "", "", 0)
 
 	// Now that the service has been created, we'll ask it to generate a
 	// new seed for us given a test passphrase. However, we'll be using an
@@ -186,8 +187,8 @@ func TestInitWallet(t *testing.T) {
 	}()
 
 	// Create new UnlockerService.
-	service := walletunlocker.New(testDir, testNetParams, true, nil, "", "",
-		"", "", 0)
+	service := walletunlocker.New(testDir, testNetParams, true, nil,
+		&channeldb.DB{}, "", "", "", "", 0)
 
 	// Once we have the unlocker service created, we'll now instantiate a
 	// new cipher seed instance.
@@ -288,8 +289,8 @@ func TestCreateWalletInvalidEntropy(t *testing.T) {
 	}()
 
 	// Create new UnlockerService.
-	service := walletunlocker.New(testDir, testNetParams, true, nil, "", "",
-		"", "", 0)
+	service := walletunlocker.New(testDir, testNetParams, true, nil,
+		&channeldb.DB{}, "", "", "", "", 0)
 
 	// We'll attempt to init the wallet with an invalid cipher seed and
 	// passphrase.
@@ -322,8 +323,8 @@ func TestUnlockWallet(t *testing.T) {
 	}()
 
 	// Create new UnlockerService.
-	service := walletunlocker.New(testDir, testNetParams, true, nil, "", "",
-		"", "", 0)
+	service := walletunlocker.New(testDir, testNetParams, true, nil,
+		&channeldb.DB{}, "", "", "", "", 0)
 
 	ctx := context.Background()
 	req := &lnrpc.UnlockWalletRequest{
@@ -398,7 +399,7 @@ func TestChangeWalletPassword(t *testing.T) {
 
 	// Create a new UnlockerService with our temp files.
 	service := walletunlocker.New(testDir, testNetParams, true, tempFiles,
-		"", "", "", "", 0)
+		&channeldb.DB{}, "", "", "", "", 0)
 
 	ctx := context.Background()
 	newPassword := []byte("hunter2???")

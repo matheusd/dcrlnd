@@ -371,7 +371,7 @@ func Main(cfg *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) error {
 	if !cfg.NoSeedBackup || isRemoteWallet {
 		params, err := waitForWalletPassword(
 			cfg, cfg.RESTListeners, serverOpts, restDialOpts,
-			restProxyDest, tlsCfg, walletUnlockerListeners,
+			restProxyDest, tlsCfg, walletUnlockerListeners, remoteChanDB,
 		)
 		if err != nil {
 			err := fmt.Errorf("unable to set up wallet password "+
@@ -938,7 +938,7 @@ type WalletUnlockParams struct {
 func waitForWalletPassword(cfg *Config, restEndpoints []net.Addr,
 	serverOpts []grpc.ServerOption, restDialOpts []grpc.DialOption,
 	restProxyDest string, tlsConf *tls.Config,
-	getListeners rpcListeners) (*WalletUnlockParams, error) {
+	getListeners rpcListeners, chanDB *channeldb.DB) (*WalletUnlockParams, error) {
 
 	// Start a gRPC server listening for HTTP/2 connections, solely used
 	// for getting the encryption password from the client.
@@ -975,7 +975,7 @@ func waitForWalletPassword(cfg *Config, restEndpoints []net.Addr,
 	}
 	pwService := walletunlocker.New(
 		cfg.ChainDir, activeNetParams.Params, !cfg.SyncFreelist,
-		macaroonFiles, cfg.Dcrwallet.GRPCHost, cfg.Dcrwallet.CertPath,
+		macaroonFiles, chanDB, cfg.Dcrwallet.GRPCHost, cfg.Dcrwallet.CertPath,
 		cfg.Dcrwallet.ClientKeyPath, cfg.Dcrwallet.ClientCertPath,
 		cfg.Dcrwallet.AccountNumber,
 	)

@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/dcrlnd/aezeed"
 	"github.com/decred/dcrlnd/chanbackup"
+	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lnwallet"
@@ -113,6 +115,7 @@ type UnlockerService struct {
 	chainDir       string
 	noFreelistSync bool
 	netParams      *chaincfg.Params
+	db             *channeldb.DB
 	macaroonFiles  []string
 
 	dcrwHost       string
@@ -124,7 +127,7 @@ type UnlockerService struct {
 
 // New creates and returns a new UnlockerService.
 func New(chainDir string, params *chaincfg.Params, noFreelistSync bool,
-	macaroonFiles []string, dcrwHost, dcrwCert, dcrwClientKey,
+	macaroonFiles []string, db *channeldb.DB, dcrwHost, dcrwCert, dcrwClientKey,
 	dcrwClientCert string, dcrwAccount int32) *UnlockerService {
 
 	return &UnlockerService{
@@ -133,6 +136,7 @@ func New(chainDir string, params *chaincfg.Params, noFreelistSync bool,
 		chainDir:       chainDir,
 		noFreelistSync: noFreelistSync,
 		netParams:      params,
+		db:             db,
 		macaroonFiles:  macaroonFiles,
 		dcrwHost:       dcrwHost,
 		dcrwCert:       dcrwCert,
@@ -405,9 +409,34 @@ func (u *UnlockerService) unlockRemoteWallet(ctx context.Context,
 		AccountNumber: uint32(u.dcrwAccount),
 		Passphrase:    in.WalletPassword,
 	}
-	_, err = wallet.GetAccountExtendedPrivKey(ctx, getAcctReq)
+	getAcctResp, err := wallet.GetAccountExtendedPrivKey(ctx, getAcctReq)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get xpriv: %v", err)
+	}
+
+	// Ensure we don't attempt to use a keyring derived from a different
+	// account than previously used by comparing the first external public
+	// key with the one stored in the database.
+	acctXPriv, err := hdkeychain.NewKeyFromString(
+		getAcctResp.AccExtendedPrivKey, u.netParams,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create account xpriv: %v", err)
+	}
+
+	branchExtXPriv, err := acctXPriv.Child(0)
+	if err != nil {
+		return nil, fmt.Errorf("unable to derive the external branch xpriv: %v", err)
+	}
+
+	firstKey, err := branchExtXPriv.Child(0)
+	if err != nil {
+		return nil, fmt.Errorf("unable to derive first external key: %v", err)
+	}
+	firstPubKeyBytes := firstKey.SerializedPubKey()
+	if err = u.db.CompareAndStoreAccountID(firstPubKeyBytes); err != nil {
+		return nil, fmt.Errorf("account number %d failed to generate "+
+			"previously stored account ID: %v", u.dcrwAccount, err)
 	}
 
 	// We successfully opened the wallet and pass the instance back to
