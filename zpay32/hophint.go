@@ -3,9 +3,10 @@ package zpay32
 import "github.com/decred/dcrd/dcrec/secp256k1/v3"
 
 const (
-	// DefaultFinalCLTVDelta is the default value to be used as the final
-	// CLTV delta for a route if one is unspecified.
-	DefaultFinalCLTVDelta = 9
+	// DefaultAssumedFinalCLTVDelta is the default value to be used as the
+	// final CLTV delta for a route if one is unspecified in the payment
+	// request.
+	DefaultAssumedFinalCLTVDelta = 9
 )
 
 // HopHint is a routing hint that contains the minimum information of a channel

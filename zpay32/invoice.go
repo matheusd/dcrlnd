@@ -333,7 +333,7 @@ func (invoice *Invoice) MinFinalCLTVExpiry() uint64 {
 		return *invoice.minFinalCLTVExpiry
 	}
 
-	return DefaultFinalCLTVDelta
+	return DefaultAssumedFinalCLTVDelta
 }
 
 // validateInvoice does a sanity check of the provided Invoice, making sure it
