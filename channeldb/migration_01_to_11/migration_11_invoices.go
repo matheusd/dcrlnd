@@ -9,8 +9,8 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb/kvdb"
+	"github.com/decred/dcrlnd/channeldb/migration_01_to_11/zpay32"
 	"github.com/decred/dcrlnd/lnwire"
-	"github.com/decred/dcrlnd/zpay32"
 )
 
 // MigrateInvoices adds invoice htlcs and a separate cltv delta field to the
