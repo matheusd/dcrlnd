@@ -9,15 +9,16 @@ import (
 	"math"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrutil/v3"
+
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lntypes"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/netann"
+	"github.com/decred/dcrlnd/routing"
 	"github.com/decred/dcrlnd/zpay32"
-
-	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/decred/dcrd/dcrutil/v3"
 )
 
 // AddInvoiceConfig contains dependencies for invoice creation.
@@ -229,6 +230,14 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 		return nil, nil, fmt.Errorf("CLTV delta of %v is too large, max "+
 			"accepted is: %v", invoice.CltvExpiry, math.MaxUint16)
 	case invoice.CltvExpiry != 0:
+		// Disallow user-chosen final CLTV deltas below the required
+		// minimum.
+		if invoice.CltvExpiry < routing.MinCLTVDelta {
+			return nil, nil, fmt.Errorf("CLTV delta of %v must be "+
+				"greater than minimum of %v",
+				routing.MinCLTVDelta, invoice.CltvExpiry)
+		}
+
 		options = append(options,
 			zpay32.CLTVExpiry(invoice.CltvExpiry))
 	default:

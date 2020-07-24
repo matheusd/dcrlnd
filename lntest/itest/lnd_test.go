@@ -9316,7 +9316,7 @@ func testRevokedCloseRetributionRemoteHodlSecondLevel(net *lntest.NetworkHarness
 		// The new CLTV delta will be the minimum the node will accept
 		// + 4 so that it doesn't immediately close the channel after
 		// restarting.
-		cltvDelta = lncfg.DefaultIncomingBroadcastDelta + 4
+		cltvDelta = routing.MinCLTVDelta + 4
 
 		// The new CSV delay will be the previous delta + 2 so that
 		// Carol doesn't attempt to redeem the CSV-encumbered
