@@ -446,7 +446,9 @@ func (n *NetworkHarness) connect(ctx context.Context,
 tryconnect:
 	if _, err := a.ConnectPeer(ctx, req); err != nil {
 		// If the chain backend is still syncing, retry.
-		if err == dcrlnd.ErrServerNotActive {
+		if strings.Contains(err.Error(), dcrlnd.ErrServerNotActive.Error()) ||
+			strings.Contains(err.Error(), "i/o timeout") {
+
 			select {
 			case <-time.After(100 * time.Millisecond):
 				goto tryconnect
