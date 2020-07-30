@@ -201,14 +201,25 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			"cache: %v", err)
 	}
 
-	switch cfg.Node {
-	case "dcrd", "dcrw":
-		// Otherwise, we'll be speaking directly via RPC to a node.
-		//
-		// So first we'll load dcrd's TLS cert for the RPC
-		// connection. If a raw cert was specified in the config, then
-		// we'll set that directly. Otherwise, we attempt to read the
-		// cert from the path specified in the config.
+	// When running in remote wallet mode, we only support running in dcrw
+	// mode (using the wallet for chain operations).
+	if conn != nil && cfg.Node != "dcrw" {
+		return nil, fmt.Errorf("remote wallet mode only supports " +
+			"'dcrw' node config")
+	}
+
+	// When running in embedded wallet mode, we require an underlying dcrd
+	// instance whether running in dcrd or dcrw node modes, so we test the
+	// connection to the dcrd instance.
+	//
+	// Conversely, when running in remote wallet mode we only allow the
+	// dcrw node mode (per the above conditional check) so there's no need
+	// to check the connection to a dcrd instance.
+	if conn == nil {
+		// Load dcrd's TLS cert for the RPC connection.  If a raw cert
+		// was specified in the config, then we'll set that directly.
+		// Otherwise, we attempt to read the cert from the path
+		// specified in the config.
 		dcrdMode := cfg.DcrdMode
 		var rpcCert []byte
 		if dcrdMode.RawRPCCert != "" {
@@ -263,70 +274,6 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 				err)
 			return nil, err
 		}
-
-		// We only connect and use an underlying dcrd instance when
-		// running with an embedded wallet and in dcrd mode. Otherwise
-		// we'll use the wallet for chain operations.
-		if conn == nil && cfg.Node == "dcrd" {
-			srvrLog.Info("Using dcrd for chain operations")
-
-			cc.chainNotifier, err = dcrdnotify.New(
-				rpcConfig, activeNetParams.Params, hintCache, hintCache,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			// Finally, we'll create an instance of the default chain view to be
-			// used within the routing layer.
-			cc.chainView, err = chainview.NewDcrdFilteredChainView(*rpcConfig)
-			if err != nil {
-				srvrLog.Errorf("unable to create chain view: %v", err)
-				return nil, err
-			}
-
-			cc.chainIO, err = dcrwallet.NewRPCChainIO(*rpcConfig, activeNetParams.Params)
-			if err != nil {
-				return nil, err
-			}
-
-			// If we're not in simnet or regtest mode, then we'll attempt
-			// to use a proper fee estimator for testnet.
-			if !cfg.SimNet && !cfg.RegTest {
-				ltndLog.Infof("Initializing dcrd backed fee estimator")
-
-				// Finally, we'll re-initialize the fee estimator, as
-				// if we're using dcrd as a backend, then we can use
-				// live fee estimates, rather than a statically coded
-				// value.
-				//
-				// TODO(decred) Review if fallbackFeeRate should be higher than
-				// the default relay fee.
-				fallBackFeeRate := chainfee.AtomPerKByte(1e4)
-				cc.feeEstimator, err = chainfee.NewDcrdEstimator(
-					*rpcConfig, fallBackFeeRate,
-				)
-				if err != nil {
-					return nil, err
-				}
-				if err := cc.feeEstimator.Start(); err != nil {
-					return nil, err
-				}
-			}
-		} else {
-			srvrLog.Info("Using underlying wallet for chain operations")
-		}
-
-	case "spv":
-		// TODO: support SPV mode with an embedded wallet.
-		if conn == nil {
-			return nil, fmt.Errorf("SPV mode is not supported when " +
-				"using an embedded wallet. Use --node=dcrd or " +
-				"--node=dcrw")
-		}
-	default:
-		return nil, fmt.Errorf("unknown node type: %s",
-			cfg.Node)
 	}
 
 	var secretKeyRing keychain.SecretKeyRing
@@ -335,10 +282,10 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 	// dcrwallet or a remote one).
 	switch {
 	case conn != nil:
+		srvrLog.Info("Using the remote wallet for chain operations")
+
 		// Initialize an RPC syncer for this wallet and use it as
 		// blockchain IO source.
-		//
-		// TODO: switch based on the selected backend mode (rpc/spv).
 		dcrwConfig := &remotedcrwallet.Config{
 			PrivatePass:   privateWalletPw,
 			NetParams:     activeNetParams.Params,
@@ -354,6 +301,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			return nil, err
 		}
 
+		// Remote wallet mode currently always use the wallet for chain
+		// notifications and chain IO.
 		cc.chainNotifier, err = remotedcrwnotify.New(
 			conn, activeNetParams.Params, hintCache, hintCache,
 		)
@@ -378,7 +327,8 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 		// Initialize an RPC syncer for this wallet and use it as
 		// blockchain IO source.
 		//
-		// TODO: switch based on the selected backend mode (rpc/spv).
+		// We don't currently support running an embedded wallet in spv
+		// mode.
 		syncer, err := dcrwallet.NewRPCSyncer(*rpcConfig,
 			activeNetParams.Params)
 		if err != nil {
@@ -405,7 +355,13 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			return nil, err
 		}
 
-		if cfg.Node == "dcrw" {
+		// When running with an embedded wallet we can run in either
+		// dcrw or dcrd node modes.
+		switch cfg.Node {
+		case "dcrw":
+			// Use the wallet itself for chain IO.
+			srvrLog.Info("Using the wallet for chain operations")
+
 			cc.chainNotifier, err = dcrwnotify.New(
 				wc.InternalWallet(), activeNetParams.Params, hintCache, hintCache,
 			)
@@ -420,6 +376,54 @@ func newChainControlFromConfig(cfg *config, chanDB *channeldb.DB,
 			}
 
 			cc.chainIO = wc
+
+		case "dcrd":
+			// Use the dcrd node for chain IO.
+			srvrLog.Info("Using dcrd for chain operations")
+
+			cc.chainNotifier, err = dcrdnotify.New(
+				rpcConfig, activeNetParams.Params, hintCache, hintCache,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			// Finally, we'll create an instance of the default
+			// chain view to be used within the routing layer.
+			cc.chainView, err = chainview.NewDcrdFilteredChainView(*rpcConfig)
+			if err != nil {
+				srvrLog.Errorf("unable to create chain view: %v", err)
+				return nil, err
+			}
+
+			cc.chainIO, err = dcrwallet.NewRPCChainIO(*rpcConfig, activeNetParams.Params)
+			if err != nil {
+				return nil, err
+			}
+
+			// If we're not in simnet or regtest mode, then we'll
+			// attempt to use a proper fee estimator.
+			if !cfg.SimNet && !cfg.RegTest {
+				ltndLog.Infof("Initializing dcrd backed fee estimator")
+
+				// Finally, we'll re-initialize the fee estimator, as
+				// if we're using dcrd as a backend, then we can use
+				// live fee estimates, rather than a statically coded
+				// value.
+				//
+				// TODO(decred) Review if fallbackFeeRate should be higher than
+				// the default relay fee.
+				fallBackFeeRate := chainfee.AtomPerKByte(1e4)
+				cc.feeEstimator, err = chainfee.NewDcrdEstimator(
+					*rpcConfig, fallBackFeeRate,
+				)
+				if err != nil {
+					return nil, err
+				}
+				if err := cc.feeEstimator.Start(); err != nil {
+					return nil, err
+				}
+			}
 		}
 
 		secretKeyRing = wc

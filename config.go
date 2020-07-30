@@ -245,7 +245,7 @@ type config struct {
 	BackupFilePath     string `long:"backupfilepath" description:"The target location of the channel backup file"`
 
 	ChainDir            string           `long:"chaindir" description:"The directory to store the chain's data within."`
-	Node                string           `long:"node" description:"The blockchain interface to use." choice:"dcrd" choice:"dcrw" choice:"spv"`
+	Node                string           `long:"node" description:"The blockchain interface to use." choice:"dcrd" choice:"dcrw"`
 	TestNet3            bool             `long:"testnet" description:"Use the test network"`
 	SimNet              bool             `long:"simnet" description:"Use the simulation test network"`
 	RegTest             bool             `long:"regtest" description:"Use the regression test network"`
@@ -691,7 +691,7 @@ func loadConfig() (*config, error) {
 	}
 
 	switch cfg.Node {
-	case "dcrd", "dcrw":
+	case "dcrd":
 		err := parseRPCParams(
 			cfg.DcrdMode, decredChain, cfg.SimNet,
 			cfg.Node, funcName,
@@ -701,11 +701,11 @@ func loadConfig() (*config, error) {
 				"credentials for dcrd: %v", err)
 			return nil, err
 		}
-	case "spv":
-		// In SPV mode we use the underlying wallet for chain
+	case "dcrw":
+		// In dcrw mode we use the underlying wallet for chain
 		// operations.
 	default:
-		str := "%s: only dcrd mode supported for Decred at " +
+		str := "%s: only dcrd and dcrw modes supported for Decred at " +
 			"this time"
 		return nil, fmt.Errorf(str, funcName)
 	}
