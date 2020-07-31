@@ -5378,7 +5378,7 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 	for _, test := range singleHopSendToRouteCases {
 		test := test
 
-		t.t.Run(test.name, func(t1 *testing.T) {
+		ok := t.t.Run(test.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, t.lndHarness)
 			ht.RunTestCase(&testCase{
 				name: test.name,
@@ -5387,6 +5387,9 @@ func testSingleHopSendToRoute(net *lntest.NetworkHarness, t *harnessTest) {
 				},
 			})
 		})
+		if !ok {
+			break
+		}
 	}
 }
 
