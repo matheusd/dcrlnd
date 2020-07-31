@@ -148,10 +148,15 @@ build-itest:
 	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlnd-itest $(LDFLAGS) $(PKG)/cmd/dcrlnd
 	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlncli-itest $(LDFLAGS) $(PKG)/cmd/dcrlncli
 
-build-all: 
+build-all:
 	@$(call print, "Building debug dcrlnd and dcrlncli with all submodules.")
 	$(GOBUILD) -o dcrlnd-debug $(LDFLAGS) $(PKG)/cmd/dcrlnd
 	$(GOBUILD) -o dcrlncli-debug $(LDFLAGS) $(PKG)/cmd/dcrlncli
+
+build-itest-windows:
+	@$(call print, "Building itest lnd and lncli.")
+	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlnd-itest.exe $(ITEST_LDFLAGS) $(PKG)/cmd/dcrlnd
+	$(GOBUILD) -tags="$(ITEST_TAGS)" -o dcrlncli-itest.exe $(ITEST_LDFLAGS) $(PKG)/cmd/dcrlncli
 
 install:
 	@$(call print, "Installing dcrlnd and dcrlncli.")
@@ -179,6 +184,8 @@ itest-only:
 #	lntest/itest/log_check_errors.sh
 
 itest: dcrd dcrwallet build-itest itest-only
+
+itest-windows: dcrd dcrwallet build-itest-windows itest-only
 
 unit-only:
 	@$(call print, "Running unit tests.")
