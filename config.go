@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrlnd/discovery"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/htlcswitch/hodl"
+	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lncfg"
 	"github.com/decred/dcrlnd/lnrpc/routerrpc"
 	"github.com/decred/dcrlnd/lnrpc/signrpc"
@@ -87,6 +88,11 @@ const (
 	// HostAnnouncer will wait between DNS resolutions to check if the
 	// backing IP of a host has changed.
 	defaultHostSampleInterval = time.Minute * 5
+
+	// defaultRemoteMaxHtlcs specifies the default limit for maximum
+	// concurrent HTLCs the remote party may add to commitment transactions.
+	// This value can be overridden with --default-remote-max-htlcs.
+	defaultRemoteMaxHtlcs = input.MaxHTLCNumber / 2
 )
 
 var (
@@ -216,6 +222,8 @@ type Config struct {
 	Color                       string `long:"color" description:"The color of the node in hex format (i.e. '#3399FF'). Used to customize node appearance in intelligence services"`
 	MinChanSize                 int64  `long:"minchansize" description:"The smallest channel size (in atoms) that we should accept. Incoming channels smaller than this will be rejected"`
 
+	DefaultRemoteMaxHtlcs uint16 `long:"default-remote-max-htlcs" description:"The default max_htlc applied when opening or accepting channels. This value limits the number of concurrent HTLCs that the remote party can add to the commitment. The maximum possible value is 300."`
+
 	NumGraphSyncPeers      int           `long:"numgraphsyncpeers" description:"The number of peers that we should receive new graph updates from. This option can be tuned to save bandwidth for light clients or routing nodes."`
 	HistoricalSyncInterval time.Duration `long:"historicalsyncinterval" description:"The polling interval between historical graph sync attempts. Each historical graph sync attempt ensures we reconcile with the remote peer's graph from the genesis block."`
 
@@ -327,6 +335,7 @@ func DefaultConfig() Config {
 		Alias:                         defaultAlias,
 		Color:                         defaultColor,
 		MinChanSize:                   int64(minChanFundingSize),
+		DefaultRemoteMaxHtlcs:         defaultRemoteMaxHtlcs,
 		NumGraphSyncPeers:             defaultMinPeers,
 		HistoricalSyncInterval:        discovery.DefaultHistoricalSyncInterval,
 		Tor: &lncfg.Tor{
@@ -967,6 +976,15 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 	// then we'll use that directly.
 	if cfg.SyncFreelist {
 		cfg.DB.Bolt.SyncFreelist = cfg.SyncFreelist
+	}
+
+	// Ensure that the user hasn't chosen a remote-max-htlc value greater
+	// than the protocol maximum.
+	maxRemoteHtlcs := uint16(input.MaxHTLCNumber / 2)
+	if cfg.DefaultRemoteMaxHtlcs > maxRemoteHtlcs {
+		return nil, fmt.Errorf("default-remote-max-htlcs (%v) must be "+
+			"less than %v", cfg.DefaultRemoteMaxHtlcs,
+			maxRemoteHtlcs)
 	}
 
 	// Validate the subconfigs for workers, caches, and the tower client.
