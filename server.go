@@ -3299,6 +3299,8 @@ type openChanReq struct {
 	// be pending within the channel. It only applies to the remote party.
 	maxValueInFlight lnwire.MilliAtom
 
+	maxHtlcs uint16
+
 	// TODO(roasbeef): add ability to specify channel constraints as well
 
 	// chanFunder is an optional channel funder that allows the caller to
