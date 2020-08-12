@@ -5170,7 +5170,7 @@ func testListChannels(net *lntest.NetworkHarness, t *harnessTest) {
 		MaxAcceptedHtlcs:    input.MaxHTLCNumber / 2,
 	}
 	assertChannelConstraintsEqual(
-		t, aliceChannel.LocalConstraints, defaultConstraints,
+		t, defaultConstraints, aliceChannel.LocalConstraints,
 	)
 
 	// customizedConstraints is a ChannelConstraints with customized values.
@@ -5186,7 +5186,7 @@ func testListChannels(net *lntest.NetworkHarness, t *harnessTest) {
 		MaxAcceptedHtlcs:    input.MaxHTLCNumber / 2,
 	}
 	assertChannelConstraintsEqual(
-		t, aliceChannel.RemoteConstraints, customizedConstraints,
+		t, customizedConstraints, aliceChannel.RemoteConstraints,
 	)
 
 	// Get the ListChannel response for Bob.
