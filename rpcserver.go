@@ -1711,6 +1711,7 @@ func (r *rpcServer) parseOpenChannelReq(in *lnrpc.OpenChannelRequest,
 	minHtlcIn := lnwire.MilliAtom(in.MinHtlcMAtoms)
 	remoteCsvDelay := uint16(in.RemoteCsvDelay)
 	maxValue := lnwire.MilliAtom(in.RemoteMaxValueInFlightMAtoms)
+	maxHtlcs := uint16(in.RemoteMaxHtlcs)
 
 	globalFeatureSet := r.server.featureMgr.Get(feature.SetNodeAnn)
 
@@ -1741,6 +1742,13 @@ func (r *rpcServer) parseOpenChannelReq(in *lnrpc.OpenChannelRequest,
 	if localFundingAmt < minChanFundingSize {
 		return nil, fmt.Errorf("channel is too small, the minimum "+
 			"channel size is: %v atoms", int64(minChanFundingSize))
+	}
+
+	// Prevent users from submitting a max-htlc value that would exceed the
+	// protocol maximum.
+	if maxHtlcs > input.MaxHTLCNumber/2 {
+		return nil, fmt.Errorf("remote-max-htlcs (%v) cannot be "+
+			"greater than %v", maxHtlcs, input.MaxHTLCNumber/2)
 	}
 
 	// Then, we'll extract the minimum number of confirmations that each
@@ -1829,6 +1837,7 @@ func (r *rpcServer) parseOpenChannelReq(in *lnrpc.OpenChannelRequest,
 		minConfs:         minConfs,
 		shutdownScript:   script,
 		maxValueInFlight: maxValue,
+		maxHtlcs:         maxHtlcs,
 	}, nil
 }
 
