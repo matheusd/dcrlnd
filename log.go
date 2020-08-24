@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrlnd/channelnotifier"
 	"github.com/decred/dcrlnd/contractcourt"
 	"github.com/decred/dcrlnd/discovery"
+	"github.com/decred/dcrlnd/healthcheck"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/invoices"
 	"github.com/decred/dcrlnd/keychain"
@@ -132,6 +133,7 @@ func SetupLoggers(root *build.RotatingLogWriter) {
 	AddSubLogger(root, routerrpc.Subsystem, routerrpc.UseLogger)
 	AddSubLogger(root, chanfitness.Subsystem, chanfitness.UseLogger)
 	AddSubLogger(root, verrpc.Subsystem, verrpc.UseLogger)
+	AddSubLogger(root, healthcheck.Subsystem, healthcheck.UseLogger)
 
 	// Decred-specific logs.
 	AddSubLogger(root, "DCRW", dcrwallet.UseLogger)
@@ -139,7 +141,6 @@ func SetupLoggers(root *build.RotatingLogWriter) {
 	AddSubLogger(root, "KCHN", keychain.UseLogger)
 	AddSubLogger(root, "CSCN", chainscan.UseLogger)
 	AddSubLogger(root, "CSDR", csdrivers.UseLogger)
-
 }
 
 // AddSubLogger is a helper method to conveniently create and register the
