@@ -6204,21 +6204,13 @@ func (lc *LightningChannel) CreateCloseProposal(proposedFee dcrutil.Amount,
 		return nil, nil, 0, ErrChanClosing
 	}
 
-	// Subtract the proposed fee from the appropriate balance, taking care
-	// not to persist the adjusted balance, as the feeRate may change
+	// Get the final balances after subtracting the proposed fee, taking
+	// care not to persist the adjusted balance, as the feeRate may change
 	// during the channel closing process.
-	localCommit := lc.channelState.LocalCommitment
-	ourBalance := localCommit.LocalBalance.ToAtoms()
-	theirBalance := localCommit.RemoteBalance.ToAtoms()
-
-	// We'll make sure we account for the complete balance by adding the
-	// current dangling commitment fee to the balance of the initiator.
-	commitFee := localCommit.CommitFee
-	if lc.channelState.IsInitiator {
-		ourBalance = ourBalance - proposedFee + commitFee
-	} else {
-		theirBalance = theirBalance - proposedFee + commitFee
-	}
+	ourBalance, theirBalance := CoopCloseBalance(
+		lc.channelState.ChanType, lc.channelState.IsInitiator,
+		proposedFee, lc.channelState.LocalCommitment,
+	)
 
 	closeTx := CreateCooperativeCloseTx(
 		fundingTxIn(lc.channelState), lc.channelState.LocalChanCfg.DustLimit,
@@ -6271,21 +6263,11 @@ func (lc *LightningChannel) CompleteCooperativeClose(
 		return nil, 0, ErrChanClosing
 	}
 
-	// Subtract the proposed fee from the appropriate balance, taking care
-	// not to persist the adjusted balance, as the feeRate may change
-	// during the channel closing process.
-	localCommit := lc.channelState.LocalCommitment
-	ourBalance := localCommit.LocalBalance.ToAtoms()
-	theirBalance := localCommit.RemoteBalance.ToAtoms()
-
-	// We'll make sure we account for the complete balance by adding the
-	// current dangling commitment fee to the balance of the initiator.
-	commitFee := localCommit.CommitFee
-	if lc.channelState.IsInitiator {
-		ourBalance = ourBalance - proposedFee + commitFee
-	} else {
-		theirBalance = theirBalance - proposedFee + commitFee
-	}
+	// Get the final balances after subtracting the proposed fee.
+	ourBalance, theirBalance := CoopCloseBalance(
+		lc.channelState.ChanType, lc.channelState.IsInitiator,
+		proposedFee, lc.channelState.LocalCommitment,
+	)
 
 	// Create the transaction used to return the current settled balance
 	// on this active channel back to both parties. In this current model,
