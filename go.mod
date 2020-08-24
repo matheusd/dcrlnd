@@ -63,6 +63,7 @@ require (
 	gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3 // indirect
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
+	golang.org/x/sys v0.0.0-20200803210538-64077c9b5642
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
