@@ -6207,10 +6207,13 @@ func (lc *LightningChannel) CreateCloseProposal(proposedFee dcrutil.Amount,
 	// Get the final balances after subtracting the proposed fee, taking
 	// care not to persist the adjusted balance, as the feeRate may change
 	// during the channel closing process.
-	ourBalance, theirBalance := CoopCloseBalance(
+	ourBalance, theirBalance, err := CoopCloseBalance(
 		lc.channelState.ChanType, lc.channelState.IsInitiator,
 		proposedFee, lc.channelState.LocalCommitment,
 	)
+	if err != nil {
+		return nil, nil, 0, err
+	}
 
 	closeTx := CreateCooperativeCloseTx(
 		fundingTxIn(lc.channelState), lc.channelState.LocalChanCfg.DustLimit,
@@ -6264,10 +6267,13 @@ func (lc *LightningChannel) CompleteCooperativeClose(
 	}
 
 	// Get the final balances after subtracting the proposed fee.
-	ourBalance, theirBalance := CoopCloseBalance(
+	ourBalance, theirBalance, err := CoopCloseBalance(
 		lc.channelState.ChanType, lc.channelState.IsInitiator,
 		proposedFee, lc.channelState.LocalCommitment,
 	)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	// Create the transaction used to return the current settled balance
 	// on this active channel back to both parties. In this current model,
