@@ -323,6 +323,7 @@ func main() {
 		bakeMacaroonCommand,
 		listMacaroonIDsCommand,
 		deleteMacaroonIDCommand,
+		listPermissionsCommand,
 		trackPaymentCommand,
 		versionCommand,
 	}
