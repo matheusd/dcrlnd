@@ -324,6 +324,7 @@ func main() {
 		listMacaroonIDsCommand,
 		deleteMacaroonIDCommand,
 		listPermissionsCommand,
+		printMacaroonCommand,
 		trackPaymentCommand,
 		versionCommand,
 	}
