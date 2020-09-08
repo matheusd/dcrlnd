@@ -243,6 +243,13 @@ func Main(cfg *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) error {
 		defer pprof.StopCPUProfile()
 	}
 
+	if cfg.DB.Backend != "bolt" && network == "mainnet" {
+		err := fmt.Errorf("Only bbolt db backend has been tested in production " +
+			"for dcrlnd.")
+		ltndLog.Error(err)
+		return err
+	}
+
 	// Create the network-segmented directory for the channel database.
 	ltndLog.Infof("Opening the main database, this might take a few " +
 		"minutes...")
