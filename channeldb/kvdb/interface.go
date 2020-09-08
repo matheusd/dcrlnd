@@ -1,7 +1,7 @@
 package kvdb
 
 import (
-	"github.com/decred/dcrlnd/channeldb/internal/walletdb"
+	"github.com/btcsuite/btcwallet/walletdb"
 )
 
 // Update opens a database read/write transaction and executes the function f

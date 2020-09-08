@@ -1,7 +1,7 @@
 package kvdb
 
 import (
-	_ "github.com/decred/dcrlnd/channeldb/internal/walletdb/bdb" // Import to register backend.
+	_ "github.com/btcsuite/btcwallet/walletdb/bdb" // Import to register backend.
 )
 
 // BoltBackendName is the name of the backend that should be passed into
