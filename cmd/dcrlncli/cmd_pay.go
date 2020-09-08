@@ -21,7 +21,7 @@ import (
 	"github.com/decred/dcrlnd/routing/route"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
-	"github.com/lightninglabs/protobuf-hex-display/jsonpb"
+	"github.com/matheusd/protobuf-hex-display/jsonpb"
 	"github.com/urfave/cli"
 )
 

@@ -4,10 +4,6 @@
     "title": "routerrpc/router.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],
@@ -786,6 +782,27 @@
     "routerrpcSettleEvent": {
       "type": "object"
     },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "runtimeStreamError": {
       "type": "object",
       "properties": {
@@ -810,44 +827,6 @@
           }
         }
       }
-    }
-  },
-  "x-stream-definitions": {
-    "lnrpcPayment": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/lnrpcPayment"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of lnrpcPayment"
-    },
-    "routerrpcHtlcEvent": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/routerrpcHtlcEvent"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of routerrpcHtlcEvent"
-    },
-    "routerrpcPaymentStatus": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/routerrpcPaymentStatus"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of routerrpcPaymentStatus"
     }
   }
 }

@@ -33,8 +33,7 @@ var (
 	testPrivkey = secp256k1.PrivKeyFromBytes(make([]byte, 32))
 	testPubkey  = testPrivkey.PubKey()
 
-	testTx                   = wire.NewMsgTx()
-	testMaxDERSigPlusSigHash = make([]byte, maxDERSignatureSize+1)
+	testTx = wire.NewMsgTx()
 )
 
 func init() {
@@ -207,8 +206,8 @@ var witnessSizeTests = []witnessSizeTest{
 
 			return input.SpendMultiSig(
 				witnessScript,
-				testPubkeyBytes, testMaxDERSigPlusSigHash,
-				testPubkeyBytes, testMaxDERSigPlusSigHash,
+				testPubkeyBytes, &maxDERSignature{},
+				testPubkeyBytes, &maxDERSignature{},
 			)
 		},
 	},

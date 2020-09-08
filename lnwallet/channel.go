@@ -5075,16 +5075,20 @@ func (lc *LightningChannel) getSignedCommitTx() (*wire.MsgTx, error) {
 	// for the transaction.
 	localCommit := lc.channelState.LocalCommitment
 	commitTx := localCommit.CommitTx.Copy()
-	theirSig := append(localCommit.CommitSig, byte(txscript.SigHashAll))
 
-	// With this, we then generate the full witness so the caller can
-	// broadcast a fully signed transaction.
-	ourSigRaw, err := lc.Signer.SignOutputRaw(commitTx, lc.signDesc)
+	theirSig, err := ecdsa.ParseDERSignature(
+		localCommit.CommitSig,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	ourSig := append(ourSigRaw.Serialize(), byte(txscript.SigHashAll))
+	// With this, we then generate the full witness so the caller can
+	// broadcast a fully signed transaction.
+	ourSig, err := lc.Signer.SignOutputRaw(commitTx, lc.signDesc)
+	if err != nil {
+		return nil, err
+	}
 
 	// With the final signature generated, create the witness stack
 	// required to spend from the multi-sig output.
@@ -6036,7 +6040,8 @@ func (lc *LightningChannel) CreateCloseProposal(proposedFee dcrutil.Amount,
 //
 // NOTE: The passed local and remote sigs are expected to be fully complete
 // signatures including the proper sighash byte.
-func (lc *LightningChannel) CompleteCooperativeClose(localSig, remoteSig []byte,
+func (lc *LightningChannel) CompleteCooperativeClose(
+	localSig, remoteSig input.Signature,
 	localDeliveryScript, remoteDeliveryScript []byte,
 	proposedFee dcrutil.Amount) (*wire.MsgTx, dcrutil.Amount, error) {
 
@@ -6087,8 +6092,10 @@ func (lc *LightningChannel) CompleteCooperativeClose(localSig, remoteSig []byte,
 		SerializeCompressed()
 	theirKey := lc.channelState.RemoteChanCfg.MultiSigKey.PubKey.
 		SerializeCompressed()
-	witness := input.SpendMultiSig(lc.signDesc.WitnessScript, ourKey,
-		localSig, theirKey, remoteSig)
+	witness := input.SpendMultiSig(
+		lc.signDesc.WitnessScript, ourKey, localSig, theirKey,
+		remoteSig,
+	)
 	sigScript, err := input.WitnessStackToSigScript(witness)
 	if err != nil {
 		return nil, 0, err

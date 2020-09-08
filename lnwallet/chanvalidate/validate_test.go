@@ -7,6 +7,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrec/secp256k1/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
@@ -103,19 +104,31 @@ func newChannelTestCtx(chanSize int64) (*channelTestCtx, error) {
 		},
 	}
 
-	aliceSig, err := txscript.RawTxInSignature(
-		commitTx, 0,
-		multiSigScript, txscript.SigHashAll, alicePriv.Serialize(),
+	aliceSigRaw, err := txscript.RawTxInSignature(
+		commitTx, 0, multiSigScript, txscript.SigHashAll, alicePriv.Serialize(),
 		dcrec.STEcdsaSecp256k1,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	bobSig, err := txscript.RawTxInSignature(
-		commitTx, 0,
-		multiSigScript, txscript.SigHashAll, bobPriv.Serialize(),
+	aliceSig, err := ecdsa.ParseDERSignature(
+		aliceSigRaw[:len(aliceSigRaw)-1],
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	bobSigRaw, err := txscript.RawTxInSignature(
+		commitTx, 0, multiSigScript, txscript.SigHashAll, bobPriv.Serialize(),
 		dcrec.STEcdsaSecp256k1,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	bobSig, err := ecdsa.ParseDERSignature(
+		bobSigRaw[:len(bobSigRaw)-1],
 	)
 	if err != nil {
 		return nil, err

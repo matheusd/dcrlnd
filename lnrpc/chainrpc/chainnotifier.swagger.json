@@ -4,10 +4,6 @@
     "title": "chainrpc/chainnotifier.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],
@@ -141,6 +137,27 @@
         }
       }
     },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "runtimeStreamError": {
       "type": "object",
       "properties": {
@@ -165,44 +182,6 @@
           }
         }
       }
-    }
-  },
-  "x-stream-definitions": {
-    "chainrpcBlockEpoch": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/chainrpcBlockEpoch"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of chainrpcBlockEpoch"
-    },
-    "chainrpcConfEvent": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/chainrpcConfEvent"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of chainrpcConfEvent"
-    },
-    "chainrpcSpendEvent": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/chainrpcSpendEvent"
-        },
-        "error": {
-          "$ref": "#/definitions/runtimeStreamError"
-        }
-      },
-      "title": "Stream result of chainrpcSpendEvent"
     }
   }
 }
