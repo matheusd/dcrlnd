@@ -27,7 +27,7 @@ func randKey(t *testing.T) *secp256k1.PublicKey {
 // receiver on the other end of the stream.
 type requestInfo struct {
 	chanReq      *ChannelAcceptRequest
-	responseChan chan lnrpc.ChannelAcceptResponse
+	responseChan chan *lnrpc.ChannelAcceptResponse
 }
 
 var defaultAcceptTimeout = 5 * time.Second
@@ -88,7 +88,7 @@ func TestRPCMultipleAcceptClients(t *testing.T) {
 	// demultiplexReq is a closure used to abstract the RPCAcceptor's request
 	// and response logic.
 	demultiplexReq := func(req *ChannelAcceptRequest) bool {
-		respChan := make(chan lnrpc.ChannelAcceptResponse, 1)
+		respChan := make(chan *lnrpc.ChannelAcceptResponse, 1)
 
 		newRequest := &requestInfo{
 			chanReq:      req,
@@ -145,7 +145,7 @@ func TestRPCMultipleAcceptClients(t *testing.T) {
 				PendingChanId: newRequest.chanReq.OpenChanMsg.PendingChannelID[:],
 			}
 
-			newRequest.responseChan <- newResponse
+			newRequest.responseChan <- &newResponse
 		case <-errChan:
 			t.Fatalf("unable to accept ChannelAcceptRequest")
 		case <-successChan:

@@ -6280,7 +6280,7 @@ func (r *rpcServer) ChannelAcceptor(stream lnrpc.Lightning_ChannelAcceptorServer
 
 	// Create two channels to handle requests and responses respectively.
 	newRequests := make(chan *chanAcceptInfo)
-	responses := make(chan lnrpc.ChannelAcceptResponse)
+	responses := make(chan *lnrpc.ChannelAcceptResponse)
 
 	// Define a quit channel that will be used to signal to the RPCAcceptor's
 	// closure whether the stream still exists.
@@ -6355,7 +6355,7 @@ func (r *rpcServer) ChannelAcceptor(stream lnrpc.Lightning_ChannelAcceptorServer
 			var pendingID [32]byte
 			copy(pendingID[:], resp.PendingChanId)
 
-			openChanResp := lnrpc.ChannelAcceptResponse{
+			openChanResp := &lnrpc.ChannelAcceptResponse{
 				Accept:        resp.Accept,
 				PendingChanId: pendingID[:],
 			}
