@@ -37,6 +37,12 @@ const scriptVersion uint16 = 0
 
 var zeroHash chainhash.Hash
 
+// disableFeeFloorCheck is used in certain tests to disable the fee floor
+// check. This is required due to some tests being ported from Bitcoin that has
+// a lower fee floor which would prevent the channel from correctly advancing
+// in Decred.
+var disableFeeFloorCheck = false
+
 var (
 	// ErrChanClosing is returned when a caller attempts to close a channel
 	// that has already been closed or is in the process of being closed.
@@ -2428,7 +2434,7 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 
 	effFeeRate := chainfee.AtomPerKByte(fee) * 1000 /
 		chainfee.AtomPerKByte(size)
-	if effFeeRate < chainfee.FeePerKBFloor {
+	if effFeeRate < chainfee.FeePerKBFloor && !disableFeeFloorCheck {
 		return nil, fmt.Errorf("height=%v, for ChannelPoint(%v) "+
 			"attempts to create commitment with too low feerate %v: %v",
 			nextHeight, lc.channelState.FundingOutpoint,
@@ -3215,7 +3221,7 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 
 	// Ensure that the fee being applied is enough to be relayed across the
 	// network in a reasonable time frame.
-	if feePerKB < chainfee.FeePerKBFloor {
+	if feePerKB < chainfee.FeePerKBFloor && !disableFeeFloorCheck {
 		return fmt.Errorf("commitment fee per kb %v below fee floor %v",
 			feePerKB, chainfee.FeePerKBFloor)
 	}
