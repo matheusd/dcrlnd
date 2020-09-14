@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
@@ -22,6 +23,21 @@ func (e mockSparseConfFeeSource) GenQueryURL() string {
 
 func (e mockSparseConfFeeSource) ParseResponse(r io.Reader) (map[uint32]uint32, error) {
 	return e.fees, nil
+}
+
+type emptyReadCloser struct{}
+
+func (e emptyReadCloser) Read(b []byte) (int, error) {
+	return 0, nil
+}
+func (e emptyReadCloser) Close() error {
+	return nil
+}
+
+func emptyGetter(url string) (*http.Response, error) {
+	return &http.Response{
+		Body: emptyReadCloser{},
+	}, nil
 }
 
 // TestStaticFeeEstimator checks that the StaticFeeEstimator returns the
@@ -135,6 +151,7 @@ func TestWebAPIFeeEstimator(t *testing.T) {
 	}
 
 	estimator := NewWebAPIEstimator(feeSource, 10)
+	estimator.netGetter = emptyGetter
 
 	// Test that requesting a fee when no fees have been cached fails.
 	_, err := estimator.EstimateFeePerKB(5)

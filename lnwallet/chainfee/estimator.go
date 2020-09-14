@@ -352,8 +352,34 @@ type WebAPIEstimator struct {
 	// to query the API for any reason.
 	defaultFeePerKB AtomPerKByte
 
+	// netGetter performs a GET http request to the specified URL and
+	// returns the response. It is exposed here to allow tests to mock the
+	// network.
+	netGetter func(url string) (*http.Response, error)
+
 	quit chan struct{}
 	wg   sync.WaitGroup
+}
+
+// defaultNetGetter performs a GET request to the specified URL or times out in
+// at most 10 seconds.
+func defaultNetGetter(url string) (*http.Response, error) {
+	// Rather than use the default http.Client, we'll make a custom one
+	// which will allow us to control how long we'll wait to read the
+	// response from the service. This way, if the service is down or
+	// overloaded, we can exit early and use our default fee.
+	netTransport := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+	netClient := &http.Client{
+		Timeout:   time.Second * 10,
+		Transport: netTransport,
+	}
+
+	return netClient.Get(url)
 }
 
 // NewWebAPIEstimator creates a new WebAPIEstimator from a given URL and a
@@ -365,6 +391,7 @@ func NewWebAPIEstimator(
 		apiSource:        api,
 		feeByBlockTarget: make(map[uint32]uint32),
 		defaultFeePerKB:  defaultFee,
+		netGetter:        defaultNetGetter,
 		quit:             make(chan struct{}),
 	}
 }
@@ -480,25 +507,10 @@ func (w *WebAPIEstimator) getCachedFee(numBlocks uint32) (uint32, error) {
 
 // updateFeeEstimates re-queries the API for fresh fees and caches them.
 func (w *WebAPIEstimator) updateFeeEstimates() {
-	// Rather than use the default http.Client, we'll make a custom one
-	// which will allow us to control how long we'll wait to read the
-	// response from the service. This way, if the service is down or
-	// overloaded, we can exit early and use our default fee.
-	netTransport := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: 5 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 5 * time.Second,
-	}
-	netClient := &http.Client{
-		Timeout:   time.Second * 10,
-		Transport: netTransport,
-	}
-
 	// With the client created, we'll query the API source to fetch the URL
 	// that we should use to query for the fee estimation.
 	targetURL := w.apiSource.GenQueryURL()
-	resp, err := netClient.Get(targetURL)
+	resp, err := w.netGetter(targetURL)
 	if err != nil {
 		log.Errorf("unable to query web api for fee response: %v",
 			err)
