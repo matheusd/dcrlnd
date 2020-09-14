@@ -7539,14 +7539,16 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 
 	// A restoration should keep the add heights iof the first HTLC, and
 	// the new HTLC should have a remote add height 2.
-	restoreAndAssertCommitHeights(t, aliceChannel, false, 0, 1, 1)
-	restoreAndAssertCommitHeights(t, aliceChannel, false, 1, 0, 2)
+	aliceChannel = restoreAndAssertCommitHeights(t, aliceChannel, false,
+		0, 1, 1)
+	aliceChannel = restoreAndAssertCommitHeights(t, aliceChannel, false,
+		1, 0, 2)
 
 	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
-	_, _, err = bobChannel.RevokeCurrentCommitment()
+	bobRevocation, _, err = bobChannel.RevokeCurrentCommitment()
 	if err != nil {
 		t.Fatalf("unable to revoke commitment: %v", err)
 	}
@@ -7567,8 +7569,8 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 
 	// The signing of a new commitment for Alice should have given the new
 	// HTLC an add height.
-	restoreAndAssertCommitHeights(t, bobChannel, true, 0, 2, 1)
-	restoreAndAssertCommitHeights(t, bobChannel, true, 1, 2, 2)
+	bobChannel = restoreAndAssertCommitHeights(t, bobChannel, true, 0, 2, 1)
+	bobChannel = restoreAndAssertCommitHeights(t, bobChannel, true, 1, 2, 2)
 }
 
 // TestForceCloseFailLocalDataLoss tests that we don't allow a force close of a
