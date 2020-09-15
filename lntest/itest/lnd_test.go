@@ -15354,6 +15354,10 @@ var testsCases = []*testCase{
 		name: "wumbo channels",
 		test: testWumboChannels,
 	},
+	{
+		name: "maximum channel size",
+		test: testMaxChannelSize,
+	},
 }
 
 // TestLightningNetworkDaemon performs a series of integration tests amongst a
