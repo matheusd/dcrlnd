@@ -1176,7 +1176,6 @@ func TestTxNotifierCancelConf(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to register spend ntfn: %v", err)
 	}
-	cancelConfRequest := ntfn2.HistoricalDispatch.ConfRequest
 
 	// Extend the chain with a block that will confirm both transactions.
 	// This will queue confirmation notifications to dispatch once their
@@ -1192,7 +1191,7 @@ func TestTxNotifierCancelConf(t *testing.T) {
 	}
 
 	// Cancel the second notification before connecting the block.
-	n.CancelConf(cancelConfRequest, 2)
+	ntfn2.Event.Cancel()
 
 	err = n.ConnectTip(block.Hash(), startingHeight+1, block.Transactions())
 	if err != nil {
@@ -1201,7 +1200,7 @@ func TestTxNotifierCancelConf(t *testing.T) {
 
 	// Cancel the third notification before notifying to ensure its queued
 	// confirmation notification gets removed as well.
-	n.CancelConf(cancelConfRequest, 3)
+	ntfn3.Event.Cancel()
 
 	if err := n.NotifyHeight(startingHeight + 1); err != nil {
 		t.Fatalf("unable to dispatch notifications: %v", err)
