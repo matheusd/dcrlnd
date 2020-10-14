@@ -540,6 +540,8 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 	cfg.Tor.WatchtowerKeyPath = CleanAndExpandPath(cfg.Tor.WatchtowerKeyPath)
 	cfg.Watchtower.TowerDir = CleanAndExpandPath(cfg.Watchtower.TowerDir)
 	cfg.Dcrwallet.CertPath = CleanAndExpandPath(cfg.Dcrwallet.CertPath)
+	cfg.Dcrwallet.ClientKeyPath = CleanAndExpandPath(cfg.Dcrwallet.ClientKeyPath)
+	cfg.Dcrwallet.ClientCertPath = CleanAndExpandPath(cfg.Dcrwallet.ClientCertPath)
 
 	// Ensure that the user didn't attempt to specify negative values for
 	// any of the autopilot params.
@@ -786,15 +788,30 @@ func ValidateConfig(cfg Config, usageMessage string) (*Config, error) {
 		defaultChainSubDirname,
 		decredChain.String())
 
-	// Update Dcrwallet.GRPCHost with correct port from
-	// activeNetParam selected.
+	// Ensure sane config when using a remote wallet.
 	if cfg.Dcrwallet.GRPCHost != "" {
+		// Update Dcrwallet.GRPCHost with correct port from
+		// activeNetParam selected.
 		_, _, err := net.SplitHostPort(cfg.Dcrwallet.GRPCHost)
 		if err != nil {
 			cfg.Dcrwallet.GRPCHost = net.JoinHostPort(
 				cfg.Dcrwallet.GRPCHost,
 				activeNetParams.dcrwPort,
 			)
+		}
+
+		// dcrwallet v1.6.0+ requires a client cert and key for gRPC
+		// auth, so if any of {ClientKeyPath, ClientCertPath} are
+		// specified, *both* need to be.
+		//
+		// Otherwise, the client key and cert will come on a
+		// WalletUnlocker.Unlock() call.
+		clientKeyEmpty := cfg.Dcrwallet.ClientKeyPath == ""
+		clientCertEmpty := cfg.Dcrwallet.ClientCertPath == ""
+		if clientKeyEmpty != clientCertEmpty {
+			str := "%s: dcrwallet.clientkeypath and clientcertpath must both be specified"
+			err := fmt.Errorf(str, funcName)
+			return nil, err
 		}
 	}
 
