@@ -952,6 +952,7 @@ func waitForWalletPassword(cfg *Config, restEndpoints []net.Addr,
 	pwService := walletunlocker.New(
 		cfg.ChainDir, activeNetParams.Params, !cfg.SyncFreelist,
 		macaroonFiles, cfg.Dcrwallet.GRPCHost, cfg.Dcrwallet.CertPath,
+		cfg.Dcrwallet.ClientKeyPath, cfg.Dcrwallet.ClientCertPath,
 		cfg.Dcrwallet.AccountNumber,
 	)
 	lnrpc.RegisterWalletUnlockerServer(grpcServer, pwService)

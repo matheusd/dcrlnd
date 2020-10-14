@@ -3,6 +3,8 @@ package lntest
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -232,6 +234,8 @@ func (cfg NodeConfig) genArgs() []string {
 	if cfg.RemoteWallet {
 		args = append(args, fmt.Sprintf("--dcrwallet.grpchost=localhost:%d", cfg.WalletPort))
 		args = append(args, fmt.Sprintf("--dcrwallet.certpath=%s", cfg.TLSCertPath))
+		args = append(args, fmt.Sprintf("--dcrwallet.clientkeypath=%s", cfg.TLSKeyPath))
+		args = append(args, fmt.Sprintf("--dcrwallet.clientcertpath=%s", cfg.TLSCertPath))
 	}
 
 	if cfg.DcrwNode {
@@ -271,6 +275,8 @@ func (cfg *NodeConfig) genWalletArgs() []string {
 	args = append(args, fmt.Sprintf("--appdata=%s", cfg.DataDir))
 	args = append(args, fmt.Sprintf("--rpccert=%s", cfg.TLSCertPath))
 	args = append(args, fmt.Sprintf("--rpckey=%s", cfg.TLSKeyPath))
+	args = append(args, fmt.Sprintf("--clientcafile=%s", cfg.TLSCertPath))
+	args = append(args, "--authtype=clientcert")
 
 	// This is not strictly necessary, but it's useful to reduce the
 	// startup time of test wallets since it prevents two address discovery
@@ -588,6 +594,19 @@ func (hn *HarnessNode) start(lndBinary string, lndError chan<- error) error {
 	return hn.initLightningClient(conn)
 }
 
+func tlsCertFromFile(fname string) (*x509.CertPool, error) {
+	b, err := ioutil.ReadFile(fname)
+	if err != nil {
+		return nil, err
+	}
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(b) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
+	}
+
+	return cp, nil
+}
+
 func (hn *HarnessNode) startRemoteWallet() error {
 	// Prepare and start the remote wallet process
 	walletArgs := hn.Cfg.genWalletArgs()
@@ -603,17 +622,33 @@ func (hn *HarnessNode) startRemoteWallet() error {
 
 	// Wait until the TLS cert file exists, so we can connect to the
 	// wallet.
-	var creds credentials.TransportCredentials
+	var caCert *x509.CertPool
+	var clientCert tls.Certificate
 	err := wait.NoError(func() error {
 		var err error
-		creds, err = credentials.NewClientTLSFromFile(
-			hn.Cfg.TLSCertPath, "localhost",
-		)
-		return err
+		caCert, err = tlsCertFromFile(hn.Cfg.TLSCertPath)
+		if err != nil {
+			return fmt.Errorf("unable to load wallet tls cert: %v", err)
+		}
+
+		clientCert, err = tls.LoadX509KeyPair(hn.Cfg.TLSCertPath, hn.Cfg.TLSKeyPath)
+		if err != nil {
+			return fmt.Errorf("unable to load wallet cert and key files: %v", err)
+		}
+
+		return nil
 	}, time.Second*30)
 	if err != nil {
 		return fmt.Errorf("error reading wallet TLS cert: %v", err)
 	}
+
+	// Setup the TLS config and credentials.
+	tlsCfg := &tls.Config{
+		ServerName:   "localhost",
+		RootCAs:      caCert,
+		Certificates: []tls.Certificate{clientCert},
+	}
+	creds := credentials.NewTLS(tlsCfg)
 
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
@@ -692,10 +727,23 @@ func (hn *HarnessNode) unlockRemoteWallet() error {
 		password = []byte("private1")
 	}
 
-	unlockReq := &lnrpc.UnlockWalletRequest{
-		WalletPassword: password,
+	// Assemble the client key+cert buffer for gRPC auth into the wallet.
+	var clientKeyCert []byte
+	cert, err := ioutil.ReadFile(hn.Cfg.TLSCertPath)
+	if err != nil {
+		return fmt.Errorf("unable to load wallet client cert file: %v", err)
 	}
-	err := hn.Unlock(ctxb, unlockReq)
+	key, err := ioutil.ReadFile(hn.Cfg.TLSKeyPath)
+	if err != nil {
+		return fmt.Errorf("unable to load wallet client key file: %v", err)
+	}
+	clientKeyCert = append(key, cert...)
+
+	unlockReq := &lnrpc.UnlockWalletRequest{
+		WalletPassword:    password,
+		DcrwClientKeyCert: clientKeyCert,
+	}
+	err = hn.Unlock(ctxb, unlockReq)
 	if err != nil {
 		return fmt.Errorf("unable to unlock remote wallet: %v", err)
 	}
@@ -790,7 +838,7 @@ func (hn *HarnessNode) Unlock(ctx context.Context,
 	// Otherwise, we'll need to unlock the node before it's able to start
 	// up properly.
 	if _, err := hn.UnlockWallet(ctxt, unlockReq); err != nil {
-		return err
+		return fmt.Errorf("unable to unlock wallet: %v", err)
 	}
 
 	// Now that the wallet has been unlocked, we'll wait for the RPC client

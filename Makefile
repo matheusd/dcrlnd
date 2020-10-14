@@ -36,13 +36,13 @@ LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
 # and omit the DWARF symbol table (-w). Also we clear the build ID.
 RELEASE_LDFLAGS := $(call make_ldflags, $(RELEASE_TAGS), -s -w -buildid=)
 
-DCRD_COMMIT := 1ddab08c53193163f3659d6f4653afea32e9aa58
+DCRD_COMMIT := b0ca9210babc932b262ae2d7fc9615b3ad017628
 DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
 DCRD_TMPDIR := $(shell mktemp -d)
 
 DCRWALLET_REPO := github.com/decred/dcrwallet
-DCRWALLET_COMMIT := 415df743f7f3b336ea33df6691249359ef3eeff1
+DCRWALLET_COMMIT := 2ab8e9ca71e51b3fa8d8a4353096f064e6ae7212
 DCRWALLET_META := $(DCRWALLET_COMMIT).from-dcrlnd
 DCRWALLET_LDFLAGS := "-X decred.org/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
 DCRWALLET_TMPDIR := $(shell mktemp -d)

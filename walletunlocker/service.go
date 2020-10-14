@@ -3,8 +3,11 @@ package walletunlocker
 import (
 	"context"
 	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -112,14 +115,17 @@ type UnlockerService struct {
 	netParams      *chaincfg.Params
 	macaroonFiles  []string
 
-	dcrwHost    string
-	dcrwCert    string
-	dcrwAccount int32
+	dcrwHost       string
+	dcrwCert       string
+	dcrwClientKey  string
+	dcrwClientCert string
+	dcrwAccount    int32
 }
 
 // New creates and returns a new UnlockerService.
 func New(chainDir string, params *chaincfg.Params, noFreelistSync bool,
-	macaroonFiles []string, dcrwHost, dcrwCert string, dcrwAccount int32) *UnlockerService {
+	macaroonFiles []string, dcrwHost, dcrwCert, dcrwClientKey,
+	dcrwClientCert string, dcrwAccount int32) *UnlockerService {
 
 	return &UnlockerService{
 		InitMsgs:       make(chan *WalletInitMsg, 1),
@@ -130,6 +136,8 @@ func New(chainDir string, params *chaincfg.Params, noFreelistSync bool,
 		macaroonFiles:  macaroonFiles,
 		dcrwHost:       dcrwHost,
 		dcrwCert:       dcrwCert,
+		dcrwClientKey:  dcrwClientKey,
+		dcrwClientCert: dcrwClientCert,
 		dcrwAccount:    dcrwAccount,
 	}
 }
@@ -331,19 +339,59 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	return &lnrpc.InitWalletResponse{}, nil
 }
 
+func tlsCertFromFile(fname string) (*x509.CertPool, error) {
+	b, err := ioutil.ReadFile(fname)
+	if err != nil {
+		return nil, err
+	}
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(b) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
+	}
+
+	return cp, nil
+}
+
 // UnlockRemoteWallet sends the password provided by the incoming
 // UnlockRemoteWalletRequest over the UnlockMsgs channel in case it
 // successfully decrypts an existing remote wallet.
-func (u *UnlockerService) unlockRemoteWallet(password []byte,
-	chanBackups *lnrpc.ChanBackupSnapshot) (*lnrpc.UnlockWalletResponse, error) {
+func (u *UnlockerService) unlockRemoteWallet(ctx context.Context,
+	in *lnrpc.UnlockWalletRequest) (*lnrpc.UnlockWalletResponse, error) {
 
-	ctxb := context.Background()
-
-	creds, err := credentials.NewClientTLSFromFile(u.dcrwCert, "localhost")
+	// dcrwallet rpc.cert.
+	caCert, err := tlsCertFromFile(u.dcrwCert)
 	if err != nil {
 		return nil, err
-
 	}
+
+	// Figure out the client cert.
+	var clientCerts []tls.Certificate
+	if in.DcrwClientKeyCert != nil {
+		// Received a key+cert blob from dcrwallet ipc. X509KeyPair is
+		// smart enough to decode the correct element from the
+		// concatenated blob, so it's ok to pass the same byte slice in
+		// both arguments.
+		cert, err := tls.X509KeyPair(in.DcrwClientKeyCert, in.DcrwClientKeyCert)
+		if err != nil {
+			return nil, err
+		}
+		clientCerts = []tls.Certificate{cert}
+	} else if u.dcrwClientKey != "" && u.dcrwClientCert != "" {
+		cert, err := tls.LoadX509KeyPair(u.dcrwClientCert, u.dcrwClientKey)
+		if err != nil {
+			return nil, err
+		}
+		clientCerts = []tls.Certificate{cert}
+	}
+
+	tlsCfg := &tls.Config{
+		ServerName:   "localhost",
+		RootCAs:      caCert,
+		Certificates: clientCerts,
+	}
+	creds := credentials.NewTLS(tlsCfg)
+
+	// Connect to the wallet.
 	conn, err := grpc.Dial(u.dcrwHost, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, err
@@ -355,9 +403,9 @@ func (u *UnlockerService) unlockRemoteWallet(password []byte,
 	// provided password.
 	getAcctReq := &pb.GetAccountExtendedPrivKeyRequest{
 		AccountNumber: uint32(u.dcrwAccount),
-		Passphrase:    password,
+		Passphrase:    in.WalletPassword,
 	}
-	_, err = wallet.GetAccountExtendedPrivKey(ctxb, getAcctReq)
+	_, err = wallet.GetAccountExtendedPrivKey(ctx, getAcctReq)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get xpriv: %v", err)
 	}
@@ -365,13 +413,13 @@ func (u *UnlockerService) unlockRemoteWallet(password []byte,
 	// We successfully opened the wallet and pass the instance back to
 	// avoid it needing to be unlocked again.
 	walletUnlockMsg := &WalletUnlockMsg{
-		Passphrase: password,
+		Passphrase: in.WalletPassword,
 		Conn:       conn,
 	}
 
 	// Before we return the unlock payload, we'll check if we can extract
 	// any channel backups to pass up to the higher level sub-system.
-	chansToRestore := extractChanBackups(chanBackups)
+	chansToRestore := extractChanBackups(in.ChannelBackups)
 	if chansToRestore != nil {
 		walletUnlockMsg.ChanBackups = *chansToRestore
 	}
@@ -392,8 +440,10 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 
 	password := in.WalletPassword
 	if u.dcrwHost != "" && u.dcrwCert != "" {
-		return u.unlockRemoteWallet(password, in.ChannelBackups)
+		// Using a remote wallet.
+		return u.unlockRemoteWallet(ctx, in)
 	}
+
 	gapLimit := wallet.DefaultGapLimit
 	if in.RecoveryWindow > int32(gapLimit) {
 		gapLimit = uint32(in.RecoveryWindow)

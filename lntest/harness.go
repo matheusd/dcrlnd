@@ -341,7 +341,7 @@ func (n *NetworkHarness) NewNodeWithSeed(name string, extraArgs []string,
 	// also initialize the macaroon-authenticated LightningClient.
 	err = node.Init(ctxb, initReq)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("unable to init new node: %v", err)
 	}
 
 	// With the node started, we can now record its public key within the

@@ -2,6 +2,8 @@ package testutils
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -66,6 +68,19 @@ func consumeSyncMsgs(syncStream pb.WalletLoaderService_RpcSyncClient, onSyncedCh
 	}
 }
 
+func tlsCertFromFile(fname string) (*x509.CertPool, error) {
+	b, err := ioutil.ReadFile(fname)
+	if err != nil {
+		return nil, err
+	}
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(b) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
+	}
+
+	return cp, nil
+}
+
 func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 	hdSeed, privatePass []byte,
 	dcrd *rpcclient.ConnConfig) (*grpc.ClientConn, func()) {
@@ -74,11 +89,13 @@ func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 	cafile := path.Join(dataDir, "ca.cert")
 	ioutil.WriteFile(cafile, dcrd.Certificates, 0644)
 
+	tlsCertPath := path.Join(dataDir, "rpc.cert")
+	tlsKeyPath := path.Join(dataDir, "rpc.key")
+
 	// Setup the args to run the underlying dcrwallet.
 	id := atomic.AddInt32(&activeNodes, 1)
 	port := nextAvailablePort()
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	certFile := path.Join(dataDir, "rpc.cert")
 	args := []string{
 		"--noinitialload",
 		"--debuglevel=debug",
@@ -91,6 +108,10 @@ func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 		"--grpclisten=" + addr,
 		"--appdata=" + dataDir,
 		"--tlscurve=P-256",
+		"--rpccert=" + tlsCertPath,
+		"--rpckey=" + tlsKeyPath,
+		"--clientcafile=" + tlsCertPath,
+		"--authtype=clientcert",
 	}
 
 	logFilePath := path.Join(fmt.Sprintf("output-remotedcrw-%.2d-%s.log",
@@ -114,15 +135,35 @@ func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 		t.Fatalf("Unable to start %s dcrwallet: %v", nodeName, err)
 	}
 
-	var creds credentials.TransportCredentials
+	// Read the wallet TLS cert and client cert and key files.
+	var caCert *x509.CertPool
+	var clientCert tls.Certificate
 	err = wait.NoError(func() error {
-		creds, err = credentials.NewClientTLSFromFile(certFile, "localhost")
-		return err
+		var err error
+		caCert, err = tlsCertFromFile(tlsCertPath)
+		if err != nil {
+			return fmt.Errorf("unable to load wallet ca cert: %v", err)
+		}
+
+		clientCert, err = tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
+		if err != nil {
+			return fmt.Errorf("unable to load wallet cert and key files: %v", err)
+		}
+
+		return nil
 	}, time.Second*30)
 	if err != nil {
 		t.Logf("Wallet dir: %s", dataDir)
-		t.Fatalf("Unable to create credentials: %v", err)
+		t.Fatalf("Unable to read ca cert file: %v", err)
 	}
+
+	// Setup the TLS config and credentials.
+	tlsCfg := &tls.Config{
+		ServerName:   "localhost",
+		RootCAs:      caCert,
+		Certificates: []tls.Certificate{clientCert},
+	}
+	creds := credentials.NewTLS(tlsCfg)
 
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
