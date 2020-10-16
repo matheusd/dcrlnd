@@ -4305,12 +4305,10 @@ func (r *rpcServer) checkCanSendPayment(payIntent *rpcPaymentIntent) error {
 	// channel with less than 1 atom and milliatom payments might not alter
 	// the channel balances.
 	amt := payIntent.mat.ToAtoms() + htlcFee
-	graph := r.server.remoteChanDB.ChannelGraph()
 
 	// Loop through all available channels, check for liveliness and
 	// capacity.
-	var maxChanCap dcrutil.Amount
-	var maxChanID uint64
+	var maxOutboundAmt dcrutil.Amount
 	for _, channel := range openChannels {
 		// Ensure the channel is active and the remote peer is online,
 		// which is required to send to this channel.
@@ -4344,28 +4342,21 @@ func (r *rpcServer) checkCanSendPayment(payIntent *rpcPaymentIntent) error {
 		// maintain at all times (chan_reserve).
 		capacity := channel.LocalCommitment.LocalBalance.ToAtoms() -
 			channel.LocalChanCfg.ChannelConstraints.ChanReserve
+		maxOutboundAmt += capacity
 
-		if capacity >= amt {
-			// Found an online channel with enough capacity. Signal
-			// success.
+		// Return early if we have enough outbound capacity.
+		if maxOutboundAmt >= amt {
 			return nil
-		}
-
-		// Not yet enough capacity. Store the largest channel to
-		// present a better error msg.
-		if capacity > maxChanCap {
-			maxChanCap = capacity
-			maxChanID, _ = graph.ChannelID(chanPoint)
 		}
 	}
 
-	if maxChanID == 0 {
+	if maxOutboundAmt == 0 {
 		return errors.New("no online channels found")
 	}
 
-	missingCap := amt - maxChanCap
-	return fmt.Errorf("not enough outbound capacity (missing %d atoms "+
-		"in channel %d)", missingCap, maxChanID)
+	missingCap := amt - maxOutboundAmt
+	return fmt.Errorf("not enough outbound capacity (missing %d atoms)",
+		missingCap)
 }
 
 // dispatchPaymentIntent attempts to fully dispatch an RPC payment intent.
@@ -4771,11 +4762,9 @@ func (r *rpcServer) checkCanReceiveInvoice(ctx context.Context,
 	}
 
 	amt := dcrutil.Amount(invoice.Value)
-	graph := r.server.remoteChanDB.ChannelGraph()
 
 	// Loop through all available channels, check for liveliness and capacity.
-	var maxChanCap dcrutil.Amount
-	var maxChanID uint64
+	var maxInbound dcrutil.Amount
 	for _, channel := range openChannels {
 		// Ensure the channel is active and the remote peer is online, which is
 		// required to receive from this channel.
@@ -4809,27 +4798,21 @@ func (r *rpcServer) checkCanReceiveInvoice(ctx context.Context,
 		// remote node to maintain at all times (chan_reserve).
 		capacity := channel.RemoteCommitment.RemoteBalance.ToAtoms() -
 			channel.RemoteChanCfg.ChannelConstraints.ChanReserve
+		maxInbound += capacity
 
-		if capacity >= amt {
-			// Found an online channel with enough capacity. Signal success.
+		// Stop early if we have enough inbound capacity already.
+		if maxInbound >= amt {
 			return nil
-		}
-
-		// Not yet enough capacity. Store the largest channel to present a
-		// better error msg.
-		if capacity > maxChanCap {
-			maxChanCap = capacity
-			maxChanID, _ = graph.ChannelID(chanPoint)
 		}
 	}
 
-	if maxChanID == 0 {
+	if maxInbound == 0 {
 		return errors.New("no online channels found")
 	}
 
-	missingCap := amt - maxChanCap
-	return fmt.Errorf("not enough inbound capacity (missing %d atoms "+
-		"in channel %d)", missingCap, maxChanID)
+	missingCap := amt - maxInbound
+	return fmt.Errorf("not enough inbound capacity (missing %d atoms)",
+		missingCap)
 }
 
 // AddInvoice attempts to add a new invoice to the invoice database. Any
