@@ -710,7 +710,7 @@ func minedTransactionsToDetails(
 		var destAddresses []dcrutil.Address
 		for _, txOut := range wireTx.TxOut {
 			_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
-				txOut.Version, txOut.PkScript, chainParams)
+				txOut.Version, txOut.PkScript, chainParams, false)
 			if err != nil {
 				return nil, err
 			}
@@ -759,7 +759,7 @@ func unminedTransactionsToDetail(
 	for _, txOut := range wireTx.TxOut {
 		_, outAddresses, _, err :=
 			txscript.ExtractPkScriptAddrs(txOut.Version,
-				txOut.PkScript, chainParams)
+				txOut.PkScript, chainParams, false)
 		if err != nil {
 			return nil, err
 		}

@@ -20,6 +20,10 @@ func NewSetupRPCTest(t *testing.T, maxTries int, netParams *chaincfg.Params,
 	handlers *rpcclient.NotificationHandlers,
 	args []string, setupChain bool, numMatureOutputs uint32) (*rpctest.Harness, error) {
 
+	// Append --nobanning because dcrd is now fast enough to block peers on
+	// simnet.
+	args = append(args, "--nobanning")
+
 	var harness *rpctest.Harness
 	var err error
 	for i := 0; i < maxTries; i++ {

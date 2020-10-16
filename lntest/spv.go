@@ -117,10 +117,7 @@ func unsafeFindP2PAddr(miner, chainBackend *rpctest.Harness) (string, error) {
 // that node.
 func NewBackend(t *testing.T, miner *rpctest.Harness) (*SpvBackendConfig, func(), error) {
 	args := []string{
-		// rejectnonstd cannot be used in decred due to votes in simnet
-		// using a non-standard signature script.
-		//
-		// "--rejectnonstd",
+		"--rejectnonstd",
 		"--txindex",
 		"--debuglevel=debug",
 		"--logdir=" + logDir,

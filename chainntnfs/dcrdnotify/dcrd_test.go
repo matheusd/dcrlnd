@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/chainntnfs"
 	"github.com/decred/dcrlnd/chainscan"
 	"github.com/decred/dcrlnd/channeldb"
+	"github.com/decred/dcrlnd/internal/testutils"
 )
 
 var (
@@ -137,7 +138,7 @@ func TestHistoricalConfDetailsTxIndex(t *testing.T) {
 
 	// We'll now confirm this transaction and re-attempt to retrieve its
 	// confirmation details.
-	if _, err := harness.Node.Generate(context.TODO(), 1); err != nil {
+	if _, err := testutils.AdjustedSimnetMiner(harness.Node, 1); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -282,7 +283,7 @@ func TestInneficientRescan(t *testing.T) {
 
 	// We'll now confirm this transaction and attempt to retrieve its
 	// confirmation details.
-	bhs, err := harness.Node.Generate(context.TODO(), 1)
+	bhs, err := testutils.AdjustedSimnetMiner(harness.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -305,7 +306,7 @@ func TestInneficientRescan(t *testing.T) {
 	prevOutputHeight := minedHeight - 1
 
 	// Generate a few blocks after mining to test some conditions.
-	if _, err := harness.Node.Generate(context.TODO(), 20); err != nil {
+	if _, err := testutils.AdjustedSimnetMiner(harness.Node, 20); err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
 
@@ -316,7 +317,7 @@ func TestInneficientRescan(t *testing.T) {
 		t.Fatalf("unable to parse pkscript: %v", err)
 	}
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-		txout.Version, txout.PkScript, chainntnfs.NetParams,
+		txout.Version, txout.PkScript, chainntnfs.NetParams, false,
 	)
 	if err != nil {
 		t.Fatalf("unable to parse script type: %v", err)

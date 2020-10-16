@@ -736,7 +736,7 @@ func (c *chainWatcher) toSelfAmount(tx *wire.MsgTx) dcrutil.Amount {
 	for _, txOut := range tx.TxOut {
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
 			// Doesn't matter what net we actually pass in.
-			txOut.Version, txOut.PkScript, c.cfg.netParams,
+			txOut.Version, txOut.PkScript, c.cfg.netParams, false,
 		)
 		if err != nil {
 			continue

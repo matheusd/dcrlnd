@@ -73,7 +73,7 @@ func ParsePkScript(scriptVersion uint16, pkScript []byte) (PkScript, error) {
 
 	outputScript := PkScript{scriptVersion: scriptVersion}
 	scriptClass, _, _, err := txscript.ExtractPkScriptAddrs(
-		scriptVersion, pkScript, chaincfg.MainNetParams(),
+		scriptVersion, pkScript, chaincfg.MainNetParams(), false,
 	)
 	if err != nil {
 		return outputScript, fmt.Errorf("unable to parse script type: "+

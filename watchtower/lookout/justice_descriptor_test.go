@@ -238,7 +238,7 @@ func testJusticeDescriptor(t *testing.T, blobType blob.Type) {
 	}
 
 	// Verify that our test justice transaction is sane.
-	if err := blockchain.CheckTransactionSanity(justiceTxn, netParams); err != nil {
+	if err := blockchain.CheckTransactionSanity(justiceTxn, netParams, false); err != nil {
 		t.Fatalf("justice txn is not sane: %v", err)
 	}
 

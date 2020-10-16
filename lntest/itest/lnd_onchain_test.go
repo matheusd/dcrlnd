@@ -73,7 +73,7 @@ func testCPFP(net *lntest.NetworkHarness, t *harnessTest) {
 	bobOutputIdx := -1
 	for i, txOut := range tx.MsgTx().TxOut {
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-			txOut.Version, txOut.PkScript, net.Miner.ActiveNet,
+			txOut.Version, txOut.PkScript, net.Miner.ActiveNet, false,
 		)
 		if err != nil {
 			t.Fatalf("unable to extract address from pkScript=%x: "+

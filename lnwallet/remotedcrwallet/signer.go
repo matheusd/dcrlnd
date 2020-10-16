@@ -63,7 +63,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 
 	// Then, we'll populate all of the information required by the struct.
 	addressType := lnwallet.UnknownAddressType
-	scriptClass := txscript.GetScriptClass(scriptVersion, credit.OutputScript)
+	scriptClass := txscript.GetScriptClass(scriptVersion, credit.OutputScript, false)
 	switch scriptClass {
 	case txscript.PubKeyHashTy:
 		addressType = lnwallet.PubKeyHash
@@ -183,7 +183,7 @@ func (b *DcrWallet) ComputeInputScript(tx *wire.MsgTx,
 	// input. This assumes only regular onchain keys are used with
 	// ComputeInputScript.
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, script,
-		b.chainParams)
+		b.chainParams, false)
 	if err != nil {
 		return nil, err
 	}

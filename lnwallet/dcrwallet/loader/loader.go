@@ -38,7 +38,7 @@ type Loader struct {
 	wallet      *wallet.Wallet
 	db          wallet.DB
 
-	gapLimit                int
+	gapLimit                uint32
 	accountGapLimit         int
 	disableCoinTypeUpgrades bool
 	allowHighFees           bool
@@ -48,7 +48,7 @@ type Loader struct {
 }
 
 // NewLoader constructs a Loader.
-func NewLoader(chainParams *chaincfg.Params, dbDirPath string, gapLimit int) *Loader {
+func NewLoader(chainParams *chaincfg.Params, dbDirPath string, gapLimit uint32) *Loader {
 
 	allowHighFees := false
 	relayFee := txrules.DefaultRelayFeePerKb

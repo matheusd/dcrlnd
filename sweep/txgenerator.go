@@ -176,12 +176,7 @@ func createSweepTx(inputs []input.Input, outputPkScript []byte,
 	// delay spending "problem" outputs, e.g. possibly batching with other
 	// classes if fees are too low.
 	btx := dcrutil.NewTx(sweepTx)
-	if err := blockchain.CheckTransactionSanity(btx.MsgTx(), netParams); err != nil {
-		if ruleErr, is := err.(blockchain.RuleError); is {
-			return nil, fmt.Errorf("rule error checking sweepTx sanity: %s %v",
-				ruleErr.ErrorCode, err)
-		}
-
+	if err := blockchain.CheckTransactionSanity(btx.MsgTx(), netParams, false); err != nil {
 		return nil, fmt.Errorf("error checking sweepTx sanity: %v", err)
 	}
 

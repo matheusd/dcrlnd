@@ -134,7 +134,7 @@ func MarshalUtxos(utxos []*lnwallet.Utxo, activeNetParams *chaincfg.Params) (
 		// script so we can display a human friendly address to the end
 		// user.
 		_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
-			scriptVersion, utxo.PkScript, activeNetParams,
+			scriptVersion, utxo.PkScript, activeNetParams, false,
 		)
 		if err != nil {
 			return nil, err

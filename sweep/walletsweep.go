@@ -230,7 +230,7 @@ func CraftSweepAllTx(feeRate chainfee.AtomPerKByte, blockHeight uint32,
 
 		pkScript := output.PkScript
 		scriptClass := txscript.GetScriptClass(
-			scriptVersion, pkScript,
+			scriptVersion, pkScript, false,
 		)
 
 		// Based on the output type, we'll map it to the proper witness

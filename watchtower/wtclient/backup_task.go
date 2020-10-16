@@ -232,7 +232,7 @@ func (t *backupTask) craftSessionPayload(
 
 	// Check that the justice transaction meets basic validity requirements
 	// before attempting to attach the witnesses.
-	if err := blockchain.CheckTransactionSanity(justiceTxn, t.chainParams); err != nil {
+	if err := blockchain.CheckTransactionSanity(justiceTxn, t.chainParams, false); err != nil {
 		return hint, nil, err
 	}
 

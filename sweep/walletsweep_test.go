@@ -170,7 +170,7 @@ var sweepScript = []byte{
 
 var deliveryAddr = func() dcrutil.Address {
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(
-		0, sweepScript, chaincfg.TestNet3Params(),
+		0, sweepScript, chaincfg.TestNet3Params(), false,
 	)
 	if err != nil {
 		panic(err)

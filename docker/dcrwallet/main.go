@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,15 +13,46 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-var certificateFile = "/rpc/rpc.cert"
+var (
+	certificateFile = "/rpc/rpc.cert"
+	keyFile         = "/rpc/rpc.key"
+)
+
+func tlsCertFromFile(fname string) (*x509.CertPool, error) {
+	b, err := ioutil.ReadFile(fname)
+	if err != nil {
+		return nil, err
+
+	}
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(b) {
+		return nil, fmt.Errorf("credentials: failed to append certificates")
+
+	}
+
+	return cp, nil
+}
 
 func main() {
 	// Load credentials
-	creds, err := credentials.NewClientTLSFromFile(certificateFile, "localhost")
+	caCert, err := tlsCertFromFile(certificateFile)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	clientCert, err := tls.LoadX509KeyPair(certificateFile, keyFile)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Setup the TLS config.
+	tlsCfg := &tls.Config{
+		ServerName:   "localhost",
+		RootCAs:      caCert,
+		Certificates: []tls.Certificate{clientCert},
+	}
+	creds := credentials.NewTLS(tlsCfg)
 
 	// Create te grpc connection
 	conn, err := grpc.Dial("localhost:19558", grpc.WithTransportCredentials(creds))

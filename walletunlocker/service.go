@@ -275,8 +275,8 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	}
 
 	gapLimit := wallet.DefaultGapLimit
-	if int(recoveryWindow) > gapLimit {
-		gapLimit = int(recoveryWindow)
+	if recoveryWindow > int32(gapLimit) {
+		gapLimit = uint32(recoveryWindow)
 	}
 
 	// We'll then open up the directory that will be used to store the
@@ -316,7 +316,7 @@ func (u *UnlockerService) InitWallet(ctx context.Context,
 	initMsg := &WalletInitMsg{
 		Passphrase:     password,
 		WalletSeed:     cipherSeed,
-		RecoveryWindow: uint32(gapLimit),
+		RecoveryWindow: gapLimit,
 	}
 
 	// Before we return the unlock payload, we'll check if we can extract
@@ -395,8 +395,8 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 		return u.unlockRemoteWallet(password, in.ChannelBackups)
 	}
 	gapLimit := wallet.DefaultGapLimit
-	if int(in.RecoveryWindow) > gapLimit {
-		gapLimit = int(in.RecoveryWindow)
+	if in.RecoveryWindow > int32(gapLimit) {
+		gapLimit = uint32(in.RecoveryWindow)
 	}
 
 	netDir := dcrwallet.NetworkDir(u.chainDir, u.netParams)
@@ -425,7 +425,7 @@ func (u *UnlockerService) UnlockWallet(ctx context.Context,
 	// avoid it needing to be unlocked again.
 	walletUnlockMsg := &WalletUnlockMsg{
 		Passphrase:     password,
-		RecoveryWindow: uint32(gapLimit),
+		RecoveryWindow: gapLimit,
 		Wallet:         unlockedWallet,
 		Loader:         loader,
 	}

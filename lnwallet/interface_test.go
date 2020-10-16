@@ -1276,7 +1276,7 @@ func testListTransactionDetails(miner *rpctest.Harness,
 			for _, txOut := range txOuts {
 				_, addrs, _, err :=
 					txscript.ExtractPkScriptAddrs(txOut.Version, txOut.PkScript,
-						&alice.Cfg.NetParams)
+						&alice.Cfg.NetParams, false)
 				if err != nil {
 					t.Fatalf("err extract script addresses: %s", err)
 				}
@@ -1628,14 +1628,14 @@ func scriptFromKey(pubkey *secp256k1.PublicKey) ([]byte, error) {
 }
 
 // mineAndAssert mines a block and ensures the passed TX is part of that block.
-func mineAndAssert(r *rpctest.Harness, tx *wire.MsgTx) error {
+func mineAndAssert(r *rpctest.Harness, vw *rpctest.VotingWallet, tx *wire.MsgTx) error {
 	txid := tx.TxHash()
 	err := waitForMempoolTx(r, &txid)
 	if err != nil {
 		return fmt.Errorf("tx not relayed to miner: %v", err)
 	}
 
-	blockHashes, err := r.Node.Generate(context.TODO(), 1)
+	blockHashes, err := vw.GenerateBlocks(context.TODO(), 1)
 	if err != nil {
 		return fmt.Errorf("unable to generate block: %v", err)
 	}
@@ -1758,7 +1758,7 @@ func txFromOutput(tx *wire.MsgTx, signer input.Signer, fromPubKey,
 
 // newTx sends coins from Alice's wallet, mines this transaction, and creates a
 // new, unconfirmed tx that spends this output to pubKey.
-func newTx(t *testing.T, r *rpctest.Harness, pubKey *secp256k1.PublicKey,
+func newTx(t *testing.T, r *rpctest.Harness, vw *rpctest.VotingWallet, pubKey *secp256k1.PublicKey,
 	alice *lnwallet.LightningWallet, rbf bool) *wire.MsgTx {
 	t.Helper()
 
@@ -1782,7 +1782,7 @@ func newTx(t *testing.T, r *rpctest.Harness, pubKey *secp256k1.PublicKey,
 
 	// Query for the transaction generated above so we can located the
 	// index of our output.
-	if err := mineAndAssert(r, tx); err != nil {
+	if err := mineAndAssert(r, vw, tx); err != nil {
 		t.Fatalf("unable to mine tx: %v", err)
 	}
 
@@ -1812,7 +1812,7 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 
 	// We will first check that publishing a transaction already in the
 	// mempool does NOT return an error. Create the tx.
-	tx1 := newTx(t, r, keyDesc.PubKey, alice, false)
+	tx1 := newTx(t, r, vw, keyDesc.PubKey, alice, false)
 
 	// Publish the transaction.
 	err = alice.PublishTransaction(tx1, labels.External)
@@ -1845,7 +1845,7 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	// reject messages from our peers. They might only send us a reject
 	// message for a given tx once, so we create a new to make sure it is
 	// not just immediately rejected.
-	tx2 := newTx(t, r, keyDesc.PubKey, alice, false)
+	tx2 := newTx(t, r, vw, keyDesc.PubKey, alice, false)
 
 	// Publish this tx.
 	err = alice.PublishTransaction(tx2, labels.External)
@@ -1854,7 +1854,7 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 	}
 
 	// Mine the transaction.
-	if err := mineAndAssert(r, tx2); err != nil {
+	if err := mineAndAssert(r, vw, tx2); err != nil {
 		t.Fatalf("unable to mine tx: %v", err)
 	}
 
@@ -1879,14 +1879,14 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		// Now we'll try to double spend an output with a different
 		// transaction. Create a new tx and publish it. This is the
 		// output we'll try to double spend.
-		tx3 = newTx(t, r, keyDesc.PubKey, alice, false)
+		tx3 = newTx(t, r, vw, keyDesc.PubKey, alice, false)
 		err := alice.PublishTransaction(tx3, labels.External)
 		if err != nil {
 			t.Fatalf("unable to publish: %v", err)
 		}
 
 		// Mine the transaction.
-		if err := mineAndAssert(r, tx3); err != nil {
+		if err := mineAndAssert(r, vw, tx3); err != nil {
 			t.Fatalf("unable to mine tx: %v", err)
 		}
 
@@ -1970,7 +1970,7 @@ func testPublishTransaction(r *rpctest.Harness, vw *rpctest.VotingWallet,
 		}
 
 		// Mine the tx spending tx3.
-		if err := mineAndAssert(r, tx3Spend); err != nil {
+		if err := mineAndAssert(r, vw, tx3Spend); err != nil {
 			t.Fatalf("unable to mine tx: %v", err)
 		}
 	}

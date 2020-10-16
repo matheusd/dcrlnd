@@ -136,7 +136,6 @@ func AdjustedSimnetMiner(client *rpcclient.Client, nb uint32) ([]*chainhash.Hash
 		}
 
 		header.Timestamp = prevBlock.Header.Timestamp.Add(time.Second)
-		header.Bits = prevBlock.Header.Bits
 		solved := solveBlock(&header)
 		if !solved {
 			return nil, errors.New("unable to solve block")

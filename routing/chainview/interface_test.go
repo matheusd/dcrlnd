@@ -181,7 +181,7 @@ func testFilterBlockNotifications(node *rpctest.Harness,
 	blockChan := chainView.FilteredBlocks()
 
 	// Next we'll mine a block confirming the output generated above.
-	newBlockHashes, err := node.Node.Generate(context.TODO(), 1)
+	newBlockHashes, err := testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -265,7 +265,7 @@ func testFilterBlockNotifications(node *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to get spending txid in mempool: %v", err)
 	}
-	newBlockHashes, err = node.Node.Generate(context.TODO(), 1)
+	newBlockHashes, err = testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -291,7 +291,7 @@ func testFilterBlockNotifications(node *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to get spending txid in mempool: %v", err)
 	}
-	newBlockHashes, err = node.Node.Generate(context.TODO(), 1)
+	newBlockHashes, err = testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -321,7 +321,7 @@ func testUpdateFilterBackTrack(node *rpctest.Harness,
 	}
 
 	// Next we'll mine a block confirming the output generated above.
-	initBlockHashes, err := node.Node.Generate(context.TODO(), 1)
+	initBlockHashes, err := testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -365,7 +365,7 @@ func testUpdateFilterBackTrack(node *rpctest.Harness,
 	if err != nil {
 		t.Fatalf("unable to get spending txid in mempool: %v", err)
 	}
-	newBlockHashes, err := node.Node.Generate(context.TODO(), 1)
+	newBlockHashes, err := testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -428,7 +428,7 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 	blockChan := chainView.FilteredBlocks()
 
 	// Next we'll mine a block confirming the output generated above.
-	newBlockHashes, err := node.Node.Generate(context.TODO(), 1)
+	newBlockHashes, err := testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -483,7 +483,7 @@ func testFilterSingleBlock(node *rpctest.Harness, chainView FilteredChainView,
 	if err != nil {
 		t.Fatalf("unable to send spending tx2: %v", err)
 	}
-	blockHashes, err := node.Node.Generate(context.TODO(), 1)
+	blockHashes, err := testutils.AdjustedSimnetMiner(node.Node, 1)
 	if err != nil {
 		t.Fatalf("unable to generate block: %v", err)
 	}
@@ -657,8 +657,8 @@ func testFilterBlockDisconnected(node *rpctest.Harness,
 
 	// Mine 10 blocks on the main chain, 5 on the chain that will be
 	// reorged out,
-	node.Node.Generate(context.TODO(), 10)
-	reorgNode.Node.Generate(context.TODO(), 5)
+	testutils.AdjustedSimnetMiner(node.Node, 10)
+	testutils.AdjustedSimnetMiner(reorgNode.Node, 5)
 
 	// 5 new blocks should get notified.
 	for i := int64(0); i < 5; i++ {

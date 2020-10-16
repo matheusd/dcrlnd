@@ -339,7 +339,7 @@ func (b *DcrWallet) CreateSimpleTx(outputs []*wire.TxOut,
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) LockOutpoint(o wire.OutPoint) {
-	b.wallet.LockOutpoint(o)
+	b.wallet.LockOutpoint(&o.Hash, o.Index)
 }
 
 // UnlockOutpoint unlocks a previously locked output, marking it eligible for
@@ -347,7 +347,7 @@ func (b *DcrWallet) LockOutpoint(o wire.OutPoint) {
 //
 // This is a part of the WalletController interface.
 func (b *DcrWallet) UnlockOutpoint(o wire.OutPoint) {
-	b.wallet.UnlockOutpoint(o)
+	b.wallet.UnlockOutpoint(&o.Hash, o.Index)
 }
 
 // ListUnspentWitness returns a slice of all the unspent outputs the wallet
@@ -357,7 +357,8 @@ func (b *DcrWallet) UnlockOutpoint(o wire.OutPoint) {
 func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 	[]*lnwallet.Utxo, error) {
 	// First, grab all the unfiltered currently unspent outputs.
-	unspentOutputs, err := b.wallet.ListUnspent(context.TODO(), minConfs, maxConfs, nil)
+	unspentOutputs, err := b.wallet.ListUnspent(context.TODO(), minConfs,
+		maxConfs, nil, "")
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +371,7 @@ func (b *DcrWallet) ListUnspentWitness(minConfs, maxConfs int32) (
 			return nil, err
 		}
 
-		scriptClass := txscript.GetScriptClass(scriptVersion, pkScript)
+		scriptClass := txscript.GetScriptClass(scriptVersion, pkScript, false)
 		if scriptClass != txscript.PubKeyHashTy {
 			continue
 		}
@@ -578,7 +579,7 @@ func minedTransactionsToDetails(
 		var destAddresses []dcrutil.Address
 		for _, txOut := range wireTx.TxOut {
 			_, outAddresses, _, err := txscript.ExtractPkScriptAddrs(
-				txOut.Version, txOut.PkScript, chainParams)
+				txOut.Version, txOut.PkScript, chainParams, false)
 			if err != nil {
 				return nil, err
 			}
@@ -629,7 +630,7 @@ func unminedTransactionsToDetail(
 	for _, txOut := range wireTx.TxOut {
 		_, outAddresses, _, err :=
 			txscript.ExtractPkScriptAddrs(txOut.Version,
-				txOut.PkScript, chainParams)
+				txOut.PkScript, chainParams, false)
 		if err != nil {
 			return nil, err
 		}

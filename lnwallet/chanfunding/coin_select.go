@@ -71,7 +71,8 @@ func CoinSelect(feeRate chainfee.AtomPerKByte, amt dcrutil.Amount,
 		var sizeEstimate input.TxSizeEstimator
 
 		for _, utxo := range selectedUtxos {
-			scriptClass := txscript.GetScriptClass(utxo.Version, utxo.PkScript)
+			scriptClass := txscript.GetScriptClass(utxo.Version,
+				utxo.PkScript, false)
 
 			switch scriptClass {
 			case txscript.PubKeyHashTy:
@@ -133,7 +134,8 @@ func CoinSelectSubtractFees(feeRate chainfee.AtomPerKByte, amt,
 
 	var sizeEstimate input.TxSizeEstimator
 	for _, utxo := range selectedUtxos {
-		scriptClass := txscript.GetScriptClass(utxo.Version, utxo.PkScript)
+		scriptClass := txscript.GetScriptClass(utxo.Version,
+			utxo.PkScript, false)
 
 		switch scriptClass {
 		case txscript.PubKeyHashTy:

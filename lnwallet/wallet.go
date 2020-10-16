@@ -926,7 +926,7 @@ func CreateCommitmentTxns(localBalance, remoteBalance dcrutil.Amount,
 		return nil, nil, err
 	}
 
-	err = blockchain.CheckTransactionSanity(ourCommitTx, chainParams)
+	err = blockchain.CheckTransactionSanity(ourCommitTx, chainParams, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -939,7 +939,7 @@ func CreateCommitmentTxns(localBalance, remoteBalance dcrutil.Amount,
 		return nil, nil, err
 	}
 
-	err = blockchain.CheckTransactionSanity(theirCommitTx, chainParams)
+	err = blockchain.CheckTransactionSanity(theirCommitTx, chainParams, false)
 	if err != nil {
 		return nil, nil, err
 	}

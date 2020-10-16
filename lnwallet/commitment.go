@@ -550,7 +550,7 @@ func (cb *CommitmentBuilder) createUnsignedCommitmentTx(ourBalance,
 
 	// Next, we'll ensure that we don't accidentally create a commitment
 	// transaction which would be invalid by consensus.
-	if err := blockchain.CheckTransactionSanity(commitTx, cb.netParams); err != nil {
+	if err := blockchain.CheckTransactionSanity(commitTx, cb.netParams, false); err != nil {
 		return nil, err
 	}
 

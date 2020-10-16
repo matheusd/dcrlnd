@@ -3539,7 +3539,8 @@ func createRPCOpenChannel(r *rpcServer, graph *channeldb.ChannelGraph,
 		// TODO(decred): Store version along with LocalShutdownScript?
 		scriptVersion := uint16(0)
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(
-			scriptVersion, dbChannel.LocalShutdownScript, activeNetParams.Params,
+			scriptVersion, dbChannel.LocalShutdownScript,
+			activeNetParams.Params, false,
 		)
 		if err != nil {
 			return nil, err

@@ -80,7 +80,7 @@ func (m *MockSigner) SignOutputRaw(tx *wire.MsgTx,
 
 func (m *MockSigner) ComputeInputScript(tx *wire.MsgTx, signDesc *SignDescriptor) (*Script, error) {
 	scriptType, addresses, _, err := txscript.ExtractPkScriptAddrs(
-		signDesc.Output.Version, signDesc.Output.PkScript, m.NetParams)
+		signDesc.Output.Version, signDesc.Output.PkScript, m.NetParams, false)
 	if err != nil {
 		return nil, err
 	}

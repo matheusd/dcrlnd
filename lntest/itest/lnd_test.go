@@ -15380,10 +15380,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 	// We will also connect it to our chain backend.
 	minerLogDir := "./.minerlogs"
 	args := []string{
-		// rejectnonstd cannot be used in decred due to votes in simnet
-		// using a non-standard signature script.
-		//"--rejectnonstd",
-
+		"--rejectnonstd",
 		"--txindex",
 		"--debuglevel=debug",
 		"--logdir=" + minerLogDir,

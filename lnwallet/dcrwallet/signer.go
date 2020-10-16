@@ -55,7 +55,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 
 	// Then, we'll populate all of the information required by the struct.
 	addressType := lnwallet.UnknownAddressType
-	scriptClass := txscript.GetScriptClass(output.Version, output.PkScript)
+	scriptClass := txscript.GetScriptClass(output.Version, output.PkScript, false)
 	switch scriptClass {
 	case txscript.PubKeyHashTy:
 		addressType = lnwallet.PubKeyHash
@@ -86,7 +86,7 @@ func (b *DcrWallet) FetchInputInfo(prevOut *wire.OutPoint) (*lnwallet.Utxo, erro
 // should be used to sign a specified input.
 func (b *DcrWallet) fetchOutputAddr(scriptVersion uint16, script []byte) (base.KnownAddress, error) {
 	_, addrs, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, script,
-		b.netParams)
+		b.netParams, false)
 	if err != nil {
 		return nil, err
 	}

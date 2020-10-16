@@ -745,7 +745,7 @@ func (n *DcrdNotifier) RegisterSpendNtfn(outpoint *wire.OutPoint,
 	emptyOutPoint := outpoint == nil || *outpoint == chainntnfs.ZeroOutPoint
 	if emptyOutPoint {
 		_, addrs, _, err = txscript.ExtractPkScriptAddrs(
-			0, pkScript, n.chainParams,
+			0, pkScript, n.chainParams, false,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse address: %v", err)

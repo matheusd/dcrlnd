@@ -24,6 +24,8 @@ RUN dcrwallet \
     --rpccert=/rpc/rpc.cert \
     --rpckey=/rpc/rpc.key \
     --simnet \
+    --authtype=clientcert \
+    --clientcafile=/rpc/rpc.cert \
     & sleep 5 \
     && cd /init \
     && go run main.go

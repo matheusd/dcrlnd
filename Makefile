@@ -36,13 +36,13 @@ LDFLAGS := -ldflags "-X $(FULLPKG)/build.Commit=$(COMMIT)"
 # and omit the DWARF symbol table (-w). Also we clear the build ID.
 RELEASE_LDFLAGS := $(call make_ldflags, $(RELEASE_TAGS), -s -w -buildid=)
 
-DCRD_COMMIT := b10c942130f497f2285697899d6d562f75cded84
+DCRD_COMMIT := 1ddab08c53193163f3659d6f4653afea32e9aa58
 DCRD_META := "$(DCRD_COMMIT).from-dcrlnd"
 DCRD_LDFLAGS := "-X github.com/decred/dcrd/internal/version.BuildMetadata=$(DCRD_META)"
 DCRD_TMPDIR := $(shell mktemp -d)
 
 DCRWALLET_REPO := github.com/decred/dcrwallet
-DCRWALLET_COMMIT := 8cf3568585959e4c7695b80695e5361baa2dcb93
+DCRWALLET_COMMIT := 415df743f7f3b336ea33df6691249359ef3eeff1
 DCRWALLET_META := $(DCRWALLET_COMMIT).from-dcrlnd
 DCRWALLET_LDFLAGS := "-X decred.org/dcrwallet/version.BuildMetadata=$(DCRWALLET_META)"
 DCRWALLET_TMPDIR := $(shell mktemp -d)
@@ -114,8 +114,7 @@ dcrd:
 	git clone https://github.com/decred/dcrd $(DCRD_TMPDIR)
 	cd $(DCRD_TMPDIR) && \
 		git checkout $(DCRD_COMMIT) && \
-		GO111MODULE=on go install -ldflags $(DCRD_LDFLAGS) . && \
-		GO111MODULE=on go install -ldflags $(DCRD_LDFLAGS) ./cmd/dcrctl
+		GO111MODULE=on go install -ldflags $(DCRD_LDFLAGS) . 
 	rm -rf $(DCRD_TMPDIR)
 
 dcrwallet:

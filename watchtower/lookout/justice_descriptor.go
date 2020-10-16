@@ -193,7 +193,7 @@ func (p *JusticeDescriptor) assembleJusticeTxn(txSize int64,
 	// Apply a BIP69 sort to the resulting transaction.
 	txsort.InPlaceSort(justiceTxn)
 
-	if err := blockchain.CheckTransactionSanity(justiceTxn, p.NetParams); err != nil {
+	if err := blockchain.CheckTransactionSanity(justiceTxn, p.NetParams, false); err != nil {
 		return nil, err
 	}
 
