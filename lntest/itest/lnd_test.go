@@ -15394,6 +15394,7 @@ func TestLightningNetworkDaemon(t *testing.T) {
 		"--debuglevel=debug",
 		"--logdir=" + minerLogDir,
 		"--maxorphantx=0",
+		"--nobanning",
 		// "--connect=" + chainBackend.P2PAddr(),
 	}
 	handlers := &rpcclient.NotificationHandlers{
