@@ -1,6 +1,7 @@
-FROM golang:1.14-alpine as builder
+FROM golang:1.15-alpine as builder
 
 # Passing env to the builder image
+ARG DCRWALLET_VERSION=v1.5.1
 ARG WALLET_SEED
 ARG WALLET_PASS
 ENV WALLET_SEED=$WALLET_SEED WALLET_PASS=$WALLET_PASS
@@ -11,7 +12,7 @@ RUN apk add --no-cache git
 WORKDIR $GOPATH/src/github.com/decred/dcrwallet
 # Grab and install the latest version of of dcrwallet
 # and all related dependencies.
-RUN git clone https://github.com/decred/dcrwallet.git . \
+RUN git clone -b $DCRWALLET_VERSION https://github.com/decred/dcrwallet.git . \
     &&  go install
 
 COPY . /init
@@ -24,8 +25,6 @@ RUN dcrwallet \
     --rpccert=/rpc/rpc.cert \
     --rpckey=/rpc/rpc.key \
     --simnet \
-    --authtype=clientcert \
-    --clientcafile=/rpc/rpc.cert \
     & sleep 5 \
     && cd /init \
     && go run main.go

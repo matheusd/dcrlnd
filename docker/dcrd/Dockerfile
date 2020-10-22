@@ -1,18 +1,22 @@
-FROM golang:1.14-alpine as builder
+FROM golang:1.15-alpine as builder
 
 # Install build dependencies.
 RUN apk add --no-cache git
 
 WORKDIR $GOPATH/src/github.com/decred
 
+ARG DCRD_VERSION=release-v1.5.2
+ARG DCRCTL_VERSION=72259ba
+
 # Grab and install the latest version of dcrd and all related dependencies.
-RUN git clone https://github.com/decred/dcrd.git \
+RUN git clone -b $DCRD_VERSION https://github.com/decred/dcrd.git \
     && cd dcrd/ \
     &&  go install . ./...
 
 # Grab and install the latest version of dcrctl and all related dependencies.
 RUN git clone https://github.com/decred/dcrctl.git \
     && cd dcrctl/ \
+    && git checkout $DCRCTL_VERSION \
     &&  go install
 
 # Start a new image
@@ -23,18 +27,14 @@ RUN apk add --no-cache \
     ca-certificates
 
 # Copy the compiled binaries from the builder image.
-COPY --from=builder /go/bin/dcrd /bin/
-COPY --from=builder /go/bin/dcrctl /bin/
-COPY --from=builder /go/bin/findcheckpoint /bin/
-COPY --from=builder /go/bin/gencerts /bin/
-COPY --from=builder /go/bin/addblock /bin/
+COPY --from=builder /go/bin/* /bin/
 
 COPY "start-dcrd.sh" .
 
 # Generate an certificate for both dcrd and dcrwallet.
 RUN mkdir "/config" \
     &&  chmod +x start-dcrd.sh \
-    && "/bin/gencerts" -L -H="dcrd" -H="dcrwallet" -f "/config/rpc.cert" "/config/rpc.key"
+    && "/bin/gencerts" --host="dcrd" --host="dcrwallet" -f -d="/config"
 
 # Create a volume to house pregenerated RPC credentials. This will be
 # shared with any containers so they can securely query dcrd's RPC server.
