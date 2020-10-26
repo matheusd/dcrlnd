@@ -206,6 +206,18 @@ func Main(cfg *Config, lisCfg ListenerCfg, shutdownChan <-chan struct{}) error {
 	ltndLog.Infof("Version: %s, build=%s, logging=%s",
 		build.Version(), build.Deployment, build.LoggingType)
 
+	// Read IPC messages from the read end of a pipe created and passed by the
+	// parent process, if any.  When this pipe is closed, shutdown is
+	// initialized.
+	if cfg.PipeRx != nil {
+		go serviceControlPipeRx(uintptr(*cfg.PipeRx))
+	}
+	if cfg.PipeTx != nil {
+		go serviceControlPipeTx(uintptr(*cfg.PipeTx))
+	} else {
+		go drainOutgoingPipeMessages()
+	}
+
 	// We default to mainnet if none are specified.
 	network := "mainnet"
 	switch {

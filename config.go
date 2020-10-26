@@ -169,6 +169,11 @@ type Config struct {
 	MaxLogFileSize  int           `long:"maxlogfilesize" description:"Maximum logfile size in MB"`
 	AcceptorTimeout time.Duration `long:"acceptortimeout" description:"Time after which an RPCAcceptor will time out and return false if it hasn't yet received a response"`
 
+	// IPC options
+	PipeTx            *uint `long:"pipetx" description:"File descriptor or handle of write end pipe to enable child -> parent process communication"`
+	PipeRx            *uint `long:"piperx" description:"File descriptor or handle of read end pipe to enable parent -> child process communication"`
+	RPCListenerEvents bool  `long:"rpclistenerevents" description:"Notify JSON-RPC and gRPC listener addresses over the TX pipe"`
+
 	// We'll parse these 'raw' string arguments into real net.Addrs in the
 	// loadConfig function. We need to expose the 'raw' strings so the
 	// command line library can access them.

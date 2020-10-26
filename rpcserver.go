@@ -799,6 +799,13 @@ func (r *rpcServer) Start() error {
 		return nil
 	}
 
+	var jsonrpcAddrNotifier jsonrpcListenerEventServer
+	var grpcAddrNotifier grpcListenerEventServer
+	if r.cfg.RPCListenerEvents {
+		jsonrpcAddrNotifier = newJSONRPCListenerEventServer(outgoingPipeMessages)
+		grpcAddrNotifier = newGRPCListenerEventServer(outgoingPipeMessages)
+	}
+
 	// First, we'll start all the sub-servers to ensure that they're ready
 	// to take new requests in.
 	//
@@ -837,6 +844,7 @@ func (r *rpcServer) Start() error {
 						err)
 				}
 			}
+			grpcAddrNotifier.notify(lis.Addr().String())
 
 			// Close the ready chan to indicate we are listening.
 			close(lis.Ready)
@@ -908,6 +916,7 @@ func (r *rpcServer) Start() error {
 					"external REST subserver: %v", err)
 			}
 		}
+		jsonrpcAddrNotifier.notify(lis.Addr().String())
 	}
 
 	// Now spin up a network listener for each requested port and start a
