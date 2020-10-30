@@ -276,7 +276,6 @@ func (cfg *NodeConfig) genWalletArgs() []string {
 	args = append(args, fmt.Sprintf("--rpccert=%s", cfg.TLSCertPath))
 	args = append(args, fmt.Sprintf("--rpckey=%s", cfg.TLSKeyPath))
 	args = append(args, fmt.Sprintf("--clientcafile=%s", cfg.TLSCertPath))
-	args = append(args, "--authtype=clientcert")
 
 	// This is not strictly necessary, but it's useful to reduce the
 	// startup time of test wallets since it prevents two address discovery

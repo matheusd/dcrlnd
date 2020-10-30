@@ -111,7 +111,6 @@ func NewCustomTestRemoteDcrwallet(t TB, nodeName, dataDir string,
 		"--rpccert=" + tlsCertPath,
 		"--rpckey=" + tlsKeyPath,
 		"--clientcafile=" + tlsCertPath,
-		"--authtype=clientcert",
 	}
 
 	logFilePath := path.Join(fmt.Sprintf("output-remotedcrw-%.2d-%s.log",
