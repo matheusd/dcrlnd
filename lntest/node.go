@@ -759,7 +759,18 @@ func (hn *HarnessNode) initClientWhenReady() error {
 	)
 	if err := wait.NoError(func() error {
 		conn, connErr = hn.ConnectRPC(true)
-		return connErr
+		if connErr != nil {
+			return connErr
+		}
+
+		// Ensure we've connected to the gRPC server that has the
+		// lightning service (vs the one with the WalletUnlocker
+		// service).
+		lnClient := lnrpc.NewLightningClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_, infoErr := lnClient.GetInfo(ctx, &lnrpc.GetInfoRequest{})
+		return infoErr
 	}, 5*time.Second); err != nil {
 		return err
 	}

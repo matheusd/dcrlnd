@@ -951,7 +951,19 @@ func waitForWalletPassword(cfg *Config, restEndpoints []net.Addr,
 	// Set up a new PasswordService, which will listen for passwords
 	// provided over RPC.
 	grpcServer := grpc.NewServer(serverOpts...)
-	defer grpcServer.GracefulStop()
+	defer func() {
+		// Unfortunately the grpc lib does not offer any external
+		// method to check if there are existing connections and while
+		// it claims GracefulStop() will wait for outstanding RPC calls
+		// to finish, some client libraries (specifically: grpc-js used
+		// in nodejs/Electron apps) have trouble when the connection is
+		// closed before the response to the Unlock() call is
+		// completely processed. So we add a delay here to ensure
+		// there's enough time before closing the grpc listener for any
+		// clients to finish processing.
+		time.Sleep(100 * time.Millisecond)
+		grpcServer.GracefulStop()
+	}()
 
 	// The macaroon files are passed to the wallet unlocker since they are
 	// also encrypted with the wallet's password. These files will be
