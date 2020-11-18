@@ -8303,10 +8303,12 @@ func testGarbageCollectLinkNodes(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	for _, node := range channelGraph.Nodes {
 		if node.PubKey == net.Bob.PubKeyStr {
+			t.Logf("Full channel graph: %s", spew.Sdump(channelGraph))
 			t.Fatalf("did not expect to find bob in the channel " +
 				"graph, but did")
 		}
 		if node.PubKey == carol.PubKeyStr {
+			t.Logf("Full channel graph: %s", spew.Sdump(channelGraph))
 			t.Fatalf("did not expect to find carol in the channel " +
 				"graph, but did")
 		}
