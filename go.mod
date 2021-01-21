@@ -3,17 +3,17 @@ module github.com/decred/dcrlnd
 go 1.13
 
 require (
-	decred.org/dcrwallet v1.6.0-rc4
+	decred.org/dcrwallet v1.6.0
 	git.schwanenlied.me/yawning/bsaes.git v0.0.0-20180720073208-c0276d75487e // indirect
 	github.com/NebulousLabs/go-upnp v0.0.0-20181203152547-b32978b8ccbf
 	github.com/Yawning/aez v0.0.0-20180408160647-ec7426b44926
 	github.com/btcsuite/btcwallet/walletdb v1.3.3
 	github.com/davecgh/go-spew v1.1.1
-	github.com/decred/dcrd v1.2.1-0.20201124193059-b20814e9bfdb
+	github.com/decred/dcrd v1.2.1-0.20210121192504-91b84e06447e
 	github.com/decred/dcrd/bech32 v1.1.1
 	github.com/decred/dcrd/blockchain/stake/v3 v3.0.0
 	github.com/decred/dcrd/blockchain/standalone/v2 v2.0.0
-	github.com/decred/dcrd/blockchain/v3 v3.0.2
+	github.com/decred/dcrd/blockchain/v3 v3.0.3
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
 	github.com/decred/dcrd/chaincfg/v3 v3.0.0
 	github.com/decred/dcrd/connmgr v1.1.0
