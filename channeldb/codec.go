@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 // writeOutpoint writes an outpoint to the passed writer using the minimal
@@ -160,6 +161,12 @@ func WriteElement(w io.Writer, element interface{}) error {
 
 	case *secp256k1.PublicKey:
 		b := e.SerializeCompressed()
+		if _, err := w.Write(b); err != nil {
+			return err
+		}
+
+	case *dcr_adaptor_sigs.AdaptorSignature:
+		b := e.Serialize()
 		if _, err := w.Write(b); err != nil {
 			return err
 		}
@@ -355,6 +362,18 @@ func ReadElement(r io.Reader, element interface{}) error {
 			return err
 		}
 		*e = pubKey
+
+	case **dcr_adaptor_sigs.AdaptorSignature:
+		var b [dcr_adaptor_sigs.AdaptorSignatureSerializeLen]byte
+		if _, err := io.ReadFull(r, b[:]); err != nil {
+			return err
+		}
+
+		asig, err := dcr_adaptor_sigs.ParseAdaptorSignature(b[:])
+		if err != nil {
+			return err
+		}
+		*e = asig
 
 	case *shachain.Producer:
 		var root [32]byte

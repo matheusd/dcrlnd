@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwire"
 	"github.com/decred/dcrlnd/shachain"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 const (
@@ -340,6 +341,12 @@ type ChannelConfig struct {
 	// from the per-commitment point) is used within the "to self" clause
 	// within any HTLC output scripts.
 	HtlcBasePoint keychain.KeyDescriptor
+
+	// RandomKey is the random key used to generate random nonces for PTLC
+	// adaptor signatures.
+	//
+	// This will be filled only for the local chan config.
+	RandomKey *secp256k1.PrivateKey
 }
 
 // ChannelCommitment is a snapshot of the commitment state at a particular
@@ -1581,6 +1588,11 @@ type HTLC struct {
 	// RHash is the payment hash of the HTLC.
 	RHash [32]byte
 
+	PaymentPoint *secp256k1.PublicKey
+
+	AdaptorSigSuccess        *dcr_adaptor_sigs.AdaptorSignature
+	AdaptorSigSuccessNoDelay *dcr_adaptor_sigs.AdaptorSignature
+
 	// Amt is the amount of milli-atoms this HTLC escrows.
 	Amt lnwire.MilliAtom
 
@@ -1624,10 +1636,22 @@ func SerializeHtlcs(b io.Writer, htlcs ...HTLC) error {
 	}
 
 	for _, htlc := range htlcs {
+		var ppBytes, asBytes, assBytes []byte
+		if htlc.PaymentPoint != nil {
+			ppBytes = htlc.PaymentPoint.SerializeCompressed()
+		}
+		if htlc.AdaptorSigSuccess != nil {
+			asBytes = htlc.AdaptorSigSuccess.Serialize()
+		}
+		if htlc.AdaptorSigSuccessNoDelay != nil {
+			assBytes = htlc.AdaptorSigSuccessNoDelay.Serialize()
+		}
+
 		if err := WriteElements(b,
 			htlc.Signature, htlc.RHash, htlc.Amt, htlc.RefundTimeout,
 			htlc.OutputIndex, htlc.Incoming, htlc.OnionBlob,
-			htlc.HtlcIndex, htlc.LogIndex,
+			htlc.HtlcIndex, htlc.LogIndex, ppBytes, asBytes,
+			assBytes,
 		); err != nil {
 			return err
 		}
@@ -1655,13 +1679,32 @@ func DeserializeHtlcs(r io.Reader) ([]HTLC, error) {
 
 	htlcs = make([]HTLC, numHtlcs)
 	for i := uint16(0); i < numHtlcs; i++ {
+		var ppBytes, asBytes, assBytes []byte
 		if err := ReadElements(r,
 			&htlcs[i].Signature, &htlcs[i].RHash, &htlcs[i].Amt,
 			&htlcs[i].RefundTimeout, &htlcs[i].OutputIndex,
 			&htlcs[i].Incoming, &htlcs[i].OnionBlob,
 			&htlcs[i].HtlcIndex, &htlcs[i].LogIndex,
+			&ppBytes, &asBytes, &assBytes,
 		); err != nil {
 			return htlcs, err
+		}
+
+		var err error
+		if len(ppBytes) == 33 {
+			if htlcs[i].PaymentPoint, err = secp256k1.ParsePubKey(ppBytes); err != nil {
+				return htlcs, err
+			}
+		}
+		if len(asBytes) == dcr_adaptor_sigs.AdaptorSignatureSerializeLen {
+			if htlcs[i].AdaptorSigSuccess, err = dcr_adaptor_sigs.ParseAdaptorSignature(asBytes); err != nil {
+				return htlcs, err
+			}
+		}
+		if len(assBytes) == dcr_adaptor_sigs.AdaptorSignatureSerializeLen {
+			if htlcs[i].AdaptorSigSuccessNoDelay, err = dcr_adaptor_sigs.ParseAdaptorSignature(assBytes); err != nil {
+				return htlcs, err
+			}
 		}
 	}
 
