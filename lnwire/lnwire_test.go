@@ -843,6 +843,20 @@ func TestLightningWireProtocol(t *testing.T) {
 
 			v[0] = reflect.ValueOf(req)
 		},
+		MsgUpdateAddHTLC: func(v []reflect.Value, r *rand.Rand) {
+			req := UpdateAddHTLC{
+				ID:     r.Uint64(),
+				Amount: MilliAtom(r.Uint64()),
+				Expiry: r.Uint32(),
+			}
+
+			if _, err := r.Read(req.OnionBlob[:]); err != nil {
+				t.Fatalf("unable to generate onion blob: %v", err)
+				return
+			}
+
+			v[0] = reflect.ValueOf(req)
+		},
 	}
 
 	// With the above types defined, we'll now generate a slice of

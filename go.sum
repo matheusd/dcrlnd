@@ -311,6 +311,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/matheusd/dcr_adaptor_sigs v0.0.0-20210202215049-f7396951ad6a h1:Xvq54Uje6AuKT3WyVT4FfeNR3ai7ilw/nO6jv2fzGV4=
+github.com/matheusd/dcr_adaptor_sigs v0.0.0-20210202215049-f7396951ad6a/go.mod h1:05SCRl+QSF7dJ/L6dBHiJ6UQ4otSKjnS/nMVbWSkNXU=
 github.com/matheusd/etcd v0.5.0-alpha.5.0.20201012144914-e63dcc3d7528 h1:E8Ten1XgpETC4YSO2FDB6/ZvnDiEV2MW0/EvampmIdk=
 github.com/matheusd/etcd v0.5.0-alpha.5.0.20201012144914-e63dcc3d7528/go.mod h1:SoOfCmPwMftuPacDfthltuksjynBOjkpAL0ERJQT0mQ=
 github.com/matheusd/google-protobuf-protos v0.0.0-20200707194502-ef6ec5c2266f h1:C4oKaubQkUb0IdljKC7TQ2ERNrRs0S9vWm75LwyameY=

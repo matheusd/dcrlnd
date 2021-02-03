@@ -5,6 +5,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v3/ecdsa"
 	"github.com/decred/dcrlnd/input"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 // Sig is a fixed-sized ECDSA signature. Unlike Bitcoin, we use fixed sized
@@ -109,6 +110,22 @@ func (b *Sig) ToSignatureBytes() []byte {
 	copy(sigBytes[rLen+6:], s)    // Copy S
 
 	return sigBytes
+}
+
+type AdaptorSig [dcr_adaptor_sigs.AdaptorSignatureSerializeLen]byte
+
+func NewAdaptorSigFromSignature(e input.Signature) (AdaptorSig, error) {
+	var s AdaptorSig
+	ser := e.Serialize()
+	if len(ser) != dcr_adaptor_sigs.AdaptorSignatureSerializeLen {
+		return s, fmt.Errorf("unexpected serialized len for adaptor sig")
+	}
+	copy(s[:], ser)
+	return s, nil
+}
+
+func (as *AdaptorSig) ToSignature() (*dcr_adaptor_sigs.AdaptorSignature, error) {
+	return dcr_adaptor_sigs.ParseAdaptorSignature(as[:])
 }
 
 // extractCanonicalPadding is a utility function to extract the canonical

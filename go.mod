@@ -50,6 +50,7 @@ require (
 	github.com/juju/utils v0.0.0-20180820210520-bf9cc5bdd62d // indirect
 	github.com/juju/version v0.0.0-20180108022336-b64dbd566305 // indirect
 	github.com/kkdai/bstream v0.0.0-20181106074824-b3251f7901ec
+	github.com/matheusd/dcr_adaptor_sigs v0.0.0-20210202215049-f7396951ad6a
 	github.com/matheusd/etcd v0.5.0-alpha.5.0.20201012144914-e63dcc3d7528
 	github.com/matheusd/google-protobuf-protos v0.0.0-20200707194502-ef6ec5c2266f
 	github.com/matheusd/protobuf-hex-display v1.3.3-0.20201012153224-75fb8d4840f1

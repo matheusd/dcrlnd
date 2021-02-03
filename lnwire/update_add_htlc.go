@@ -2,6 +2,8 @@ package lnwire
 
 import (
 	"io"
+
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 )
 
 // OnionPacketSize is the size of the serialized Sphinx onion packet included
@@ -52,6 +54,10 @@ type UpdateAddHTLC struct {
 	// should strip off a layer of encryption, exposing the next hop to be
 	// used in the subsequent UpdateAddHTLC message.
 	OnionBlob [OnionPacketSize]byte
+
+	// The payment point when this is a PTLC payment. Only encoded/decoded
+	// in protocol versions > 0.
+	PaymentPoint *secp256k1.PublicKey
 }
 
 // NewUpdateAddHTLC returns a new empty UpdateAddHTLC message.
@@ -68,6 +74,18 @@ var _ Message = (*UpdateAddHTLC)(nil)
 //
 // This is part of the lnwire.Message interface.
 func (c *UpdateAddHTLC) Decode(r io.Reader, pver uint32) error {
+	if pver == ProtoVersionPTLC {
+		return ReadElements(r,
+			&c.ChanID,
+			&c.ID,
+			&c.Amount,
+			c.PaymentHash[:],
+			&c.PaymentPoint,
+			&c.Expiry,
+			c.OnionBlob[:],
+		)
+	}
+
 	return ReadElements(r,
 		&c.ChanID,
 		&c.ID,
@@ -83,6 +101,18 @@ func (c *UpdateAddHTLC) Decode(r io.Reader, pver uint32) error {
 //
 // This is part of the lnwire.Message interface.
 func (c *UpdateAddHTLC) Encode(w io.Writer, pver uint32) error {
+	if pver == ProtoVersionPTLC {
+		return WriteElements(w,
+			c.ChanID,
+			c.ID,
+			c.Amount,
+			c.PaymentHash[:],
+			c.PaymentPoint,
+			c.Expiry,
+			c.OnionBlob[:],
+		)
+	}
+
 	return WriteElements(w,
 		c.ChanID,
 		c.ID,
@@ -105,8 +135,11 @@ func (c *UpdateAddHTLC) MsgType() MessageType {
 // complete message observing the specified protocol version.
 //
 // This is part of the lnwire.Message interface.
-func (c *UpdateAddHTLC) MaxPayloadLength(uint32) uint32 {
+func (c *UpdateAddHTLC) MaxPayloadLength(pver uint32) uint32 {
 	// 1450
+	if pver == ProtoVersionPTLC {
+		return 32 + 8 + 4 + 8 + 32 + 1366 + 33
+	}
 	return 32 + 8 + 4 + 8 + 32 + 1366
 }
 
