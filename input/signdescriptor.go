@@ -74,6 +74,18 @@ type SignDescriptor struct {
 	// InputIndex is the target input within the transaction that should be
 	// signed.
 	InputIndex int
+
+	// TargetNonce to be used when generating an adaptor signature for some
+	// message. This is the public point of the secret target scalar ("T")
+	// in adaptor signatures. When filled, it signals signers to generate
+	// an AdaptorSignature instead of a regular Signature.
+	TargetNonce *secp256k1.PublicKey
+
+	// RandomNonce is the public point corresponding to the secret random
+	// nonce ("U") to be used when generating adaptor signatures. If
+	// filled, this point is used when generating the signature, otherwise
+	// a standard rfc6979 nonce is used.
+	RandomNonce *secp256k1.PrivateKey
 }
 
 // WriteSignDescriptor serializes a SignDescriptor struct into the passed
