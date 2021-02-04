@@ -91,6 +91,27 @@ type CommitmentKeyRing struct {
 	// If this is our commitment, it means the remote node can sign for
 	// this key in case of a breach.
 	RevocationKey *secp256k1.PublicKey
+
+	// LocalRandomKey is the channel random key tweaked by the commitment
+	// point.
+	//
+	// This is equal to sha256(channel_random_point || commit_point).
+	LocalRandomKey *secp256k1.PrivateKey
+}
+
+// tweakKeyWithPoint computes a new private scalar k = sha256(key || point)
+func tweakKeyWithPoint(key *secp256k1.PrivateKey, point *secp256k1.PublicKey) *secp256k1.PrivateKey {
+	if key == nil || point == nil {
+		// TODO: log? Or fail?
+		return nil
+	}
+	bts := make([]byte, 64)
+	copy(bts[:32], key.Serialize())
+	copy(bts[32:], point.SerializeCompressed()[1:])
+	hash := sha256.Sum256(bts)
+
+	// TODO: ensure the key is valid, otherwise regenerate.
+	return secp256k1.PrivKeyFromBytes(hash[:])
 }
 
 // DeriveCommitmentKeys generates a new commitment key set using the base
@@ -110,6 +131,12 @@ func DeriveCommitmentKeys(commitPoint *secp256k1.PublicKey,
 		localBasePoint = localChanCfg.DelayBasePoint
 	}
 
+	var localRandomKey *secp256k1.PrivateKey
+	if localChanCfg.RandomKey != nil {
+		// Tweak the channel random key with the commitment point.
+		localRandomKey = tweakKeyWithPoint(localChanCfg.RandomKey, commitPoint)
+	}
+
 	// First, we'll derive all the keys that don't depend on the context of
 	// whose commitment transaction this is.
 	keyRing := &CommitmentKeyRing{
@@ -127,6 +154,7 @@ func DeriveCommitmentKeys(commitPoint *secp256k1.PublicKey,
 		RemoteHtlcKey: input.TweakPubKey(
 			remoteChanCfg.HtlcBasePoint.PubKey, commitPoint,
 		),
+		LocalRandomKey: localRandomKey,
 	}
 
 	// We'll now compute the to_local, to_remote, and revocation key based
