@@ -181,6 +181,7 @@ func CreateTestChannels(chanType channeldb.ChannelType) (
 		HtlcBasePoint: keychain.KeyDescriptor{
 			PubKey: aliceKeys[4].PubKey(),
 		},
+		RandomKey: secp256k1.PrivKeyFromBytes([]byte{0x01}),
 	}
 	bobCfg := channeldb.ChannelConfig{
 		ChannelConstraints: channeldb.ChannelConstraints{
@@ -206,6 +207,7 @@ func CreateTestChannels(chanType channeldb.ChannelType) (
 		HtlcBasePoint: keychain.KeyDescriptor{
 			PubKey: bobKeys[4].PubKey(),
 		},
+		RandomKey: secp256k1.PrivKeyFromBytes([]byte{0x02}),
 	}
 
 	bobRoot, err := shachain.NewHash(bobKeys[0].Serialize())
