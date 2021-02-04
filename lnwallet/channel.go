@@ -3745,7 +3745,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 	// need to generate signatures of each of them for the remote party's
 	// commitment state. We do so in two phases: first we generate and
 	// submit the set of signature jobs to the worker pool.
-	sigBatch, _, cancelChan, err := genRemoteHtlcSigJobs(
+	sigBatch, adaptorSigBatch, cancelChan, err := genRemoteHtlcSigJobs(
 		keyRing, lc.channelState.ChanType,
 		&lc.channelState.LocalChanCfg, &lc.channelState.RemoteChanCfg,
 		newCommitView, nil,
@@ -3754,6 +3754,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 	lc.sigPool.SubmitSignBatch(sigBatch)
+	lc.sigPool.SubmitSignBatch(adaptorSigBatch)
 
 	// While the jobs are being carried out, we'll Sign their version of
 	// the new commitment transaction while we're waiting for the rest of
@@ -3775,6 +3776,9 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 	sort.Slice(sigBatch, func(i, j int) bool {
 		return sigBatch[i].OutputIndex < sigBatch[j].OutputIndex
 	})
+	sort.Slice(adaptorSigBatch, func(i, j int) bool {
+		return adaptorSigBatch[i].OutputIndex < adaptorSigBatch[j].OutputIndex
+	})
 
 	// With the jobs sorted, we'll now iterate through all the responses to
 	// gather each of the signatures in order.
@@ -3790,6 +3794,22 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 		}
 
 		htlcSigs = append(htlcSigs, jobResp.Sig)
+	}
+
+	// Also fetch PTLC adaptor sigs.
+	ptlcSigs = make([]lnwire.AdaptorSig, 0, len(adaptorSigBatch))
+	for _, ptlcSigJob := range adaptorSigBatch {
+		jobResp := <-ptlcSigJob.Resp
+
+		// If an error occurred, then we'll cancel any other active
+		// jobs.
+		if jobResp.Err != nil {
+			close(cancelChan)
+			return sig, htlcSigs, ptlcSigs, nil, jobResp.Err
+
+		}
+
+		ptlcSigs = append(ptlcSigs, jobResp.AdaptorSig)
 	}
 
 	// As we're about to proposer a new commitment state for the remote
@@ -4579,7 +4599,7 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 	localCommitmentView, err := lc.fetchCommitmentView(
 		false, localACKedIndex, localHtlcIndex,
 		lc.remoteUpdateLog.logIndex, lc.remoteUpdateLog.htlcCounter,
-		keyRing, nil,
+		keyRing, ptlcSigs,
 	)
 	if err != nil {
 		return err
@@ -4614,8 +4634,8 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 	// As an optimization, we'll generate a series of jobs for the worker
 	// pool to verify each of the HTLc signatures presented. Once
 	// generated, we'll submit these jobs to the worker pool.
-	verifyJobs, _, err := genHtlcSigValidationJobs(
-		localCommitmentView, keyRing, htlcSigs, nil,
+	verifyJobs, verifyAdaptorJobs, err := genHtlcSigValidationJobs(
+		localCommitmentView, keyRing, htlcSigs, ptlcSigs,
 		lc.channelState.ChanType, &lc.channelState.LocalChanCfg,
 		&lc.channelState.RemoteChanCfg,
 	)
@@ -4625,6 +4645,7 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 
 	cancelChan := make(chan struct{})
 	verifyResps := lc.sigPool.SubmitVerifyBatch(verifyJobs, cancelChan)
+	verifyAdaptorResps := lc.sigPool.SubmitVerifyBatch(verifyAdaptorJobs, cancelChan)
 
 	// While the HTLC verification jobs are proceeding asynchronously,
 	// we'll ensure that the newly constructed commitment state has a valid
@@ -4682,6 +4703,43 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 				sigHash:      sigHash,
 				commitTx:     txBytes.Bytes(),
 			}
+		}
+	}
+
+	// Also verify the adatpro signatures.
+	for i := 0; i < len(verifyAdaptorJobs); i++ {
+		// In the case that a single signature is
+		// invalid, we'll exit early and cancel all the
+		// outstanding verification jobs.
+		htlcErr := <-verifyAdaptorResps
+		fmt.Println("OOOOOOOOOOOO verified adaptor sig", i, htlcErr)
+		if htlcErr != nil {
+			close(cancelChan)
+
+			sig, err := lnwire.NewSigFromSignature(
+				htlcErr.Sig,
+			)
+			if err != nil {
+				return err
+
+			}
+			sigHash, err := htlcErr.SigHash()
+			if err != nil {
+				return err
+
+			}
+
+			var txBytes bytes.Buffer
+			txBytes.Grow(localCommitTx.SerializeSize())
+			localCommitTx.Serialize(&txBytes)
+			return &InvalidHtlcSigError{
+				commitHeight: nextHeight,
+				htlcSig:      sig.ToSignatureBytes(),
+				htlcIndex:    htlcErr.HtlcIndex,
+				sigHash:      sigHash,
+				commitTx:     txBytes.Bytes(),
+			}
+
 		}
 	}
 
