@@ -146,6 +146,42 @@ func createHtlcTimeoutTx(chanType channeldb.ChannelType,
 	return timeoutTx, nil
 }
 
+// createPtlcSuccessNoDelayTx creates the tx that redeems a PTLC by presenting
+// the secret scalar without any delays to the remote host.
+func createPtlcSuccessNoDelayTx(chanType channeldb.ChannelType,
+	htlcOutput wire.OutPoint, htlcAmt dcrutil.Amount,
+	destKey *secp256k1.PublicKey) (*wire.MsgTx, error) {
+
+	// Create a version two transaction (as the success version of this
+	// spends an output with a CSV timeout).
+	timeoutTx := wire.NewMsgTx()
+	timeoutTx.Version = input.LNTxVersion
+
+	// The input to the transaction is the outpoint that creates the
+	// original PTLC on the sender's commitment transaction. Set the
+	// sequence number based on the channel type.
+	txin := &wire.TxIn{
+		PreviousOutPoint: htlcOutput,
+		Sequence:         HtlcSecondLevelInputSequence(chanType),
+	}
+	timeoutTx.AddTxIn(txin)
+
+	// The output script is a regular p2pkh output.
+	pkScript, err := input.PayToPubkeyHashScript(destKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Finally, the output is simply the amount of the HTLC (minus the
+	// required fees).
+	timeoutTx.AddTxOut(&wire.TxOut{
+		Value:    int64(htlcAmt),
+		PkScript: pkScript,
+	})
+
+	return timeoutTx, nil
+}
+
 // SetStateNumHint encodes the current state number within the passed
 // commitment transaction by re-purposing the locktime and sequence fields in
 // the commitment transaction to encode the obfuscated state number.  The state

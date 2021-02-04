@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"sync"
 
@@ -5830,6 +5831,12 @@ type IncomingHtlcResolution struct {
 	// claimed directly from the outpoint listed below.
 	SignedSuccessTx *wire.MsgTx
 
+	// SignedSuccessNoDelayTx  is the fully signed PTLC success-no-delay
+	// transaction. This allows the receiver to retrieve the PTLC funds on
+	// the commitment tx of the sender by revealing the secret scalar via a
+	// previously agreed upon adaptor sig.
+	SignedSuccessNoDelayTx *wire.MsgTx
+
 	// CsvDelay is the relative time lock (expressed in blocks) that must
 	// pass after the SignedSuccessTx is confirmed in the chain before the
 	// output can be swept.
@@ -5920,12 +5927,42 @@ func newOutgoingHtlcResolution(signer input.Signer,
 		Index: uint32(htlc.OutputIndex),
 	}
 
-	// First, we'll re-generate the script used to send the HTLC to
-	// the remote party within their commitment transaction.
-	htlcScriptHash, htlcScript, err := genHtlcScript(
-		chanType, false, localCommit, htlc.RefundTimeout, htlc.RHash,
-		keyRing,
-	)
+	isPTLC := htlc.PaymentPoint != nil
+
+	// First, we'll re-generate the script used to send the HTLC to the
+	// remote party within their commitment transaction.
+	var htlcScriptHash, htlcScript []byte
+	var err error
+	switch isPTLC {
+	case true:
+		var uPoint *secp256k1.PublicKey
+		switch {
+		case htlc.AdaptorSigSuccessNoDelay != nil:
+			// Since we already have an adaptor sig for the
+			// successNoDelay tx, use its stored U.
+			uPoint = htlc.AdaptorSigSuccessNoDelay.U()
+
+		default:
+			// Otherwise, we generate a new one based on the random
+			// commit key, tweaked for this particular target
+			// payment point.
+			uSecret := tweakKeyWithPoint(keyRing.LocalRandomKey, htlc.PaymentPoint)
+			uPoint = uSecret.PubKey()
+		}
+
+		htlcScriptHash, htlcScript, err = genPtlcScript(
+			chanType, false, localCommit, htlc.RefundTimeout,
+			uPoint, htlc.PaymentPoint, keyRing,
+		)
+
+		fmt.Printf("OOOO outgoing htlc resolution script %x hash %x\n", htlcScript, htlcScriptHash)
+
+	default:
+		htlcScriptHash, htlcScript, err = genHtlcScript(
+			chanType, false, localCommit, htlc.RefundTimeout, htlc.RHash,
+			keyRing,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -5933,7 +5970,7 @@ func newOutgoingHtlcResolution(signer input.Signer,
 	// If we're spending this HTLC output from the remote node's
 	// commitment, then we won't need to go to the second level as our
 	// outputs don't have a CSV delay.
-	if !localCommit {
+	if !localCommit && !isPTLC {
 		// With the script generated, we can completely populated the
 		// input.SignDescriptor needed to sweep the output.
 		return &OutgoingHtlcResolution{
@@ -6044,6 +6081,129 @@ func newOutgoingHtlcResolution(signer input.Signer,
 	}, nil
 }
 
+// newIncomingPtlcResolutionSuccessNoDelayTx generates a resolution for an
+// incoming PTLC in the remote commitment tx by using the successNoDelay tx.
+func newIncomingPtlcResolutionSuccessNoDelayTx(signer input.Signer,
+	localChanCfg *channeldb.ChannelConfig, commitHash chainhash.Hash,
+	htlc *channeldb.HTLC, keyRing *CommitmentKeyRing,
+	feePerKB chainfee.AtomPerKByte, csvDelay uint32,
+	localCommit bool, chanType channeldb.ChannelType) (*IncomingHtlcResolution, error) {
+
+	// NOTE: localCommit is always false for the moment.
+
+	op := wire.OutPoint{
+		Hash:  commitHash,
+		Index: uint32(htlc.OutputIndex),
+	}
+
+	uSecret := tweakKeyWithPoint(keyRing.LocalRandomKey, htlc.PaymentPoint)
+	uPoint := uSecret.PubKey()
+
+	htlcScriptHash, htlcScript, err := genPtlcScript(
+		chanType, true, localCommit, htlc.RefundTimeout, uPoint,
+		htlc.PaymentPoint, keyRing,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("NNNNNNNN htlcScript new incoming %x\n", htlcScript)
+	fmt.Printf("NNNNNNNN htlcScriptHash new incoming %x\n", htlcScriptHash)
+
+	// In order to properly reconstruct the HTLC transaction, we'll need to
+	// re-calculate the fee required at this state, so we can add the
+	// correct output value amount to the transaction.
+	//
+	// FIXME: htlcSuccessNoDelayFee()
+	htlcFee := HtlcSuccessFee(chanType, feePerKB)
+	secondLevelOutputAmt := htlc.Amt.ToAtoms() - htlcFee
+
+	fmt.Printf("JJJJJJ incomingPtlcResolution successNoDelay amt %d fee %d\n", htlc.Amt, htlcFee)
+
+	// With the fee calculated, re-construct the second level timeout
+	// transaction.
+	successNoDelayTx, err := createPtlcSuccessNoDelayTx(
+		chanType, op, secondLevelOutputAmt, keyRing.ToLocalKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// With the transaction created, we can generate a sign descriptor
+	// that's capable of generating the signature required to spend the
+	// PTLC output using the success-no-delay transaction.
+	signDesc := &input.SignDescriptor{
+		KeyDesc:       localChanCfg.HtlcBasePoint,
+		SingleTweak:   keyRing.LocalHtlcKeyTweak,
+		WitnessScript: htlcScript,
+		Output: &wire.TxOut{
+			Value: int64(htlc.Amt.ToAtoms()),
+		},
+		HashType:   txscript.SigHashAll,
+		InputIndex: 0,
+	}
+
+	ptlcSignDesc := &input.SignDescriptor{
+		KeyDesc:       localChanCfg.HtlcBasePoint,
+		SingleTweak:   keyRing.LocalHtlcKeyTweak,
+		WitnessScript: htlcScript,
+		Output: &wire.TxOut{
+			Value: int64(htlc.Amt.ToAtoms()),
+		},
+		HashType:    txscript.SigHashAll,
+		InputIndex:  0,
+		TargetNonce: htlc.PaymentPoint,
+		RandomNonce: uSecret,
+	}
+	_ = new(big.Int)
+
+	// With the sign desc created, we can now construct the full witness
+	// for the success-no-delay transaction, and populate it as well.
+	fmt.Printf("IIIIIIIIIIIIIIIIIII adaptorSIgSuccessNoDelay %v\n", htlc.AdaptorSigSuccessNoDelay)
+	successNoDelayWitness, err := input.SenderPtlcSpendRedeem(
+		signer, signDesc, successNoDelayTx, ptlcSignDesc, nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	sigScript, err := input.WitnessStackToSigScript(successNoDelayWitness)
+	if err != nil {
+		return nil, err
+	}
+	successNoDelayTx.TxIn[0].SignatureScript = sigScript
+
+	// Finally, we'll generate the script output that the timeout
+	// transaction creates so we can generate the signDesc required to
+	// complete the claim process.
+	ptlcSweepPkScript, err := input.PayToPubkeyHashScript(keyRing.ToLocalKey)
+	if err != nil {
+		return nil, err
+	}
+	localDelayTweak := input.SingleTweakBytes(
+		keyRing.CommitPoint, localChanCfg.DelayBasePoint.PubKey,
+	)
+
+	return &IncomingHtlcResolution{
+		SignedSuccessNoDelayTx: successNoDelayTx,
+		CsvDelay:               csvDelay,
+		ClaimOutpoint: wire.OutPoint{
+			Hash:  successNoDelayTx.TxHash(),
+			Index: 0,
+		},
+		SweepSignDesc: input.SignDescriptor{
+			KeyDesc:       localChanCfg.DelayBasePoint,
+			SingleTweak:   localDelayTweak,
+			WitnessScript: nil, // p2pkh // htlcSweepScript,
+			Output: &wire.TxOut{
+				PkScript: ptlcSweepPkScript,
+				Value:    int64(secondLevelOutputAmt),
+			},
+			HashType: txscript.SigHashAll,
+		},
+	}, nil
+
+}
+
 // newIncomingHtlcResolution creates a new HTLC resolution capable of allowing
 // the caller to sweep an incoming HTLC. If the HTLC is on the caller's
 // commitment transaction, then they'll need to broadcast a second-level
@@ -6062,12 +6222,50 @@ func newIncomingHtlcResolution(signer input.Signer,
 		Index: uint32(htlc.OutputIndex),
 	}
 
-	// First, we'll re-generate the script the remote party used to
-	// send the HTLC to us in their commitment transaction.
-	htlcScriptHash, htlcScript, err := genHtlcScript(
-		chanType, true, localCommit, htlc.RefundTimeout, htlc.RHash,
-		keyRing,
-	)
+	var htlcScriptHash, htlcScript []byte
+	var err error
+
+	isPTLC := htlc.PaymentPoint != nil
+
+	// For PTLCs that need to be spent from a remote commitment, we need to
+	// create the success-no-delay second level tx.
+	if !localCommit && isPTLC {
+		return newIncomingPtlcResolutionSuccessNoDelayTx(
+			signer, localChanCfg, commitHash, htlc, keyRing,
+			feePerKB, csvDelay, localCommit, chanType,
+		)
+	}
+
+	// First, we'll re-generate the script the remote party used to send
+	// the HTLC to us in their commitment transaction.
+	switch isPTLC {
+	case true:
+		var uPoint *secp256k1.PublicKey
+		switch {
+		case htlc.AdaptorSigSuccessNoDelay != nil:
+			// Since we already have an adaptor sig for the
+			// successNoDelay tx, use its stored U.
+			uPoint = htlc.AdaptorSigSuccessNoDelay.U()
+
+		default:
+			// Otherwise, we generate a new one based on the random
+			// commit key, tweaked for this particular target
+			// payment point.
+			uSecret := tweakKeyWithPoint(keyRing.LocalRandomKey, htlc.PaymentPoint)
+			uPoint = uSecret.PubKey()
+		}
+
+		htlcScriptHash, htlcScript, err = genPtlcScript(
+			chanType, true, localCommit, htlc.RefundTimeout,
+			uPoint, htlc.PaymentPoint, keyRing,
+		)
+
+	default:
+		htlcScriptHash, htlcScript, err = genHtlcScript(
+			chanType, true, localCommit, htlc.RefundTimeout, htlc.RHash,
+			keyRing,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -6129,10 +6327,20 @@ func newIncomingHtlcResolution(signer input.Signer,
 	// the success transaction. Don't specify the preimage yet. The preimage
 	// will be supplied by the contract resolver, either directly or when it
 	// becomes known.
+	var successWitness input.TxWitness
 	sigHashType := HtlcSigHashType(chanType)
-	successWitness, err := input.ReceiverHtlcSpendRedeem(
-		htlcSig, sigHashType, nil, signer, &successSignDesc, successTx,
-	)
+	switch isPTLC {
+	case true:
+		successWitness, err = input.ReceiverPtlcSpendRedeem(
+			htlcSig, sigHashType, htlc.AdaptorSigSuccess, nil, signer, &successSignDesc, successTx,
+		)
+
+	default:
+		successWitness, err = input.ReceiverHtlcSpendRedeem(
+			htlcSig, sigHashType, nil, signer, &successSignDesc, successTx,
+		)
+
+	}
 	if err != nil {
 		return nil, err
 	}
