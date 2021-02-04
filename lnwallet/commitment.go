@@ -1,6 +1,7 @@
 package lnwallet
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/decred/dcrd/blockchain/v3"
@@ -13,6 +14,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwallet/chainfee"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 // anchorSize is the constant anchor output size.
@@ -797,6 +799,86 @@ func genHtlcScript(chanType channeldb.ChannelType, isIncoming, ourCommit bool,
 		witnessScript, err = input.ReceiverHTLCScript(
 			timeout, keyRing.LocalHtlcKey, keyRing.RemoteHtlcKey,
 			keyRing.RevocationKey, rHash[:], confirmedHtlcSpends,
+		)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Now that we have the redeem scripts, create the P2WSH public key
+	// script for the output itself.
+	htlcP2SH, err := input.ScriptHashPkScript(witnessScript)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return htlcP2SH, witnessScript, nil
+}
+
+// genPtlcScript generates the proper PTLC script for some output.
+func genPtlcScript(chanType channeldb.ChannelType, isIncoming, ourCommit bool,
+	timeout uint32, ptlcUPoint, ptlcTargetPoint *secp256k1.PublicKey,
+	keyRing *CommitmentKeyRing) ([]byte, []byte, error) {
+
+	var (
+		witnessScript []byte
+		err           error
+		ptlcKey       *secp256k1.PublicKey
+	)
+
+	// Choose scripts based on channel type.
+	confirmedHtlcSpends := false
+	if chanType.HasAnchors() {
+		confirmedHtlcSpends = true
+	}
+	_ = confirmedHtlcSpends
+
+	// Generate the proper redeem scripts for the HTLC output modified by
+	// two-bits denoting if this is an incoming HTLC, and if the HTLC is
+	// being applied to their commitment transaction or ours.
+	switch {
+	// The HTLC is paying to us, and being applied to our commitment
+	// transaction. So we need to use the receiver's version of HTLC the
+	// script.
+	case isIncoming && ourCommit:
+		ptlcKey = keyRing.RemoteHtlcKey
+		witnessScript, err = input.ReceiverPTLCScript(
+			timeout, keyRing.RemoteHtlcKey, keyRing.LocalHtlcKey,
+			keyRing.RevocationKey, ptlcKey, confirmedHtlcSpends,
+		)
+
+	// We're being paid via an HTLC by the remote party, and the HTLC is
+	// being added to their commitment transaction, so we use the sender's
+	// version of the HTLC script.
+	case isIncoming && !ourCommit:
+		ptlcKey = keyRing.LocalHtlcKey
+		rPoint := dcr_adaptor_sigs.FullSigR(ptlcUPoint, ptlcTargetPoint)
+
+		witnessScript, err = input.SenderPTLCScript(
+			keyRing.RemoteHtlcKey, keyRing.LocalHtlcKey,
+			keyRing.RevocationKey, rPoint, ptlcKey, confirmedHtlcSpends,
+		)
+
+	// We're sending an HTLC which is being added to our commitment
+	// transaction. Therefore, we need to use the sender's version of the
+	// HTLC script.
+	case !isIncoming && ourCommit:
+		ptlcKey = keyRing.RemoteHtlcKey
+		rPoint := dcr_adaptor_sigs.FullSigR(ptlcUPoint, ptlcTargetPoint)
+
+		witnessScript, err = input.SenderPTLCScript(
+			keyRing.LocalHtlcKey, keyRing.RemoteHtlcKey,
+			keyRing.RevocationKey, rPoint, ptlcKey, confirmedHtlcSpends,
+		)
+
+	// Finally, we're paying the remote party via an HTLC, which is being
+	// added to their commitment transaction. Therefore, we use the
+	// receiver's version of the HTLC script.
+	case !isIncoming && !ourCommit:
+		ptlcKey = keyRing.LocalHtlcKey
+		witnessScript, err = input.ReceiverPTLCScript(
+			timeout, keyRing.LocalHtlcKey, keyRing.RemoteHtlcKey,
+			keyRing.RevocationKey, ptlcKey, confirmedHtlcSpends,
 		)
 	}
 	if err != nil {

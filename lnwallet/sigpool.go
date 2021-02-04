@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/lnwire"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 const (
@@ -58,6 +59,8 @@ type VerifyJob struct {
 	// error will be passed. Otherwise, a concrete error detailing the
 	// issue will be passed.
 	ErrResp chan *HtlcIndexErr
+
+	AdaptorSig *dcr_adaptor_sigs.AdaptorSignature
 }
 
 // HtlcIndexErr is a special type of error that also includes a pointer to the
@@ -107,6 +110,8 @@ type SignJobResp struct {
 	// of an error during signature generation, then this value sent will
 	// be nil.
 	Sig lnwire.Sig
+
+	AdaptorSig lnwire.AdaptorSig
 
 	// Err is the error that occurred when executing the specified
 	// signature job. In the case that no error occurred, this value will
@@ -206,11 +211,19 @@ func (s *SigPool) poolWorker() {
 				}
 			}
 
-			sig, err := lnwire.NewSigFromSignature(rawSig)
+			var sig lnwire.Sig
+			var adaptorSig lnwire.AdaptorSig
+			if sigMsg.SignDesc.TargetNonce != nil {
+				adaptorSig, err = lnwire.NewAdaptorSigFromSignature(rawSig)
+			} else {
+				sig, err = lnwire.NewSigFromSignature(rawSig)
+			}
+
 			select {
 			case sigMsg.Resp <- SignJobResp{
-				Sig: sig,
-				Err: err,
+				Sig:        sig,
+				AdaptorSig: adaptorSig,
+				Err:        err,
 			}:
 			case <-sigMsg.Cancel:
 				continue
@@ -235,9 +248,17 @@ func (s *SigPool) poolWorker() {
 				}
 			}
 
-			rawSig := verifyMsg.Sig
+			var verified bool
 
-			if !rawSig.Verify(sigHash, verifyMsg.PubKey) {
+			adaptorSig := verifyMsg.AdaptorSig
+			rawSig := verifyMsg.Sig
+			if adaptorSig != nil {
+				verified = adaptorSig.Verify(sigHash, verifyMsg.PubKey)
+			} else {
+				verified = rawSig.Verify(sigHash, verifyMsg.PubKey)
+			}
+
+			if !verified {
 				err := fmt.Errorf("invalid signature "+
 					"sighash: %x, sig: %x", sigHash,
 					rawSig.Serialize())

@@ -2603,7 +2603,7 @@ func (lc *LightningChannel) fetchHTLCView(theirLogIndex, ourLogIndex uint64) *ht
 // the proper balances for both sides at this point in the commitment chain.
 func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 	ourLogIndex, ourHtlcIndex, theirLogIndex, theirHtlcIndex uint64,
-	keyRing *CommitmentKeyRing) (*commitment, error) {
+	keyRing *CommitmentKeyRing, ptlcSigs []lnwire.AdaptorSig) (*commitment, error) {
 
 	commitChain := lc.localCommitChain
 	dustLimit := lc.channelState.LocalChanCfg.DustLimit
@@ -2627,6 +2627,40 @@ func (lc *LightningChannel) fetchCommitmentView(remoteChain bool,
 		return nil, err
 	}
 	feePerKB := filteredHTLCView.feePerKB
+
+	// If we have PTLC sigs to process, create an aux map from payment
+	// point to htlc descriptor and fill in the corresponding adaptor sig.
+	//
+	// Only do this for our updates (i.e. outgoing/offered HTLCs) since
+	// only those need adaptor sigs at this stage.
+	htlcPerPayPoint := make(map[[33]byte]*PaymentDescriptor, len(ptlcSigs))
+	if ptlcSigs != nil {
+		mapPtlc := func(htlc *PaymentDescriptor) {
+			if htlc.PaymentPoint == nil || htlc.EntryType != Add {
+				return
+			}
+			var key [33]byte
+			copy(key[:], htlc.PaymentPoint.SerializeCompressed())
+			htlcPerPayPoint[key] = htlc
+		}
+		for _, htlc := range filteredHTLCView.ourUpdates {
+			mapPtlc(htlc)
+		}
+	}
+	for _, wireSig := range ptlcSigs {
+		sig, err := wireSig.ToSignature()
+		if err != nil {
+			return nil, err
+		}
+		var key [33]byte
+		copy(key[:], sig.T().SerializeCompressed())
+		htlc := htlcPerPayPoint[key]
+		if htlc == nil {
+			// TODO: log as a problem?
+			continue
+		}
+		htlc.adaptorSigSuccessNoDelay = sig
+	}
 
 	// Actually generate unsigned commitment transaction for this view.
 	commitTx, err := lc.commitBuilder.createUnsignedCommitmentTx(
@@ -3011,7 +3045,7 @@ func processFeeUpdate(feeUpdate *PaymentDescriptor, nextHeight uint64,
 func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 	chanType channeldb.ChannelType,
 	localChanCfg, remoteChanCfg *channeldb.ChannelConfig,
-	remoteCommitView *commitment) ([]SignJob, chan struct{}, error) {
+	remoteCommitView, localCommitView *commitment) ([]SignJob, []SignJob, chan struct{}, error) {
 
 	txHash := remoteCommitView.txn.TxHash()
 	dustLimit := remoteChanCfg.DustLimit
@@ -3024,6 +3058,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 	numSigs := (len(remoteCommitView.incomingHTLCs) +
 		len(remoteCommitView.outgoingHTLCs))
 	sigBatch := make([]SignJob, 0, numSigs)
+	adaptorSigBatch := make([]SignJob, 0, numSigs)
 
 	var err error
 	cancelChan := make(chan struct{})
@@ -3066,7 +3101,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 			keyRing.RevocationKey, keyRing.ToLocalKey,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Finally, we'll generate a sign descriptor to generate a
@@ -3085,7 +3120,61 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		sigJob.OutputIndex = htlc.remoteOutputIndex
 
 		sigBatch = append(sigBatch, sigJob)
+
+		// Skip to the next output if this is not a PTLC.
+		if htlc.PaymentPoint == nil {
+			continue
+		}
+
+		// Additionally, we need to generate an adaptor signature for
+		// the successNoDelay tx so that the remote node will be able
+		// to find out the secret scalar of the PTLC in case we redeem
+		// the PTLC output from his commitment.
+
+		sigJob = SignJob{}
+		sigJob.Cancel = cancelChan
+		sigJob.Resp = make(chan SignJobResp, 1)
+
+		// Find out the fee for the successNoDelay tx. FIXME: switch to
+		// PtlcSuccessNoDelayFee().
+		htlcFee = HtlcSuccessFee(chanType, feePerKB)
+		outputAmt = htlc.Amount.ToAtoms() - htlcFee
+
+		fmt.Printf("JJJJJJ genRemotePtlcSigJobs successNoDelay amt %d fee %d\n", htlc.Amount, htlcFee)
+
+		// With the proper output amount calculated, we can now
+		// generate the successNoDelay transaction using the remote
+		// party's CSV delay.
+		sigJob.Tx, err = createPtlcSuccessNoDelayTx(
+			chanType, op, outputAmt, keyRing.ToLocalKey,
+		)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		// Deterministically generate the random U nonce.
+		uSecret := tweakKeyWithPoint(keyRing.LocalRandomKey, htlc.PaymentPoint)
+
+		// Finally, we'll generate a sign descriptor to generate a
+		// signature to give to the remote party for this commitment
+		// transaction. Note we use the raw HTLC amount.
+		sigJob.SignDesc = input.SignDescriptor{
+			KeyDesc:       localChanCfg.HtlcBasePoint,
+			SingleTweak:   keyRing.LocalHtlcKeyTweak,
+			WitnessScript: htlc.theirWitnessScript,
+			Output: &wire.TxOut{
+				Value: int64(htlc.Amount.ToAtoms()),
+			},
+			HashType:    sigHashType,
+			InputIndex:  0,
+			TargetNonce: htlc.PaymentPoint,
+			RandomNonce: uSecret,
+		}
+		sigJob.OutputIndex = htlc.remoteOutputIndex
+
+		adaptorSigBatch = append(adaptorSigBatch, sigJob)
 	}
+
 	for _, htlc := range remoteCommitView.outgoingHTLCs {
 		if htlcIsDust(
 			chanType, false, false, feePerKB,
@@ -3119,7 +3208,7 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 			keyRing.RevocationKey, keyRing.ToLocalKey,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		// Finally, we'll generate a sign descriptor to generate a
@@ -3138,9 +3227,38 @@ func genRemoteHtlcSigJobs(keyRing *CommitmentKeyRing,
 		sigJob.OutputIndex = htlc.remoteOutputIndex
 
 		sigBatch = append(sigBatch, sigJob)
+
+		// Skip to the next output if this is not a PTLC.
+		if htlc.PaymentPoint == nil {
+			continue
+		}
+
+		// Additionally, we need to also generate the adaptor sig that
+		// the remote node fills with the secret scalar in case they
+		// atttempt to redeem on-chain. This will allow us to find the
+		// secret scalar.
+
+		sigJob = SignJob{Tx: sigJob.Tx}
+		sigJob.Cancel = cancelChan
+		sigJob.Resp = make(chan SignJobResp, 1)
+
+		sigJob.SignDesc = input.SignDescriptor{
+			KeyDesc:       localChanCfg.HtlcBasePoint,
+			SingleTweak:   keyRing.LocalHtlcKeyTweak,
+			WitnessScript: htlc.theirWitnessScript,
+			Output: &wire.TxOut{
+				Value: int64(htlc.Amount.ToAtoms()),
+			},
+			HashType:    sigHashType,
+			InputIndex:  0,
+			TargetNonce: htlc.PaymentPoint,
+		}
+		sigJob.OutputIndex = htlc.remoteOutputIndex
+
+		adaptorSigBatch = append(adaptorSigBatch, sigJob)
 	}
 
-	return sigBatch, cancelChan, nil
+	return sigBatch, adaptorSigBatch, cancelChan, nil
 }
 
 // createCommitDiff will create a commit diff given a new pending commitment
@@ -3603,7 +3721,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 	// node's changes up to the last change we've ACK'd.
 	newCommitView, err := lc.fetchCommitmentView(
 		true, lc.localUpdateLog.logIndex, lc.localUpdateLog.htlcCounter,
-		remoteACKedIndex, remoteHtlcIndex, keyRing,
+		remoteACKedIndex, remoteHtlcIndex, keyRing, nil,
 	)
 	if err != nil {
 		return sig, htlcSigs, ptlcSigs, nil, err
@@ -3627,10 +3745,10 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 	// need to generate signatures of each of them for the remote party's
 	// commitment state. We do so in two phases: first we generate and
 	// submit the set of signature jobs to the worker pool.
-	sigBatch, cancelChan, err := genRemoteHtlcSigJobs(
+	sigBatch, _, cancelChan, err := genRemoteHtlcSigJobs(
 		keyRing, lc.channelState.ChanType,
 		&lc.channelState.LocalChanCfg, &lc.channelState.RemoteChanCfg,
-		newCommitView,
+		newCommitView, nil,
 	)
 	if err != nil {
 		return sig, htlcSigs, ptlcSigs, nil, err
@@ -4090,9 +4208,9 @@ func (lc *LightningChannel) computeView(view *htlcView, remoteChain bool,
 // commitment state. The jobs generated are fully populated, and can be sent
 // directly into the pool of workers.
 func genHtlcSigValidationJobs(localCommitmentView *commitment,
-	keyRing *CommitmentKeyRing, htlcSigs []lnwire.Sig,
+	keyRing *CommitmentKeyRing, htlcSigs []lnwire.Sig, ptlcSigs []lnwire.AdaptorSig,
 	chanType channeldb.ChannelType,
-	localChanCfg, remoteChanCfg *channeldb.ChannelConfig) ([]VerifyJob, error) {
+	localChanCfg, remoteChanCfg *channeldb.ChannelConfig) ([]VerifyJob, []VerifyJob, error) {
 
 	txHash := localCommitmentView.txn.TxHash()
 	feePerKB := localCommitmentView.feePerKB
@@ -4105,18 +4223,24 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 	numHtlcs := (len(localCommitmentView.incomingHTLCs) +
 		len(localCommitmentView.outgoingHTLCs))
 	verifyJobs := make([]VerifyJob, 0, numHtlcs)
+	verifyAdaptorJobs := make([]VerifyJob, 0)
 
 	// We'll iterate through each output in the commitment transaction,
 	// populating the sigHash closure function if it's detected to be an
 	// HLTC output. Given the sighash, and the signing key, we'll be able
 	// to validate each signature within the worker pool.
 	i := 0
+	ptlcIdx := 0
 	for index := range localCommitmentView.txn.TxOut {
 		var (
 			htlcIndex uint64
 			sigHash   func() ([]byte, error)
 			sig       *ecdsa.Signature
 			err       error
+
+			adaptorSigSuccess        *dcr_adaptor_sigs.AdaptorSignature
+			adaptorSigSuccessNoDelay *dcr_adaptor_sigs.AdaptorSignature
+			adaptorJob               *VerifyJob
 		)
 
 		outputIndex := int32(index)
@@ -4162,7 +4286,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 
 			// Make sure there are more signatures left.
 			if i >= len(htlcSigs) {
-				return nil, fmt.Errorf("not enough HTLC " +
+				return nil, nil, fmt.Errorf("not enough HTLC " +
 					"signatures")
 			}
 
@@ -4171,9 +4295,32 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 			// is valid.
 			sig, err = htlcSigs[i].ToSignature()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			htlc.sig = sig
+
+			if htlc.PaymentPoint != nil {
+				if ptlcIdx >= len(ptlcSigs) {
+					return nil, nil, fmt.Errorf("not enough PTLC " +
+						"sigs for success")
+				}
+
+				adaptorSigSuccess, err = ptlcSigs[ptlcIdx].ToSignature()
+				if err != nil {
+					return nil, nil, err
+				}
+				htlc.adaptorSigSuccess = adaptorSigSuccess
+				ptlcIdx++
+
+				// PTLCs need to validate an additional adaptor
+				// sig in the same success tx.
+				adaptorJob = &VerifyJob{
+					HtlcIndex:  htlcIndex,
+					PubKey:     keyRing.RemoteHtlcKey,
+					AdaptorSig: adaptorSigSuccess,
+					SigHash:    sigHash,
+				}
+			}
 
 		// Otherwise, if this is an outgoing HTLC, then we'll need to
 		// generate a timeout transaction so we can verify the
@@ -4215,7 +4362,7 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 
 			// Make sure there are more signatures left.
 			if i >= len(htlcSigs) {
-				return nil, fmt.Errorf("not enough HTLC " +
+				return nil, nil, fmt.Errorf("not enough HTLC " +
 					"signatures")
 			}
 
@@ -4224,9 +4371,62 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 			// is valid.
 			sig, err = htlcSigs[i].ToSignature()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			htlc.sig = sig
+
+			if htlc.PaymentPoint != nil {
+				if ptlcIdx >= len(ptlcSigs) {
+					return nil, nil, fmt.Errorf("not enough PTLC sigs " +
+						"to check successNoDelay")
+				}
+
+				adaptorSigSuccessNoDelay, err = ptlcSigs[ptlcIdx].ToSignature()
+				if err != nil {
+					return nil, nil, err
+				}
+				htlc.adaptorSigSuccessNoDelay = adaptorSigSuccessNoDelay
+				ptlcIdx++
+
+				adaptorSigHash := func() ([]byte, error) {
+					op := wire.OutPoint{
+						Hash:  txHash,
+						Index: uint32(htlc.localOutputIndex),
+					}
+
+					htlcFee := HtlcSuccessFee(chanType, feePerKB)
+					outputAmt := htlc.Amount.ToAtoms() - htlcFee
+
+					successNoDelayTx, err := createPtlcSuccessNoDelayTx(
+						chanType, op, outputAmt, keyRing.ToLocalKey,
+					)
+					if err != nil {
+						return nil, err
+					}
+
+					sigHash, err := txscript.CalcSignatureHash(
+						htlc.ourWitnessScript,
+						sigHashType, successNoDelayTx, 0,
+						nil,
+					)
+					if err != nil {
+						return nil, err
+					}
+
+					return sigHash, nil
+				}
+
+				// Outgoing PTLCs need to validate an
+				// additional adaptor sig in the successNoDelay
+				// tx.
+				adaptorJob = &VerifyJob{
+					HtlcIndex:  htlcIndex,
+					PubKey:     keyRing.RemoteHtlcKey,
+					AdaptorSig: adaptorSigSuccessNoDelay,
+					SigHash:    adaptorSigHash,
+				}
+
+			}
 
 		default:
 			continue
@@ -4239,17 +4439,26 @@ func genHtlcSigValidationJobs(localCommitmentView *commitment,
 			SigHash:   sigHash,
 		})
 
+		if adaptorJob != nil {
+			verifyAdaptorJobs = append(verifyAdaptorJobs, *adaptorJob)
+		}
+
 		i++
 	}
 
 	// If we received a number of HTLC signatures that doesn't match our
 	// commitment, we'll return an error now.
 	if len(htlcSigs) != i {
-		return nil, fmt.Errorf("number of htlc sig mismatch. "+
+		return nil, nil, fmt.Errorf("number of htlc sig mismatch. "+
 			"Expected %v sigs, got %v", i, len(htlcSigs))
 	}
 
-	return verifyJobs, nil
+	if len(ptlcSigs) != ptlcIdx {
+		return nil, nil, fmt.Errorf("number of ptlc sig mismatch. "+
+			"Expected %v sigs, got %v", ptlcIdx, len(ptlcSigs))
+	}
+
+	return verifyJobs, verifyAdaptorJobs, nil
 }
 
 // InvalidCommitSigError is a struct that implements the error interface to
@@ -4370,7 +4579,7 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 	localCommitmentView, err := lc.fetchCommitmentView(
 		false, localACKedIndex, localHtlcIndex,
 		lc.remoteUpdateLog.logIndex, lc.remoteUpdateLog.htlcCounter,
-		keyRing,
+		keyRing, nil,
 	)
 	if err != nil {
 		return err
@@ -4405,8 +4614,8 @@ func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
 	// As an optimization, we'll generate a series of jobs for the worker
 	// pool to verify each of the HTLc signatures presented. Once
 	// generated, we'll submit these jobs to the worker pool.
-	verifyJobs, err := genHtlcSigValidationJobs(
-		localCommitmentView, keyRing, htlcSigs,
+	verifyJobs, _, err := genHtlcSigValidationJobs(
+		localCommitmentView, keyRing, htlcSigs, nil,
 		lc.channelState.ChanType, &lc.channelState.LocalChanCfg,
 		&lc.channelState.RemoteChanCfg,
 	)
