@@ -3523,7 +3523,7 @@ func (lc *LightningChannel) validateCommitmentSanity(theirLogCounter,
 // any). The HTLC signatures are sorted according to the BIP 69 order of the
 // HTLC's on the commitment transaction. Finally, the new set of pending HTLCs
 // for the remote party's commitment are also returned.
-func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []channeldb.HTLC, error) {
+func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []lnwire.AdaptorSig, []channeldb.HTLC, error) {
 
 	lc.Lock()
 	defer lc.Unlock()
@@ -3539,6 +3539,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 	var (
 		sig      lnwire.Sig
 		htlcSigs []lnwire.Sig
+		ptlcSigs []lnwire.AdaptorSig
 	)
 
 	// If we're awaiting for an ACK to a commitment signature, or if we
@@ -3548,7 +3549,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 	commitPoint := lc.channelState.RemoteNextRevocation
 	if lc.remoteCommitChain.hasUnackedCommitment() || commitPoint == nil {
 
-		return sig, htlcSigs, nil, ErrNoWindow
+		return sig, htlcSigs, ptlcSigs, nil, ErrNoWindow
 	}
 
 	// Determine the last update on the remote log that has been locked in.
@@ -3563,7 +3564,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 		remoteACKedIndex, lc.localUpdateLog.logIndex, true, nil, nil,
 	)
 	if err != nil {
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 
 	// Grab the next commitment point for the remote party. This will be
@@ -3586,7 +3587,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 		remoteACKedIndex, remoteHtlcIndex, keyRing,
 	)
 	if err != nil {
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 
 	lc.log.Tracef("extending remote chain to height %v, "+
@@ -3613,7 +3614,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 		newCommitView,
 	)
 	if err != nil {
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 	lc.sigPool.SubmitSignBatch(sigBatch)
 
@@ -3623,12 +3624,12 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 	rawSig, err := lc.Signer.SignOutputRaw(newCommitView.txn, lc.signDesc)
 	if err != nil {
 		close(cancelChan)
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 	sig, err = lnwire.NewSigFromSignature(rawSig)
 	if err != nil {
 		close(cancelChan)
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 
 	// We'll need to send over the signatures to the remote party in the
@@ -3648,7 +3649,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 		// jobs.
 		if jobResp.Err != nil {
 			close(cancelChan)
-			return sig, htlcSigs, nil, jobResp.Err
+			return sig, htlcSigs, ptlcSigs, nil, jobResp.Err
 		}
 
 		htlcSigs = append(htlcSigs, jobResp.Sig)
@@ -3659,11 +3660,11 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 	// can retransmit it if necessary.
 	commitDiff, err := lc.createCommitDiff(newCommitView, sig, htlcSigs)
 	if err != nil {
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 	err = lc.channelState.AppendRemoteCommitChain(commitDiff)
 	if err != nil {
-		return sig, htlcSigs, nil, err
+		return sig, htlcSigs, ptlcSigs, nil, err
 	}
 
 	// TODO(roasbeef): check that one eclair bug
@@ -3674,7 +3675,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ch
 	// latest commitment update.
 	lc.remoteCommitChain.addCommitment(newCommitView)
 
-	return sig, htlcSigs, commitDiff.Commitment.Htlcs, nil
+	return sig, htlcSigs, ptlcSigs, commitDiff.Commitment.Htlcs, nil
 }
 
 // ProcessChanSyncMsg processes a ChannelReestablish message sent by the remote
@@ -3832,7 +3833,7 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 		// revocation, but also initiate a state transition to re-sync
 		// them.
 		if lc.OweCommitment(true) {
-			commitSig, htlcSigs, _, err := lc.SignNextCommitment()
+			commitSig, htlcSigs, ptlcSigs, _, err := lc.SignNextCommitment()
 			switch {
 
 			// If we signed this state, then we'll accumulate
@@ -3844,6 +3845,7 @@ func (lc *LightningChannel) ProcessChanSyncMsg(
 					),
 					CommitSig: commitSig,
 					HtlcSigs:  htlcSigs,
+					PtlcSigs:  ptlcSigs,
 				})
 
 			// If we get a failure due to not knowing their next
@@ -4296,7 +4298,7 @@ var _ error = (*InvalidCommitSigError)(nil)
 // state, then this newly added commitment becomes our current accepted channel
 // state.
 func (lc *LightningChannel) ReceiveNewCommitment(commitSig lnwire.Sig,
-	htlcSigs []lnwire.Sig) error {
+	htlcSigs []lnwire.Sig, ptlcSigs []lnwire.AdaptorSig) error {
 
 	lc.Lock()
 	defer lc.Unlock()

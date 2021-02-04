@@ -92,7 +92,7 @@ func (l *linkTestContext) receiveHtlcAliceToBob() {
 func (l *linkTestContext) sendCommitSigBobToAlice(expHtlcs int) {
 	l.t.Helper()
 
-	sig, htlcSigs, _, err := l.bobChannel.SignNextCommitment()
+	sig, htlcSigs, ptlcSigs, _, err := l.bobChannel.SignNextCommitment()
 	if err != nil {
 		l.t.Fatalf("error signing commitment: %v", err)
 	}
@@ -100,6 +100,7 @@ func (l *linkTestContext) sendCommitSigBobToAlice(expHtlcs int) {
 	commitSig := &lnwire.CommitSig{
 		CommitSig: sig,
 		HtlcSigs:  htlcSigs,
+		PtlcSigs:  ptlcSigs,
 	}
 
 	if len(commitSig.HtlcSigs) != expHtlcs {
@@ -141,7 +142,7 @@ func (l *linkTestContext) receiveCommitSigAliceToBob(expHtlcs int) {
 	comSig := l.receiveCommitSigAlice(expHtlcs)
 
 	err := l.bobChannel.ReceiveNewCommitment(
-		comSig.CommitSig, comSig.HtlcSigs,
+		comSig.CommitSig, comSig.HtlcSigs, comSig.PtlcSigs,
 	)
 	if err != nil {
 		l.t.Fatalf("bob failed receiving commitment: %v", err)

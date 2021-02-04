@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	prand "math/rand"
@@ -486,35 +487,46 @@ func calcStaticFee(chanType channeldb.ChannelType, numHTLCs int) dcrutil.Amount 
 // pending updates. This method is useful when testing interactions between two
 // live state machines.
 func ForceStateTransition(chanA, chanB *LightningChannel) error {
-	aliceSig, aliceHtlcSigs, _, err := chanA.SignNextCommitment()
+	fmt.Printf("-------------- alice.SignNextCommitmentPTLCs\n")
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := chanA.SignNextCommitment()
 	if err != nil {
 		return err
 	}
-	if err = chanB.ReceiveNewCommitment(aliceSig, aliceHtlcSigs); err != nil {
-		return err
+
+	fmt.Printf("-------------- bob.ReceiveNewCommitmentPTLCs\n")
+	fmt.Printf("XXX alice htlcsigs %d ptlcSigs %d\n", len(aliceHtlcSigs), len(alicePtlcSigs))
+	if err = chanB.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs); err != nil {
+		return fmt.Errorf("bob unable to receive commitment: %v", err)
 	}
 
+	fmt.Printf("-------------- bob.RevokeCurrentCommitment\n")
 	bobRevocation, _, err := chanB.RevokeCurrentCommitment()
 	if err != nil {
 		return err
 	}
-	bobSig, bobHtlcSigs, _, err := chanB.SignNextCommitment()
+	fmt.Printf("-------------- bob.SignNextCommitmentPTLCs\n")
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := chanB.SignNextCommitment()
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("XXX bob ptlcSigs", len(bobPtlcSigs))
+	fmt.Printf("-------------- alice.ReceiveRevocation\n")
 	if _, _, _, _, err := chanA.ReceiveRevocation(bobRevocation); err != nil {
 		return err
 	}
-	if err := chanA.ReceiveNewCommitment(bobSig, bobHtlcSigs); err != nil {
-		return err
+	fmt.Printf("-------------- alice.ReceiveNewCommitmentPTLCs\n")
+	if err := chanA.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs); err != nil {
+		return fmt.Errorf("alice unable to receive commitment: %v", err)
 	}
 
+	fmt.Printf("-------------- alice.RevokeCurrentCommitment\n")
 	aliceRevocation, _, err := chanA.RevokeCurrentCommitment()
 	if err != nil {
 		return err
 	}
-	if _, _, _, _, err := chanB.ReceiveRevocation(aliceRevocation); err != nil {
+	fmt.Printf("-------------- bob.ReceiveRevocation\n")
+	if _, _, _, _, err = chanB.ReceiveRevocation(aliceRevocation); err != nil {
 		return err
 	}
 

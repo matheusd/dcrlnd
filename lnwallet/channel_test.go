@@ -102,7 +102,7 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 	// we expect the messages to be ordered, Bob will receive the HTLC we
 	// just sent before he receives this signature, so the signature will
 	// cover the HTLC.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
@@ -110,7 +110,7 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 	// Bob receives this signature message, and checks that this covers the
 	// state he has in his remote log. This includes the HTLC just sent
 	// from Alice.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
@@ -126,7 +126,7 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 	// This signature will cover the HTLC, since Bob will first send the
 	// revocation just created. The revocation also acks every received
 	// HTLC up to the point where Alice sent here signature.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign alice's commitment: %v", err)
 	}
@@ -150,7 +150,7 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 	// Alice then processes bob's signature, and since she just received
 	// the revocation, she expect this signature to cover everything up to
 	// the point where she sent her signature, including the HTLC.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
@@ -242,11 +242,11 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 		t.Fatalf("alice unable to accept settle of outbound htlc: %v", err)
 	}
 
-	bobSig2, bobHtlcSigs2, _, err := bobChannel.SignNextCommitment()
+	bobSig2, bobHtlcSigs2, bobPtlcSigs2, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign settle commitment: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig2, bobHtlcSigs2)
+	err = aliceChannel.ReceiveNewCommitment(bobSig2, bobHtlcSigs2, bobPtlcSigs2)
 	if err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
@@ -255,7 +255,7 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 	if err != nil {
 		t.Fatalf("alice unable to generate revocation: %v", err)
 	}
-	aliceSig2, aliceHtlcSigs2, _, err := aliceChannel.SignNextCommitment()
+	aliceSig2, aliceHtlcSigs2, alicePtlcSigs2, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign new commitment: %v", err)
 	}
@@ -273,7 +273,7 @@ func testAddSettleWorkflow(t *testing.T, tweakless bool) {
 			"should forward none", len(fwdPkg.SettleFails))
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig2, aliceHtlcSigs2)
+	err = bobChannel.ReceiveNewCommitment(aliceSig2, aliceHtlcSigs2, alicePtlcSigs2)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
@@ -428,10 +428,10 @@ func TestChannelZeroAddLocalHeight(t *testing.T) {
 
 	// Bob should send a commitment signature to Alice.
 	// <----sig------
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	require.NoError(t, err)
 
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	require.NoError(t, err)
 
 	// Alice should reply with a revocation.
@@ -462,12 +462,12 @@ func TestChannelZeroAddLocalHeight(t *testing.T) {
 
 	// Bob should now send a commitment signature to Alice.
 	// <----sig-----
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	require.NoError(t, err)
 
 	// Alice should accept the commitment. Previously she would
 	// force close here.
-	err = newAliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = newAliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	require.NoError(t, err)
 }
 
@@ -623,12 +623,12 @@ func testCommitHTLCSigTieBreak(t *testing.T, restart bool) {
 	// tie-breaking for commitment sorting won't affect the commitment
 	// signed by Alice because received HTLC scripts commit to the CLTV
 	// directly, so the outputs will have different scriptPubkeys.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign alice's commitment: %v", err)
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive alice's commitment: %v", err)
 	}
@@ -646,7 +646,7 @@ func testCommitHTLCSigTieBreak(t *testing.T, restart bool) {
 	// the offered HTLC scripts he adds for Alice will need to have the
 	// tie-breaking applied because the CLTV is not committed, but instead
 	// implicit via the construction of the second-level transactions.
-	bobSig, bobHtlcSigs, bobHtlcs, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, bobHtlcs, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign bob's commitment: %v", err)
 	}
@@ -694,7 +694,7 @@ func testCommitHTLCSigTieBreak(t *testing.T, restart bool) {
 
 	// Finally, have Alice validate the signatures to ensure that she is
 	// expecting the signatures in the proper order.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive bob's commitment: %v", err)
 	}
@@ -1523,7 +1523,7 @@ func TestHTLCSigNumber(t *testing.T) {
 		aboveDust)
 	defer cleanUp()
 
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("Error signing next commitment: %v", err)
 	}
@@ -1535,7 +1535,7 @@ func TestHTLCSigNumber(t *testing.T) {
 
 	// Now discard one signature from the htlcSig slice. Bob should reject
 	// the commitment because of this.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs[1:])
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs[1:], alicePtlcSigs)
 	if err == nil {
 		t.Fatalf("Expected Bob to reject signatures")
 	}
@@ -1547,7 +1547,7 @@ func TestHTLCSigNumber(t *testing.T) {
 	aliceChannel, bobChannel, cleanUp = createChanWithHTLC(aboveDust)
 	defer cleanUp()
 
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("Error signing next commitment: %v", err)
 	}
@@ -1559,7 +1559,7 @@ func TestHTLCSigNumber(t *testing.T) {
 
 	// Now just give Bob an empty htlcSig slice. He should reject the
 	// commitment because of this.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, []lnwire.Sig{})
+	err = bobChannel.ReceiveNewCommitment(aliceSig, []lnwire.Sig{}, []lnwire.AdaptorSig{})
 	if err == nil {
 		t.Fatalf("Expected Bob to reject signatures")
 	}
@@ -1570,7 +1570,7 @@ func TestHTLCSigNumber(t *testing.T) {
 	aliceChannel, bobChannel, cleanUp = createChanWithHTLC(belowDust)
 	defer cleanUp()
 
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("Error signing next commitment: %v", err)
 	}
@@ -1582,7 +1582,7 @@ func TestHTLCSigNumber(t *testing.T) {
 			len(aliceHtlcSigs))
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("Bob failed receiving commitment: %v", err)
 	}
@@ -1593,7 +1593,7 @@ func TestHTLCSigNumber(t *testing.T) {
 	aliceChannel, bobChannel, cleanUp = createChanWithHTLC(aboveDust)
 	defer cleanUp()
 
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("Error signing next commitment: %v", err)
 	}
@@ -1605,7 +1605,7 @@ func TestHTLCSigNumber(t *testing.T) {
 			len(aliceHtlcSigs))
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("Bob failed receiving commitment: %v", err)
 	}
@@ -1620,7 +1620,7 @@ func TestHTLCSigNumber(t *testing.T) {
 
 	// Alice should produce only one signature, since one HTLC is below
 	// dust.
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("Error signing next commitment: %v", err)
 	}
@@ -1635,7 +1635,7 @@ func TestHTLCSigNumber(t *testing.T) {
 
 	// Bob should reject these signatures since they don't match the number
 	// of HTLCs above dust.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err == nil {
 		t.Fatalf("Expected Bob to reject signatures")
 	}
@@ -2455,7 +2455,7 @@ func TestUpdateFeeFail(t *testing.T) {
 
 	// Alice sends signature for commitment that does not cover any fee
 	// update.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
@@ -2463,7 +2463,7 @@ func TestUpdateFeeFail(t *testing.T) {
 	// Bob verifies this commit, meaning that he checks that it is
 	// consistent everything he has received. This should fail, since he got
 	// the fee update, but Alice never sent it.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err == nil {
 		t.Fatalf("expected bob to fail receiving alice's signature")
 	}
@@ -2508,19 +2508,19 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	}
 
 	// Alice signs a commitment, and sends this to bob.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
 
 	// At the same time, Bob signs a commitment.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign alice's commitment: %v", err)
 	}
 
 	// ...that Alice receives.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
@@ -2533,7 +2533,7 @@ func TestUpdateFeeConcurrentSig(t *testing.T) {
 	// Bob receives this signature message, and verifies that it is
 	// consistent with the state he had for Alice, including the received
 	// HTLC and fee update.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
@@ -2601,7 +2601,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	// Alice signs a commitment, which will cover everything sent to Bob
 	// (the HTLC and the fee update), and everything acked by Bob (nothing
 	// so far).
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
@@ -2609,7 +2609,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 	// Bob receives this signature message, and verifies that it is
 	// consistent with the state he had for Alice, including the received
 	// HTLC and fee update.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
@@ -2635,7 +2635,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 
 	// Bob commits to all updates he has received from Alice. This includes
 	// the HTLC he received, and the fee update.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign alice's commitment: %v", err)
 	}
@@ -2650,7 +2650,7 @@ func TestUpdateFeeSenderCommits(t *testing.T) {
 
 	// Alice receives new signature from Bob, and assumes this covers the
 	// changes.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
@@ -2729,14 +2729,14 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	// Bob commits to every change he has sent since last time (none). He
 	// does not commit to the received HTLC and fee update, since Alice
 	// cannot know if he has received them.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
 
 	// Alice receives this signature message, and verifies that it is
 	// consistent with the remote state, not including any of the updates.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
@@ -2758,14 +2758,14 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 	// Alice will sign next commitment. Since she sent the revocation, she
 	// also ack'ed everything received, but in this case this is nothing.
 	// Since she sent the two updates, this signature will cover those two.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign alice's commitment: %v", err)
 	}
 
 	// Bob gets the signature for the new commitment from Alice. He assumes
 	// this covers everything received from alice, including the two updates.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
@@ -2792,7 +2792,7 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 
 	// Bob will send a new signature, which will cover what he just acked:
 	// the HTLC and fee update.
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
@@ -2806,7 +2806,7 @@ func TestUpdateFeeReceiverCommits(t *testing.T) {
 
 	// Alice will receive the signature from Bob, which will cover what was
 	// just acked by his revocation.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
@@ -2902,7 +2902,7 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 	// Alice signs a commitment, which will cover everything sent to Bob
 	// (the HTLC and the fee update), and everything acked by Bob (nothing
 	// so far).
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
@@ -2920,7 +2920,7 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 	// Bob receives this signature message, and verifies that it is
 	// consistent with the state he had for Alice, including the received
 	// HTLC and fee update.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v", err)
 	}
@@ -2970,7 +2970,7 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 
 	// Bob commits to all updates he has received from Alice. This includes
 	// the HTLC he received, and the fee update.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign alice's commitment: %v", err)
 	}
@@ -2985,7 +2985,7 @@ func TestUpdateFeeMultipleUpdates(t *testing.T) {
 
 	// Alice receives new signature from Bob, and assumes this covers the
 	// changes.
-	if err := aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs); err != nil {
+	if err := aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs); err != nil {
 		t.Fatalf("alice unable to process bob's new commitment: %v", err)
 	}
 
@@ -3311,7 +3311,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	// Now we'll begin the core of the test itself. Alice will extend a new
 	// commitment to Bob, but the connection drops before Bob can process
 	// it.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -3431,7 +3431,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	// At this point, we should be able to resume the prior state update
 	// without any issues, resulting in Alice settling the 3 htlc's, and
 	// adding one of her own.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's commitment: %v", err)
 	}
@@ -3439,7 +3439,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to revoke bob commitment: %v", err)
 	}
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign commitment: %v", err)
 	}
@@ -3447,7 +3447,7 @@ func TestChanSyncOweCommitment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("alice unable to recv revocation: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
 	}
@@ -3600,12 +3600,12 @@ func TestChanSyncOweCommitmentPendingRemote(t *testing.T) {
 			t.Fatalf("unable to settle htlc: %v", err)
 		}
 
-		aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+		aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 		if err != nil {
 			t.Fatalf("unable to sign commitment: %v", err)
 		}
 
-		err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+		err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 		if err != nil {
 			t.Fatalf("unable to receive commitment: %v", err)
 		}
@@ -3633,7 +3633,7 @@ func TestChanSyncOweCommitmentPendingRemote(t *testing.T) {
 	}
 
 	// Bob signs the commitment he owes.
-	bobCommit, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -3644,7 +3644,7 @@ func TestChanSyncOweCommitmentPendingRemote(t *testing.T) {
 	}
 
 	// Get Alice to revoke and trigger Bob to compact his logs.
-	err = aliceChannel.ReceiveNewCommitment(bobCommit, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3720,11 +3720,11 @@ func TestChanSyncOweRevocation(t *testing.T) {
 	//
 	// Alice signs the next state, then Bob receives and sends his
 	// revocation message.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's commitment: %v", err)
 	}
@@ -3733,7 +3733,7 @@ func TestChanSyncOweRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to revoke bob commitment: %v", err)
 	}
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign commitment: %v", err)
 	}
@@ -3742,7 +3742,7 @@ func TestChanSyncOweRevocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("alice unable to recv revocation: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
 	}
@@ -3905,11 +3905,11 @@ func TestChanSyncOweRevocationAndCommit(t *testing.T) {
 
 	// Progressing the exchange: Alice will send her signature, Bob will
 	// receive, send a revocation and also a signature for Alice's state.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's commitment: %v", err)
 	}
@@ -3920,7 +3920,7 @@ func TestChanSyncOweRevocationAndCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to revoke bob commitment: %v", err)
 	}
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign commitment: %v", err)
 	}
@@ -4005,7 +4005,7 @@ func TestChanSyncOweRevocationAndCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("alice unable to recv revocation: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
 	}
@@ -4085,12 +4085,12 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 	}
 
 	// Bob signs the new state update, and sends the signature to Alice.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign commitment: %v", err)
 	}
 
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
 	}
@@ -4121,11 +4121,11 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 
 	// Progressing the exchange: Alice will send her signature, with Bob
 	// processing the new state locally.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's commitment: %v", err)
 	}
@@ -4238,7 +4238,7 @@ func TestChanSyncOweRevocationAndCommitForceTransition(t *testing.T) {
 		t.Fatalf("alice unable to recv revocation: %v", err)
 	}
 	err = aliceChannel.ReceiveNewCommitment(
-		bobSigMsg.CommitSig, bobSigMsg.HtlcSigs,
+		bobSigMsg.CommitSig, bobSigMsg.HtlcSigs, bobSigMsg.PtlcSigs,
 	)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
@@ -4333,11 +4333,11 @@ func TestChanSyncFailure(t *testing.T) {
 			t.Fatalf("unable to recv bob's htlc: %v", err)
 		}
 
-		aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+		aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 		if err != nil {
 			t.Fatalf("unable to sign next commit: %v", err)
 		}
-		err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+		err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 		if err != nil {
 			t.Fatalf("unable to receive commit sig: %v", err)
 		}
@@ -4573,7 +4573,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 
 	// Now, Alice will send a new commitment to Bob, but we'll simulate a
 	// connection failure, so Bob doesn't get her signature.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -4668,7 +4668,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 		t.Fatalf("unable to update fee for Bob's channel: %v", err)
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's commitment: %v", err)
 	}
@@ -4676,7 +4676,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to revoke bob commitment: %v", err)
 	}
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign commitment: %v", err)
 	}
@@ -4684,7 +4684,7 @@ func TestChannelRetransmissionFeeUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("alice unable to recv revocation: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
 	}
@@ -4828,7 +4828,7 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 
 	// Now, Alice will send a new commitment to Bob, but we'll simulate a
 	// connection failure, so Bob doesn't get the signature.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -4887,7 +4887,7 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 
 	// We send Alice's commitment signatures, and finish the state
 	// transition.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's commitment: %v", err)
 	}
@@ -4895,7 +4895,7 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to revoke bob commitment: %v", err)
 	}
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("bob unable to sign commitment: %v", err)
 	}
@@ -4903,7 +4903,7 @@ func TestFeeUpdateOldDiskFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("alice unable to recv revocation: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("alice unable to rev bob's commitment: %v", err)
 	}
@@ -5432,7 +5432,7 @@ func TestSignCommitmentFailNotLockedIn(t *testing.T) {
 
 	// If we now try to initiate a state update, then it should fail as
 	// Alice is unable to actually create a new state.
-	_, _, _, err = aliceChannel.SignNextCommitment()
+	_, _, _, _, err = aliceChannel.SignNextCommitment()
 	if err != ErrNoWindow {
 		t.Fatalf("expected ErrNoWindow, instead have: %v", err)
 	}
@@ -5473,11 +5473,11 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 
 	// We'll now manually initiate a state transition between Alice and
 	// bob.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5502,12 +5502,12 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 
 	// Now, have Bob initiate a transition to lock in the Adds sent by
 	// Alice.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5555,11 +5555,11 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 
 	// We'll now initiate another state transition, but this time Bob will
 	// lead.
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5590,11 +5590,11 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 
 	// Now, begin another state transition led by Alice, and fail the second
 	// HTLC part-way through the dance.
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5659,11 +5659,11 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 
 	// Have Alice initiate a state transition, which does not include the
 	// HTLCs just readded to the channel state.
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5688,12 +5688,12 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 	}
 
 	// Now initiate a final update from Bob to lock in the final Fail.
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5720,11 +5720,11 @@ func TestLockedInHtlcForwardingSkipAfterRestart(t *testing.T) {
 
 	// Finally, have Bob initiate a state transition that locks in the Fail
 	// added after the restart.
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5781,7 +5781,7 @@ func TestInvalidCommitSigError(t *testing.T) {
 	}
 
 	// Alice will now attempt to initiate a state transition.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign new commit: %v", err)
 	}
@@ -5791,7 +5791,7 @@ func TestInvalidCommitSigError(t *testing.T) {
 	aliceSig[0] ^= 88
 
 	// Bob should reject this new state, and return the proper error.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err == nil {
 		t.Fatalf("bob accepted invalid state but shouldn't have")
 	}
@@ -5994,7 +5994,7 @@ func TestChannelUnilateralClosePendingCommit(t *testing.T) {
 
 	// With the HTLC added, we'll now manually initiate a state transition
 	// from Alice to Bob.
-	_, _, _, err = aliceChannel.SignNextCommitment()
+	_, _, _, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -6258,11 +6258,11 @@ func TestMaxAcceptedHTLCs(t *testing.T) {
 	}
 
 	// Add a commitment to Bob's commitment chain.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign next commitment: %v", err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to recv new commitment: %v", err)
 	}
@@ -6370,24 +6370,24 @@ func TestMaxAsynchronousHtlcs(t *testing.T) {
 		t.Fatalf("unable to receive fail htlc: %v", err)
 	}
 
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign next commitment: %v", err)
 	}
 
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive new commitment: %v", err)
 	}
 
 	// Cover the HTLC referenced with id equal to numHTLCs-1 with a new
 	// signature (step 3).
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign next commitment: %v", err)
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive new commitment: %v", err)
 	}
@@ -6424,12 +6424,12 @@ func TestMaxAsynchronousHtlcs(t *testing.T) {
 
 	// Receiving the commitment should succeed as in step 7 since space was
 	// made.
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign next commitment: %v", err)
 	}
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive new commitment: %v", err)
 	}
@@ -7115,13 +7115,13 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 	}
 
 	// Let Alice sign a new state, which will include the HTLC just sent.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
 
 	// Bob receives this commitment signature, and revokes his old state.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7153,7 +7153,7 @@ func TestChannelRestoreUpdateLogs(t *testing.T) {
 	// and remote commit chains are updated in an async fashion. Since the
 	// remote chain was updated with the latest state (since Bob sent the
 	// revocation earlier) we can keep advancing the remote commit chain.
-	_, _, _, err = aliceChannel.SignNextCommitment()
+	_, _, _, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -7320,11 +7320,11 @@ func TestChannelRestoreUpdateLogsFailedHTLC(t *testing.T) {
 	restoreAndAssert(t, aliceChannel, 1, 0, 0, 0)
 
 	// Bob sends a signature.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7355,11 +7355,11 @@ func TestChannelRestoreUpdateLogsFailedHTLC(t *testing.T) {
 
 	// Now send a signature from Alice. This will give Bob a new commitment
 	// where the HTLC is removed.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7437,7 +7437,7 @@ func TestDuplicateFailRejection(t *testing.T) {
 
 	// We'll now have Bob sign a new commitment to lock in the HTLC fail
 	// for Alice.
-	_, _, _, err = bobChannel.SignNextCommitment()
+	_, _, _, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commit: %v", err)
 	}
@@ -7519,7 +7519,7 @@ func TestDuplicateSettleRejection(t *testing.T) {
 
 	// We'll now have Bob sign a new commitment to lock in the HTLC fail
 	// for Alice.
-	_, _, _, err = bobChannel.SignNextCommitment()
+	_, _, _, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commit: %v", err)
 	}
@@ -7615,7 +7615,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	}
 
 	// Let Alice sign a new state, which will include the HTLC just sent.
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -7627,7 +7627,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	)
 
 	// Bob receives this commitment signature, and revokes his old state.
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7655,7 +7655,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 
 	// Now let Bob send the commitment signature making the HTLC lock in on
 	// Alice's commitment.
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -7665,7 +7665,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	// heights.
 	bobChannel = restoreAndAssertCommitHeights(t, bobChannel, true, 0, 1, 1)
 
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7701,7 +7701,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 
 	// Send a new signature from Alice to Bob, making Alice have a pending
 	// remote commitment.
-	aliceSig, aliceHtlcSigs, _, err = aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err = aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -7715,7 +7715,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 		t, aliceChannel, false, 1, 0, 2,
 	)
 
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7748,7 +7748,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 
 	// Sign a new state for Alice, making Bob have a pending remote
 	// commitment.
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -7759,7 +7759,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	bobChannel = restoreAndAssertCommitHeights(t, bobChannel, true, 1, 2, 2)
 
 	// Alice should receive the commitment and send over a revocation.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7797,7 +7797,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	}
 
 	// Now Bob signs for the fail update.
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commitment: %v", err)
 	}
@@ -7808,7 +7808,7 @@ func TestChannelRestoreCommitHeight(t *testing.T) {
 	_ = restoreAndAssertCommitHeights(t, bobChannel, true, 1, 2, 2)
 
 	// Alice receives commitment, sends revocation.
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7872,11 +7872,11 @@ func TestForceCloseBorkedState(t *testing.T) {
 	// Do the commitment dance until Bob sends a revocation so Alice is
 	// able to receive the revocation, and then also make a new state
 	// herself.
-	aliceSigs, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSigs, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commit: %v", err)
 	}
-	err = bobChannel.ReceiveNewCommitment(aliceSigs, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSigs, aliceHtlcSigs, alicePtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7884,11 +7884,11 @@ func TestForceCloseBorkedState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to revoke bob commitment: %v", err)
 	}
-	bobSigs, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSigs, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("unable to sign commit: %v", err)
 	}
-	err = aliceChannel.ReceiveNewCommitment(bobSigs, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSigs, bobHtlcSigs, bobPtlcSigs)
 	if err != nil {
 		t.Fatalf("unable to receive commitment: %v", err)
 	}
@@ -7924,7 +7924,7 @@ func TestForceCloseBorkedState(t *testing.T) {
 	// We manually advance the commitment tail here since the above
 	// ReceiveRevocation call will fail before it's actually advanced.
 	aliceChannel.remoteCommitChain.advanceTail()
-	_, _, _, err = aliceChannel.SignNextCommitment()
+	_, _, _, _, err = aliceChannel.SignNextCommitment()
 	if err != channeldb.ErrChanBorked {
 		t.Fatalf("sign commitment should have failed: %v", err)
 	}
@@ -8005,13 +8005,13 @@ func TestChannelFeeRateFloor(t *testing.T) {
 	}
 
 	// Check that alice can still sign commitments.
-	sig, htlcSigs, _, err := alice.SignNextCommitment()
+	sig, htlcSigs, ptlcSigs, _, err := alice.SignNextCommitment()
 	if err != nil {
 		t.Fatalf("alice unable to sign commitment: %v", err)
 	}
 
 	// Check that bob can still receive commitments.
-	err = bob.ReceiveNewCommitment(sig, htlcSigs)
+	err = bob.ReceiveNewCommitment(sig, htlcSigs, ptlcSigs)
 	if err != nil {
 		t.Fatalf("bob unable to process alice's new commitment: %v",
 			err)
@@ -9315,9 +9315,9 @@ func TestChannelUnsignedAckedFailure(t *testing.T) {
 
 	// Bob should send a commitment signature to Alice.
 	// <----sig------
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	require.NoError(t, err)
-	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = aliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	require.NoError(t, err)
 
 	// Alice should reply with a revocation.
@@ -9330,7 +9330,7 @@ func TestChannelUnsignedAckedFailure(t *testing.T) {
 	// Alice should sign the next commitment and go down before
 	// sending it.
 	// -----sig-----X
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	require.NoError(t, err)
 
 	newAliceChannel, err := NewLightningChannel(
@@ -9341,7 +9341,7 @@ func TestChannelUnsignedAckedFailure(t *testing.T) {
 
 	// Bob receives Alice's signature.
 	// -----sig----->
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	require.NoError(t, err)
 
 	// Bob revokes his current commitment and sends a revocation
@@ -9364,9 +9364,9 @@ func TestChannelUnsignedAckedFailure(t *testing.T) {
 	// Bob sends the final signature to Alice and Alice should not
 	// reject it, given that we properly restore the unsigned acked
 	// updates and therefore our update log is structured correctly.
-	bobSig, bobHtlcSigs, _, err = bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err = bobChannel.SignNextCommitment()
 	require.NoError(t, err)
-	err = newAliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = newAliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	require.NoError(t, err)
 }
 
@@ -9425,9 +9425,9 @@ func TestChannelLocalUnsignedUpdatesFailure(t *testing.T) {
 
 	// Alice should send a commitment signature to Bob.
 	// -----sig---->
-	aliceSig, aliceHtlcSigs, _, err := aliceChannel.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := aliceChannel.SignNextCommitment()
 	require.NoError(t, err)
-	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs)
+	err = bobChannel.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs)
 	require.NoError(t, err)
 
 	// Bob should reply with a revocation and Alice should save the fail as
@@ -9449,8 +9449,8 @@ func TestChannelLocalUnsignedUpdatesFailure(t *testing.T) {
 
 	// Bob sends the final signature and Alice should not reject it.
 	// <----sig-----
-	bobSig, bobHtlcSigs, _, err := bobChannel.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := bobChannel.SignNextCommitment()
 	require.NoError(t, err)
-	err = newAliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs)
+	err = newAliceChannel.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs)
 	require.NoError(t, err)
 }

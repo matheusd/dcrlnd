@@ -2009,11 +2009,11 @@ func createHTLC(data int, amount lnwire.MilliAtom) (*lnwire.UpdateAddHTLC, [32]b
 // pending updates.
 // TODO(conner) remove code duplication
 func forceStateTransition(chanA, chanB *lnwallet.LightningChannel) error {
-	aliceSig, aliceHtlcSigs, _, err := chanA.SignNextCommitment()
+	aliceSig, aliceHtlcSigs, alicePtlcSigs, _, err := chanA.SignNextCommitment()
 	if err != nil {
 		return fmt.Errorf("error on chanA.SignNextCommitment: %v", err)
 	}
-	if err = chanB.ReceiveNewCommitment(aliceSig, aliceHtlcSigs); err != nil {
+	if err = chanB.ReceiveNewCommitment(aliceSig, aliceHtlcSigs, alicePtlcSigs); err != nil {
 		return fmt.Errorf("error on chanB.ReceiveNewCommitment: %v", err)
 	}
 
@@ -2021,7 +2021,7 @@ func forceStateTransition(chanA, chanB *lnwallet.LightningChannel) error {
 	if err != nil {
 		return fmt.Errorf("error on chanB.RevokeCurrentCommitment: %v", err)
 	}
-	bobSig, bobHtlcSigs, _, err := chanB.SignNextCommitment()
+	bobSig, bobHtlcSigs, bobPtlcSigs, _, err := chanB.SignNextCommitment()
 	if err != nil {
 		return fmt.Errorf("error on chanB.SignNextCommitment: %v", err)
 	}
@@ -2030,7 +2030,7 @@ func forceStateTransition(chanA, chanB *lnwallet.LightningChannel) error {
 	if err != nil {
 		return err
 	}
-	if err := chanA.ReceiveNewCommitment(bobSig, bobHtlcSigs); err != nil {
+	if err := chanA.ReceiveNewCommitment(bobSig, bobHtlcSigs, bobPtlcSigs); err != nil {
 		return fmt.Errorf("error on chanA.ReceiveNewCommitment: %v", err)
 	}
 
