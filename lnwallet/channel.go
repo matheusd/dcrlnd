@@ -22,6 +22,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3/txsort"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/matheusd/dcr_adaptor_sigs"
 
 	"github.com/decred/dcrlnd/build"
 	"github.com/decred/dcrlnd/chainntnfs"
@@ -241,6 +242,12 @@ type PaymentDescriptor struct {
 	// log by the ParentIndex.
 	RPreimage lntypes.Preimage
 
+	PaymentPoint  *secp256k1.PublicKey
+	PaymentScalar *secp256k1.PrivateKey
+
+	adaptorSigSuccess        *dcr_adaptor_sigs.AdaptorSignature
+	adaptorSigSuccessNoDelay *dcr_adaptor_sigs.AdaptorSignature
+
 	// Timeout is the absolute timeout in blocks, after which this HTLC
 	// expires.
 	Timeout uint32
@@ -408,12 +415,13 @@ func PayDescsFromRemoteLogUpdates(chanID lnwire.ShortChannelID, height uint64,
 
 		case *lnwire.UpdateAddHTLC:
 			pd = PaymentDescriptor{
-				RHash:     wireMsg.PaymentHash,
-				Timeout:   wireMsg.Expiry,
-				Amount:    wireMsg.Amount,
-				EntryType: Add,
-				HtlcIndex: wireMsg.ID,
-				LogIndex:  logUpdate.LogIndex,
+				RHash:        wireMsg.PaymentHash,
+				PaymentPoint: wireMsg.PaymentPoint,
+				Timeout:      wireMsg.Expiry,
+				Amount:       wireMsg.Amount,
+				EntryType:    Add,
+				HtlcIndex:    wireMsg.ID,
+				LogIndex:     logUpdate.LogIndex,
 				SourceRef: &channeldb.AddRef{
 					Height: height,
 					Index:  uint16(i),
@@ -734,13 +742,16 @@ func (c *commitment) toDiskCommit(ourCommit bool) *channeldb.ChannelCommitment {
 		}
 
 		h := channeldb.HTLC{
-			RHash:         htlc.RHash,
-			Amt:           htlc.Amount,
-			RefundTimeout: htlc.Timeout,
-			OutputIndex:   outputIndex,
-			HtlcIndex:     htlc.HtlcIndex,
-			LogIndex:      htlc.LogIndex,
-			Incoming:      false,
+			RHash:                    htlc.RHash,
+			PaymentPoint:             htlc.PaymentPoint,
+			AdaptorSigSuccess:        htlc.adaptorSigSuccess,
+			AdaptorSigSuccessNoDelay: htlc.adaptorSigSuccessNoDelay,
+			Amt:                      htlc.Amount,
+			RefundTimeout:            htlc.Timeout,
+			OutputIndex:              outputIndex,
+			HtlcIndex:                htlc.HtlcIndex,
+			LogIndex:                 htlc.LogIndex,
+			Incoming:                 false,
 		}
 		h.OnionBlob = make([]byte, len(htlc.OnionBlob))
 		copy(h.OnionBlob, htlc.OnionBlob)
@@ -759,13 +770,16 @@ func (c *commitment) toDiskCommit(ourCommit bool) *channeldb.ChannelCommitment {
 		}
 
 		h := channeldb.HTLC{
-			RHash:         htlc.RHash,
-			Amt:           htlc.Amount,
-			RefundTimeout: htlc.Timeout,
-			OutputIndex:   outputIndex,
-			HtlcIndex:     htlc.HtlcIndex,
-			LogIndex:      htlc.LogIndex,
-			Incoming:      true,
+			RHash:                    htlc.RHash,
+			PaymentPoint:             htlc.PaymentPoint,
+			AdaptorSigSuccess:        htlc.adaptorSigSuccess,
+			AdaptorSigSuccessNoDelay: htlc.adaptorSigSuccessNoDelay,
+			Amt:                      htlc.Amount,
+			RefundTimeout:            htlc.Timeout,
+			OutputIndex:              outputIndex,
+			HtlcIndex:                htlc.HtlcIndex,
+			LogIndex:                 htlc.LogIndex,
+			Incoming:                 true,
 		}
 		h.OnionBlob = make([]byte, len(htlc.OnionBlob))
 		copy(h.OnionBlob, htlc.OnionBlob)
@@ -849,6 +863,7 @@ func (lc *LightningChannel) diskHtlcToPayDesc(feeRate chainfee.AtomPerKByte,
 	// re-create the original payment descriptor.
 	pd = PaymentDescriptor{
 		RHash:              htlc.RHash,
+		PaymentPoint:       htlc.PaymentPoint,
 		Timeout:            htlc.RefundTimeout,
 		Amount:             htlc.Amt,
 		EntryType:          Add,
@@ -1442,6 +1457,7 @@ func (lc *LightningChannel) logUpdateToPayDesc(logUpdate *channeldb.LogUpdate,
 		// for the remote party.
 		pd = &PaymentDescriptor{
 			RHash:                 wireMsg.PaymentHash,
+			PaymentPoint:          wireMsg.PaymentPoint,
 			Timeout:               wireMsg.Expiry,
 			Amount:                wireMsg.Amount,
 			EntryType:             Add,
@@ -1641,6 +1657,7 @@ func (lc *LightningChannel) remoteLogUpdateToPayDesc(logUpdate *channeldb.LogUpd
 	case *lnwire.UpdateAddHTLC:
 		pd := &PaymentDescriptor{
 			RHash:                wireMsg.PaymentHash,
+			PaymentPoint:         wireMsg.PaymentPoint,
 			Timeout:              wireMsg.Expiry,
 			Amount:               wireMsg.Amount,
 			EntryType:            Add,
@@ -3179,11 +3196,12 @@ func (lc *LightningChannel) createCommitDiff(
 		switch pd.EntryType {
 		case Add:
 			htlc := &lnwire.UpdateAddHTLC{
-				ChanID:      chanID,
-				ID:          pd.HtlcIndex,
-				Amount:      pd.Amount,
-				Expiry:      pd.Timeout,
-				PaymentHash: pd.RHash,
+				ChanID:       chanID,
+				ID:           pd.HtlcIndex,
+				Amount:       pd.Amount,
+				Expiry:       pd.Timeout,
+				PaymentHash:  pd.RHash,
+				PaymentPoint: pd.PaymentPoint,
 			}
 			copy(htlc.OnionBlob[:], pd.OnionBlob)
 			logUpdate.UpdateMsg = htlc
@@ -3316,11 +3334,12 @@ func (lc *LightningChannel) getUnsignedAckedUpdates() []channeldb.LogUpdate {
 		switch pd.EntryType {
 		case Add:
 			htlc := &lnwire.UpdateAddHTLC{
-				ChanID:      chanID,
-				ID:          pd.HtlcIndex,
-				Amount:      pd.Amount,
-				Expiry:      pd.Timeout,
-				PaymentHash: pd.RHash,
+				ChanID:       chanID,
+				ID:           pd.HtlcIndex,
+				Amount:       pd.Amount,
+				Expiry:       pd.Timeout,
+				PaymentHash:  pd.RHash,
+				PaymentPoint: pd.PaymentPoint,
 			}
 			copy(htlc.OnionBlob[:], pd.OnionBlob)
 			logUpdate.UpdateMsg = htlc
@@ -4756,11 +4775,12 @@ func (lc *LightningChannel) ReceiveRevocation(revMsg *lnwire.RevokeAndAck) (
 		switch pd.EntryType {
 		case Add:
 			htlc := &lnwire.UpdateAddHTLC{
-				ChanID:      chanID,
-				ID:          pd.HtlcIndex,
-				Amount:      pd.Amount,
-				Expiry:      pd.Timeout,
-				PaymentHash: pd.RHash,
+				ChanID:       chanID,
+				ID:           pd.HtlcIndex,
+				Amount:       pd.Amount,
+				Expiry:       pd.Timeout,
+				PaymentHash:  pd.RHash,
+				PaymentPoint: pd.PaymentPoint,
 			}
 			copy(htlc.OnionBlob[:], pd.OnionBlob)
 			logUpdate.UpdateMsg = htlc
@@ -4921,6 +4941,7 @@ func (lc *LightningChannel) AddHTLC(htlc *lnwire.UpdateAddHTLC,
 	pd := &PaymentDescriptor{
 		EntryType:      Add,
 		RHash:          PaymentHash(htlc.PaymentHash),
+		PaymentPoint:   htlc.PaymentPoint,
 		Timeout:        htlc.Expiry,
 		Amount:         htlc.Amount,
 		LogIndex:       lc.localUpdateLog.logIndex,
@@ -4973,13 +4994,14 @@ func (lc *LightningChannel) ReceiveHTLC(htlc *lnwire.UpdateAddHTLC) (uint64, err
 	}
 
 	pd := &PaymentDescriptor{
-		EntryType: Add,
-		RHash:     PaymentHash(htlc.PaymentHash),
-		Timeout:   htlc.Expiry,
-		Amount:    htlc.Amount,
-		LogIndex:  lc.remoteUpdateLog.logIndex,
-		HtlcIndex: lc.remoteUpdateLog.htlcCounter,
-		OnionBlob: htlc.OnionBlob[:],
+		EntryType:    Add,
+		RHash:        PaymentHash(htlc.PaymentHash),
+		PaymentPoint: htlc.PaymentPoint,
+		Timeout:      htlc.Expiry,
+		Amount:       htlc.Amount,
+		LogIndex:     lc.remoteUpdateLog.logIndex,
+		HtlcIndex:    lc.remoteUpdateLog.htlcCounter,
+		OnionBlob:    htlc.OnionBlob[:],
 	}
 
 	localACKedIndex := lc.remoteCommitChain.tail().ourMessageIndex

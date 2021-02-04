@@ -825,11 +825,44 @@ func addHTLC(commitTx *wire.MsgTx, ourCommit bool,
 	keyRing *CommitmentKeyRing, chanType channeldb.ChannelType) error {
 
 	timeout := paymentDesc.Timeout
-	rHash := paymentDesc.RHash
 
-	p2sh, witnessScript, err := genHtlcScript(
-		chanType, isIncoming, ourCommit, timeout, rHash, keyRing,
-	)
+	var p2sh, witnessScript []byte
+	var err error
+
+	switch {
+	case paymentDesc.PaymentPoint != nil:
+		payPoint := paymentDesc.PaymentPoint
+		var uPoint *secp256k1.PublicKey
+		switch {
+		case paymentDesc.adaptorSigSuccessNoDelay != nil:
+			// Since we already have an adaptor sig for the
+			// successNoDelay tx, use its stored U.
+			uPoint = paymentDesc.adaptorSigSuccessNoDelay.U()
+
+			fmt.Printf("....... addHtlc() uPoint from sig: %x\n", uPoint.SerializeCompressed())
+
+		default:
+			if !isIncoming && ourCommit {
+				fmt.Printf("BOOOOOOOOOOOOOOOOO it should've had the adaptor sig\n")
+			}
+
+			// Otherwise, we generate a new one based on the random
+			// commit key, tweaked for this particular target
+			// payment point.
+			uSecret := tweakKeyWithPoint(keyRing.LocalRandomKey, payPoint)
+			uPoint = uSecret.PubKey()
+			fmt.Printf("....... addHtlc() uPoint from uSecret: %x\n", uPoint.SerializeCompressed())
+		}
+
+		p2sh, witnessScript, err = genPtlcScript(
+			chanType, isIncoming, ourCommit, timeout, uPoint, payPoint, keyRing,
+		)
+	default:
+		rHash := paymentDesc.RHash
+		p2sh, witnessScript, err = genHtlcScript(
+			chanType, isIncoming, ourCommit, timeout, rHash, keyRing,
+		)
+	}
 	if err != nil {
 		return err
 	}
