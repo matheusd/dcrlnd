@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/wire"
 
@@ -94,6 +96,10 @@ type AddInvoiceData struct {
 	// HodlInvoice signals that this invoice shouldn't be settled
 	// immediately upon receiving the payment.
 	HodlInvoice bool
+
+	IsPTLC bool
+
+	PaymentPoint *secp256k1.PublicKey
 }
 
 // AddInvoice attempts to add a new invoice to the invoice database. Any
@@ -105,6 +111,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 	var (
 		paymentPreimage *lntypes.Preimage
 		paymentHash     lntypes.Hash
+		paymentPoint    *secp256k1.PublicKey
 	)
 
 	switch {
@@ -114,18 +121,41 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 		return nil, nil,
 			errors.New("preimage and hash both set")
 
+	case invoice.IsPTLC && invoice.Preimage != nil && invoice.PaymentPoint != nil:
+		return nil, nil, errors.New("preimage and payment point both set")
+
+	case invoice.IsPTLC && invoice.Hash != nil:
+		return nil, nil, errors.New("hash set for a PTLC invoice")
+
 	// If no hash or preimage is given, generate a random preimage.
 	case invoice.Preimage == nil && invoice.Hash == nil:
 		paymentPreimage = &lntypes.Preimage{}
 		if _, err := rand.Read(paymentPreimage[:]); err != nil {
 			return nil, nil, err
 		}
-		paymentHash = paymentPreimage.Hash()
+
+		if invoice.IsPTLC {
+			privKey := secp256k1.PrivKeyFromBytes(paymentPreimage[:])
+			paymentPoint = privKey.PubKey()
+			paymentHash = lntypes.Hash(sha256.Sum256(paymentPoint.SerializeCompressed()))
+		} else {
+			paymentHash = paymentPreimage.Hash()
+		}
+
+	case invoice.IsPTLC && invoice.Preimage == nil && invoice.PaymentPoint != nil:
+		paymentHash = *invoice.Hash
 
 	// If just a hash is given, we create a hold invoice by setting the
 	// preimage to unknown.
 	case invoice.Preimage == nil && invoice.Hash != nil:
 		paymentHash = *invoice.Hash
+
+	case invoice.IsPTLC && invoice.Preimage != nil && invoice.PaymentPoint == nil:
+		preimage := *invoice.Preimage
+		paymentPreimage = &preimage
+		privKey := secp256k1.PrivKeyFromBytes(preimage[:])
+		paymentPoint = privKey.PubKey()
+		paymentHash = lntypes.Hash(sha256.Sum256(paymentPoint.SerializeCompressed()))
 
 	// A specific preimage was supplied. Use that for the invoice.
 	case invoice.Preimage != nil && invoice.Hash == nil:
@@ -281,6 +311,8 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 	}
 	options = append(options, zpay32.PaymentAddr(paymentAddr))
 
+	options = append(options, zpay32.PaymentPoint(paymentPoint))
+
 	// Create and encode the payment request as a bech32 (zpay32) string.
 	creationDate := time.Now()
 	payReq, err := zpay32.NewInvoice(
@@ -310,6 +342,7 @@ func AddInvoice(ctx context.Context, cfg *AddInvoiceConfig,
 			PaymentPreimage: paymentPreimage,
 			PaymentAddr:     paymentAddr,
 			Features:        invoiceFeatures,
+			IsPTLC:          invoice.IsPTLC,
 		},
 		HodlInvoice: invoice.HodlInvoice,
 	}

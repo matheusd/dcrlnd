@@ -15378,6 +15378,10 @@ var testsCases = []*testCase{
 		name: "maximum channel size",
 		test: testMaxChannelSize,
 	},
+	{
+		name: "single hop PTLC",
+		test: testSingleHopPTLC,
+	},
 }
 
 // TestLightningNetworkDaemon performs a series of integration tests amongst a

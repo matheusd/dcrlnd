@@ -209,6 +209,8 @@ type Brontide struct {
 	// peer's chansync message with its own over and over again.
 	resentChanSyncMsg map[lnwire.ChannelID]struct{}
 
+	pver uint32
+
 	queueQuit chan struct{}
 	quit      chan struct{}
 	wg        sync.WaitGroup
@@ -732,7 +734,7 @@ func (p *Brontide) readNextMessage() (lnwire.Message, error) {
 	// Next, create a new io.Reader implementation from the raw message,
 	// and use this to decode the message directly from.
 	msgReader := bytes.NewReader(rawMsg)
-	nextMsg, err := lnwire.ReadMessage(msgReader, 0)
+	nextMsg, err := lnwire.ReadMessage(msgReader, p.pver)
 	if err != nil {
 		return nil, err
 	}
@@ -1526,7 +1528,7 @@ func (p *Brontide) writeMessage(msg lnwire.Message) error {
 	err := p.cfg.WritePool.Submit(func(buf *bytes.Buffer) error {
 		// Using a buffer allocated by the write pool, encode the
 		// message directly into the buffer.
-		_, writeErr := lnwire.WriteMessage(buf, msg, 0)
+		_, writeErr := lnwire.WriteMessage(buf, msg, p.pver)
 		if writeErr != nil {
 			return writeErr
 		}
@@ -2491,6 +2493,9 @@ func (p *Brontide) handleInitMsg(msg *lnwire.Init) error {
 	if !p.remoteFeatures.HasFeature(lnwire.DataLossProtectRequired) {
 		return fmt.Errorf("data loss protection required")
 	}
+
+	// TODO: negotiate pver based on ptlc features.
+	p.pver = lnwire.ProtoVersionPTLC
 
 	return nil
 }

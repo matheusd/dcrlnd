@@ -1372,6 +1372,8 @@ func NewLightningChannel(signer input.Signer,
 		log:               build.NewPrefixLog(logPrefix, walletLog),
 	}
 
+	lc.log.Debugf("YYYYYYYY local chan cfg: %s", spew.Sdump(state.LocalChanCfg))
+
 	// With the main channel struct reconstructed, we'll now restore the
 	// commitment state in memory and also the update logs themselves.
 	err := lc.restoreCommitState(&localCommit, &remoteCommit)
@@ -1496,6 +1498,7 @@ func (lc *LightningChannel) logUpdateToPayDesc(logUpdate *channeldb.LogUpdate,
 		pd = &PaymentDescriptor{
 			Amount:                   ogHTLC.Amount,
 			RHash:                    ogHTLC.RHash,
+			PaymentPoint:             ogHTLC.PaymentPoint,
 			RPreimage:                wireMsg.PaymentPreimage,
 			LogIndex:                 logUpdate.LogIndex,
 			ParentIndex:              ogHTLC.HtlcIndex,
@@ -1513,6 +1516,7 @@ func (lc *LightningChannel) logUpdateToPayDesc(logUpdate *channeldb.LogUpdate,
 		pd = &PaymentDescriptor{
 			Amount:                   ogHTLC.Amount,
 			RHash:                    ogHTLC.RHash,
+			PaymentPoint:             ogHTLC.PaymentPoint,
 			ParentIndex:              ogHTLC.HtlcIndex,
 			LogIndex:                 logUpdate.LogIndex,
 			EntryType:                Fail,
@@ -1529,6 +1533,7 @@ func (lc *LightningChannel) logUpdateToPayDesc(logUpdate *channeldb.LogUpdate,
 		pd = &PaymentDescriptor{
 			Amount:                   ogHTLC.Amount,
 			RHash:                    ogHTLC.RHash,
+			PaymentPoint:             ogHTLC.PaymentPoint,
 			ParentIndex:              ogHTLC.HtlcIndex,
 			LogIndex:                 logUpdate.LogIndex,
 			EntryType:                MalformedFail,
@@ -1584,6 +1589,7 @@ func (lc *LightningChannel) localLogUpdateToPayDesc(logUpdate *channeldb.LogUpda
 		return &PaymentDescriptor{
 			Amount:                   ogHTLC.Amount,
 			RHash:                    ogHTLC.RHash,
+			PaymentPoint:             ogHTLC.PaymentPoint,
 			RPreimage:                wireMsg.PaymentPreimage,
 			LogIndex:                 logUpdate.LogIndex,
 			ParentIndex:              ogHTLC.HtlcIndex,
@@ -1600,6 +1606,7 @@ func (lc *LightningChannel) localLogUpdateToPayDesc(logUpdate *channeldb.LogUpda
 		return &PaymentDescriptor{
 			Amount:                   ogHTLC.Amount,
 			RHash:                    ogHTLC.RHash,
+			PaymentPoint:             ogHTLC.PaymentPoint,
 			ParentIndex:              ogHTLC.HtlcIndex,
 			LogIndex:                 logUpdate.LogIndex,
 			EntryType:                Fail,
@@ -1615,6 +1622,7 @@ func (lc *LightningChannel) localLogUpdateToPayDesc(logUpdate *channeldb.LogUpda
 		return &PaymentDescriptor{
 			Amount:                   ogHTLC.Amount,
 			RHash:                    ogHTLC.RHash,
+			PaymentPoint:             ogHTLC.PaymentPoint,
 			ParentIndex:              ogHTLC.HtlcIndex,
 			LogIndex:                 logUpdate.LogIndex,
 			EntryType:                MalformedFail,
@@ -1683,6 +1691,7 @@ func (lc *LightningChannel) remoteLogUpdateToPayDesc(logUpdate *channeldb.LogUpd
 		return &PaymentDescriptor{
 			Amount:                  ogHTLC.Amount,
 			RHash:                   ogHTLC.RHash,
+			PaymentPoint:            ogHTLC.PaymentPoint,
 			RPreimage:               wireMsg.PaymentPreimage,
 			LogIndex:                logUpdate.LogIndex,
 			ParentIndex:             ogHTLC.HtlcIndex,
@@ -1699,6 +1708,7 @@ func (lc *LightningChannel) remoteLogUpdateToPayDesc(logUpdate *channeldb.LogUpd
 		return &PaymentDescriptor{
 			Amount:                  ogHTLC.Amount,
 			RHash:                   ogHTLC.RHash,
+			PaymentPoint:            ogHTLC.PaymentPoint,
 			ParentIndex:             ogHTLC.HtlcIndex,
 			LogIndex:                logUpdate.LogIndex,
 			EntryType:               Fail,
@@ -1714,6 +1724,7 @@ func (lc *LightningChannel) remoteLogUpdateToPayDesc(logUpdate *channeldb.LogUpd
 		return &PaymentDescriptor{
 			Amount:                  ogHTLC.Amount,
 			RHash:                   ogHTLC.RHash,
+			PaymentPoint:            ogHTLC.PaymentPoint,
 			ParentIndex:             ogHTLC.HtlcIndex,
 			LogIndex:                logUpdate.LogIndex,
 			EntryType:               MalformedFail,
@@ -3713,6 +3724,8 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 		&lc.channelState.LocalChanCfg, &lc.channelState.RemoteChanCfg,
 	)
 
+	lc.log.Debugf("YYYYYYY derived keys")
+
 	// Create a new commitment view which will calculate the evaluated
 	// state of the remote node's new commitment including our latest added
 	// HTLCs. The view includes the latest balances for both sides on the
@@ -3741,6 +3754,8 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 			return spew.Sdump(newCommitView.txn)
 		}),
 	)
+
+	lc.log.Debugf("YYYYYYY fetched commitment view")
 
 	// With the commitment view constructed, if there are any HTLC's, we'll
 	// need to generate signatures of each of them for the remote party's
@@ -3805,6 +3820,7 @@ func (lc *LightningChannel) SignNextCommitment() (lnwire.Sig, []lnwire.Sig, []ln
 		// If an error occurred, then we'll cancel any other active
 		// jobs.
 		if jobResp.Err != nil {
+			lc.log.Errorf("YYYYYYY ptlc sig job error: %v", jobResp.Err)
 			close(cancelChan)
 			return sig, htlcSigs, ptlcSigs, nil, jobResp.Err
 
@@ -5272,6 +5288,8 @@ func (lc *LightningChannel) ReceiveHTLC(htlc *lnwire.UpdateAddHTLC) (uint64, err
 		OnionBlob:    htlc.OnionBlob[:],
 	}
 
+	lc.log.Debugf("YYYYYYY receiving HTLC %s", spew.Sdump(pd))
+
 	localACKedIndex := lc.remoteCommitChain.tail().ourMessageIndex
 
 	// Clamp down on the number of HTLC's we can receive by checking the
@@ -5330,13 +5348,21 @@ func (lc *LightningChannel) SettleHTLC(preimage lntypes.Preimage,
 		return ErrHtlcIndexAlreadySettled(htlcIndex)
 	}
 
-	if htlc.RHash != PaymentHash(preimage.Hash()) {
+	if htlc.PaymentPoint != nil {
+		privKey := secp256k1.PrivKeyFromBytes(preimage[:])
+		pubKey := privKey.PubKey()
+		if !htlc.PaymentPoint.IsEqual(pubKey) {
+			// TODO: return a PTLC-specific error
+			return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
+		}
+	} else if htlc.RHash != PaymentHash(preimage.Hash()) {
 		return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
 	}
 
 	pd := &PaymentDescriptor{
 		Amount:           htlc.Amount,
 		RPreimage:        preimage,
+		PaymentPoint:     htlc.PaymentPoint,
 		LogIndex:         lc.localUpdateLog.logIndex,
 		ParentIndex:      htlcIndex,
 		EntryType:        Settle,
@@ -5375,17 +5401,25 @@ func (lc *LightningChannel) ReceiveHTLCSettle(preimage lntypes.Preimage, htlcInd
 		return ErrHtlcIndexAlreadySettled(htlcIndex)
 	}
 
-	if htlc.RHash != PaymentHash(preimage.Hash()) {
+	if htlc.PaymentPoint != nil {
+		privKey := secp256k1.PrivKeyFromBytes(preimage[:])
+		pubKey := privKey.PubKey()
+		if !htlc.PaymentPoint.IsEqual(pubKey) {
+			// TODO: return a PTLC-specific error
+			return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
+		}
+	} else if htlc.RHash != PaymentHash(preimage.Hash()) {
 		return ErrInvalidSettlePreimage{preimage[:], htlc.RHash[:]}
 	}
 
 	pd := &PaymentDescriptor{
-		Amount:      htlc.Amount,
-		RPreimage:   preimage,
-		ParentIndex: htlc.HtlcIndex,
-		RHash:       htlc.RHash,
-		LogIndex:    lc.remoteUpdateLog.logIndex,
-		EntryType:   Settle,
+		Amount:       htlc.Amount,
+		RPreimage:    preimage,
+		ParentIndex:  htlc.HtlcIndex,
+		RHash:        htlc.RHash,
+		PaymentPoint: htlc.PaymentPoint,
+		LogIndex:     lc.remoteUpdateLog.logIndex,
+		EntryType:    Settle,
 	}
 
 	lc.remoteUpdateLog.appendUpdate(pd)
@@ -5442,6 +5476,7 @@ func (lc *LightningChannel) FailHTLC(htlcIndex uint64, reason []byte,
 	pd := &PaymentDescriptor{
 		Amount:           htlc.Amount,
 		RHash:            htlc.RHash,
+		PaymentPoint:     htlc.PaymentPoint,
 		ParentIndex:      htlcIndex,
 		LogIndex:         lc.localUpdateLog.logIndex,
 		EntryType:        Fail,
@@ -5492,6 +5527,7 @@ func (lc *LightningChannel) MalformedFailHTLC(htlcIndex uint64,
 	pd := &PaymentDescriptor{
 		Amount:       htlc.Amount,
 		RHash:        htlc.RHash,
+		PaymentPoint: htlc.PaymentPoint,
 		ParentIndex:  htlcIndex,
 		LogIndex:     lc.localUpdateLog.logIndex,
 		EntryType:    MalformedFail,
@@ -5533,12 +5569,13 @@ func (lc *LightningChannel) ReceiveFailHTLC(htlcIndex uint64, reason []byte,
 	}
 
 	pd := &PaymentDescriptor{
-		Amount:      htlc.Amount,
-		RHash:       htlc.RHash,
-		ParentIndex: htlc.HtlcIndex,
-		LogIndex:    lc.remoteUpdateLog.logIndex,
-		EntryType:   Fail,
-		FailReason:  reason,
+		Amount:       htlc.Amount,
+		RHash:        htlc.RHash,
+		PaymentPoint: htlc.PaymentPoint,
+		ParentIndex:  htlc.HtlcIndex,
+		LogIndex:     lc.remoteUpdateLog.logIndex,
+		EntryType:    Fail,
+		FailReason:   reason,
 	}
 
 	lc.remoteUpdateLog.appendUpdate(pd)

@@ -118,7 +118,8 @@ func NewAdaptorSigFromSignature(e input.Signature) (AdaptorSig, error) {
 	var s AdaptorSig
 	ser := e.Serialize()
 	if len(ser) != dcr_adaptor_sigs.AdaptorSignatureSerializeLen {
-		return s, fmt.Errorf("unexpected serialized len for adaptor sig")
+		return s, fmt.Errorf("unexpected serialized len for adaptor "+
+			"sig (got %d want %d)", len(ser), dcr_adaptor_sigs.AdaptorSignatureSerializeLen)
 	}
 	copy(s[:], ser)
 	return s, nil

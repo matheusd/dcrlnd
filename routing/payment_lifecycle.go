@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/htlcswitch"
 	"github.com/decred/dcrlnd/lntypes"
@@ -21,6 +22,7 @@ type paymentLifecycle struct {
 	totalAmount   lnwire.MilliAtom
 	feeLimit      lnwire.MilliAtom
 	paymentHash   lntypes.Hash
+	paymentPoint  *secp256k1.PublicKey
 	paySession    PaymentSession
 	timeoutChan   <-chan time.Time
 	currentHeight int32
@@ -80,10 +82,11 @@ func (p *paymentLifecycle) paymentState(payment *channeldb.MPPayment) (
 // resumePayment resumes the paymentLifecycle from the current state.
 func (p *paymentLifecycle) resumePayment() ([32]byte, *route.Route, error) {
 	shardHandler := &shardHandler{
-		router:      p.router,
-		paymentHash: p.paymentHash,
-		shardErrors: make(chan error),
-		quit:        make(chan struct{}),
+		router:       p.router,
+		paymentHash:  p.paymentHash,
+		paymentPoint: p.paymentPoint,
+		shardErrors:  make(chan error),
+		quit:         make(chan struct{}),
 	}
 
 	// When the payment lifecycle loop exits, we make sure to signal any
@@ -279,8 +282,9 @@ func (p *paymentLifecycle) resumePayment() ([32]byte, *route.Route, error) {
 // shardHandler holds what is necessary to send and collect the result of
 // shards.
 type shardHandler struct {
-	paymentHash lntypes.Hash
-	router      *ChannelRouter
+	paymentHash  lntypes.Hash
+	paymentPoint *secp256k1.PublicKey
+	router       *ChannelRouter
 
 	// shardErrors is a channel where errors collected by calling
 	// collectResultAsync will be delivered. These results are meant to be
@@ -605,9 +609,10 @@ func (p *shardHandler) createNewPaymentAttempt(rt *route.Route) (
 	// metadata within this packet will be used to route the
 	// payment through the network, starting with the first-hop.
 	htlcAdd := &lnwire.UpdateAddHTLC{
-		Amount:      rt.TotalAmount,
-		Expiry:      rt.TotalTimeLock,
-		PaymentHash: p.paymentHash,
+		Amount:       rt.TotalAmount,
+		Expiry:       rt.TotalTimeLock,
+		PaymentHash:  p.paymentHash,
+		PaymentPoint: p.paymentPoint,
 	}
 	copy(htlcAdd.OnionBlob[:], onionBlob)
 

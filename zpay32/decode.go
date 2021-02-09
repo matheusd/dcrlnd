@@ -276,6 +276,14 @@ func parseTaggedFields(invoice *Invoice, fields []byte, net *chaincfg.Params) er
 			}
 
 			invoice.Features, err = parseFeatures(base32Data)
+		case fieldTypeY:
+			if invoice.PaymentPoint != nil {
+				// We skip the field if we have already seen a
+				// supported one.
+				continue
+			}
+
+			invoice.PaymentPoint, err = parseDestination(base32Data)
 		default:
 			// Ignore unknown type.
 		}

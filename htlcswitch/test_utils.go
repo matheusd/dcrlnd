@@ -40,6 +40,8 @@ import (
 	"github.com/go-errors/errors"
 )
 
+const defaultIsPTLC = false
+
 func modNScalar(b []byte) *secp256k1.ModNScalar {
 	var m secp256k1.ModNScalar
 	m.SetByteSlice(b)
@@ -225,6 +227,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		HtlcBasePoint: keychain.KeyDescriptor{
 			PubKey: aliceKeyPub,
 		},
+		RandomKey: *secp256k1.PrivKeyFromBytes([]byte{0x01}),
 	}
 	bobCfg := channeldb.ChannelConfig{
 		ChannelConstraints: *bobConstraints,
@@ -243,6 +246,7 @@ func createTestChannel(alicePrivKey, bobPrivKey []byte,
 		HtlcBasePoint: keychain.KeyDescriptor{
 			PubKey: bobKeyPub,
 		},
+		RandomKey: *secp256k1.PrivKeyFromBytes([]byte{0x02}),
 	}
 
 	bobRoot, err := chainhash.NewHash(bobKeyPriv.Serialize())
@@ -554,7 +558,7 @@ func getChanID(msg lnwire.Message) (lnwire.ChannelID, error) {
 // invoice which should be added by destination peer.
 func generatePaymentWithPreimage(invoiceAmt, htlcAmt lnwire.MilliAtom,
 	timelock uint32, blob [lnwire.OnionPacketSize]byte,
-	preimage *lntypes.Preimage, rhash, payAddr [32]byte) (
+	preimage *lntypes.Preimage, rhash, payAddr [32]byte, isPTLC bool) (
 	*channeldb.Invoice, *lnwire.UpdateAddHTLC, uint64, error) {
 
 	// Create the db invoice. Normally the payment requests needs to be set,
@@ -574,15 +578,23 @@ func generatePaymentWithPreimage(invoiceAmt, htlcAmt lnwire.MilliAtom,
 			Features: lnwire.NewFeatureVector(
 				nil, lnwire.Features,
 			),
+			IsPTLC: isPTLC,
 		},
 		HodlInvoice: preimage == nil,
 	}
 
+	var payPoint *secp256k1.PublicKey
+	if isPTLC {
+		privKey := secp256k1.PrivKeyFromBytes(preimage[:])
+		payPoint = privKey.PubKey()
+	}
+
 	htlc := &lnwire.UpdateAddHTLC{
-		PaymentHash: rhash,
-		Amount:      htlcAmt,
-		Expiry:      timelock,
-		OnionBlob:   blob,
+		PaymentHash:  rhash,
+		Amount:       htlcAmt,
+		Expiry:       timelock,
+		OnionBlob:    blob,
+		PaymentPoint: payPoint,
 	}
 
 	pid, err := generateRandomBytes(8)
@@ -597,7 +609,7 @@ func generatePaymentWithPreimage(invoiceAmt, htlcAmt lnwire.MilliAtom,
 // generatePayment generates the htlc add request by given path blob and
 // invoice which should be added by destination peer.
 func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
-	blob [lnwire.OnionPacketSize]byte) (*channeldb.Invoice,
+	blob [lnwire.OnionPacketSize]byte, isPTLC bool) (*channeldb.Invoice,
 	*lnwire.UpdateAddHTLC, uint64, error) {
 
 	var preimage lntypes.Preimage
@@ -608,6 +620,13 @@ func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
 	copy(preimage[:], r)
 
 	rhash := preimage.Hash()
+	if isPTLC {
+		// Use the hash of the public point instead of the raw preimage
+		// as identifier of the payment.
+		privKey := secp256k1.PrivKeyFromBytes(preimage[:])
+		pubKey := privKey.PubKey()
+		rhash = lntypes.Hash(sha256.Sum256(pubKey.SerializeCompressed()))
+	}
 
 	var payAddr [sha256.Size]byte
 	r, err = generateRandomBytes(sha256.Size)
@@ -617,7 +636,7 @@ func generatePayment(invoiceAmt, htlcAmt lnwire.MilliAtom, timelock uint32,
 	copy(payAddr[:], r)
 
 	return generatePaymentWithPreimage(
-		invoiceAmt, htlcAmt, timelock, blob, &preimage, rhash, payAddr,
+		invoiceAmt, htlcAmt, timelock, blob, &preimage, rhash, payAddr, isPTLC,
 	)
 }
 
@@ -764,13 +783,13 @@ func waitForPayFuncResult(payFunc func() error, d time.Duration) error {
 func makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 	firstHop lnwire.ShortChannelID, hops []*hop.Payload,
 	invoiceAmt, htlcAmt lnwire.MilliAtom,
-	timelock uint32) *paymentResponse {
+	timelock uint32, isPTLC bool) *paymentResponse {
 
 	paymentErr := make(chan error, 1)
 	var rhash lntypes.Hash
 
 	invoice, payFunc, err := preparePayment(sendingPeer, receivingPeer,
-		firstHop, hops, invoiceAmt, htlcAmt, timelock,
+		firstHop, hops, invoiceAmt, htlcAmt, timelock, isPTLC,
 	)
 	if err != nil {
 		paymentErr <- err
@@ -781,6 +800,13 @@ func makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 	}
 
 	rhash = invoice.Terms.PaymentPreimage.Hash()
+	if isPTLC {
+		// Use the hash of the public point instead of the raw preimage
+		// as identifier of the payment.
+		privKey := secp256k1.PrivKeyFromBytes(invoice.Terms.PaymentPreimage[:])
+		pubKey := privKey.PubKey()
+		rhash = lntypes.Hash(sha256.Sum256(pubKey.SerializeCompressed()))
+	}
 
 	// Send payment and expose err channel.
 	go func() {
@@ -798,7 +824,7 @@ func makePayment(sendingPeer, receivingPeer lnpeer.Peer,
 func preparePayment(sendingPeer, receivingPeer lnpeer.Peer,
 	firstHop lnwire.ShortChannelID, hops []*hop.Payload,
 	invoiceAmt, htlcAmt lnwire.MilliAtom,
-	timelock uint32) (*channeldb.Invoice, func() error, error) {
+	timelock uint32, isPTLC bool) (*channeldb.Invoice, func() error, error) {
 
 	sender := sendingPeer.(*mockServer)
 	receiver := receivingPeer.(*mockServer)
@@ -812,7 +838,7 @@ func preparePayment(sendingPeer, receivingPeer lnpeer.Peer,
 
 	// Generate payment: invoice and htlc.
 	invoice, htlc, pid, err := generatePayment(
-		invoiceAmt, htlcAmt, timelock, blob,
+		invoiceAmt, htlcAmt, timelock, blob, isPTLC,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -820,6 +846,13 @@ func preparePayment(sendingPeer, receivingPeer lnpeer.Peer,
 
 	// Check who is last in the route and add invoice to server registry.
 	hash := invoice.Terms.PaymentPreimage.Hash()
+	if isPTLC {
+		// Use the hash of the public point instead of the raw preimage
+		// as identifier of the payment.
+		privKey := secp256k1.PrivKeyFromBytes(invoice.Terms.PaymentPreimage[:])
+		pubKey := privKey.PubKey()
+		hash = lntypes.Hash(sha256.Sum256(pubKey.SerializeCompressed()))
+	}
 	if err := receiver.registry.AddInvoice(*invoice, hash); err != nil {
 		return nil, nil, err
 	}
@@ -1354,7 +1387,7 @@ func (n *twoHopNetwork) makeHoldPayment(sendingPeer, receivingPeer lnpeer.Peer,
 	// Generate payment: invoice and htlc.
 	invoice, htlc, pid, err := generatePaymentWithPreimage(
 		invoiceAmt, htlcAmt, timelock, blob,
-		nil, rhash, payAddr,
+		nil, rhash, payAddr, defaultIsPTLC,
 	)
 	if err != nil {
 		paymentErr <- err

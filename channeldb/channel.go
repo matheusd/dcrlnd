@@ -346,7 +346,7 @@ type ChannelConfig struct {
 	// adaptor signatures.
 	//
 	// This will be filled only for the local chan config.
-	RandomKey *secp256k1.PrivateKey
+	RandomKey secp256k1.PrivateKey
 }
 
 // ChannelCommitment is a snapshot of the commitment state at a particular
@@ -3122,7 +3122,7 @@ func writeChanConfig(b io.Writer, c *ChannelConfig) error {
 		c.DustLimit, c.MaxPendingAmount, c.ChanReserve, c.MinHTLC,
 		c.MaxAcceptedHtlcs, c.CsvDelay, c.MultiSigKey,
 		c.RevocationBasePoint, c.PaymentBasePoint, c.DelayBasePoint,
-		c.HtlcBasePoint,
+		c.HtlcBasePoint, &c.RandomKey,
 	)
 }
 
@@ -3301,7 +3301,7 @@ func readChanConfig(b io.Reader, c *ChannelConfig) error {
 		&c.MinHTLC, &c.MaxAcceptedHtlcs, &c.CsvDelay,
 		&c.MultiSigKey, &c.RevocationBasePoint,
 		&c.PaymentBasePoint, &c.DelayBasePoint,
-		&c.HtlcBasePoint,
+		&c.HtlcBasePoint, &c.RandomKey,
 	)
 }
 

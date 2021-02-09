@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrlnd/channeldb"
 	"github.com/decred/dcrlnd/lnrpc"
@@ -358,13 +359,15 @@ func (s *Server) SendToRouteV2(ctx context.Context,
 		return nil, err
 	}
 
+	var point *secp256k1.PublicKey
+
 	// Pass route to the router. This call returns the full htlc attempt
 	// information as it is stored in the database. It is possible that both
 	// the attempt return value and err are non-nil. This can happen when
 	// the attempt was already initiated before the error happened. In that
 	// case, we give precedence to the attempt information as stored in the
 	// db.
-	attempt, err := s.cfg.Router.SendToRoute(hash, route)
+	attempt, err := s.cfg.Router.SendToRoute(hash, point, route)
 	if attempt != nil {
 		rpcAttempt, err := s.cfg.RouterBackend.MarshalHTLCAttempt(
 			*attempt,

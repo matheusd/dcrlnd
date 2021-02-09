@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/lntypes"
@@ -218,6 +219,9 @@ func (ps PaymentStatus) String() string {
 type PaymentCreationInfo struct {
 	// PaymentHash is the hash this payment is paying to.
 	PaymentHash lntypes.Hash
+
+	// TODO: needs to be serialized/deserialized.
+	PaymentPoint *secp256k1.PublicKey
 
 	// Value is the amount we are paying.
 	Value lnwire.MilliAtom

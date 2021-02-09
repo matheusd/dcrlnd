@@ -73,6 +73,8 @@ const (
 	// probing the recipient.
 	fieldTypeS = 16
 
+	fieldTypeY = 4
+
 	// maxInvoiceLength is the maximum total length an invoice can have.
 	// This is chosen to be the maximum number of bytes that can fit into a
 	// single QR code: https://en.wikipedia.org/wiki/QR_code#Storage
@@ -139,6 +141,8 @@ type Invoice struct {
 	// PaymentAddr is the payment address to be used by payments to prevent
 	// probing of the destination.
 	PaymentAddr *[32]byte
+
+	PaymentPoint *secp256k1.PublicKey
 
 	// Destination is the public key of the target node. This will always
 	// be set after decoding, and can optionally be set before encoding to
@@ -279,6 +283,12 @@ func Features(features *lnwire.FeatureVector) func(*Invoice) {
 func PaymentAddr(addr [32]byte) func(*Invoice) {
 	return func(i *Invoice) {
 		i.PaymentAddr = &addr
+	}
+}
+
+func PaymentPoint(point *secp256k1.PublicKey) func(*Invoice) {
+	return func(i *Invoice) {
+		i.PaymentPoint = point
 	}
 }
 

@@ -133,11 +133,9 @@ func DeriveCommitmentKeys(commitPoint *secp256k1.PublicKey,
 		localBasePoint = localChanCfg.DelayBasePoint
 	}
 
+	// Tweak the channel random key with the commitment point.
 	var localRandomKey *secp256k1.PrivateKey
-	if localChanCfg.RandomKey != nil {
-		// Tweak the channel random key with the commitment point.
-		localRandomKey = tweakKeyWithPoint(localChanCfg.RandomKey, commitPoint)
-	}
+	localRandomKey = tweakKeyWithPoint(&localChanCfg.RandomKey, commitPoint)
 
 	// First, we'll derive all the keys that don't depend on the context of
 	// whose commitment transaction this is.
@@ -925,7 +923,12 @@ func addHTLC(commitTx *wire.MsgTx, ourCommit bool,
 
 		default:
 			if !isIncoming && ourCommit {
-				fmt.Printf("BOOOOOOOOOOOOOOOOO it should've had the adaptor sig\n")
+				return fmt.Errorf("!isIncoming && ourCommit PTLC must have adaptor sig")
+			}
+			if keyRing.LocalRandomKey == nil {
+				return fmt.Errorf("missing keyRing.LocalRandomKey "+
+					"in htlc %x isIncoming=%v ourCommit=%v",
+					paymentDesc.RHash, isIncoming, ourCommit)
 			}
 
 			// Otherwise, we generate a new one based on the random

@@ -170,6 +170,24 @@ func WriteElement(w io.Writer, element interface{}) error {
 		if _, err := w.Write(e[:]); err != nil {
 			return err
 		}
+	case []AdaptorSig:
+		var b [2]byte
+		numSigs := uint16(len(e))
+		binary.BigEndian.PutUint16(b[:], numSigs)
+		if _, err := w.Write(b[:]); err != nil {
+			return err
+		}
+
+		for _, sig := range e {
+			if err := WriteElement(w, sig); err != nil {
+				return err
+			}
+		}
+	case AdaptorSig:
+		// Write buffer
+		if _, err := w.Write(e[:]); err != nil {
+			return err
+		}
 	case PingPayload:
 		var l [2]byte
 		binary.BigEndian.PutUint16(l[:], uint16(len(e)))
@@ -567,6 +585,31 @@ func ReadElement(r io.Reader, element interface{}) error {
 		if _, err := io.ReadFull(r, e[:]); err != nil {
 			return err
 		}
+
+	case *[]AdaptorSig:
+		var l [2]byte
+		if _, err := io.ReadFull(r, l[:]); err != nil {
+			return err
+		}
+		numSigs := binary.BigEndian.Uint16(l[:])
+
+		var sigs []AdaptorSig
+		if numSigs > 0 {
+			sigs = make([]AdaptorSig, numSigs)
+			for i := 0; i < int(numSigs); i++ {
+				if err := ReadElement(r, &sigs[i]); err != nil {
+					return err
+				}
+			}
+		}
+
+		*e = sigs
+
+	case *AdaptorSig:
+		if _, err := io.ReadFull(r, e[:]); err != nil {
+			return err
+		}
+
 	case *OpaqueReason:
 		var l [2]byte
 		if _, err := io.ReadFull(r, l[:]); err != nil {

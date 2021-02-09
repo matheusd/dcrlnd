@@ -270,6 +270,25 @@ func writeTaggedFields(bufferBase32 *bytes.Buffer, invoice *Invoice) error {
 		}
 	}
 
+	if invoice.PaymentPoint != nil {
+		// Convert 33 byte pubkey to 53 5-bit groups.
+		pubKeyBase32, err := bech32.ConvertBits(
+			invoice.PaymentPoint.SerializeCompressed(), 8, 5, true)
+		if err != nil {
+			return err
+		}
+
+		if len(pubKeyBase32) != pubKeyBase32Len {
+			return fmt.Errorf("invalid payment point length: %d",
+				len(invoice.PaymentPoint.SerializeCompressed()))
+		}
+
+		err = writeTaggedField(bufferBase32, fieldTypeY, pubKeyBase32)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

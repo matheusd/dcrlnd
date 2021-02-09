@@ -16,6 +16,7 @@ import (
 	"github.com/decred/dcrlnd/input"
 	"github.com/decred/dcrlnd/keychain"
 	"github.com/decred/dcrlnd/lnwallet"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 // FetchInputInfo queries for the WalletController's knowledge of the passed
@@ -150,6 +151,26 @@ func (b *DcrWallet) SignOutputRaw(tx *wire.MsgTx,
 	privKey, err = maybeTweakPrivKey(signDesc, privKey)
 	if err != nil {
 		return nil, err
+	}
+
+	if signDesc.TargetNonce != nil {
+		// Generate an adaptor sig.
+		var noncer dcr_adaptor_sigs.Noncer = dcr_adaptor_sigs.RFC6979Noncer{}
+		if signDesc.RandomNonce != nil {
+			var b [32]byte
+			copy(b[:], signDesc.RandomNonce.Serialize())
+			defer func() {
+				for i := range b {
+					b[i] = 0
+				}
+			}()
+			noncer = dcr_adaptor_sigs.ExternalNoncer(func() [32]byte {
+				return b
+			})
+		}
+		return dcr_adaptor_sigs.TxInSignature(tx, signDesc.InputIndex,
+			signDesc.WitnessScript, signDesc.HashType, privKey,
+			signDesc.TargetNonce, noncer)
 	}
 
 	// TODO(roasbeef): generate sighash midstate if not present?

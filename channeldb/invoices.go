@@ -2,12 +2,14 @@ package channeldb
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrlnd/channeldb/kvdb"
 	"github.com/decred/dcrlnd/htlcswitch/hop"
 	"github.com/decred/dcrlnd/lntypes"
@@ -157,6 +159,8 @@ const (
 	invStateType    tlv.Type = 12
 	amtPaidType     tlv.Type = 13
 	hodlInvoiceType tlv.Type = 14
+
+	isPtlcInvoiceType tlv.Type = 99
 )
 
 // InvoiceRef is a composite identifier for invoices. Invoices can be referenced
@@ -270,6 +274,10 @@ type ContractTerm struct {
 	// occasion that an HTLC paying to the hash of this preimage is
 	// extended. Set to nil if the preimage isn't known yet.
 	PaymentPreimage *lntypes.Preimage
+
+	// IsPTLC indicates whether the preimage corresponds to a secret scalar
+	// instead of a hash preimage.
+	IsPTLC bool
 
 	// Value is the expected amount of milli-atoms to be paid to an HTLC
 	// which can be satisfied by the above preimage.
@@ -1150,6 +1158,11 @@ func serializeInvoice(w io.Writer, i *Invoice) error {
 		hodlInvoice = 1
 	}
 
+	var isPtlc uint8
+	if i.Terms.IsPTLC {
+		isPtlc = 1
+	}
+
 	tlvStream, err := tlv.NewStream(
 		// Memo and payreq.
 		tlv.MakePrimitiveRecord(memoType, &i.Memo),
@@ -1174,6 +1187,7 @@ func serializeInvoice(w io.Writer, i *Invoice) error {
 		tlv.MakePrimitiveRecord(amtPaidType, &amtPaid),
 
 		tlv.MakePrimitiveRecord(hodlInvoiceType, &hodlInvoice),
+		tlv.MakePrimitiveRecord(isPtlcInvoiceType, &isPtlc),
 	)
 	if err != nil {
 		return err
@@ -1276,6 +1290,7 @@ func deserializeInvoice(r io.Reader) (Invoice, error) {
 		amtPaid       uint64
 		state         uint8
 		hodlInvoice   uint8
+		isPtlc        uint8
 
 		creationDateBytes []byte
 		settleDateBytes   []byte
@@ -1307,6 +1322,7 @@ func deserializeInvoice(r io.Reader) (Invoice, error) {
 		tlv.MakePrimitiveRecord(amtPaidType, &amtPaid),
 
 		tlv.MakePrimitiveRecord(hodlInvoiceType, &hodlInvoice),
+		tlv.MakePrimitiveRecord(isPtlcInvoiceType, &isPtlc),
 	)
 	if err != nil {
 		return i, err
@@ -1336,6 +1352,10 @@ func deserializeInvoice(r io.Reader) (Invoice, error) {
 
 	if hodlInvoice != 0 {
 		i.HodlInvoice = true
+	}
+
+	if isPtlc != 0 {
+		i.Terms.IsPTLC = true
 	}
 
 	err = i.CreationDate.UnmarshalBinary(creationDateBytes)
@@ -1649,14 +1669,28 @@ func updateInvoiceState(invoice *Invoice, hash lntypes.Hash,
 	case ContractOpen:
 		if update.NewState == ContractSettled {
 			// Validate preimage.
+			isPTLC := invoice.Terms.IsPTLC
+			log.Debugf("JJJJJJJJJJJJJ attempting to settle contract, preimage %v %v %v", isPTLC, update.Preimage, invoice.Terms.PaymentPreimage)
 			switch {
-			case update.Preimage != nil:
+			case isPTLC && update.Preimage != nil:
+				privKey := secp256k1.PrivKeyFromBytes(update.Preimage[:])
+				pubKey := privKey.PubKey()
+				gotHash := sha256.Sum256(pubKey.SerializeCompressed())
+				if gotHash != hash {
+					// TODO: PTLC-specific error.
+					return ErrInvoicePreimageMismatch
+				}
+
+			case isPTLC && invoice.Terms.PaymentPreimage == nil:
+				return errors.New("unknown preimage")
+
+			case !isPTLC && update.Preimage != nil:
 				if update.Preimage.Hash() != hash {
 					return ErrInvoicePreimageMismatch
 				}
 				invoice.Terms.PaymentPreimage = update.Preimage
 
-			case invoice.Terms.PaymentPreimage == nil:
+			case !isPTLC && invoice.Terms.PaymentPreimage == nil:
 				return errors.New("unknown preimage")
 			}
 		}

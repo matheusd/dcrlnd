@@ -819,6 +819,18 @@ func (l *LightningWallet) initOurContribution(reservation *ChannelReservation,
 		return err
 	}
 
+	// Derive the per-channel random key for nonces.
+	//
+	// TODO: switch to a specific key family for this.
+	/*
+		randomKeyDesc := reservation.ourContribution.PaymentBasePoint
+		randomKey, err := l.DerivePrivKey(randomKeyDesc)
+		if err != nil {
+			return err
+		}
+		reservation.ourContribution.RandomKey = *randomKey
+	*/
+
 	// With the above keys created, we'll also need to initialization our
 	// initial revocation tree state.
 	nextRevocationKeyDesc, err := keyRing.DeriveNextKey(
@@ -1467,6 +1479,8 @@ func (l *LightningWallet) handleFundingCounterPartySigs(msg *addCounterPartySigs
 		msg.completeChan <- nil
 		return
 	}
+
+	walletLog.Debugf("XXXXXXXXXX final our contribution %s", spew.Sdump(res.ourContribution))
 
 	// As we've completed the funding process, we'll no convert the
 	// contribution structs into their underlying channel config objects to

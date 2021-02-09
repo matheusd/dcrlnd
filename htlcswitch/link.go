@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/decred/dcrd/dcrec/secp256k1/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
 
@@ -772,6 +773,8 @@ func (l *channelLink) resolveFwdPkgs() error {
 // reprocesses any outstanding htlcs in the package, or performs garbage
 // collection on the package.
 func (l *channelLink) resolveFwdPkg(fwdPkg *channeldb.FwdPkg) error {
+	l.log.Debugf("resolving fwd pkg %s", spew.Sdump(fwdPkg))
+
 	// Remove any completed packages to clear up space.
 	if fwdPkg.State == channeldb.FwdStateCompleted {
 		l.log.Debugf("removing completed fwd pkg for height=%d",
@@ -1589,6 +1592,7 @@ func (l *channelLink) cleanupSpuriousResponse(pkt *htlcPacket) {
 // updates from the upstream peer. The upstream peer is the peer whom we have a
 // direct channel with, updating our respective commitment chains.
 func (l *channelLink) handleUpstreamMsg(msg lnwire.Message) {
+	log.Debugf("XXXXXXX handling upstream msg %T", msg)
 	switch msg := msg.(type) {
 
 	case *lnwire.UpdateAddHTLC:
@@ -1968,6 +1972,8 @@ func (l *channelLink) updateCommitTxOrFail() bool {
 // commitment to their commitment chain which includes all the latest updates
 // we've received+processed up to this point.
 func (l *channelLink) updateCommitTx() error {
+	log.Debugf("XXXXXXXX gonna update commit tx")
+
 	// Preemptively write all pending keystones to disk, just in case the
 	// HTLCs we have in memory are included in the subsequent attempt to
 	// sign a commitment state.
@@ -1975,6 +1981,8 @@ func (l *channelLink) updateCommitTx() error {
 	if err != nil {
 		return err
 	}
+
+	log.Debugf("XXXXXXX found open circuits")
 
 	// Reset the batch, but keep the backing buffer to avoid reallocating.
 	l.keystoneBatch = l.keystoneBatch[:0]
@@ -2006,6 +2014,7 @@ func (l *channelLink) updateCommitTx() error {
 	} else if err != nil {
 		return err
 	}
+	log.Debugf("XXXXXXX signed commitment %d htlc %d ptlc", len(htlcSigs), len(ptlcSigs))
 
 	if err := l.ackDownStreamPackets(); err != nil {
 		return err
@@ -2540,6 +2549,11 @@ func (l *channelLink) processRemoteAdds(fwdPkg *channeldb.FwdPkg,
 	l.log.Tracef("processing %d remote adds for height %d",
 		len(lockedInHtlcs), fwdPkg.Height)
 
+	l.log.Debugf("XXXX processing %d remote adds for height %d",
+		len(lockedInHtlcs), fwdPkg.Height)
+	l.log.Debugf("XXXX fwdPkg: %s", spew.Sdump(fwdPkg))
+	l.log.Debugf("XXXX lockedInHtlcs: %s", spew.Sdump(lockedInHtlcs))
+
 	decodeReqs := make(
 		[]hop.DecodeHopIteratorRequest, 0, len(lockedInHtlcs),
 	)
@@ -2920,6 +2934,13 @@ func (l *channelLink) settleHTLC(preimage lntypes.Preimage,
 	pd *lnwallet.PaymentDescriptor) error {
 
 	hash := preimage.Hash()
+	if pd.PaymentPoint != nil {
+		privKey := secp256k1.PrivKeyFromBytes(preimage[:])
+		paymentPoint := privKey.PubKey()
+		hash = lntypes.Hash(sha256.Sum256(paymentPoint.SerializeCompressed()))
+	} else {
+		l.log.Infof("XXXXXXXX not payment poitn")
+	}
 
 	l.log.Infof("settling htlc %v as exit hop", hash)
 

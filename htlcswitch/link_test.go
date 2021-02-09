@@ -211,7 +211,7 @@ func TestChannelLinkSingleHopPayment(t *testing.T) {
 	firstHop := n.bobChannelLink.ShortChanID()
 	rhash, err := makePayment(
 		n.aliceServer, receiver, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to make the payment: %v", err)
@@ -338,7 +338,7 @@ func testChannelLinkMultiHopPayment(t *testing.T,
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	rhash, err := makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
@@ -444,7 +444,7 @@ func TestChannelLinkCancelFullCommitment(t *testing.T) {
 	// canceled because the commitment in this direction is full.
 	err = <-makePayment(
 		n.aliceServer, n.bobServer, firstHop, hopsForwards, amt,
-		htlcAmt, totalTimelock,
+		htlcAmt, totalTimelock, defaultIsPTLC,
 	).err
 	if err == nil {
 		t.Fatalf("overflow payment should have failed")
@@ -517,7 +517,7 @@ func TestExitNodeTimelockPayloadMismatch(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
-		htlcExpiry,
+		htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatalf("payment should have failed but didn't")
@@ -570,7 +570,7 @@ func TestExitNodeAmountPayloadMismatch(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
-		htlcExpiry,
+		htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatalf("payment should have failed but didn't")
@@ -614,7 +614,7 @@ func TestLinkForwardTimelockPolicyMismatch(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount, htlcAmt,
-		htlcExpiry,
+		htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 
 	// We should get an error, and that error should indicate that the HTLC
@@ -672,7 +672,7 @@ func TestLinkForwardFeePolicyMismatch(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amountNoFee,
-		amountNoFee, htlcExpiry,
+		amountNoFee, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 
 	// We should get an error, and that error should indicate that the HTLC
@@ -730,7 +730,7 @@ func TestLinkForwardMinHTLCPolicyMismatch(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amountNoFee,
-		htlcAmt, htlcExpiry,
+		htlcAmt, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 
 	// We should get an error, and that error should indicate that the HTLC
@@ -796,7 +796,7 @@ func TestLinkForwardMaxHTLCPolicyMismatch(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amountNoFee,
-		htlcAmt, htlcExpiry,
+		htlcAmt, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 
 	// We should get an error indicating a temporary channel failure, The
@@ -856,7 +856,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	payResp, err := makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amountNoFee,
-		htlcAmt, htlcExpiry,
+		htlcAmt, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
@@ -907,7 +907,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 	// in Bob's new fee policy.
 	_, err = makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amountNoFee,
-		htlcAmt, htlcExpiry,
+		htlcAmt, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatalf("payment should've been rejected")
@@ -930,7 +930,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 	// As a sanity check, ensure the original payment now succeeds again.
 	_, err = makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amountNoFee,
-		htlcAmt, htlcExpiry,
+		htlcAmt, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
@@ -947,7 +947,7 @@ func TestUpdateForwardingPolicy(t *testing.T) {
 	// in Bob's new max HTLC policy.
 	_, err = makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amountNoFee,
-		htlcAmt, htlcExpiry,
+		htlcAmt, htlcExpiry, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatalf("payment should've been rejected")
@@ -1011,7 +1011,7 @@ func TestChannelLinkMultiHopInsufficientPayment(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	rhash, err := makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatal("error haven't been received")
@@ -1092,7 +1092,7 @@ func TestChannelLinkMultiHopUnknownPaymentHash(t *testing.T) {
 	// receiver registry. This should trigger an unknown payment hash
 	// failure.
 	_, htlc, pid, err := generatePayment(
-		amount, htlcAmt, totalTimelock, blob,
+		amount, htlcAmt, totalTimelock, blob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -1196,7 +1196,7 @@ func TestChannelLinkMultiHopUnknownNextHop(t *testing.T) {
 	receiver := n.carolServer
 	rhash, err := makePayment(
 		n.aliceServer, receiver, firstHop, hops, amount, htlcAmt,
-		totalTimelock).Wait(30 * time.Second)
+		totalTimelock, defaultIsPTLC).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatal("error haven't been received")
 	}
@@ -1310,7 +1310,7 @@ func TestChannelLinkMultiHopDecodeError(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	rhash, err := makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err == nil {
 		t.Fatal("error haven't been received")
@@ -1398,7 +1398,7 @@ func TestChannelLinkExpiryTooSoonExitNode(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 
 	// The payment should've failed as the time lock value was in the
@@ -1461,7 +1461,7 @@ func TestChannelLinkExpiryTooSoonMidNode(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 
 	// The payment should've failed as the time lock value was in the
@@ -1561,7 +1561,7 @@ func TestChannelLinkSingleHopMessageOrdering(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to make the payment: %v", err)
@@ -1948,7 +1948,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 	// now be decremented to reflect the new HTLC.
 	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
 	invoice, htlc, _, err := generatePayment(
-		htlcAmt, htlcAmt, 5, mockBlob,
+		htlcAmt, htlcAmt, 5, mockBlob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -2029,7 +2029,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 
 	// Next, we'll add another HTLC initiated by the switch (of the same
 	// amount as the prior one).
-	invoice, htlc, _, err = generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
+	invoice, htlc, _, err = generatePayment(htlcAmt, htlcAmt, 5, mockBlob, defaultIsPTLC)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
 	}
@@ -2116,7 +2116,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 		t.Fatalf("unable to gen route: %v", err)
 	}
 	invoice, htlc, _, err = generatePayment(
-		htlcAmt, htlcAmt, totalTimelock, blob,
+		htlcAmt, htlcAmt, totalTimelock, blob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -2225,7 +2225,7 @@ func TestChannelLinkBandwidthConsistency(t *testing.T) {
 		t.Fatalf("unable to gen route: %v", err)
 	}
 	invoice, htlc, _, err = generatePayment(
-		htlcAmt, htlcAmt, totalTimelock, blob,
+		htlcAmt, htlcAmt, totalTimelock, blob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -2406,7 +2406,7 @@ func TestChannelLinkTrimCircuitsPending(t *testing.T) {
 	// message for the test.
 	var mockBlob [lnwire.OnionPacketSize]byte
 	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
-	_, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
+	_, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob, defaultIsPTLC)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
 	}
@@ -2687,7 +2687,7 @@ func TestChannelLinkTrimCircuitsNoCommit(t *testing.T) {
 	// message for the test.
 	var mockBlob [lnwire.OnionPacketSize]byte
 	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
-	_, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
+	_, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob, defaultIsPTLC)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
 	}
@@ -2946,7 +2946,7 @@ func TestChannelLinkTrimCircuitsRemoteCommit(t *testing.T) {
 	// message for the test.
 	var mockBlob [lnwire.OnionPacketSize]byte
 	htlcAmt := lnwire.NewMAtomsFromAtoms(dcrutil.AtomsPerCoin)
-	_, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
+	_, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob, defaultIsPTLC)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
 	}
@@ -3095,7 +3095,7 @@ func TestChannelLinkBandwidthChanReserve(t *testing.T) {
 	// a switch initiated payment.  The resulting bandwidth should
 	// now be decremented to reflect the new HTLC.
 	htlcAmt := lnwire.NewMAtomsFromAtoms(3 * dcrutil.AtomsPerCoin)
-	invoice, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob)
+	invoice, htlc, _, err := generatePayment(htlcAmt, htlcAmt, 5, mockBlob, defaultIsPTLC)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
 	}
@@ -3369,7 +3369,7 @@ func TestChannelRetransmission(t *testing.T) {
 		firstHop := n.firstBobChannelLink.ShortChanID()
 		rhash, err := makePayment(
 			n.aliceServer, receiver, firstHop, hops, amount,
-			htlcAmt, totalTimelock,
+			htlcAmt, totalTimelock, defaultIsPTLC,
 		).Wait(time.Second * 5)
 		if err == nil {
 			ct.Fatalf("payment shouldn't haven been finished")
@@ -3664,7 +3664,7 @@ func TestChannelLinkShutdownDuringForward(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	)
 
 	// Strobe the batch ticker of Bob's incoming link, waiting for it to
@@ -3846,7 +3846,7 @@ func TestChannelLinkAcceptDuplicatePayment(t *testing.T) {
 		t.Fatal(err)
 	}
 	invoice, htlc, pid, err := generatePayment(
-		amount, htlcAmt, totalTimelock, blob,
+		amount, htlcAmt, totalTimelock, blob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -3940,7 +3940,7 @@ func TestChannelLinkAcceptOverpay(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	rhash, err := makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount/2, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
@@ -4278,7 +4278,7 @@ func generateHtlcAndInvoice(t *testing.T,
 	}
 
 	invoice, htlc, _, err := generatePayment(
-		htlcAmt, htlcAmt, uint32(htlcExpiry), blob,
+		htlcAmt, htlcAmt, uint32(htlcExpiry), blob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatalf("unable to create payment: %v", err)
@@ -5396,7 +5396,7 @@ func TestForwardingAsymmetricTimeLockPolicies(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, n.carolServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
@@ -5528,7 +5528,7 @@ func TestChannelLinkCanceledInvoice(t *testing.T) {
 
 	invoice, payFunc, err := preparePayment(
 		n.aliceServer, n.bobServer, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatalf("unable to prepare the payment: %v", err)

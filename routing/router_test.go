@@ -431,7 +431,7 @@ func TestChannelUpdateValidation(t *testing.T) {
 	// Send off the payment request to the router. The specified route
 	// should be attempted and the channel update should be received by
 	// router and ignored because it is missing a valid signature.
-	_, err = ctx.router.SendToRoute(payment, rt)
+	_, err = ctx.router.SendToRoute(payment, nil, rt)
 	if err == nil {
 		t.Fatalf("expected route to fail with channel update")
 	}
@@ -461,7 +461,7 @@ func TestChannelUpdateValidation(t *testing.T) {
 	}
 
 	// Retry the payment using the same route as before.
-	_, err = ctx.router.SendToRoute(payment, rt)
+	_, err = ctx.router.SendToRoute(payment, nil, rt)
 	if err == nil {
 		t.Fatalf("expected route to fail with channel update")
 	}
@@ -2694,7 +2694,7 @@ func TestSendToRouteStructuredError(t *testing.T) {
 	// Send off the payment request to the router. The specified route
 	// should be attempted and the channel update should be received by
 	// router and ignored because it is missing a valid signature.
-	_, err = ctx.router.SendToRoute(payment, rt)
+	_, err = ctx.router.SendToRoute(payment, nil, rt)
 
 	fErr, ok := err.(*htlcswitch.ForwardingError)
 	if !ok {
@@ -2773,7 +2773,7 @@ func TestSendToRouteMultiShardSend(t *testing.T) {
 
 	// Send the shard using the created route, and expect an error to be
 	// returned.
-	_, err = ctx.router.SendToRoute(payment, rt)
+	_, err = ctx.router.SendToRoute(payment, nil, rt)
 	if err == nil {
 		t.Fatalf("expected forwarding error")
 	}
@@ -2807,7 +2807,7 @@ func TestSendToRouteMultiShardSend(t *testing.T) {
 
 	for i := 0; i < numShards; i++ {
 		go func() {
-			attempt, err := ctx.router.SendToRoute(payment, rt)
+			attempt, err := ctx.router.SendToRoute(payment, nil, rt)
 			if err != nil {
 				errChan <- err
 				return
@@ -2910,7 +2910,7 @@ func TestSendToRouteMaxHops(t *testing.T) {
 	// Send off the payment request to the router. We expect an error back
 	// indicating that the route is too long.
 	var payment lntypes.Hash
-	_, err = ctx.router.SendToRoute(payment, rt)
+	_, err = ctx.router.SendToRoute(payment, nil, rt)
 	if err != route.ErrMaxRouteHopsExceeded {
 		t.Fatalf("expected ErrMaxRouteHopsExceeded, but got %v", err)
 	}

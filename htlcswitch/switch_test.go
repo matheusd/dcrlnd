@@ -2243,7 +2243,7 @@ func TestLocalPaymentNoForwardingEvents(t *testing.T) {
 	firstHop := n.firstBobChannelLink.ShortChanID()
 	_, err = makePayment(
 		n.aliceServer, receiver, firstHop, hops, amount, htlcAmt,
-		totalTimelock,
+		totalTimelock, defaultIsPTLC,
 	).Wait(30 * time.Second)
 	if err != nil {
 		t.Fatalf("unable to make the payment: %v", err)
@@ -2304,7 +2304,7 @@ func TestMultiHopPaymentForwardingEvents(t *testing.T) {
 	for i := 0; i < numPayments/2; i++ {
 		_, err := makePayment(
 			n.aliceServer, n.carolServer, firstHop, hops, finalAmt,
-			htlcAmt, totalTimelock,
+			htlcAmt, totalTimelock, defaultIsPTLC,
 		).Wait(30 * time.Second)
 		if err != nil {
 			t.Fatalf("unable to send payment: %v", err)
@@ -2357,7 +2357,7 @@ func TestMultiHopPaymentForwardingEvents(t *testing.T) {
 	for i := numPayments / 2; i < numPayments; i++ {
 		_, err := makePayment(
 			n.aliceServer, n.carolServer, firstHop, hops, finalAmt,
-			htlcAmt, totalTimelock,
+			htlcAmt, totalTimelock, defaultIsPTLC,
 		).Wait(30 * time.Second)
 		if err != nil {
 			t.Fatalf("unable to send payment: %v", err)
@@ -2462,7 +2462,7 @@ func TestUpdateFailMalformedHTLCErrorConversion(t *testing.T) {
 		firstHop := n.firstBobChannelLink.ShortChanID()
 		_, err = makePayment(
 			n.aliceServer, n.carolServer, firstHop, hops, finalAmt,
-			htlcAmt, totalTimelock,
+			htlcAmt, totalTimelock, defaultIsPTLC,
 		).Wait(30 * time.Second)
 
 		// The payment should fail as Carol is unable to decode the
@@ -2981,7 +2981,7 @@ func (n *threeHopNetwork) sendThreeHopPayment(t *testing.T) (*lnwire.UpdateAddHT
 		t.Fatal(err)
 	}
 	invoice, htlc, pid, err := generatePayment(
-		amount, htlcAmt, totalTimelock, blob,
+		amount, htlcAmt, totalTimelock, blob, defaultIsPTLC,
 	)
 	if err != nil {
 		t.Fatal(err)

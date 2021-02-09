@@ -34,6 +34,7 @@ import (
 	"github.com/decred/dcrlnd/ticker"
 	"github.com/decred/lightning-onion/v3"
 	"github.com/go-errors/errors"
+	"github.com/matheusd/dcr_adaptor_sigs"
 )
 
 type mockPreimageCache struct {
@@ -882,6 +883,26 @@ func (m *mockSigner) SignOutputRaw(tx *wire.MsgTx,
 	case signDesc.DoubleTweak != nil:
 		privKey = input.DeriveRevocationPrivKey(privKey,
 			signDesc.DoubleTweak)
+	}
+
+	if signDesc.TargetNonce != nil {
+		// Generate an adaptor sig.
+		var noncer dcr_adaptor_sigs.Noncer = dcr_adaptor_sigs.RFC6979Noncer{}
+		if signDesc.RandomNonce != nil {
+			var b [32]byte
+			copy(b[:], signDesc.RandomNonce.Serialize())
+			defer func() {
+				for i := range b {
+					b[i] = 0
+				}
+			}()
+			noncer = dcr_adaptor_sigs.ExternalNoncer(func() [32]byte {
+				return b
+			})
+		}
+		return dcr_adaptor_sigs.TxInSignature(tx, signDesc.InputIndex,
+			signDesc.WitnessScript, signDesc.HashType, privKey,
+			signDesc.TargetNonce, noncer)
 	}
 
 	sig, err := txscript.RawTxInSignature(tx,

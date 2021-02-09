@@ -4032,6 +4032,7 @@ type rpcPaymentIntent struct {
 	cltvLimit            uint32
 	dest                 route.Vertex
 	rHash                [32]byte
+	paymentPoint         *secp256k1.PublicKey
 	cltvDelta            uint16
 	routeHints           [][]zpay32.HopHint
 	outgoingChannelIDs   []uint64
@@ -4179,6 +4180,7 @@ func (r *rpcServer) extractPaymentIntent(rpcPayReq *rpcPaymentRequest) (rpcPayme
 		payIntent.payReq = []byte(rpcPayReq.PaymentRequest)
 		payIntent.destFeatures = payReq.Features
 		payIntent.paymentAddr = payReq.PaymentAddr
+		payIntent.paymentPoint = payReq.PaymentPoint
 
 		if err := validateDest(payIntent.dest); err != nil {
 			return payIntent, err
@@ -4410,6 +4412,7 @@ func (r *rpcServer) dispatchPaymentIntent(
 			DestCustomRecords:  payIntent.destCustomRecords,
 			DestFeatures:       payIntent.destFeatures,
 			PaymentAddr:        payIntent.paymentAddr,
+			PaymentPoint:       payIntent.paymentPoint,
 
 			// Don't enable multi-part payments on the main rpc.
 			// Users need to use routerrpc for that.
@@ -4422,7 +4425,7 @@ func (r *rpcServer) dispatchPaymentIntent(
 	} else {
 		var attempt *channeldb.HTLCAttempt
 		attempt, routerErr = r.server.chanRouter.SendToRoute(
-			payIntent.rHash, payIntent.route,
+			payIntent.rHash, payIntent.paymentPoint, payIntent.route,
 		)
 
 		if routerErr == nil {
@@ -4861,6 +4864,7 @@ func (r *rpcServer) AddInvoice(ctx context.Context,
 		FallbackAddr:    invoice.FallbackAddr,
 		CltvExpiry:      invoice.CltvExpiry,
 		Private:         invoice.Private,
+		IsPTLC:          invoice.IsPtlc,
 	}
 
 	if invoice.RPreimage != nil {

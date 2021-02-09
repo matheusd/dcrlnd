@@ -2798,6 +2798,8 @@ message Invoice {
     */
     bool ignore_max_inbound_amt = 1001 [json_name = "ignore_max_inbound_amt"];
 
+    bool is_ptlc  = 1002;
+
     // List of features advertised on the invoice.
     map<uint32, Feature> features = 24;
 

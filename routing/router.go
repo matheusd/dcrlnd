@@ -556,7 +556,8 @@ func (r *ChannelRouter) Start() error {
 			// be tried.
 			_, _, err := r.sendPayment(
 				payment.Info.Value, 0,
-				payment.Info.PaymentHash, 0, paySession,
+				payment.Info.PaymentHash,
+				payment.Info.PaymentPoint, 0, paySession,
 			)
 			if err != nil {
 				log.Errorf("Resuming payment with hash %v "+
@@ -1590,6 +1591,8 @@ type LightningPayment struct {
 	// the first hop.
 	PaymentHash [32]byte
 
+	PaymentPoint *secp256k1.PublicKey
+
 	// FinalCLTVDelta is the CTLV expiry delta to use for the _final_ hop
 	// in the route. This means that the final hop will have a CLTV delta
 	// of at least: currentHeight + FinalCLTVDelta.
@@ -1671,6 +1674,7 @@ func (r *ChannelRouter) SendPayment(payment *LightningPayment) ([32]byte,
 	// for the existing attempt.
 	return r.sendPayment(
 		payment.Amount, payment.FeeLimit, payment.PaymentHash,
+		payment.PaymentPoint,
 		payment.PayAttemptTimeout, paySession,
 	)
 }
@@ -1694,6 +1698,7 @@ func (r *ChannelRouter) SendPaymentAsync(payment *LightningPayment) error {
 
 		_, _, err := r.sendPayment(
 			payment.Amount, payment.FeeLimit, payment.PaymentHash,
+			payment.PaymentPoint,
 			payment.PayAttemptTimeout, paySession,
 		)
 		if err != nil {
@@ -1745,6 +1750,7 @@ func (r *ChannelRouter) preparePayment(payment *LightningPayment) (
 	// TODO(roasbeef): store records as part of creation info?
 	info := &channeldb.PaymentCreationInfo{
 		PaymentHash:    payment.PaymentHash,
+		PaymentPoint:   payment.PaymentPoint,
 		Value:          payment.Amount,
 		CreationTime:   r.cfg.Clock.Now(),
 		PaymentRequest: payment.PaymentRequest,
@@ -1763,7 +1769,7 @@ func (r *ChannelRouter) preparePayment(payment *LightningPayment) (
 // information as it is stored in the database. For a successful htlc, this
 // information will contain the preimage. If an error occurs after the attempt
 // was initiated, both return values will be non-nil.
-func (r *ChannelRouter) SendToRoute(hash lntypes.Hash, rt *route.Route) (
+func (r *ChannelRouter) SendToRoute(hash lntypes.Hash, point *secp256k1.PublicKey, rt *route.Route) (
 	*channeldb.HTLCAttempt, error) {
 
 	// Calculate amount paid to receiver.
@@ -1781,6 +1787,7 @@ func (r *ChannelRouter) SendToRoute(hash lntypes.Hash, rt *route.Route) (
 	// already in-flight.
 	info := &channeldb.PaymentCreationInfo{
 		PaymentHash:    hash,
+		PaymentPoint:   point,
 		Value:          amt,
 		CreationTime:   r.cfg.Clock.Now(),
 		PaymentRequest: nil,
@@ -1895,6 +1902,7 @@ func (r *ChannelRouter) SendToRoute(hash lntypes.Hash, rt *route.Route) (
 // the ControlTower.
 func (r *ChannelRouter) sendPayment(
 	totalAmt, feeLimit lnwire.MilliAtom, paymentHash lntypes.Hash,
+	paymentPoint *secp256k1.PublicKey,
 	timeout time.Duration,
 	paySession PaymentSession) ([32]byte, *route.Route, error) {
 
@@ -1912,6 +1920,7 @@ func (r *ChannelRouter) sendPayment(
 		totalAmount:   totalAmt,
 		feeLimit:      feeLimit,
 		paymentHash:   paymentHash,
+		paymentPoint:  paymentPoint,
 		paySession:    paySession,
 		currentHeight: currentHeight,
 	}

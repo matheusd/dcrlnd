@@ -351,6 +351,15 @@ func ReadElement(r io.Reader, element interface{}) error {
 		priv := secp256k1.PrivKeyFromBytes(b[:])
 		*e = priv
 
+	case *secp256k1.PrivateKey:
+		var b [secp256k1.PrivKeyBytesLen]byte
+		if _, err := io.ReadFull(r, b[:]); err != nil {
+			return err
+		}
+
+		priv := secp256k1.PrivKeyFromBytes(b[:])
+		*e = *priv
+
 	case **secp256k1.PublicKey:
 		var b [secp256k1.PubKeyBytesLenCompressed]byte
 		if _, err := io.ReadFull(r, b[:]); err != nil {
