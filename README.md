@@ -43,8 +43,6 @@ Some of the most important (though by no means exhaustive) diffrences between
 - Transaction witness format and signature process
 - Wallet integration API
 
-The current status of the port can be found on [this issue](https://github.com/davecgh/dcrlnd/issues/1).
-
 ## Lightning Network Specification Compliance
 
 `dcrlnd` aims to conform to the [Lightning Network specification
@@ -55,16 +53,16 @@ developers of `dcrlnd`. The set of specification documents as well as our
 implementation of the specification are still a work-in-progress. With that
 said, the current status of `dcrlnd`'s BOLT compliance is:
 
-  - [ ] BOLT 1: Base Protocol
-  - [ ] BOLT 2: Peer Protocol for Channel Management
-  - [ ] BOLT 3: Bitcoin Transaction and Script Formats
-  - [ ] BOLT 4: Onion Routing Protocol
-  - [ ] BOLT 5: Recommendations for On-chain Transaction Handling
-  - [ ] BOLT 7: P2P Node and Channel Discovery
-  - [ ] BOLT 8: Encrypted and Authenticated Transport
-  - [ ] BOLT 9: Assigned Feature Flags
-  - [ ] BOLT 10: DNS Bootstrap and Assisted Node Location
-  - [ ] BOLT 11: Invoice Protocol for Lightning Payments
+  - [x] BOLT 1: Base Protocol
+  - [x] BOLT 2: Peer Protocol for Channel Management
+  - [x] BOLT 3: Bitcoin Transaction and Script Formats
+  - [x] BOLT 4: Onion Routing Protocol
+  - [x] BOLT 5: Recommendations for On-chain Transaction Handling
+  - [x] BOLT 7: P2P Node and Channel Discovery
+  - [x] BOLT 8: Encrypted and Authenticated Transport
+  - [x] BOLT 9: Assigned Feature Flags
+  - [x] BOLT 10: DNS Bootstrap and Assisted Node Location
+  - [x] BOLT 11: Invoice Protocol for Lightning Payments
 
 ## Developer Resources
 
@@ -99,8 +97,8 @@ https://decred.org/community
 
 ## Safety
 
-When operating a mainnet `lnd` node, please refer to our [operational safety
-guildelines](docs/safety.md). It is important to note that `lnd` is still
+When operating a mainnet `dcrlnd` node, please refer to our [operational safety
+guildelines](docs/safety.md). It is important to note that `dcrlnd` is still
 **beta** software and that ignoring these operational guidelines can lead to
 loss of funds.
 

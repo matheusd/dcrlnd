@@ -76,7 +76,7 @@
 With the preliminary steps completed, to install `dcrlnd`, `dcrlncli`, and all
 related dependencies run the following commands:
 ```
-git clone github.com/decred/dcrlnd
+git clone https://github.com/decred/dcrlnd
 cd dcrlnd
 go install ./cmd/dcrlnd
 go install ./cmd/dcrlncli
