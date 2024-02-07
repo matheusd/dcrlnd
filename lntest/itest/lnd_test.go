@@ -51,6 +51,12 @@ var (
 // be run as the current split tranche as well as the index and slice offset of
 // the tranche.
 func getTestCaseSplitTranche() ([]*testCase, uint, uint) {
+	// If running with the old version env path set, only run upgrade
+	// related tests.
+	if lndOldItestVersionBin() != "" {
+		return oldVersionInteractiontests, 0, 0
+	}
+
 	numTranches := defaultSplitTranches
 	if testCasesSplitTranches != nil {
 		numTranches = *testCasesSplitTranches

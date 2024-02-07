@@ -513,6 +513,7 @@ func (n *NetworkHarness) newNode(name string, extraArgs []string, hasSeed bool,
 	*HarnessNode, error) {
 
 	cfg := &BaseNodeConfig{
+		LndBinary:         n.lndBinary,
 		Name:              name,
 		LogFilenamePrefix: n.currentTestCase,
 		HasSeed:           hasSeed,
@@ -540,7 +541,7 @@ func (n *NetworkHarness) newNode(name string, extraArgs []string, hasSeed bool,
 	n.activeNodes[node.NodeID] = node
 	n.mtx.Unlock()
 
-	err = node.start(n.lndBinary, n.lndErrorChan, wait)
+	err = node.start(cfg.LndBinary, n.lndErrorChan, wait)
 	if err != nil {
 		return nil, fmt.Errorf("unable to start new node: %v", err)
 	}
@@ -868,7 +869,7 @@ func (n *NetworkHarness) RestartNodeNoUnlock(node *HarnessNode,
 		}
 	}
 
-	return node.start(n.lndBinary, n.lndErrorChan, wait)
+	return node.start(node.Cfg.LndBinary, n.lndErrorChan, wait)
 }
 
 // SuspendNode stops the given node and returns a callback that can be used to
@@ -879,7 +880,7 @@ func (n *NetworkHarness) SuspendNode(node *HarnessNode) (func() error, error) {
 	}
 
 	restart := func() error {
-		return node.start(n.lndBinary, n.lndErrorChan, true)
+		return node.start(node.Cfg.LndBinary, n.lndErrorChan, true)
 	}
 
 	return restart, nil

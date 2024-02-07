@@ -144,6 +144,14 @@ type BaseNodeConfig struct {
 
 	DbBackend   DatabaseBackend
 	PostgresDsn string
+
+	// NeedsFilteredArgs flags whether to filter the args for old lnd
+	// versions before starting the node.
+	NeedsFilteredArgs bool
+
+	// LndBinary is the full path to the lnd binary that was specifically
+	// compiled with all required itest flags.
+	LndBinary string
 }
 
 func (cfg BaseNodeConfig) P2PAddr() string {
@@ -642,6 +650,13 @@ func (hn *HarnessNode) InvoiceMacPath() string {
 // the process when needed.
 func (hn *HarnessNode) startLnd(lndBinary string, lndError chan<- error) error {
 	args := hn.Cfg.GenArgs()
+	if hn.Cfg.NeedsFilteredArgs {
+		var err error
+		args, err = filterDcrlndArgsForBinVersion(lndBinary, args)
+		if err != nil {
+			return fmt.Errorf("unable to filter args: %v", err)
+		}
+	}
 	hn.cmd = exec.Command(lndBinary, args...)
 
 	// Redirect stderr output to buffer
@@ -748,8 +763,16 @@ func (hn *HarnessNode) start(lndBinary string, lndError chan<- error,
 	// Init all the RPC clients.
 	hn.InitRPCClients(conn)
 
-	if err := hn.WaitUntilStarted(); err != nil {
-		return err
+	err = hn.WaitUntilStarted()
+	if err != nil {
+		// When the error is codes.Unimplemented, we're running with an
+		// old dcrlnd binary that does not have the state service, so
+		// just wait for a bit then continue init.
+		if status.Code(err) != codes.Unimplemented {
+			return fmt.Errorf("unable to wait until started: %v", err)
+		} else {
+			time.Sleep(2 * time.Second)
+		}
 	}
 
 	// If the node was created with a seed, we will need to perform an
@@ -1050,6 +1073,12 @@ func (hn *HarnessNode) waitTillServerState(
 	for {
 		select {
 		case err := <-errChan:
+			// Return directly when the code is Unimplemented, as
+			// that means the dcrlnd is an old one that does not
+			// have the state service.
+			if status.Code(err) == codes.Unimplemented {
+				return err
+			}
 			lastErr = err
 
 		case <-done:
@@ -1057,7 +1086,7 @@ func (hn *HarnessNode) waitTillServerState(
 
 		case <-time.After(NodeStartTimeout):
 			return fmt.Errorf("timeout waiting for state, "+
-				"got err from stream: %v", lastErr)
+				"got err from stream: %w", lastErr)
 		}
 	}
 }
@@ -1098,7 +1127,11 @@ func (hn *HarnessNode) initLightningClient() error {
 
 	// Wait until the server is fully started.
 	if err := hn.WaitUntilServerActive(); err != nil {
-		return err
+		// Skip returning error when the status code is Unimplemented,
+		// as that is from old nodes.
+		if status.Code(err) != codes.Unimplemented {
+			return err
+		}
 	}
 
 	// Set the harness node's pubkey to what the node claims in GetInfo.

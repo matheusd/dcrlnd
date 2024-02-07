@@ -3,7 +3,10 @@ package lnrpc
 import (
 	"encoding/hex"
 	"errors"
+	fmt "fmt"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/wire"
@@ -100,6 +103,31 @@ func ExtractMinConfs(minConfs int32, spendUnconfirmed bool) (int32, error) {
 	default:
 		return minConfs, nil
 	}
+}
+
+// ChannelPointFromStr converts a string representation of a channel point into
+// a ChannelPoint struct.
+func ChannelPointFromStr(s string) (*ChannelPoint, error) {
+	parts := strings.Split(s, ":")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("string does not have two parts separated by colon")
+	}
+
+	hash, err := chainhash.NewHashFromStr(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("first part is not a hash: %v", err)
+	}
+
+	index, err := strconv.ParseUint(parts[1], 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("second part is not an index: %v", err)
+	}
+	return &ChannelPoint{
+		FundingTxid: &ChannelPoint_FundingTxidBytes{
+			FundingTxidBytes: hash[:],
+		},
+		OutputIndex: uint32(index),
+	}, nil
 }
 
 // OutpointToChanPoint transforms a standard wire outpoint (that represents a

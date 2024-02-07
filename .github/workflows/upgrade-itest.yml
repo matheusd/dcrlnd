@@ -1,0 +1,128 @@
+name: Upgrade Integration Test
+on: [push, pull_request]
+permissions:
+  contents: read
+
+env:
+  DCRLND_OLD_VERSION: 0.4.0
+  OLD_GO: "1.20"
+  NEW_GO: "1.21"
+
+jobs:
+  buildlatest:
+    name: Build Latest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe #v4.1.0
+        with:
+          go-version: "${{ env.NEW_GO }}"
+
+      - name: Check out source
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac #v4.0.0
+
+      - name: Package test binaries
+        run: |
+          export GOPATH=$(go env GOPATH)
+          make package-test-binaries
+
+      - name: Upload test binaries
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce #v3.1.2
+        with:
+          name: latest-test-binaries
+          path: dcrlnd_testbins.tar.gz
+
+  buildold:
+    name: Build Old Version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe #v4.1.0
+        with:
+          go-version: "${{ env.OLD_GO }}"
+
+      - name: Check out source
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac #v4.0.0
+        with:
+          ref: "v${{ env.DCRLND_OLD_VERSION }}"
+
+      - name: Build itest binary
+        run: |
+          make build-itest
+
+      - name: Archive the test binary
+        run: |
+          tar -czf dcrlnd_testbins.tar.gz dcrlnd-itest
+
+      - name: Upload test binaries
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce #v3.1.2
+        with:
+          name: old-test-binaries
+          path: dcrlnd_testbins.tar.gz
+
+
+  testsuite:
+    name: Test
+    needs:
+      - buildlatest
+      - buildold
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        testsuite:
+          - itest-only # embedded wallet using dcrd for sync and chain ops
+          - itest-only walletimpl=embeddedwallet_dcrw # embedded wallet, dcrd sync but dcrw chain ops
+          - itest-only walletimpl=embeddedwallet_dcrw backend=spv # embedded wallet, spv sync and dcrw chain ops
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe #v4.1.0
+        with:
+          go-version: ${{ env.NEW_GO }}
+
+      - name: Check out source
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac #v4.0.0
+
+      - name: Download the test binaries for the latest version
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a #v3.0.2
+        with:
+          name: latest-test-binaries
+          path: latest-test-binaries
+
+      - name: Download the test binaries for the old version
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a #v3.0.2
+        with:
+          name: old-test-binaries
+          path: old-test-binaries
+
+      - name: Unpack the test binaries for the latest version
+        run: |
+          export GOPATH=$(go env GOPATH)
+          mv latest-test-binaries/* .
+          make unpack-test-binaries
+
+      - name: Extract the test binary for the old version
+        run: |
+          tar -vxf old-test-binaries/dcrlnd_testbins.tar.gz dcrlnd-itest -O > dcrlnd-itest-old
+          chmod a+x ./dcrlnd-itest-old
+
+      - name: Run the test suite
+        run: |
+          export GOPATH=$(go env GOPATH)
+          export PATH=${PATH}:$(go env GOPATH)/bin
+          make DCRLND_MIGITEST_OLDBIN=$PWD/dcrlnd-itest-old ${{ matrix.testsuite }}
+
+      - name: Compress log files
+        if: always()
+        run: |
+          find . -iname *.log | tar -T - --ignore-failed-read -czf output-logs.tar.gz
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce #v3.1.2
+        with:
+          name: ${{ matrix.testsuite }}-logs.tar.gz
+          path: output-logs.tar.gz
+
+

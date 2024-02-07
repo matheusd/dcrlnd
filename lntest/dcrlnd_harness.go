@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,10 +19,52 @@ import (
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest/wait"
 	rpctest "github.com/decred/dcrtest/dcrdtest"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 )
+
+// WithLndBinary allows setting a custom lnd binary for starting a node.
+func WithLndBinary(lndBinary string) func(*BaseNodeConfig) {
+	return func(cfg *BaseNodeConfig) {
+		cfg.LndBinary = lndBinary
+		cfg.NeedsFilteredArgs = true
+	}
+}
+
+// filterDcrlndArgsForBinVersion filters command line args used to start an
+// lnd binary based on its version. Used when running old versions.
+func filterDcrlndArgsForBinVersion(lndBinary string, args []string) ([]string, error) {
+	cmd := exec.Command(lndBinary, "--version")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return args, err
+	}
+
+	versionRegex := regexp.MustCompile(`\w+ version (\d+)\.(\d+)\.(\d+).*`)
+	matches := versionRegex.FindStringSubmatch(string(output))
+	if len(matches) != 4 {
+		return args, fmt.Errorf("binary did not return a version string (got %s)", string(output))
+	}
+
+	major, err := strconv.ParseInt(matches[1], 10, 32)
+	if err != nil {
+		return args, err
+	}
+	minor, err := strconv.ParseInt(matches[2], 10, 32)
+	if err != nil {
+		return args, err
+	}
+
+	if major == 0 && minor < 5 {
+		args = slices.DeleteFunc(args, func(s string) bool { return strings.HasPrefix(s, "--db.batch-commit-interval") })
+		args = slices.DeleteFunc(args, func(s string) bool { return strings.HasPrefix(s, "--caches.rpc-graph-cache-duration") })
+		args = slices.DeleteFunc(args, func(s string) bool { return strings.HasPrefix(s, "--feeurl") })
+	}
+
+	return args, nil
+}
 
 // setupVotingWallet sets up a minimum voting wallet, so that the simnet used
 // for tests can advance past SVH.

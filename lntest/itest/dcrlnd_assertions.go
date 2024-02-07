@@ -1,15 +1,21 @@
 package itest
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/wire"
+	lnwire "github.com/decred/dcrlnd/channeldb/migration/lnwire21"
 	"github.com/decred/dcrlnd/lnrpc"
 	"github.com/decred/dcrlnd/lntest"
 	"github.com/decred/dcrlnd/lntest/wait"
+	"github.com/stretchr/testify/require"
+	"matheusd.com/testctx"
 )
 
 // assertCleanStateAliceBob ensures the state of the passed test nodes and the
@@ -35,6 +41,7 @@ func assertCleanStateAliceBob(h *harnessTest, alice, bob *lntest.HarnessNode, ne
 // assertCleanState ensures the state of the main test nodes and the mempool
 // are in a clean state (no open channels, no txs in the mempool, etc).
 func assertCleanState(h *harnessTest, net *lntest.NetworkHarness) {
+	h.t.Helper()
 	assertCleanStateAliceBob(h, net.Alice, net.Bob, net)
 }
 
@@ -159,4 +166,71 @@ func chanPointFundingToOutpoint(cp *lnrpc.ChannelPoint) wire.OutPoint {
 		panic(err)
 	}
 	return wire.OutPoint{Hash: *txId, Index: cp.OutputIndex}
+}
+
+func chanPointToStr(t *harnessTest, cp *lnrpc.ChannelPoint) string {
+	t.t.Helper()
+	return chanPointFundingToOutpoint(cp).String()
+}
+
+func strToChainPoint(t *harnessTest, s string) *lnrpc.ChannelPoint {
+	t.t.Helper()
+	res, err := lnrpc.ChannelPointFromStr(s)
+	require.NoError(t.t, err)
+	return res
+}
+
+func getTxFeeFromId(t *harnessTest, txid *chainhash.Hash) dcrutil.Amount {
+	t.t.Helper()
+	tx, err := t.lndHarness.Miner.Node.GetRawTransaction(testctx.New(t), txid)
+	require.NoError(t.t, err)
+	fee, err := getTxFee(t.lndHarness.Miner.Node, tx.MsgTx())
+	require.NoError(t.t, err)
+	return fee
+}
+
+func chanPointTxHash(t *harnessTest, cp *lnrpc.ChannelPoint) *chainhash.Hash {
+	t.t.Helper()
+	txid, err := lnrpc.GetChanPointFundingTxid(cp)
+	require.NoError(t.t, err)
+	return txid
+}
+
+func getShortChannelID(t *harnessTest, node *lntest.HarnessNode, cp *lnrpc.ChannelPoint) lnwire.ShortChannelID {
+	t.t.Helper()
+	chans, err := node.ListChannels(testctx.New(t), &lnrpc.ListChannelsRequest{})
+	require.NoError(t.t, err)
+	targetChan := chanPointFundingToOutpoint(cp).String()
+	for _, c := range chans.Channels {
+		if c.ChannelPoint == targetChan {
+			return lnwire.NewShortChanIDFromInt(c.ChanId)
+		}
+	}
+	t.t.Fatalf("channel %s not found as open in node %s", targetChan, node.Name())
+	return lnwire.ShortChannelID{}
+}
+
+// findSweepTxsInNode attempts to find the sweep txs of the node which sweeps from
+// a (possibly force) closed channel that was closed with the passed closeTx.
+func findSweepTxsInNode(t *harnessTest, node *lntest.HarnessNode, closeTx *chainhash.Hash) map[chainhash.Hash]struct{} {
+	txs, err := node.GetTransactions(testctx.New(t), &lnrpc.GetTransactionsRequest{})
+	require.NoError(t.t, err)
+
+	sweeps := make(map[chainhash.Hash]struct{})
+	for _, txInfo := range txs.Transactions {
+		rawTx, err := hex.DecodeString(txInfo.RawTxHex)
+		require.NoError(t.t, err)
+		tx := new(wire.MsgTx)
+		require.NoError(t.t, tx.Deserialize(bytes.NewBuffer(rawTx)))
+		for _, in := range tx.TxIn {
+			if in.PreviousOutPoint.Hash == *closeTx {
+				txh, err := chainhash.NewHashFromStr(txInfo.TxHash)
+				require.NoError(t.t, err)
+				sweeps[*txh] = struct{}{}
+				break
+			}
+		}
+	}
+
+	return sweeps
 }
